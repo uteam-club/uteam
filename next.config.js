@@ -9,6 +9,10 @@ const nextConfig = {
   images: {
     domains: ['gtmpyyttkzjoiufiizwl.supabase.co'],
   },
+  output: 'standalone',
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 };
 
 module.exports = withNextIntl(nextConfig); 

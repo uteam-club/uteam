@@ -5,6 +5,25 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/options';
 import { Prisma } from '@prisma/client';
 
+// Расширенный тип Exercise, включающий дополнительные поля, не описанные в Prisma
+interface ExtendedExercise {
+  id: string;
+  name: string;
+  description: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  difficulty: number;
+  categoryId: string;
+  authorId?: string | null;
+  fileUrl?: string | null;
+  fileName?: string | null;
+  fileType?: string | null;
+  fileSize?: number | null;
+  length?: number | null;
+  width?: number | null;
+  [key: string]: any;
+}
+
 // GET /api/exercises - получить все упражнения
 export async function GET() {
   try {
@@ -79,7 +98,7 @@ export async function GET() {
     const exercisesArray = Array.isArray(exercises) ? exercises : [];
     
     // Создаем уникальный список ID авторов без использования Set
-    const authorIdsMap = {};
+    const authorIdsMap: Record<string, boolean> = {};
     exercisesArray
       .filter((ex: any) => ex.authorId)
       .forEach((ex: any) => {
@@ -654,11 +673,12 @@ export async function PUT(
       WHERE "A" = ${id}
     `;
     
-    // Объединяем результаты
-    const updatedTagIds = [...new Set([
+    // Создаем объединенный набор уникальных тегов
+    const tagIdsSet = new Set([
       ...tagRelations1.map(r => r.tagId),
       ...tagRelations2.map(r => r.tagId)
-    ])];
+    ]);
+    const updatedTagIds = Array.from(tagIdsSet);
     
     // Получаем теги по ID
     const tags = await prisma.exerciseTag.findMany({
@@ -739,9 +759,10 @@ export async function DELETE(
     });
     
     // Если есть файл, пытаемся удалить его из Supabase
-    if (existingExercise.fileUrl) {
+    const exerciseWithFile = existingExercise as ExtendedExercise;
+    if (exerciseWithFile.fileUrl) {
       try {
-        const fileKey = existingExercise.fileUrl.split('/').pop();
+        const fileKey = exerciseWithFile.fileUrl.split('/').pop();
         if (fileKey) {
           await supabaseAdmin.storage.from('exercises').remove([fileKey]);
         }

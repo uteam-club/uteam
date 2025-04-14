@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import { prisma } from './prisma';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserRole as PrismaUserRole } from '@prisma/client';
 
 type User = {
   id: string;
@@ -27,7 +27,7 @@ export async function createUser(email: string, password: string, name: string |
       email,
       password: hashedPassword,
       name,
-      role,
+      role: role as PrismaUserRole,
     }
   });
 }

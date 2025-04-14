@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 
-export default function ErrorPage() {
+// Компонент с бизнес-логикой, который использует useSearchParams
+function ErrorContent() {
   const t = useTranslations('auth');
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -61,5 +62,18 @@ export default function ErrorPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Главный компонент, который оборачивает бизнес-логику в Suspense
+export default function ErrorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-vista-dark">
+        <div className="animate-pulse text-vista-primary text-xl">Загрузка...</div>
+      </div>
+    }>
+      <ErrorContent />
+    </Suspense>
   );
 } 
