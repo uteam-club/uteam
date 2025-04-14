@@ -77,11 +77,15 @@ export async function GET() {
     
     // Получаем информацию об авторах
     const exercisesArray = Array.isArray(exercises) ? exercises : [];
-    const authorIds = [...new Set(
-      exercisesArray
-        .filter((ex: any) => ex.authorId)
-        .map((ex: any) => ex.authorId)
-    )];
+    
+    // Создаем уникальный список ID авторов без использования Set
+    const authorIdsMap = {};
+    exercisesArray
+      .filter((ex: any) => ex.authorId)
+      .forEach((ex: any) => {
+        authorIdsMap[ex.authorId] = true;
+      });
+    const authorIds = Object.keys(authorIdsMap);
     
     const authors = authorIds.length > 0 
       ? await prisma.user.findMany({

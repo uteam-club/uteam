@@ -281,8 +281,8 @@ export default function ExercisesPage() {
       
       // Фильтр по тегам
       const matchesTag = selectedTags.length === 0 || 
-        (Array.isArray(exercise.tags) && exercise.tags.length > 0 && selectedTags.every(tagId => 
-          exercise.tags.some(tag => tag.id === tagId)
+        (Array.isArray(exercise.tags) && exercise.tags?.length > 0 && selectedTags.every(tagId => 
+          exercise.tags!.some(tag => tag.id === tagId)
         ));
       
       return matchesSearch && matchesCategory && matchesAuthor && matchesTag;

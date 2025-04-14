@@ -9,33 +9,9 @@ export async function GET(
   try {
     const { categoryId } = params;
 
-    // Получаем категорию с количеством упражнений и тегов
+    // Получаем только саму категорию
     const category = await prisma.exerciseCategory.findUnique({
-      where: { id: categoryId },
-      include: {
-        _count: {
-          select: { 
-            exercises: true,
-            tags: true,
-          },
-        },
-        // Получаем все упражнения этой категории
-        exercises: {
-          orderBy: { name: 'asc' },
-          include: {
-            tags: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
-        // Получаем все теги этой категории
-        tags: {
-          orderBy: { name: 'asc' },
-        },
-      },
+      where: { id: categoryId }
     });
 
     if (!category) {
