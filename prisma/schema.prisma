@@ -1,12 +1,13 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
+  provider        = "prisma-client-js"
+  output          = "../node_modules/.prisma/client"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
 }
 
 model User {
@@ -143,7 +144,7 @@ model Exercise {
   ExerciseTags          ExerciseTags[]
   ExerciseToExerciseTag ExerciseToExerciseTag[]
   ExerciseToTags        ExerciseToTags[]
-  author                User?                   @relation(fields: [authorId], references: [id], onUpdate: NoAction)
+  author                User?                   @relation(fields: [authorId], references: [id], onUpdate: Restrict)
   category              ExerciseCategory        @relation(fields: [categoryId], references: [id])
   trainings             TrainingExercise[]
 
@@ -191,11 +192,11 @@ model TrainingExercise {
   repetitions Int?
   sets        Int?
   notes       String?
-  order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   trainingId  String
   exerciseId  String
+  order       Int      @default(0)
   exercise    Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
   training    Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
 
