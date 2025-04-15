@@ -50,37 +50,46 @@ export async function PUT(
       return NextResponse.json({ error: 'Игрок не найден' }, { status: 404 });
     }
     
-    // Разрешенные поля для обновления
-    const {
-      firstName,
-      lastName,
-      middleName,
-      nationality,
-      position,
-      number,
-      foot,
-      academyJoinDate,
-      birthDate,
-      bio,
-      photoUrl,
-    } = data;
+    // Создаем объект данных для обновления
+    const updateData: any = {};
+    
+    // Добавляем строковые поля
+    const stringFields = [
+      'firstName', 'lastName', 'middleName', 'nationality', 'position', 
+      'foot', 'bio', 'photoUrl', 'passportUrl', 'passportFileName',
+      'birthCertificateUrl', 'birthCertificateFileName', 'insuranceUrl', 
+      'insuranceFileName', 'status', 'birthCertificateNumber'
+    ];
+    
+    // Добавляем числовые поля
+    const numberFields = ['number', 'passportFileSize', 'birthCertificateFileSize', 'insuranceFileSize'];
+    
+    // Добавляем поля с датами
+    const dateFields = ['academyJoinDate', 'birthDate'];
+    
+    // Обрабатываем поля с типами данных
+    for (const field of stringFields) {
+      if (data[field] !== undefined) {
+        updateData[field] = data[field];
+      }
+    }
+    
+    for (const field of numberFields) {
+      if (data[field] !== undefined) {
+        updateData[field] = data[field] !== null ? Number(data[field]) : null;
+      }
+    }
+    
+    for (const field of dateFields) {
+      if (data[field] !== undefined) {
+        updateData[field] = data[field] ? new Date(data[field]) : null;
+      }
+    }
     
     // Обновляем игрока
     const updatedPlayer = await prisma.player.update({
       where: { id: playerId },
-      data: {
-        firstName: firstName || undefined,
-        lastName: lastName || undefined,
-        middleName: middleName || undefined,
-        nationality: nationality || undefined,
-        position: position || undefined,
-        number: number !== undefined ? Number(number) : undefined,
-        foot: foot || undefined,
-        academyJoinDate: academyJoinDate ? new Date(academyJoinDate) : undefined,
-        birthDate: birthDate ? new Date(birthDate) : undefined,
-        bio: bio || undefined,
-        photoUrl: photoUrl || undefined,
-      },
+      data: updateData,
     });
     
     return NextResponse.json(updatedPlayer, { status: 200 });

@@ -9,12 +9,14 @@ import {
   CheckIcon,
   XMarkIcon,
   ArrowUpTrayIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  DocumentIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import Link from 'next/link';
 import PlayerAvatar from '@/components/ui/PlayerAvatar';
+import DocumentUpload from '@/components/ui/DocumentUpload';
 
 type PlayerData = {
   id: string;
@@ -29,6 +31,16 @@ type PlayerData = {
   birthDate?: string | null;
   bio?: string | null;
   photoUrl?: string | null;
+  passportUrl?: string | null;
+  passportFileName?: string | null;
+  passportFileSize?: number | null;
+  birthCertificateUrl?: string | null;
+  birthCertificateFileName?: string | null;
+  birthCertificateFileSize?: number | null;
+  birthCertificateNumber?: string | null;
+  insuranceUrl?: string | null;
+  insuranceFileName?: string | null;
+  insuranceFileSize?: number | null;
   teamId: string;
   team: {
     id: string;
@@ -47,8 +59,14 @@ export default function PlayerProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<PlayerData>>({});
   const [uploading, setUploading] = useState(false);
+  const [uploadingPassport, setUploadingPassport] = useState(false);
+  const [uploadingCertificate, setUploadingCertificate] = useState(false);
+  const [uploadingInsurance, setUploadingInsurance] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const passportInputRef = useRef<HTMLInputElement>(null);
+  const certificateInputRef = useRef<HTMLInputElement>(null);
+  const insuranceInputRef = useRef<HTMLInputElement>(null);
 
   // Загрузка данных игрока
   useEffect(() => {
@@ -134,6 +152,7 @@ export default function PlayerProfilePage() {
       
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('fileType', 'photo');
       
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -146,7 +165,7 @@ export default function PlayerProfilePage() {
       }
       
       const data = await response.json();
-      console.log('Успешная загрузка:', data);
+      console.log('Успешная загрузка фото:', data);
       
       // Обновляем URL фото игрока
       const updateResponse = await fetch(`/api/players/${playerId}`, {
@@ -175,6 +194,213 @@ export default function PlayerProfilePage() {
     }
   };
 
+  // Обработчик загрузки паспорта
+  const handlePassportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    
+    // Проверка типа файла
+    if (!file.type.startsWith('image/') && !file.type.startsWith('application/pdf')) {
+      alert('Пожалуйста, выберите изображение или PDF-документ');
+      return;
+    }
+    
+    try {
+      setUploadingPassport(true);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileType', 'document');
+      
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Ошибка загрузки файла');
+      }
+      
+      const data = await response.json();
+      console.log('Успешная загрузка паспорта:', data);
+      
+      // Обновляем URL паспорта игрока
+      const updateResponse = await fetch(`/api/players/${playerId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          passportUrl: data.url,
+          passportFileName: file.name,
+          passportFileSize: file.size
+        }),
+      });
+      
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json();
+        throw new Error(errorData.error || 'Ошибка обновления профиля');
+      }
+      
+      const updatedPlayer = await updateResponse.json();
+      setPlayer(updatedPlayer);
+      setFormData(prev => ({ 
+        ...prev, 
+        passportUrl: data.url,
+        passportFileName: file.name,
+        passportFileSize: file.size
+      }));
+      
+      alert('Паспорт успешно загружен');
+    } catch (error) {
+      console.error('Ошибка загрузки паспорта:', error);
+      alert(`Не удалось загрузить паспорт: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+    } finally {
+      setUploadingPassport(false);
+    }
+  };
+
+  // Обработчик загрузки свидетельства о рождении
+  const handleCertificateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    
+    // Проверка типа файла
+    if (!file.type.startsWith('image/') && !file.type.startsWith('application/pdf')) {
+      alert('Пожалуйста, выберите изображение или PDF-документ');
+      return;
+    }
+    
+    try {
+      setUploadingCertificate(true);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileType', 'document');
+      
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Ошибка загрузки файла');
+      }
+      
+      const data = await response.json();
+      console.log('Успешная загрузка свидетельства:', data);
+      
+      // Обновляем URL свидетельства игрока
+      const updateResponse = await fetch(`/api/players/${playerId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          birthCertificateUrl: data.url,
+          birthCertificateFileName: file.name,
+          birthCertificateFileSize: file.size
+        }),
+      });
+      
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json();
+        throw new Error(errorData.error || 'Ошибка обновления профиля');
+      }
+      
+      const updatedPlayer = await updateResponse.json();
+      setPlayer(updatedPlayer);
+      setFormData(prev => ({ 
+        ...prev, 
+        birthCertificateUrl: data.url,
+        birthCertificateFileName: file.name,
+        birthCertificateFileSize: file.size
+      }));
+      
+      alert('Свидетельство о рождении успешно загружено');
+    } catch (error) {
+      console.error('Ошибка загрузки свидетельства:', error);
+      alert(`Не удалось загрузить свидетельство: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+    } finally {
+      setUploadingCertificate(false);
+    }
+  };
+
+  // Обработчик загрузки медицинской страховки
+  const handleInsuranceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    
+    // Проверка типа файла
+    if (!file.type.startsWith('image/') && !file.type.startsWith('application/pdf')) {
+      alert('Пожалуйста, выберите изображение или PDF-документ');
+      return;
+    }
+    
+    try {
+      setUploadingInsurance(true);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileType', 'document');
+      
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Ошибка загрузки файла');
+      }
+      
+      const data = await response.json();
+      console.log('Успешная загрузка страховки:', data);
+      
+      // Обновляем URL страховки игрока
+      const updateResponse = await fetch(`/api/players/${playerId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          insuranceUrl: data.url,
+          insuranceFileName: file.name,
+          insuranceFileSize: file.size
+        }),
+      });
+      
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json();
+        throw new Error(errorData.error || 'Ошибка обновления профиля');
+      }
+      
+      const updatedPlayer = await updateResponse.json();
+      setPlayer(updatedPlayer);
+      setFormData(prev => ({ 
+        ...prev, 
+        insuranceUrl: data.url,
+        insuranceFileName: file.name,
+        insuranceFileSize: file.size
+      }));
+      
+      alert('Медицинская страховка успешно загружена');
+    } catch (error) {
+      console.error('Ошибка загрузки страховки:', error);
+      alert(`Не удалось загрузить страховку: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+    } finally {
+      setUploadingInsurance(false);
+    }
+  };
+
   // Форматирование даты
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '';
@@ -198,7 +424,7 @@ export default function PlayerProfilePage() {
     }
   };
 
-  // Получение текста сильной ноги
+  // Получение текста рабочей ноги
   const getFootText = (foot: string | null | undefined) => {
     if (!foot) return '';
     
@@ -207,6 +433,56 @@ export default function PlayerProfilePage() {
       case 'RIGHT': return 'Правая';
       case 'BOTH': return 'Обе';
       default: return '';
+    }
+  };
+
+  // Обработка удаления документа
+  const handleDeleteDocument = async (documentType: 'passport' | 'birthCertificate' | 'insurance') => {
+    let documentTypeName = '';
+    switch (documentType) {
+      case 'passport': documentTypeName = 'паспорт'; break;
+      case 'birthCertificate': documentTypeName = 'свидетельство о рождении'; break;
+      case 'insurance': documentTypeName = 'мед. страховку'; break;
+    }
+    
+    if (!confirm(`Вы уверены, что хотите удалить ${documentTypeName}?`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      let data;
+      if (documentType === 'passport') {
+        data = { passportUrl: null, passportFileName: null, passportFileSize: null };
+      } else if (documentType === 'birthCertificate') {
+        data = { birthCertificateUrl: null, birthCertificateFileName: null, birthCertificateFileSize: null };
+      } else {
+        data = { insuranceUrl: null, insuranceFileName: null, insuranceFileSize: null };
+      }
+      
+      const response = await fetch(`/api/players/${playerId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Ошибка удаления документа');
+      }
+
+      const updatedPlayer = await response.json();
+      setPlayer(updatedPlayer);
+      setFormData(prev => ({ ...prev, ...data }));
+      alert('Документ успешно удален');
+    } catch (error) {
+      console.error('Ошибка удаления документа:', error);
+      alert(`Не удалось удалить документ: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -256,6 +532,30 @@ export default function PlayerProfilePage() {
                 ref={fileInputRef} 
                 onChange={handleFileUpload} 
                 accept="image/*" 
+                className="hidden" 
+              />
+              
+              <input 
+                type="file" 
+                ref={passportInputRef} 
+                onChange={handlePassportUpload} 
+                accept="application/pdf,image/*" 
+                className="hidden" 
+              />
+              
+              <input 
+                type="file" 
+                ref={certificateInputRef} 
+                onChange={handleCertificateUpload} 
+                accept="application/pdf,image/*" 
+                className="hidden" 
+              />
+              
+              <input 
+                type="file" 
+                ref={insuranceInputRef} 
+                onChange={handleInsuranceUpload} 
+                accept="application/pdf,image/*" 
                 className="hidden" 
               />
             </div>
@@ -422,6 +722,23 @@ export default function PlayerProfilePage() {
                 )}
               </div>
               
+              {/* № свидетельства о рождении */}
+              <div>
+                <p className="text-vista-light/60 text-sm">№ свидетельства</p>
+                {isEditing ? (
+                  <input 
+                    type="text" 
+                    name="birthCertificateNumber" 
+                    value={formData.birthCertificateNumber || ''} 
+                    onChange={handleInputChange}
+                    placeholder="Укажите номер"
+                    className="w-full bg-vista-dark border border-vista-secondary rounded p-1 text-vista-light"
+                  />
+                ) : (
+                  <p className="text-vista-light">{player?.birthCertificateNumber || '—'}</p>
+                )}
+              </div>
+              
               {/* Дата зачисления в академию */}
               <div>
                 <p className="text-vista-light/60 text-sm">Дата зачисления в академию</p>
@@ -438,22 +755,123 @@ export default function PlayerProfilePage() {
                   <p className="text-vista-light">{formatDate(player?.academyJoinDate) || '—'}</p>
                 )}
               </div>
-            </div>
-            
-            {/* Био */}
-            <div className="mt-6">
-              <p className="text-vista-light/60 text-sm mb-1">О игроке</p>
-              {isEditing ? (
-                <textarea 
-                  name="bio" 
-                  value={formData.bio || ''} 
-                  onChange={handleInputChange}
-                  placeholder="Информация об игроке"
-                  className="w-full bg-vista-dark border border-vista-secondary rounded p-2 text-vista-light h-24"
-                />
-              ) : (
-                <p className="text-vista-light">{player?.bio || '—'}</p>
-              )}
+              
+              {/* Паспорт */}
+              <div>
+                <p className="text-vista-light/60 text-sm">Паспорт</p>
+                <div className="flex items-center mt-1">
+                  {player?.passportUrl ? (
+                    <div className="flex items-center space-x-2">
+                      <a 
+                        href={player.passportUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center text-vista-primary hover:text-vista-primary/80 transition-colors"
+                      >
+                        <DocumentIcon className="h-5 w-5 mr-1" />
+                        <span className="text-sm truncate max-w-[150px]">{player.passportFileName || 'Документ'}</span>
+                      </a>
+                      <button
+                        onClick={() => handleDeleteDocument('passport')}
+                        className="text-vista-error hover:text-vista-error/80 transition-colors"
+                      >
+                        <XMarkIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => passportInputRef.current?.click()}
+                      disabled={uploadingPassport}
+                      className="flex items-center text-vista-light/70 hover:text-vista-primary transition-colors"
+                    >
+                      {uploadingPassport ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-vista-primary mr-1"></div>
+                      ) : (
+                        <ArrowUpTrayIcon className="h-4 w-4 mr-1" />
+                      )}
+                      <span className="text-sm">Загрузить</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              {/* Свидетельство о рождении */}
+              <div>
+                <p className="text-vista-light/60 text-sm">Свидетельство о рождении</p>
+                <div className="flex items-center mt-1">
+                  {player?.birthCertificateUrl ? (
+                    <div className="flex items-center space-x-2">
+                      <a 
+                        href={player.birthCertificateUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center text-vista-primary hover:text-vista-primary/80 transition-colors"
+                      >
+                        <DocumentIcon className="h-5 w-5 mr-1" />
+                        <span className="text-sm truncate max-w-[150px]">{player.birthCertificateFileName || 'Документ'}</span>
+                      </a>
+                      <button
+                        onClick={() => handleDeleteDocument('birthCertificate')}
+                        className="text-vista-error hover:text-vista-error/80 transition-colors"
+                      >
+                        <XMarkIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => certificateInputRef.current?.click()}
+                      disabled={uploadingCertificate}
+                      className="flex items-center text-vista-light/70 hover:text-vista-primary transition-colors"
+                    >
+                      {uploadingCertificate ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-vista-primary mr-1"></div>
+                      ) : (
+                        <ArrowUpTrayIcon className="h-4 w-4 mr-1" />
+                      )}
+                      <span className="text-sm">Загрузить</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              {/* Медицинская страховка */}
+              <div>
+                <p className="text-vista-light/60 text-sm">Мед. страховка</p>
+                <div className="flex items-center mt-1">
+                  {player?.insuranceUrl ? (
+                    <div className="flex items-center space-x-2">
+                      <a 
+                        href={player.insuranceUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center text-vista-primary hover:text-vista-primary/80 transition-colors"
+                      >
+                        <DocumentIcon className="h-5 w-5 mr-1" />
+                        <span className="text-sm truncate max-w-[150px]">{player.insuranceFileName || 'Документ'}</span>
+                      </a>
+                      <button
+                        onClick={() => handleDeleteDocument('insurance')}
+                        className="text-vista-error hover:text-vista-error/80 transition-colors"
+                      >
+                        <XMarkIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => insuranceInputRef.current?.click()}
+                      disabled={uploadingInsurance}
+                      className="flex items-center text-vista-light/70 hover:text-vista-primary transition-colors"
+                    >
+                      {uploadingInsurance ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-vista-primary mr-1"></div>
+                      ) : (
+                        <ArrowUpTrayIcon className="h-4 w-4 mr-1" />
+                      )}
+                      <span className="text-sm">Загрузить</span>
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

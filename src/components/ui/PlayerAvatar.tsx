@@ -41,7 +41,7 @@ export default function PlayerAvatar({
   return (
     <div 
       className={cn(
-        'relative rounded-full overflow-hidden bg-gradient-to-b from-vista-light/90 to-vista-dark/10',
+        'relative overflow-hidden bg-gradient-to-b from-vista-light/90 to-vista-dark/10',
         sizeClasses[size],
         className
       )}

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { GlobeAltIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { GlobeAltIcon, ChevronDownIcon, ChevronRightIcon, UserCircleIcon, MagnifyingGlassIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, BellIcon, DocumentIcon } from '@heroicons/react/24/outline';
 import { useState, useRef, useEffect } from 'react';
 import { Locale } from '@/i18n';
 
@@ -15,7 +15,7 @@ type Team = {
   description?: string | null;
 };
 
-type NavItemDropdown = {
+interface NavItemDropdown {
   key: string;
   label: string;
   href: string;
@@ -23,12 +23,13 @@ type NavItemDropdown = {
   adminOnly?: boolean;
 }
 
-type NavItem = {
+interface NavItem {
   key: string;
   label: string;
   href: string;
   hasDropdown?: boolean;
   dropdownItems?: NavItemDropdown[];
+  icon?: React.ReactNode;
 }
 
 export default function Navbar() {
@@ -73,6 +74,12 @@ export default function Navbar() {
         { key: 'gps', label: t('gps'), href: `/${locale}/dashboard/analytics/gps` },
         { key: 'attendance', label: t('attendance'), href: `/${locale}/dashboard/analytics/attendance` },
       ]
+    },
+    { 
+      key: 'documents', 
+      label: t('documents'), 
+      href: `/${locale}/dashboard/documents`,
+      icon: <DocumentIcon className="w-5 h-5 mr-2" />
     },
     { 
       key: 'settings', 

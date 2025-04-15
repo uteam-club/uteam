@@ -13,33 +13,53 @@ export async function POST(req: NextRequest) {
     
     const formData = await req.formData();
     const file = formData.get('file') as File;
+    const fileType = formData.get('fileType')?.toString() || 'photo'; // 'photo' или 'document'
     
     if (!file) {
       return NextResponse.json({ error: 'Файл не найден' }, { status: 400 });
     }
     
     // Проверка типа файла
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Загрузить можно только изображения' }, { status: 400 });
+    if (!file.type.startsWith('image/') && !file.type.startsWith('application/pdf')) {
+      return NextResponse.json({ error: 'Загрузить можно только изображения или PDF-документы' }, { status: 400 });
     }
     
     // Определяем расширение файла
     const fileExtension = file.name.split('.').pop();
     
-    // Создаем уникальное имя файла
-    const fileName = `${uuidv4()}-${file.name.replace(/\s+/g, '_')}`;
+    // Создаем уникальное имя файла - избегаем проблем с кириллицей
+    const sanitizedName = file.name
+      .replace(/[^\w\s.-]/g, '') // Удаляем все кроме букв, цифр, пробелов, точек и дефисов
+      .replace(/\s+/g, '_'); // Заменяем пробелы на подчеркивания
     
-    // Путь в хранилище - используем vista-media/player-photos/ в качестве пути
-    const filePath = `player-photos/${fileName}`;
+    const fileName = `${uuidv4()}-${sanitizedName}`;
+    
+    // Выбираем папку в зависимости от типа файла
+    const folderPath = fileType === 'document' ? 'player-documents' : 'player-photos';
+    
+    // Путь в хранилище
+    const filePath = `${folderPath}/${fileName}`;
+    
+    console.log(`Загрузка ${fileType === 'document' ? 'документа' : 'фото'} в Supabase:`, {
+      size: file.size,
+      type: file.type,
+      path: filePath,
+      bucketInfo: await supabaseAdmin.storage.getBucket('vista-media')
+    });
+    
+    // Пробуем получить информацию о папке
+    try {
+      const { data: folderCheck, error: folderError } = await supabaseAdmin.storage
+        .from('vista-media')
+        .list(folderPath);
+        
+      console.log(`Проверка папки ${folderPath}:`, folderCheck || folderError);
+    } catch (e) {
+      console.error(`Ошибка при проверке папки ${folderPath}:`, e);
+    }
     
     // Конвертируем файл в ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
-    
-    console.log('Загрузка файла в Supabase:', {
-      size: arrayBuffer.byteLength,
-      type: file.type,
-      path: filePath
-    });
     
     // Загружаем файл в Supabase Storage в бакет vista-media
     const { data, error } = await supabaseAdmin.storage
@@ -47,6 +67,7 @@ export async function POST(req: NextRequest) {
       .upload(filePath, arrayBuffer, {
         contentType: file.type,
         cacheControl: '3600',
+        upsert: true
       });
     
     if (error) {
@@ -69,7 +90,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       url: publicUrl,
       fileName,
-      filePath
+      filePath,
+      fileType: file.type
     }, { status: 200 });
   } catch (error) {
     console.error('Ошибка загрузки файла:', error);

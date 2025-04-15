@@ -1,29 +1,17 @@
 import { PrismaClient } from '@prisma/client';
 
-// Глобальная переменная для хранения Prisma клиента
-const globalForPrisma = global as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-// Функция для создания и кэширования клиента Prisma
-export function getPrismaClient(): PrismaClient {
-  if (!globalForPrisma.prisma) {
-    globalForPrisma.prisma = new PrismaClient({
-      log: process.env.NODE_ENV === 'development' 
-        ? ['query', 'error', 'warn'] 
-        : ['error'],
-    });
-    
-    // Добавляем обработчик для отключения при завершении процесса
-    process.on('beforeExit', () => {
-      if (globalForPrisma.prisma) {
-        globalForPrisma.prisma.$disconnect().catch(console.error);
-      }
-    });
-  }
-  
-  return globalForPrisma.prisma;
+// Глобальная переменная для хранения клиента в dev режиме
+declare global {
+  var prisma: PrismaClient | undefined;
 }
 
+// Создаем экземпляр клиента для production или берем существующий для dev
+export const prisma = global.prisma || new PrismaClient({
+  log: ['query', 'error'],
+});
+
+// Для dev режима сохраняем экземпляр клиента в глобальной переменной
+if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
+
 // Экспортируем готовый инстанс
-export const prisma = getPrismaClient(); 
+export const prismaClient = prisma; 

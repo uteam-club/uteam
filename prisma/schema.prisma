@@ -5,9 +5,9 @@ generator client {
 }
 
 datasource db {
-  provider     = "postgresql"
-  url          = env("DATABASE_URL")
-  relationMode = "prisma"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -144,7 +144,7 @@ model Exercise {
   ExerciseTags          ExerciseTags[]
   ExerciseToExerciseTag ExerciseToExerciseTag[]
   ExerciseToTags        ExerciseToTags[]
-  author                User?                   @relation(fields: [authorId], references: [id], onUpdate: Restrict)
+  author                User?                   @relation(fields: [authorId], references: [id], onUpdate: NoAction)
   category              ExerciseCategory        @relation(fields: [categoryId], references: [id])
   trainings             TrainingExercise[]
 
@@ -300,24 +300,34 @@ model Notification {
 }
 
 model Player {
-  id              String                @id @default(cuid())
-  firstName       String
-  lastName        String
-  number          Int?
-  bio             String?
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
-  teamId          String
-  academyJoinDate DateTime?
-  birthDate       DateTime?
-  foot            Foot?
-  middleName      String?
-  nationality     String?
-  photoUrl        String?
-  position        PlayerPosition?
-  status          PlayerStatus          @default(READY)
-  team            Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  trainings       TrainingParticipant[]
+  id                       String                @id @default(cuid())
+  firstName                String
+  lastName                 String
+  number                   Int?
+  bio                      String?
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  teamId                   String
+  academyJoinDate          DateTime?
+  birthDate                DateTime?
+  foot                     Foot?
+  middleName               String?
+  nationality              String?
+  photoUrl                 String?
+  position                 PlayerPosition?
+  status                   PlayerStatus          @default(READY)
+  passportUrl              String?
+  passportFileName         String?
+  passportFileSize         Int?
+  birthCertificateUrl      String?
+  birthCertificateFileName String?
+  birthCertificateFileSize Int?
+  birthCertificateNumber   String?
+  insuranceUrl             String?
+  insuranceFileName        String?
+  insuranceFileSize        Int?
+  team                     Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  trainings                TrainingParticipant[]
 
   @@map("players")
 }
