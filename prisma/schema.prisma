@@ -1,0 +1,419 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  image         String?
+  password      String?
+  role          UserRole       @default(USER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  accounts      Account[]
+  exercises     Exercise[]
+  notifications Notification[]
+  profile       Profile?
+  sessions      Session[]
+  tasks         Task[]         @relation("AssignedTasks")
+  events        Event[]        @relation("EventParticipants")
+  teams         Team[]         @relation("TeamMembers")
+
+  @@map("users")
+}
+
+model Profile {
+  id         String    @id @default(cuid())
+  bio        String?
+  phone      String?
+  address    String?
+  birthday   DateTime?
+  position   String?
+  department String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  userId     String    @unique
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Team {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  image       String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  documents   Document[]
+  events      Event[]
+  matches     Match[]
+  players     Player[]
+  tasks       Task[]
+  trainings   Training[]
+  members     User[]     @relation("TeamMembers")
+
+  @@map("teams")
+}
+
+model TrainingCategory {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  trainings   Training[]
+
+  @@map("training_categories")
+}
+
+model ExerciseCategory {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  description String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  tags        ExerciseTag[]
+  exercises   Exercise[]
+
+  @@map("exercise_categories")
+}
+
+model Exercise {
+  id                    String                  @id @default(cuid())
+  name                  String
+  description           String?
+  difficulty            Int                     @default(1)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  categoryId            String
+  length                Int?
+  width                 Int?
+  fileUrl               String?
+  fileName              String?
+  fileType              String?
+  fileSize              Int?
+  authorId              String?
+  ExerciseTags          ExerciseTags[]
+  ExerciseToExerciseTag ExerciseToExerciseTag[]
+  ExerciseToTags        ExerciseToTags[]
+  author                User?                   @relation(fields: [authorId], references: [id], onUpdate: NoAction)
+  category              ExerciseCategory        @relation(fields: [categoryId], references: [id])
+  trainings             TrainingExercise[]
+
+  @@map("exercises")
+}
+
+model ExerciseTag {
+  id                    String                  @id @default(cuid())
+  name                  String
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  exerciseCategoryId    String
+  ExerciseTags          ExerciseTags[]
+  ExerciseToExerciseTag ExerciseToExerciseTag[]
+  ExerciseToTags        ExerciseToTags[]
+  exerciseCategory      ExerciseCategory        @relation(fields: [exerciseCategoryId], references: [id], onDelete: Cascade)
+
+  @@unique([name, exerciseCategoryId])
+  @@map("exercise_tags")
+}
+
+model Training {
+  id           String                @id @default(cuid())
+  title        String
+  description  String?
+  startTime    DateTime
+  endTime      DateTime
+  location     String?
+  status       EventStatus           @default(PLANNED)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  teamId       String?
+  categoryId   String?
+  exercises    TrainingExercise[]
+  participants TrainingParticipant[]
+  category     TrainingCategory?     @relation(fields: [categoryId], references: [id])
+  team         Team?                 @relation(fields: [teamId], references: [id])
+
+  @@map("trainings")
+}
+
+model TrainingExercise {
+  id          String   @id @default(cuid())
+  duration    Int?
+  repetitions Int?
+  sets        Int?
+  notes       String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  trainingId  String
+  exerciseId  String
+  exercise    Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  training    Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+
+  @@map("training_exercises")
+}
+
+model TrainingParticipant {
+  id               String           @id @default(cuid())
+  attended         Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  trainingId       String
+  playerId         String
+  notes            String?
+  attendanceStatus AttendanceStatus @default(READY)
+  player           Player           @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  training         Training         @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+
+  @@unique([trainingId, playerId])
+  @@map("training_participants")
+}
+
+model Match {
+  id        String      @id @default(cuid())
+  opponent  String
+  location  String?
+  startTime DateTime
+  endTime   DateTime?
+  homeScore Int?
+  awayScore Int?
+  status    EventStatus @default(PLANNED)
+  notes     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  teamId    String?
+  team      Team?       @relation(fields: [teamId], references: [id])
+
+  @@map("matches")
+}
+
+model Event {
+  id           String      @id @default(cuid())
+  title        String
+  description  String?
+  startTime    DateTime
+  endTime      DateTime
+  location     String?
+  status       EventStatus @default(PLANNED)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  teamId       String?
+  team         Team?       @relation(fields: [teamId], references: [id])
+  participants User[]      @relation("EventParticipants")
+
+  @@map("events")
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus   @default(TODO)
+  dueDate     DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  teamId      String?
+  team        Team?        @relation(fields: [teamId], references: [id])
+  assignees   User[]       @relation("AssignedTasks")
+
+  @@map("tasks")
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  fileUrl     String
+  fileType    String
+  fileSize    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  teamId      String?
+  team        Team?    @relation(fields: [teamId], references: [id])
+
+  @@map("documents")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  type      NotificationType @default(INFO)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Player {
+  id              String                @id @default(cuid())
+  firstName       String
+  lastName        String
+  number          Int?
+  bio             String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  teamId          String
+  academyJoinDate DateTime?
+  birthDate       DateTime?
+  foot            Foot?
+  middleName      String?
+  nationality     String?
+  photoUrl        String?
+  position        PlayerPosition?
+  status          PlayerStatus          @default(READY)
+  team            Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  trainings       TrainingParticipant[]
+
+  @@map("players")
+}
+
+model ExerciseToExerciseTag {
+  A             String
+  B             String
+  exercises     Exercise    @relation(fields: [A], references: [id], onDelete: Cascade)
+  exercise_tags ExerciseTag @relation(fields: [B], references: [id], onDelete: Cascade)
+
+  @@unique([A, B], map: "_ExerciseToExerciseTag_AB_unique")
+  @@index([B], map: "_ExerciseToExerciseTag_B_index")
+  @@map("_ExerciseToExerciseTag")
+}
+
+model ExerciseToTags {
+  A             String
+  B             String
+  exercises     Exercise    @relation(fields: [A], references: [id], onDelete: Cascade)
+  exercise_tags ExerciseTag @relation(fields: [B], references: [id], onDelete: Cascade)
+
+  @@unique([A, B], map: "_ExerciseToTags_AB_unique")
+  @@index([B], map: "_ExerciseToTags_B_index")
+  @@map("_ExerciseToTags")
+}
+
+model ExerciseTags {
+  A             String
+  B             String
+  exercises     Exercise    @relation(fields: [A], references: [id], onDelete: Cascade)
+  exercise_tags ExerciseTag @relation(fields: [B], references: [id], onDelete: Cascade)
+
+  @@id([A, B], map: "_ExerciseTags_AB_pkey")
+  @@index([B], map: "_ExerciseTags_B_index")
+  @@map("_ExerciseTags")
+}
+
+enum UserRole {
+  USER
+  MANAGER
+  ADMIN
+  SUPERADMIN
+}
+
+enum EventStatus {
+  PLANNED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  ERROR
+  SUCCESS
+}
+
+enum PlayerPosition {
+  GOALKEEPER
+  DEFENDER
+  MIDFIELDER
+  FORWARD
+}
+
+enum Foot {
+  LEFT
+  RIGHT
+  BOTH
+}
+
+enum PlayerStatus {
+  READY
+  REHABILITATION
+  SICK
+  STUDY
+  OTHER
+}
+
+enum AttendanceStatus {
+  READY
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
