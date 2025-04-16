@@ -5,7 +5,11 @@
  */
 
 const { PrismaClient } = require('@prisma/client');
-require('dotenv').config();
+
+// Загружаем dotenv только в локальной среде
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 const prisma = new PrismaClient({ log: ['error'] });
 
