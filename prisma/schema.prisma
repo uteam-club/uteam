@@ -128,6 +128,7 @@ model ExerciseCategory {
   @@map("exercise_categories")
 }
 
+/// Модель упражнения
 model Exercise {
   id                    String                  @id @default(cuid())
   name                  String
@@ -144,8 +145,6 @@ model Exercise {
   fileSize              Int?
   authorId              String?
   ExerciseTags          ExerciseTags[]
-  ExerciseToExerciseTag ExerciseToExerciseTag[] @ignore
-  ExerciseToTags        ExerciseToTags[]        @ignore
   users                 User?                   @relation(fields: [authorId], references: [id], onUpdate: NoAction)
   exercise_categories   ExerciseCategory        @relation(fields: [categoryId], references: [id])
   training_exercises    TrainingExercise[]
@@ -153,6 +152,7 @@ model Exercise {
   @@map("exercises")
 }
 
+/// Модель тега упражнения
 model ExerciseTag {
   id                    String                  @id @default(cuid())
   name                  String
@@ -160,8 +160,6 @@ model ExerciseTag {
   updatedAt             DateTime                @updatedAt
   exerciseCategoryId    String
   ExerciseTags          ExerciseTags[]
-  ExerciseToExerciseTag ExerciseToExerciseTag[] @ignore
-  ExerciseToTags        ExerciseToTags[]        @ignore
   exercise_categories   ExerciseCategory        @relation(fields: [exerciseCategoryId], references: [id], onDelete: Cascade)
 
   @@unique([name, exerciseCategoryId])
@@ -337,10 +335,8 @@ model Player {
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model ExerciseToExerciseTag {
-  A             String
-  B             String
-  exercises     Exercise    @relation(fields: [A], references: [id], onDelete: Cascade)
-  exercise_tags ExerciseTag @relation(fields: [B], references: [id], onDelete: Cascade)
+  A String
+  B String
 
   @@unique([A, B], map: "_ExerciseToExerciseTag_AB_unique")
   @@index([B], map: "_ExerciseToExerciseTag_B_index")
@@ -350,10 +346,8 @@ model ExerciseToExerciseTag {
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model ExerciseToTags {
-  A             String
-  B             String
-  exercises     Exercise    @relation(fields: [A], references: [id], onDelete: Cascade)
-  exercise_tags ExerciseTag @relation(fields: [B], references: [id], onDelete: Cascade)
+  A String
+  B String
 
   @@unique([A, B], map: "_ExerciseToTags_AB_unique")
   @@index([B], map: "_ExerciseToTags_B_index")

@@ -395,16 +395,15 @@ export async function POST(request: Request) {
       const exercise = await prisma.exercise.findUnique({
         where: {
           id: baseData.id
-        },
-        include: {
-          category: {
-            select: {
-              name: true
-            }
-          }
         }
       });
-
+      
+      // Получаем информацию о категории отдельно
+      const category = await prisma.exerciseCategory.findUnique({
+        where: { id: baseData.categoryId },
+        select: { name: true }
+      });
+      
       // Дополнительно получаем теги из обеих связующих таблиц
       const exerciseTags: Array<{id: string, name: string}> = [];
       
@@ -442,9 +441,10 @@ export async function POST(request: Request) {
         exerciseTags.push(...tags);
       }
       
-      // Добавляем теги к результату
+      // Формируем результат
       const result = {
         ...exercise,
+        category: category ? { name: category.name } : { name: 'Без категории' },
         tags: exerciseTags
       };
 
