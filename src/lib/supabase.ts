@@ -12,7 +12,6 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
 
 // Опции для клиента Supabase
 const supabaseOptions = {
@@ -24,25 +23,11 @@ const supabaseOptions = {
 };
 
 // Публичный клиент для клиентской части
-export const supabase: SupabaseClient = createClient(
-  supabaseUrl, 
-  supabaseAnonKey, 
-  supabaseOptions
-);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Сервисный клиент для административных функций с повышенными правами
-export const supabaseAdmin: SupabaseClient = createClient(
-  supabaseUrl, 
-  supabaseServiceKey, 
-  {
-    ...supabaseOptions,
-    auth: {
-      ...supabaseOptions.auth,
-      // Используем сервисную роль
-      autoRefreshToken: false,
-    }
-  }
-);
+// Сервисный клиент для административных функций
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 // Функция для проверки бакетов и создания их при необходимости
 export async function checkAndCreateBucket(bucketName: string): Promise<boolean> {
