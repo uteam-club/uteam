@@ -145,6 +145,8 @@ model Exercise {
   fileSize              Int?
   authorId              String?
   ExerciseTags          ExerciseTags[]
+  ExerciseToExerciseTag ExerciseToExerciseTag[] @ignore
+  ExerciseToTags        ExerciseToTags[]        @ignore
   users                 User?                   @relation(fields: [authorId], references: [id], onUpdate: NoAction)
   exercise_categories   ExerciseCategory        @relation(fields: [categoryId], references: [id])
   training_exercises    TrainingExercise[]
@@ -160,6 +162,8 @@ model ExerciseTag {
   updatedAt             DateTime                @updatedAt
   exerciseCategoryId    String
   ExerciseTags          ExerciseTags[]
+  ExerciseToExerciseTag ExerciseToExerciseTag[] @ignore
+  ExerciseToTags        ExerciseToTags[]        @ignore
   exercise_categories   ExerciseCategory        @relation(fields: [exerciseCategoryId], references: [id], onDelete: Cascade)
 
   @@unique([name, exerciseCategoryId])
@@ -337,9 +341,9 @@ model Player {
 model ExerciseToExerciseTag {
   A String
   B String
+  exercises Exercise @relation(fields: [A], references: [id])
+  tags ExerciseTag @relation(fields: [B], references: [id])
 
-  @@unique([A, B], map: "_ExerciseToExerciseTag_AB_unique")
-  @@index([B], map: "_ExerciseToExerciseTag_B_index")
   @@map("_ExerciseToExerciseTag")
   @@ignore
 }
@@ -348,9 +352,9 @@ model ExerciseToExerciseTag {
 model ExerciseToTags {
   A String
   B String
+  exercises Exercise @relation(fields: [A], references: [id])
+  tags ExerciseTag @relation(fields: [B], references: [id])
 
-  @@unique([A, B], map: "_ExerciseToTags_AB_unique")
-  @@index([B], map: "_ExerciseToTags_B_index")
   @@map("_ExerciseToTags")
   @@ignore
 }
