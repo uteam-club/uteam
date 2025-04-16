@@ -436,7 +436,7 @@ export async function POST(request: Request) {
 // Функция для загрузки файла в Supabase Storage
 async function uploadFileToSupabase(file: File) {
   if (!(file instanceof File) || file.size === 0) {
-    console.log('Полученный файл не является допустимым:', file);
+    console.error('Полученный файл не является допустимым:', file);
     return null;
   }
 
@@ -447,29 +447,70 @@ async function uploadFileToSupabase(file: File) {
     
     console.log(`Загрузка файла: ${fileName} Размер: ${file.size} Тип: ${file.type}`);
     
+    // Проверка настроек Supabase
+    console.log(`Используется URL Supabase: ${process.env.NEXT_PUBLIC_SUPABASE_URL}`);
+    console.log('Проверка доступности бакета exercises...');
+    
+    // Проверяем существование бакета перед загрузкой
+    const { data: bucketData, error: bucketError } = await supabaseAdmin.storage.getBucket('exercises');
+    
+    if (bucketError) {
+      console.error('Ошибка при проверке бакета exercises:', bucketError);
+      
+      // Попытка создать бакет, если он не существует
+      console.log('Попытка создать бакет exercises...');
+      const { data: createData, error: createError } = await supabaseAdmin.storage
+        .createBucket('exercises', { public: true });
+        
+      if (createError) {
+        console.error('Не удалось создать бакет exercises:', createError);
+        return null;
+      } else {
+        console.log('Бакет exercises успешно создан');
+      }
+    } else {
+      console.log('Бакет exercises существует, продолжаем загрузку');
+    }
+    
     let fileBuffer;
     try {
       fileBuffer = await file.arrayBuffer();
       
+      // Явно проверяем тип файла
+      console.log(`Подготовлен файл для загрузки: ${fileName} (${file.size} байт)`);
+      
       // Используем supabaseAdmin для загрузки файла
+      console.log('Начинаем загрузку файла в Supabase...');
       const { data, error } = await supabaseAdmin
         .storage
         .from('exercises')
         .upload(fileName, fileBuffer, {
           contentType: file.type,
-          cacheControl: '3600'
+          cacheControl: '3600',
+          upsert: true // Использовать upsert для перезаписи при конфликтах
         });
 
       if (error) {
         console.error('Ошибка загрузки файла в Supabase:', error);
+        console.error('Код ошибки:', error.message);
         return null;
       }
 
+      console.log('Файл успешно загружен:', data?.path);
+
       // Получаем публичный URL файла
+      console.log('Получаем публичный URL файла...');
       const { data: urlData } = supabaseAdmin
         .storage
         .from('exercises')
         .getPublicUrl(fileName);
+
+      if (!urlData || !urlData.publicUrl) {
+        console.error('Не удалось получить публичный URL файла');
+        return null;
+      }
+
+      console.log('Получен публичный URL:', urlData.publicUrl);
 
       return {
         fileUrl: urlData.publicUrl,

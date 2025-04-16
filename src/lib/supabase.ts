@@ -44,6 +44,34 @@ export const supabaseAdmin: SupabaseClient = createClient(
   }
 );
 
+// Функция для проверки бакетов и создания их при необходимости
+export async function checkAndCreateBucket(bucketName: string): Promise<boolean> {
+  try {
+    // Получаем информацию о бакете
+    const { data, error } = await supabaseAdmin.storage.getBucket(bucketName);
+    
+    // Если бакет не существует, создаем его
+    if (error) {
+      console.log(`Бакет ${bucketName} не найден, создаем...`);
+      const { data: createData, error: createError } = await supabaseAdmin.storage
+        .createBucket(bucketName, { public: true });
+      
+      if (createError) {
+        console.error(`Ошибка при создании бакета ${bucketName}:`, createError);
+        return false;
+      }
+      console.log(`Бакет ${bucketName} успешно создан`);
+    } else {
+      console.log(`Бакет ${bucketName} существует`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`Ошибка при проверке бакета ${bucketName}:`, error);
+    return false;
+  }
+}
+
 // Функция для обработки ошибок Supabase
 export function handleSupabaseError(error: any): string {
   console.error('Supabase Error:', error);
