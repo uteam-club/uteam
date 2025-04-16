@@ -161,7 +161,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     
     // Логирование всех полей для отладки
-    console.log('Входящие данные формы:', Object.fromEntries(formData.entries()));
+    console.log('[POST] Входящие данные формы:', Object.fromEntries(formData.entries()));
     
     const name = formData.get('name') as string;
     const description = formData.get('description') as string;
@@ -193,7 +193,7 @@ export async function POST(request: Request) {
     
     const file = formData.get('file') as File | null;
 
-    console.log('Данные после обработки:', {
+    console.log('[POST] Данные после обработки:', {
       name,
       description,
       categoryId,
@@ -246,7 +246,7 @@ export async function POST(request: Request) {
         );
       }
     } catch (e) {
-      console.error('Ошибка валидации категории/тегов:', e);
+      console.error('[POST] Ошибка валидации категории/тегов:', e);
       return NextResponse.json(
         { error: 'Ошибка валидации категории или тегов' },
         { status: 500 }
@@ -267,7 +267,7 @@ export async function POST(request: Request) {
       }
     };
 
-    console.log('Данные для создания упражнения:', {
+    console.log('[POST] Базовые данные для создания упражнения:', {
       name,
       description,
       difficulty: 1,
@@ -276,15 +276,23 @@ export async function POST(request: Request) {
     });
 
     // Загрузка файла в Supabase, если он есть
+    let fileData = null;
     if (file) {
-      const fileData = await uploadFileToSupabase(file);
+      console.log('[POST] Начинаем загрузку файла в Supabase...');
+      fileData = await uploadFileToSupabase(file);
       if (fileData) {
+        console.log('[POST] Файл успешно загружен, добавляем данные в createData');
         createData.fileUrl = fileData.fileUrl;
         createData.fileName = fileData.fileName;
         createData.fileType = fileData.fileType;
         createData.fileSize = fileData.fileSize;
         
-        console.log('Файл успешно загружен:', fileData);
+        console.log('[POST] Данные файла добавлены в createData:', {
+          fileUrl: fileData.fileUrl,
+          fileName: fileData.fileName
+        });
+      } else {
+        console.error('[POST] Не удалось загрузить файл в Supabase');
       }
     }
 
@@ -307,6 +315,13 @@ export async function POST(request: Request) {
         updatedAt: new Date()
       };
 
+      console.log('[POST] Окончательные данные для создания упражнения:', {
+        id: baseData.id,
+        name: baseData.name,
+        fileUrl: baseData.fileUrl ? 'URL получен' : 'нет URL',
+        fileName: baseData.fileName
+      });
+
       // Вставляем упражнение напрямую через SQL
       await prisma.$executeRaw`
         INSERT INTO "exercises" (
@@ -320,6 +335,8 @@ export async function POST(request: Request) {
         )
       `;
       
+      console.log('[POST] Упражнение успешно создано в базе данных');
+      
       // Затем добавляем теги отдельным запросом, если есть
       if (tagIds.length > 0) {
         try {
@@ -330,7 +347,7 @@ export async function POST(request: Request) {
           `;
           
           const tagsCount = result[0] ? Number(result[0].count) : 0;
-          console.log(`Найдено ${tagsCount} тегов из ${tagIds.length}`);
+          console.log(`[POST] Найдено ${tagsCount} тегов из ${tagIds.length}`);
           
           // Добавляем в таблицу _ExerciseToExerciseTag
           if (tagsCount > 0) {
@@ -347,11 +364,40 @@ export async function POST(request: Request) {
               WHERE id IN (${Prisma.join(tagIds)})
             `;
             
-            console.log('Теги успешно добавлены к упражнению в обе таблицы');
+            console.log('[POST] Теги успешно добавлены к упражнению в обе таблицы');
           }
         } catch (tagError) {
-          console.error('Ошибка при добавлении тегов:', tagError);
+          console.error('[POST] Ошибка при добавлении тегов:', tagError);
           // Не прерываем выполнение, продолжаем без тегов
+        }
+      }
+      
+      // Проверяем, сохранен ли файл, если он был загружен
+      if (fileData && fileData.fileUrl) {
+        try {
+          console.log('[POST] Проверка сохранения URL файла в БД...');
+          const exerciseCheck = await prisma.exercise.findUnique({
+            where: { id: baseData.id },
+            select: { fileUrl: true }
+          });
+          
+          if (!exerciseCheck?.fileUrl) {
+            console.log('[POST] URL файла не сохранен, выполняем обновление...');
+            await prisma.exercise.update({
+              where: { id: baseData.id },
+              data: { 
+                fileUrl: fileData.fileUrl,
+                fileName: fileData.fileName,
+                fileType: fileData.fileType,
+                fileSize: fileData.fileSize ? Number(fileData.fileSize) : null
+              }
+            });
+            console.log('[POST] URL файла обновлен в БД');
+          } else {
+            console.log('[POST] URL файла успешно сохранен в БД');
+          }
+        } catch (fileCheckError) {
+          console.error('[POST] Ошибка при проверке/обновлении URL файла:', fileCheckError);
         }
       }
       
@@ -436,7 +482,7 @@ export async function POST(request: Request) {
 // Функция для загрузки файла в Supabase Storage
 async function uploadFileToSupabase(file: File) {
   if (!(file instanceof File) || file.size === 0) {
-    console.error('Полученный файл не является допустимым:', file);
+    console.error('[UPLOAD] Полученный файл не является допустимым:', file);
     return null;
   }
 
@@ -445,85 +491,153 @@ async function uploadFileToSupabase(file: File) {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
     
-    console.log(`Загрузка файла: ${fileName} Размер: ${file.size} Тип: ${file.type}`);
+    console.log(`[UPLOAD] Загрузка файла: ${fileName} Размер: ${file.size} Тип: ${file.type}`);
+    console.log(`[UPLOAD] Используется URL Supabase: ${process.env.NEXT_PUBLIC_SUPABASE_URL}`);
     
-    // Проверка настроек Supabase
-    console.log(`Используется URL Supabase: ${process.env.NEXT_PUBLIC_SUPABASE_URL}`);
-    console.log('Проверка доступности бакета exercises...');
+    // ШАГ 1: Проверяем и создаем бакет, если он не существует
+    console.log(`[UPLOAD] Проверка существования бакета exercises...`);
+    let bucketExists = false;
     
-    // Проверяем существование бакета перед загрузкой
-    const { data: bucketData, error: bucketError } = await supabaseAdmin.storage.getBucket('exercises');
-    
-    if (bucketError) {
-      console.error('Ошибка при проверке бакета exercises:', bucketError);
+    try {
+      const { data: bucketData, error: bucketError } = await supabaseAdmin.storage.getBucket('exercises');
       
-      // Попытка создать бакет, если он не существует
-      console.log('Попытка создать бакет exercises...');
-      const { data: createData, error: createError } = await supabaseAdmin.storage
-        .createBucket('exercises', { public: true });
+      if (bucketError) {
+        console.error(`[UPLOAD] Ошибка при проверке бакета:`, bucketError);
+        console.log(`[UPLOAD] Попытка создать бакет exercises...`);
         
-      if (createError) {
-        console.error('Не удалось создать бакет exercises:', createError);
-        return null;
+        try {
+          const { data: createData, error: createError } = await supabaseAdmin.storage
+            .createBucket('exercises', { public: true });
+            
+          if (createError) {
+            console.error(`[UPLOAD] Не удалось создать бакет:`, createError);
+          } else {
+            console.log(`[UPLOAD] Бакет exercises успешно создан`);
+            bucketExists = true;
+          }
+        } catch (e) {
+          console.error(`[UPLOAD] Исключение при создании бакета:`, e);
+        }
       } else {
-        console.log('Бакет exercises успешно создан');
+        console.log(`[UPLOAD] Бакет exercises существует`);
+        bucketExists = true;
       }
-    } else {
-      console.log('Бакет exercises существует, продолжаем загрузку');
+    } catch (bucketCheckError) {
+      console.error(`[UPLOAD] Исключение при проверке бакета:`, bucketCheckError);
     }
     
+    if (!bucketExists) {
+      console.error(`[UPLOAD] Не удалось подтвердить существование бакета, прерываем загрузку`);
+      return null;
+    }
+    
+    // ШАГ 2: Загружаем файл в бакет
+    console.log(`[UPLOAD] Начинаем загрузку файла...`);
     let fileBuffer;
+    
     try {
       fileBuffer = await file.arrayBuffer();
       
-      // Явно проверяем тип файла
-      console.log(`Подготовлен файл для загрузки: ${fileName} (${file.size} байт)`);
+      // ШАГ 3: Загрузка файла
+      console.log(`[UPLOAD] Подготовлен буфер файла размером ${fileBuffer.byteLength} байт`);
       
-      // Используем supabaseAdmin для загрузки файла
-      console.log('Начинаем загрузку файла в Supabase...');
-      const { data, error } = await supabaseAdmin
+      const uploadOptions = {
+        contentType: file.type,
+        cacheControl: '3600',
+        upsert: true
+      };
+      
+      console.log(`[UPLOAD] Загрузка файла с опциями:`, uploadOptions);
+      
+      const { data: uploadData, error: uploadError } = await supabaseAdmin
         .storage
         .from('exercises')
-        .upload(fileName, fileBuffer, {
-          contentType: file.type,
-          cacheControl: '3600',
-          upsert: true // Использовать upsert для перезаписи при конфликтах
-        });
+        .upload(fileName, fileBuffer, uploadOptions);
 
-      if (error) {
-        console.error('Ошибка загрузки файла в Supabase:', error);
-        console.error('Код ошибки:', error.message);
-        return null;
+      if (uploadError) {
+        console.error(`[UPLOAD] Ошибка загрузки файла в Supabase:`, uploadError);
+        console.error(`[UPLOAD] Код ошибки:`, uploadError.message);
+        
+        // Пробуем альтернативный метод загрузки
+        console.log(`[UPLOAD] Попытка альтернативной загрузки...`);
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const apiUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/exercises/${fileName}`;
+        
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}`
+            },
+            body: formData
+          });
+          
+          if (!response.ok) {
+            console.error(`[UPLOAD] Альтернативная загрузка не удалась: ${response.status}`);
+            return null;
+          }
+          
+          console.log(`[UPLOAD] Альтернативная загрузка успешна!`);
+        } catch (altError) {
+          console.error(`[UPLOAD] Ошибка альтернативной загрузки:`, altError);
+          return null;
+        }
       }
 
-      console.log('Файл успешно загружен:', data?.path);
+      console.log(`[UPLOAD] Файл успешно загружен:`, uploadData?.path || 'путь не возвращен');
 
-      // Получаем публичный URL файла
-      console.log('Получаем публичный URL файла...');
-      const { data: urlData } = supabaseAdmin
+      // ШАГ 4: Получаем публичный URL файла
+      console.log(`[UPLOAD] Получаем публичный URL файла...`);
+      
+      const publicUrlResult = supabaseAdmin
         .storage
         .from('exercises')
         .getPublicUrl(fileName);
-
-      if (!urlData || !urlData.publicUrl) {
-        console.error('Не удалось получить публичный URL файла');
-        return null;
+      
+      console.log(`[UPLOAD] Результат получения URL:`, publicUrlResult);
+      
+      if (!publicUrlResult.data || !publicUrlResult.data.publicUrl) {
+        console.error(`[UPLOAD] Не удалось получить публичный URL файла`);
+        
+        // Пробуем сформировать URL вручную
+        const manualUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/exercises/${fileName}`;
+        console.log(`[UPLOAD] Сформирован URL вручную: ${manualUrl}`);
+        
+        return {
+          fileUrl: manualUrl,
+          fileName: fileName,
+          fileType: file.type,
+          fileSize: file.size
+        };
       }
 
-      console.log('Получен публичный URL:', urlData.publicUrl);
+      const publicUrl = publicUrlResult.data.publicUrl;
+      console.log(`[UPLOAD] Получен публичный URL:`, publicUrl);
+      
+      // Проверяем доступность файла по URL
+      try {
+        console.log(`[UPLOAD] Проверка доступности файла по URL...`);
+        const testRequest = await fetch(publicUrl, { method: 'HEAD' });
+        console.log(`[UPLOAD] Статус ответа при проверке URL: ${testRequest.status}`);
+      } catch (urlTestError) {
+        console.warn(`[UPLOAD] Ошибка при проверке URL (это предупреждение):`, urlTestError);
+        // Продолжаем выполнение даже при ошибке проверки
+      }
 
       return {
-        fileUrl: urlData.publicUrl,
+        fileUrl: publicUrl,
         fileName: fileName,
         fileType: file.type,
         fileSize: file.size
       };
-    } catch (error) {
-      console.error('Ошибка при обработке файла:', error);
+    } catch (processError) {
+      console.error(`[UPLOAD] Ошибка при обработке файла:`, processError);
       return null;
     }
   } catch (error) {
-    console.error('Ошибка при загрузке файла:', error);
+    console.error(`[UPLOAD] Общая ошибка при загрузке файла:`, error);
     return null;
   }
 }
@@ -569,6 +683,8 @@ export async function PUT(
     // Получаем данные формы
     const formData = await request.formData();
     
+    console.log('[PUT] Входящие данные формы:', Object.fromEntries(formData.entries()));
+    
     const name = formData.get('name') as string;
     const description = formData.get('description') as string;
     const categoryId = formData.get('categoryId') as string;
@@ -598,6 +714,16 @@ export async function PUT(
     const width = widthValue ? parseInt(widthValue, 10) : null;
     
     const file = formData.get('file') as File | null;
+
+    console.log('[PUT] Данные после обработки:', {
+      name,
+      description,
+      categoryId,
+      tagIds,
+      length,
+      width,
+      file: file ? `${file.name} (${file.size} bytes)` : null
+    });
     
     // Базовая валидация
     if (!name || !description || !categoryId) {
@@ -652,93 +778,134 @@ export async function PUT(
     };
     
     // Загрузка файла в Supabase, если он есть
+    let fileData = null;
     if (file) {
-      const fileData = await uploadFileToSupabase(file);
+      console.log('[PUT] Начинаем загрузку файла в Supabase...');
+      fileData = await uploadFileToSupabase(file);
       if (fileData) {
+        console.log('[PUT] Файл успешно загружен, добавляем данные для обновления');
         updateData.fileUrl = fileData.fileUrl;
         updateData.fileName = fileData.fileName;
         updateData.fileType = fileData.fileType;
         updateData.fileSize = fileData.fileSize;
+        
+        console.log('[PUT] Данные файла добавлены в updateData:', {
+          fileUrl: fileData.fileUrl,
+          fileName: fileData.fileName
+        });
+      } else {
+        console.error('[PUT] Не удалось загрузить файл в Supabase');
       }
     }
     
-    // Транзакционно обновляем упражнение и связи с тегами
-    const updatedExercise = await prisma.$transaction(async (tx) => {
-      // Обновляем базовые данные упражнения
-      const updated = await tx.exercise.update({
-        where: { id },
-        data: updateData
+    console.log('[PUT] Данные для обновления:', updateData);
+    
+    try {
+      // Транзакционно обновляем упражнение и связи с тегами
+      const updatedExercise = await prisma.$transaction(async (tx) => {
+        // Обновляем базовые данные упражнения
+        const updated = await tx.exercise.update({
+          where: { id },
+          data: updateData
+        });
+        
+        // Если есть теги, обновляем связи
+        if (tagIds.length > 0) {
+          // Удаляем все текущие связи в обеих таблицах
+          try {
+            await tx.$executeRaw`DELETE FROM "_ExerciseToExerciseTag" WHERE "A" = ${id}`;
+            await tx.$executeRaw`DELETE FROM "_ExerciseToTags" WHERE "A" = ${id}`;
+            
+            // Добавляем новые связи в _ExerciseToExerciseTag
+            await tx.$executeRaw`
+              INSERT INTO "_ExerciseToExerciseTag" ("A", "B")
+              SELECT ${id}, id FROM "exercise_tags" 
+              WHERE id IN (${Prisma.join(tagIds)})
+            `;
+            
+            // Также добавляем в _ExerciseToTags для совместимости
+            await tx.$executeRaw`
+              INSERT INTO "_ExerciseToTags" ("A", "B")
+              SELECT ${id}, id FROM "tags" 
+              WHERE id IN (${Prisma.join(tagIds)})
+              ON CONFLICT DO NOTHING
+            `;
+          } catch (e) {
+            console.log('[PUT] Ошибка при обновлении связей с тегами:', e);
+            // Продолжаем выполнение даже если произошла ошибка связывания с тегами
+          }
+        }
+        
+        // Проверяем, правильно ли обновлен URL файла, если он был загружен
+        if (fileData && fileData.fileUrl && (!updated.fileUrl || updated.fileUrl !== fileData.fileUrl)) {
+          console.log('[PUT] Дополнительная проверка обновления URL файла...');
+          // Повторное обновление, если URL файла не обновился в первом запросе
+          return await tx.exercise.update({
+            where: { id },
+            data: { 
+              fileUrl: fileData.fileUrl,
+              fileName: fileData.fileName,
+              fileType: fileData.fileType,
+              fileSize: fileData.fileSize ? Number(fileData.fileSize) : null
+            }
+          });
+        }
+        
+        return updated;
       });
       
-      // Если есть теги, обновляем связи
-      if (tagIds.length > 0) {
-        // Удаляем все текущие связи в обеих таблицах
-        try {
-          await tx.$executeRaw`DELETE FROM "_ExerciseToExerciseTag" WHERE "A" = ${id}`;
-          await tx.$executeRaw`DELETE FROM "_ExerciseToTags" WHERE "A" = ${id}`;
-          
-          // Добавляем новые связи в _ExerciseToExerciseTag
-          await tx.$executeRaw`
-            INSERT INTO "_ExerciseToExerciseTag" ("A", "B")
-            SELECT ${id}, id FROM "exercise_tags" 
-            WHERE id IN (${Prisma.join(tagIds)})
-          `;
-          
-          // Также добавляем в _ExerciseToTags для совместимости
-          await tx.$executeRaw`
-            INSERT INTO "_ExerciseToTags" ("A", "B")
-            SELECT ${id}, id FROM "tags" 
-            WHERE id IN (${Prisma.join(tagIds)})
-            ON CONFLICT DO NOTHING
-          `;
-        } catch (e) {
-          console.log('Ошибка при обновлении связей с тегами:', e);
-          // Продолжаем выполнение даже если произошла ошибка связывания с тегами
-        }
-      }
+      console.log('[PUT] Упражнение успешно обновлено:', {
+        id: updatedExercise.id,
+        name: updatedExercise.name,
+        fileUrl: updatedExercise.fileUrl
+      });
       
-      return updated;
-    });
-    
-    // Получаем обновленные данные вместе с тегами
-    // Получаем связи упражнений с тегами через обе возможные таблицы
-    const tagRelations1 = await prisma.$queryRaw<Array<{exerciseId: string, tagId: string}>>`
-      SELECT "A" as "exerciseId", "B" as "tagId" 
-      FROM "_ExerciseToExerciseTag"
-      WHERE "A" = ${id}
-    `;
-    
-    const tagRelations2 = await prisma.$queryRaw<Array<{exerciseId: string, tagId: string}>>`
-      SELECT "A" as "exerciseId", "B" as "tagId" 
-      FROM "_ExerciseToTags"
-      WHERE "A" = ${id}
-    `;
-    
-    // Создаем объединенный набор уникальных тегов
-    const tagIdsSet = new Set([
-      ...tagRelations1.map(r => r.tagId),
-      ...tagRelations2.map(r => r.tagId)
-    ]);
-    const updatedTagIds = Array.from(tagIdsSet);
-    
-    // Получаем теги по ID
-    const tags = await prisma.exerciseTag.findMany({
-      where: { id: { in: updatedTagIds } },
-      select: { id: true, name: true }
-    });
-    
-    // Формируем ответ
-    const result = {
-      ...updatedExercise,
-      category: { name: category.name },
-      tags
-    };
-    
-    return NextResponse.json(result);
+      // Получаем обновленные данные вместе с тегами
+      // Получаем связи упражнений с тегами через обе возможные таблицы
+      const tagRelations1 = await prisma.$queryRaw<Array<{exerciseId: string, tagId: string}>>`
+        SELECT "A" as "exerciseId", "B" as "tagId" 
+        FROM "_ExerciseToExerciseTag"
+        WHERE "A" = ${id}
+      `;
+      
+      const tagRelations2 = await prisma.$queryRaw<Array<{exerciseId: string, tagId: string}>>`
+        SELECT "A" as "exerciseId", "B" as "tagId" 
+        FROM "_ExerciseToTags"
+        WHERE "A" = ${id}
+      `;
+      
+      // Создаем объединенный набор уникальных тегов
+      const tagIdsSet = new Set([
+        ...tagRelations1.map(r => r.tagId),
+        ...tagRelations2.map(r => r.tagId)
+      ]);
+      const updatedTagIds = Array.from(tagIdsSet);
+      
+      // Получаем теги по ID
+      const tags = await prisma.exerciseTag.findMany({
+        where: { id: { in: updatedTagIds } },
+        select: { id: true, name: true }
+      });
+      
+      // Формируем ответ
+      const result = {
+        ...updatedExercise,
+        category: { name: category.name },
+        tags
+      };
+      
+      return NextResponse.json(result);
+    } catch (error) {
+      console.error('[PUT] Ошибка при обновлении упражнения:', error);
+      return NextResponse.json(
+        { error: 'Ошибка при обновлении упражнения', details: String(error) },
+        { status: 500 }
+      );
+    }
   } catch (error) {
-    console.error('Ошибка при обновлении упражнения:', error);
+    console.error('[PUT] Общая ошибка при обновлении упражнения:', error);
     return NextResponse.json(
-      { error: 'Ошибка при обновлении упражнения' },
+      { error: 'Ошибка при обновлении упражнения', details: String(error) },
       { status: 500 }
     );
   }
