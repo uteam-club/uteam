@@ -28,15 +28,15 @@ export const authOptions: NextAuthOptions = {
         try {
           const user = await validateCredentials(email, password);
 
-          if (!user) return null;
+        if (!user) return null;
 
-          // Преобразуем структуру пользователя в ожидаемую NextAuth
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role as UserRole
-          };
+        // Преобразуем структуру пользователя в ожидаемую NextAuth
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role as UserRole
+        };
         } catch (error) {
           console.error('Ошибка авторизации:', error);
           return null;

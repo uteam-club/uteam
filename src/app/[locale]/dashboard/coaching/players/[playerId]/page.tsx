@@ -10,7 +10,8 @@ import {
   XMarkIcon,
   ArrowUpTrayIcon,
   ArrowLeftIcon,
-  DocumentIcon
+  DocumentIcon,
+  KeyIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -41,11 +42,17 @@ type PlayerData = {
   insuranceUrl?: string | null;
   insuranceFileName?: string | null;
   insuranceFileSize?: number | null;
+  pinCode?: string | null;
   teamId: string;
   team: {
     id: string;
     name: string;
   };
+};
+
+// Функция для генерации случайного 6-значного PIN-кода
+const generatePinCode = (): string => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 export default function PlayerProfilePage() {
@@ -62,6 +69,7 @@ export default function PlayerProfilePage() {
   const [uploadingPassport, setUploadingPassport] = useState(false);
   const [uploadingCertificate, setUploadingCertificate] = useState(false);
   const [uploadingInsurance, setUploadingInsurance] = useState(false);
+  const [generatingPin, setGeneratingPin] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const passportInputRef = useRef<HTMLInputElement>(null);
@@ -125,6 +133,37 @@ export default function PlayerProfilePage() {
       alert(`Не удалось сохранить профиль: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Генерация нового PIN-кода
+  const handleGeneratePinCode = async () => {
+    try {
+      setGeneratingPin(true);
+      const newPinCode = generatePinCode();
+      
+      const response = await fetch(`/api/players/${playerId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pinCode: newPinCode }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Ошибка генерации PIN-кода');
+      }
+
+      const updatedPlayer = await response.json();
+      setPlayer(updatedPlayer);
+      setFormData(prev => ({ ...prev, pinCode: newPinCode }));
+      alert('PIN-код успешно сгенерирован');
+    } catch (error) {
+      console.error('Ошибка генерации PIN-кода:', error);
+      alert(`Не удалось сгенерировать PIN-код: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+    } finally {
+      setGeneratingPin(false);
     }
   };
 
@@ -403,37 +442,37 @@ export default function PlayerProfilePage() {
 
   // Форматирование даты
   const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return '';
-    try {
-      return format(new Date(dateString), 'dd.MM.yyyy', { locale: ru });
-    } catch (error) {
-      return '';
-    }
+    if (!dateString) return null;
+    
+    const date = new Date(dateString);
+    return format(date, 'dd.MM.yyyy', { locale: ru });
   };
-
-  // Получение текста позиции
+  
+  // Получение текста позиции игрока
   const getPositionText = (position: string | null | undefined) => {
-    if (!position) return '';
+    if (!position) return '—';
     
-    switch (position) {
-      case 'GOALKEEPER': return 'Вратарь';
-      case 'DEFENDER': return 'Защитник';
-      case 'MIDFIELDER': return 'Полузащитник';
-      case 'FORWARD': return 'Нападающий';
-      default: return '';
-    }
+    const positions: Record<string, string> = {
+      'GOALKEEPER': 'Вратарь',
+      'DEFENDER': 'Защитник',
+      'MIDFIELDER': 'Полузащитник',
+      'FORWARD': 'Нападающий'
+    };
+    
+    return positions[position] || position;
   };
-
-  // Получение текста рабочей ноги
+  
+  // Получение текста предпочитаемой ноги
   const getFootText = (foot: string | null | undefined) => {
-    if (!foot) return '';
+    if (!foot) return '—';
     
-    switch (foot) {
-      case 'LEFT': return 'Левая';
-      case 'RIGHT': return 'Правая';
-      case 'BOTH': return 'Обе';
-      default: return '';
-    }
+    const feet: Record<string, string> = {
+      'LEFT': 'Левая',
+      'RIGHT': 'Правая',
+      'BOTH': 'Обе'
+    };
+    
+    return feet[foot] || foot;
   };
 
   // Обработка удаления документа
@@ -869,7 +908,32 @@ export default function PlayerProfilePage() {
                       )}
                       <span className="text-sm">Загрузить</span>
                     </button>
-                  )}
+                )}
+              </div>
+            </div>
+            
+              {/* PIN-код игрока */}
+              <div className="w-auto bg-vista-dark/50 p-2 rounded-lg mt-2" style={{ maxWidth: '140px' }}>
+                <div className="text-center mb-1">
+                  <span className="text-vista-light/60 text-xs flex items-center justify-center">
+                    <KeyIcon className="h-3 w-3 mr-1" /> PIN-код
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-center text-vista-primary text-sm font-mono font-bold">
+                    {player?.pinCode || '------'}
+                  </div>
+                  <button
+                    onClick={handleGeneratePinCode}
+                    disabled={generatingPin}
+                    className="bg-vista-secondary/60 text-vista-light p-1 rounded hover:bg-vista-secondary/80 transition-colors text-xs ml-1"
+                  >
+                    {generatingPin ? (
+                      <div className="h-3 w-3 animate-spin rounded-full border-b-2 border-vista-light"></div>
+                    ) : (
+                      'Обновить'
+                    )}
+                  </button>
                 </div>
               </div>
             </div>

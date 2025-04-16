@@ -8,11 +8,13 @@
     "start": "next start",
     "lint": "next lint",
     "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "prisma:migrate": "prisma migrate dev",
     "db:check": "node scripts/check-db.js",
     "create:admin": "node scripts/run-create-admin.js",
-    "init": "node update-schema.js && node check-and-create-buckets.js"
+    "init": "node check-and-create-buckets.js && node update-schema.js",
+    "deploy": "npx prisma generate && npx prisma migrate deploy && node production-deploy.js && next build"
   },
   "keywords": [],
   "author": "",

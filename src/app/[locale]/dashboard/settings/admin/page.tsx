@@ -20,7 +20,9 @@ import { TrainingCategoriesManager } from '@/components/admin/TrainingCategories
 import { ExerciseCategoriesManager } from '@/components/admin/ExerciseCategoriesManager';
 import { ExerciseTagsManager } from '@/components/admin/ExerciseTagsManager';
 import { UsersManager } from '@/components/admin/UsersManager';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Settings, Smartphone } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function AdminPage() {
   const t = useTranslations('admin');
@@ -70,7 +72,7 @@ export default function AdminPage() {
         {t('adminPanel')}
       </h1>
       
-      <Card className="bg-vista-dark border-vista-secondary/20">
+      <Card className="bg-vista-dark border-vista-secondary/20 mb-8">
         <CardHeader>
           <CardTitle>{t('dataManagement')}</CardTitle>
           <CardDescription>
@@ -79,7 +81,7 @@ export default function AdminPage() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-5 mb-8">
+            <TabsList className="grid grid-cols-6 mb-8">
               <TabsTrigger value="users">
                 Пользователи
               </TabsTrigger>
@@ -94,6 +96,9 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger value="exerciseTags">
                 {t('exerciseTags')}
+              </TabsTrigger>
+              <TabsTrigger value="questionnaires">
+                Опросники
               </TabsTrigger>
             </TabsList>
             
@@ -115,6 +120,38 @@ export default function AdminPage() {
             
             <TabsContent value="exerciseTags">
               <ExerciseTagsManager />
+            </TabsContent>
+            
+            <TabsContent value="questionnaires">
+              <div className="space-y-6">
+                <div className="bg-vista-dark border border-vista-secondary/30 shadow-sm rounded-lg p-6 transition-all hover:shadow-vista hover:border-vista-primary/30">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-xl font-medium text-vista-light">Состояние утро</h3>
+                      <p className="text-vista-light/70 mt-1">
+                        Опросник для утренней оценки состояния игроков. Оценка сна, физического состояния и готовности к тренировкам.
+                      </p>
+                    </div>
+                    <div className="flex space-x-3">
+                      <Button asChild variant="outline" size="sm" className="flex items-center">
+                        <Link href="/ru/dashboard/settings/admin/questionnaires/view/morning-state">
+                          <Smartphone className="h-4 w-4 mr-2" />
+                          Страница прохождения
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-vista-secondary/20">
+                    <div className="flex items-center space-x-2">
+                      <span className="inline-flex h-2 w-2 rounded-full bg-vista-success"></span>
+                      <span className="text-sm text-vista-light/70">Активен</span>
+                    </div>
+                    <div className="text-sm text-vista-light/50">
+                      Последнее обновление: 28.04.2024 · 0 ответов
+                    </div>
+                  </div>
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>

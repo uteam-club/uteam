@@ -26,7 +26,7 @@ export async function GET(
         id: teamId
       },
       include: {
-        members: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -45,7 +45,7 @@ export async function GET(
     }
     
     // Возвращаем список участников команды
-    return NextResponse.json(team.members);
+    return NextResponse.json(team.users);
   } catch (error) {
     console.error('Ошибка при получении участников команды:', error);
     return NextResponse.json(

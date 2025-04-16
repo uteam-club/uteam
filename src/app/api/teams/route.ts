@@ -25,7 +25,7 @@ export async function GET(request: Request) {
         name: 'asc'
       },
       include: {
-        members: includeMembers ? {
+        users: includeMembers ? {
           select: {
             id: true,
             name: true,

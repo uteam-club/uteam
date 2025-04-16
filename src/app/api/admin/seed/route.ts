@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     await prisma.team.update({
       where: { id: team.id },
       data: {
-        members: {
+        users: {
           connect: { id: admin.id }
         }
       }

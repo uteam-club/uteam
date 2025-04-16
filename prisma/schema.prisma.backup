@@ -1,0 +1,408 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../node_modules/.prisma/client"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String
+  name      String?
+  image     String?
+  password  String?
+  role      String   @default("USER") @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Profile {
+  id         String    @id @default(cuid())
+  bio        String?
+  phone      String?
+  address    String?
+  birthday   DateTime?
+  position   String?
+  department String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  userId     String
+
+  @@map("profiles")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String
+  userId       String
+  expires      DateTime
+
+  @@map("sessions")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@map("verification_tokens")
+  @@ignore
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  image       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("teams")
+}
+
+model TrainingCategory {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("training_categories")
+}
+
+model ExerciseCategory {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("exercise_categories")
+}
+
+model Exercise {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  difficulty  Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  categoryId  String
+  length      Int?
+  width       Int?
+  fileUrl     String?
+  fileName    String?
+  fileType    String?
+  fileSize    Int?
+  authorId    String?
+
+  @@map("exercises")
+}
+
+model ExerciseTag {
+  id                 String   @id @default(cuid())
+  name               String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  exerciseCategoryId String
+
+  @@map("exercise_tags")
+}
+
+model Training {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  status      EventStatus @default(PLANNED)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  teamId      String?
+  categoryId  String?
+
+  @@map("trainings")
+}
+
+model TrainingExercise {
+  id          String   @id @default(cuid())
+  duration    Int?
+  repetitions Int?
+  sets        Int?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  trainingId  String
+  exerciseId  String
+  order       Int      @default(0)
+
+  @@map("training_exercises")
+}
+
+model TrainingParticipant {
+  id               String           @id @default(cuid())
+  attended         Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  trainingId       String
+  playerId         String
+  notes            String?
+  attendanceStatus AttendanceStatus @default(READY)
+
+  @@map("training_participants")
+}
+
+model Match {
+  id        String      @id @default(cuid())
+  opponent  String
+  location  String?
+  startTime DateTime
+  endTime   DateTime?
+  homeScore Int?
+  awayScore Int?
+  status    EventStatus @default(PLANNED)
+  notes     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  teamId    String?
+
+  @@map("matches")
+}
+
+model Event {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  status      EventStatus @default(PLANNED)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  teamId      String?
+
+  @@map("events")
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus   @default(TODO)
+  dueDate     DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  teamId      String?
+
+  @@map("tasks")
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  fileUrl     String
+  fileType    String
+  fileSize    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  teamId      String?
+
+  @@map("documents")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  type      NotificationType @default(INFO)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  userId    String
+
+  @@map("notifications")
+}
+
+model Player {
+  id                       String          @id @default(cuid())
+  firstName                String
+  lastName                 String
+  number                   Int?
+  bio                      String?
+  createdAt                DateTime        @default(now())
+  updatedAt                DateTime        @updatedAt
+  teamId                   String
+  academyJoinDate          DateTime?
+  birthDate                DateTime?
+  foot                     Foot?
+  middleName               String?
+  nationality              String?
+  photoUrl                 String?
+  position                 PlayerPosition?
+  status                   PlayerStatus    @default(READY)
+  passportUrl              String?
+  passportFileName         String?
+  passportFileSize         Int?
+  birthCertificateUrl      String?
+  birthCertificateFileName String?
+  birthCertificateFileSize Int?
+  birthCertificateNumber   String?
+  insuranceUrl             String?
+  insuranceFileName        String?
+  insuranceFileSize        Int?
+  pinCode                  String?         @db.Char(6)
+
+  @@map("players")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model ExerciseToExerciseTag {
+  A String
+  B String
+
+  @@map("_ExerciseToExerciseTag")
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model ExerciseToTags {
+  A String
+  B String
+
+  @@map("_ExerciseToTags")
+  @@ignore
+}
+
+model ExerciseTags {
+  A String
+  B String
+
+  @@id([A, B], map: "_ExerciseTags_AB_pkey")
+  @@map("_ExerciseTags")
+}
+
+model EventParticipants {
+  A String
+  B String
+
+  @@id([A, B], map: "_EventParticipants_AB_pkey")
+  @@map("_EventParticipants")
+}
+
+model TeamMembers {
+  A String
+  B String
+
+  @@id([A, B], map: "_TeamMembers_AB_pkey")
+  @@map("_TeamMembers")
+}
+
+enum UserRole {
+  USER
+  MANAGER
+  ADMIN
+  SUPERADMIN
+
+  @@schema("existing")
+}
+
+enum EventStatus {
+  PLANNED
+  ONGOING
+  COMPLETED
+  CANCELLED
+
+  @@schema("existing")
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+
+  @@schema("existing")
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+
+  @@schema("existing")
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  ERROR
+  SUCCESS
+
+  @@schema("existing")
+}
+
+enum PlayerPosition {
+  GOALKEEPER
+  DEFENDER
+  MIDFIELDER
+  FORWARD
+
+  @@schema("existing")
+}
+
+enum Foot {
+  LEFT
+  RIGHT
+  BOTH
+
+  @@schema("existing")
+}
+
+enum PlayerStatus {
+  READY
+  REHABILITATION
+  SICK
+  STUDY
+  OTHER
+
+  @@schema("existing")
+}
+
+enum AttendanceStatus {
+  READY
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+
+  @@schema("existing")
+}

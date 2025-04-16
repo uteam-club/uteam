@@ -7,64 +7,182 @@ import { Prisma } from '@prisma/client';
 
 // Функция для загрузки файла в Supabase
 async function uploadFileToSupabase(file: File) {
+  if (!(file instanceof File) || file.size === 0) {
+    console.error('[UPLOAD] Полученный файл не является допустимым:', file);
+    return null;
+  }
+
   try {
-    console.log('Загрузка файла:', file.name, 'Размер:', file.size, 'Тип:', file.type);
+    // Генерируем уникальное имя файла с его оригинальным расширением
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
     
-    // Генерируем уникальное имя для файла
-    const timestamp = Date.now();
-    const randomId = Math.random().toString(36).substring(2, 10);
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${timestamp}-${randomId}.${fileExtension}`;
+    console.log(`[UPLOAD] Загрузка файла: ${fileName} Размер: ${file.size} Тип: ${file.type}`);
+    console.log(`[UPLOAD] Используется URL Supabase: ${process.env.NEXT_PUBLIC_SUPABASE_URL}`);
     
-    // Для отладки
-    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log('Supabase Key установлен:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    // ШАГ 1: Проверяем и создаем бакет, если он не существует
+    console.log(`[UPLOAD] Проверка существования бакета exercises...`);
+    let bucketExists = false;
     
-    // Проверяем, доступен ли бакет
-    const { data: buckets } = await supabaseAdmin.storage.listBuckets();
-    console.log('Доступные бакеты:', buckets);
-    
-    const bucketName = 'exercises';
-    
-    // Проверяем, существует ли бакет
-    const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
+    try {
+      const { data: bucketData, error: bucketError } = await supabaseAdmin.storage.getBucket('exercises');
+      
+      if (bucketError) {
+        console.error(`[UPLOAD] Ошибка при проверке бакета:`, bucketError);
+        console.log(`[UPLOAD] Попытка создать бакет exercises...`);
+        
+        try {
+          const { data: createData, error: createError } = await supabaseAdmin.storage
+            .createBucket('exercises', { public: true });
+            
+          if (createError) {
+            console.error(`[UPLOAD] Не удалось создать бакет:`, createError);
+          } else {
+            console.log(`[UPLOAD] Бакет exercises успешно создан`);
+            bucketExists = true;
+          }
+        } catch (e) {
+          console.error(`[UPLOAD] Исключение при создании бакета:`, e);
+        }
+      } else {
+        console.log(`[UPLOAD] Бакет exercises существует`);
+        bucketExists = true;
+      }
+    } catch (bucketCheckError) {
+      console.error(`[UPLOAD] Исключение при проверке бакета:`, bucketCheckError);
+    }
     
     if (!bucketExists) {
-      console.log('Бакет exercises не найден!');
-      console.log('Продолжаем без загрузки файла');
+      console.error(`[UPLOAD] Не удалось подтвердить существование бакета, прерываем загрузку`);
       return null;
     }
     
-    // Преобразуем File в Buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    // ШАГ 2: Загружаем файл в бакет
+    console.log(`[UPLOAD] Начинаем загрузку файла...`);
+    let fileBuffer;
     
-    // Загружаем файл в Supabase Storage
-    const { data, error } = await supabaseAdmin.storage
-      .from(bucketName)
-      .upload(fileName, buffer, {
+    try {
+      fileBuffer = await file.arrayBuffer();
+      
+      // ШАГ 3: Загрузка файла
+      console.log(`[UPLOAD] Подготовлен буфер файла размером ${fileBuffer.byteLength} байт`);
+      
+      const uploadOptions = {
         contentType: file.type,
-        cacheControl: '3600'
-      });
-    
-    if (error) {
-      console.error('Ошибка при загрузке файла в Supabase:', error);
+        cacheControl: '3600',
+        upsert: true
+      };
+      
+      console.log(`[UPLOAD] Загрузка файла с опциями:`, uploadOptions);
+      
+      const { data: uploadData, error: uploadError } = await supabaseAdmin
+        .storage
+        .from('exercises')
+        .upload(fileName, fileBuffer, uploadOptions);
+
+      if (uploadError) {
+        console.error(`[UPLOAD] Ошибка загрузки файла в Supabase:`, uploadError);
+        console.error(`[UPLOAD] Код ошибки:`, uploadError.message);
+        
+        // Пробуем альтернативный метод загрузки
+        console.log(`[UPLOAD] Попытка альтернативной загрузки...`);
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const apiUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/exercises/${fileName}`;
+        
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}`
+            },
+            body: formData
+          });
+          
+          if (!response.ok) {
+            console.error(`[UPLOAD] Альтернативная загрузка не удалась: ${response.status}`);
+            return null;
+          }
+          
+          console.log(`[UPLOAD] Альтернативная загрузка успешна!`);
+        } catch (altError) {
+          console.error(`[UPLOAD] Ошибка альтернативной загрузки:`, altError);
+          return null;
+        }
+      }
+
+      console.log(`[UPLOAD] Файл успешно загружен:`, uploadData?.path || 'путь не возвращен');
+
+      // ШАГ 4: Получаем публичный URL файла
+      console.log(`[UPLOAD] Получаем публичный URL файла...`);
+      
+      const publicUrlResult = supabaseAdmin
+        .storage
+        .from('exercises')
+        .getPublicUrl(fileName);
+      
+      console.log(`[UPLOAD] Результат получения URL:`, publicUrlResult);
+      
+      if (!publicUrlResult.data || !publicUrlResult.data.publicUrl) {
+        console.error(`[UPLOAD] Не удалось получить публичный URL файла`);
+        
+        // Пробуем сформировать URL вручную
+        const manualUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/exercises/${fileName}`;
+        console.log(`[UPLOAD] Сформирован URL вручную: ${manualUrl}`);
+        
+        return {
+          fileUrl: manualUrl,
+          fileName: fileName,
+          fileType: file.type,
+          fileSize: file.size
+        };
+      }
+
+      const publicUrl = publicUrlResult.data.publicUrl;
+      console.log(`[UPLOAD] Получен публичный URL:`, publicUrl);
+      
+      // Проверяем доступность файла по URL
+      try {
+        console.log(`[UPLOAD] Проверка доступности файла по URL...`);
+        const testRequest = await fetch(publicUrl, { method: 'HEAD' });
+        console.log(`[UPLOAD] Статус ответа при проверке URL: ${testRequest.status}`);
+      } catch (urlTestError) {
+        console.warn(`[UPLOAD] Ошибка при проверке URL (это предупреждение):`, urlTestError);
+        // Продолжаем выполнение даже при ошибке проверки
+      }
+
+      // Финальная проверка - обновить информацию о файле напрямую через SQL
+      try {
+        console.log(`[UPLOAD] Пробуем выполнить прямое SQL-обновление для надежности...`);
+        // Используем Supabase для прямого выполнения SQL запроса
+        const { data: sqlData, error: sqlError } = await supabaseAdmin.rpc('update_exercise_file', {
+          exerciseId: 'id', // Заменяется при вызове функции
+          fileUrl: publicUrl,
+          fileName: fileName
+        });
+        
+        if (sqlError) {
+          console.warn(`[UPLOAD] Ошибка прямого SQL-обновления (не критично): ${sqlError.message}`);
+        } else {
+          console.log(`[UPLOAD] Прямое SQL-обновление успешно выполнено`);
+        }
+      } catch (sqlError) {
+        console.warn(`[UPLOAD] Исключение при прямом SQL-обновлении (не критично):`, sqlError);
+      }
+
+      return {
+        fileUrl: publicUrl,
+        fileName: fileName,
+        fileType: file.type,
+        fileSize: file.size
+      };
+    } catch (processError) {
+      console.error(`[UPLOAD] Ошибка при обработке файла:`, processError);
       return null;
     }
-    
-    // Получаем публичную ссылку на файл
-    const { data: { publicUrl } } = supabaseAdmin.storage
-      .from(bucketName)
-      .getPublicUrl(fileName);
-    
-    return {
-      fileUrl: publicUrl,
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size
-    };
   } catch (error) {
-    console.error('Произошла ошибка при загрузке файла:', error);
+    console.error(`[UPLOAD] Общая ошибка при загрузке файла:`, error);
     return null;
   }
 }

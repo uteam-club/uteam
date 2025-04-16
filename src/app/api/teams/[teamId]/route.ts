@@ -26,7 +26,7 @@ export async function GET(
         id: teamId
       },
       include: {
-        members: {
+        users: {
           select: {
             id: true,
             name: true,

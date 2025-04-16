@@ -1425,10 +1425,10 @@ export default function TrainingDetailsPage() {
                       <PlayerAvatar 
                         photoUrl={participant.player.photoUrl || participant.player.image}
                         name={participant.player.firstName && participant.player.lastName 
-                          ? `${participant.player.firstName} ${participant.player.lastName}`
-                          : participant.player.name || 'Игрок'}
+                            ? `${participant.player.firstName} ${participant.player.lastName}`
+                            : participant.player.name || 'Игрок'} 
                         size="md"
-                      />
+                        />
                     </div>
                     
                     {/* Информация об игроке: имя, фамилия, номер и позиция */}
@@ -1539,12 +1539,12 @@ export default function TrainingDetailsPage() {
                     <PlayerAvatar 
                       photoUrl={player.photoUrl || player.image}
                       name={player.firstName && player.lastName 
-                        ? `${player.firstName} ${player.lastName}`
-                        : player.name || 'Игрок'}
+                          ? `${player.firstName} ${player.lastName}`
+                          : player.name || 'Игрок'} 
                       size="md"
-                    />
-                  </div>
-                  
+                          />
+                      </div>
+                      
                   {/* Информация об игроке */}
                   <div className="flex-1">
                     <p className="font-medium text-white">

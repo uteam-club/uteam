@@ -58,7 +58,7 @@ export async function PUT(
       'firstName', 'lastName', 'middleName', 'nationality', 'position', 
       'foot', 'bio', 'photoUrl', 'passportUrl', 'passportFileName',
       'birthCertificateUrl', 'birthCertificateFileName', 'insuranceUrl', 
-      'insuranceFileName', 'status', 'birthCertificateNumber'
+      'insuranceFileName', 'status', 'birthCertificateNumber', 'pinCode'
     ];
     
     // Добавляем числовые поля

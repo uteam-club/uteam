@@ -1,17 +1,20 @@
 import { PrismaClient } from '@prisma/client';
 
-// Глобальная переменная для хранения клиента в dev режиме
+// Add prisma to the NodeJS global type
 declare global {
   var prisma: PrismaClient | undefined;
 }
 
-// Создаем экземпляр клиента для production или берем существующий для dev
-export const prisma = global.prisma || new PrismaClient({
-  log: ['query', 'error'],
-});
+// Prevent multiple instances of Prisma Client in development
+export const prisma =
+  global.prisma ||
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
 
-// Для dev режима сохраняем экземпляр клиента в глобальной переменной
-if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
+if (process.env.NODE_ENV !== 'production') {
+  global.prisma = prisma;
+}
 
 // Экспортируем готовый инстанс
 export const prismaClient = prisma; 
