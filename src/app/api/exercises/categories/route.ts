@@ -8,11 +8,15 @@ export async function GET() {
       orderBy: {
         name: 'asc',
       },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        createdAt: true,
+        updatedAt: true,
         _count: {
           select: {
             exercises: true,
-            tags: true,
           },
         },
       },
@@ -59,11 +63,15 @@ export async function POST(request: Request) {
         name: body.name,
         description: body.description,
       },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        createdAt: true,
+        updatedAt: true,
         _count: {
           select: {
             exercises: true,
-            tags: true,
           },
         },
       },

@@ -11,22 +11,14 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  name          String?
-  image         String?
-  password      String?
-  role          UserRole       @default(USER)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  accounts      Account[]
-  exercises     Exercise[]
-  notifications Notification[]
-  profile       Profile?
-  sessions      Session[]
-  tasks         Task[]         @relation("AssignedTasks")
-  events        Event[]        @relation("EventParticipants")
-  teams         Team[]         @relation("TeamMembers")
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  password  String?
+  role      UserRole @default(PLAYER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("users")
 }
@@ -41,8 +33,7 @@ model Profile {
   department String?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
-  userId     String    @unique
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
 
   @@map("profiles")
 }
@@ -60,128 +51,101 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
   @@map("accounts")
 }
 
 model Session {
   id           String   @id @default(cuid())
-  sessionToken String   @unique
+  sessionToken String
   userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
 
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model VerificationToken {
   identifier String
-  token      String   @unique
+  token      String
   expires    DateTime
 
-  @@unique([identifier, token])
   @@map("verification_tokens")
+  @@ignore
 }
 
 model Team {
-  id          String     @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
   description String?
   image       String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  documents   Document[]
-  events      Event[]
-  matches     Match[]
-  players     Player[]
-  tasks       Task[]
-  trainings   Training[]
-  members     User[]     @relation("TeamMembers")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("teams")
 }
 
 model TrainingCategory {
-  id          String     @id @default(cuid())
-  name        String     @unique
+  id          String   @id @default(cuid())
+  name        String
   description String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  trainings   Training[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("training_categories")
 }
 
 model ExerciseCategory {
-  id          String        @id @default(cuid())
-  name        String        @unique
+  id          String   @id @default(cuid())
+  name        String
   description String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  tags        ExerciseTag[]
-  exercises   Exercise[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("exercise_categories")
 }
 
 model Exercise {
-  id                    String                  @id @default(cuid())
-  name                  String
-  description           String?
-  difficulty            Int                     @default(1)
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
-  categoryId            String
-  length                Int?
-  width                 Int?
-  fileUrl               String?
-  fileName              String?
-  fileType              String?
-  fileSize              Int?
-  authorId              String?
-  ExerciseTags          ExerciseTags[]
-  ExerciseToExerciseTag ExerciseToExerciseTag[]
-  ExerciseToTags        ExerciseToTags[]
-  author                User?                   @relation(fields: [authorId], references: [id], onUpdate: NoAction)
-  category              ExerciseCategory        @relation(fields: [categoryId], references: [id])
-  trainings             TrainingExercise[]
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  difficulty  Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  categoryId  String
+  length      Int?
+  width       Int?
+  fileUrl     String?
+  fileName    String?
+  fileType    String?
+  fileSize    Int?
+  authorId    String?
 
   @@map("exercises")
 }
 
 model ExerciseTag {
-  id                    String                  @id @default(cuid())
-  name                  String
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
-  exerciseCategoryId    String
-  ExerciseTags          ExerciseTags[]
-  ExerciseToExerciseTag ExerciseToExerciseTag[]
-  ExerciseToTags        ExerciseToTags[]
-  exerciseCategory      ExerciseCategory        @relation(fields: [exerciseCategoryId], references: [id], onDelete: Cascade)
+  id                 String   @id @default(cuid())
+  name               String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  exerciseCategoryId String
 
-  @@unique([name, exerciseCategoryId])
   @@map("exercise_tags")
 }
 
 model Training {
-  id           String                @id @default(cuid())
-  title        String
-  description  String?
-  startTime    DateTime
-  endTime      DateTime
-  location     String?
-  status       EventStatus           @default(PLANNED)
-  createdAt    DateTime              @default(now())
-  updatedAt    DateTime              @updatedAt
-  teamId       String?
-  categoryId   String?
-  exercises    TrainingExercise[]
-  participants TrainingParticipant[]
-  category     TrainingCategory?     @relation(fields: [categoryId], references: [id])
-  team         Team?                 @relation(fields: [teamId], references: [id])
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  status      EventStatus @default(ACTIVE)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  teamId      String?
+  categoryId  String?
 
   @@map("trainings")
 }
@@ -197,8 +161,6 @@ model TrainingExercise {
   trainingId  String
   exerciseId  String
   order       Int      @default(0)
-  exercise    Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
-  training    Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
 
   @@map("training_exercises")
 }
@@ -211,11 +173,8 @@ model TrainingParticipant {
   trainingId       String
   playerId         String
   notes            String?
-  attendanceStatus AttendanceStatus @default(READY)
-  player           Player           @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  training         Training         @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  attendanceStatus AttendanceStatus @default(PRESENT)
 
-  @@unique([trainingId, playerId])
   @@map("training_participants")
 }
 
@@ -227,29 +186,26 @@ model Match {
   endTime   DateTime?
   homeScore Int?
   awayScore Int?
-  status    EventStatus @default(PLANNED)
+  status    EventStatus @default(ACTIVE)
   notes     String?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   teamId    String?
-  team      Team?       @relation(fields: [teamId], references: [id])
 
   @@map("matches")
 }
 
 model Event {
-  id           String      @id @default(cuid())
-  title        String
-  description  String?
-  startTime    DateTime
-  endTime      DateTime
-  location     String?
-  status       EventStatus @default(PLANNED)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  teamId       String?
-  team         Team?       @relation(fields: [teamId], references: [id])
-  participants User[]      @relation("EventParticipants")
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  status      EventStatus @default(ACTIVE)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  teamId      String?
 
   @@map("events")
 }
@@ -259,13 +215,11 @@ model Task {
   title       String
   description String?
   priority    TaskPriority @default(MEDIUM)
-  status      TaskStatus   @default(TODO)
+  status      TaskStatus   @default(PENDING)
   dueDate     DateTime?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   teamId      String?
-  team        Team?        @relation(fields: [teamId], references: [id])
-  assignees   User[]       @relation("AssignedTasks")
 
   @@map("tasks")
 }
@@ -280,7 +234,6 @@ model Document {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   teamId      String?
-  team        Team?    @relation(fields: [teamId], references: [id])
 
   @@map("documents")
 }
@@ -290,23 +243,22 @@ model Notification {
   title     String
   message   String
   isRead    Boolean          @default(false)
-  type      NotificationType @default(INFO)
+  type      NotificationType @default(SYSTEM)
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
   userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
 }
 
 model Player {
-  id                       String                @id @default(cuid())
+  id                       String          @id @default(cuid())
   firstName                String
   lastName                 String
   number                   Int?
   bio                      String?
-  createdAt                DateTime              @default(now())
-  updatedAt                DateTime              @updatedAt
+  createdAt                DateTime        @default(now())
+  updatedAt                DateTime        @updatedAt
   teamId                   String
   academyJoinDate          DateTime?
   birthDate                DateTime?
@@ -315,7 +267,7 @@ model Player {
   nationality              String?
   photoUrl                 String?
   position                 PlayerPosition?
-  status                   PlayerStatus          @default(READY)
+  status                   PlayerStatus    @default(ACTIVE)
   passportUrl              String?
   passportFileName         String?
   passportFileSize         Int?
@@ -326,103 +278,106 @@ model Player {
   insuranceUrl             String?
   insuranceFileName        String?
   insuranceFileSize        Int?
-  team                     Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  trainings                TrainingParticipant[]
+  pinCode                  String?         @db.Char(6)
 
   @@map("players")
 }
 
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model ExerciseToExerciseTag {
-  A             String
-  B             String
-  exercises     Exercise    @relation(fields: [A], references: [id], onDelete: Cascade)
-  exercise_tags ExerciseTag @relation(fields: [B], references: [id], onDelete: Cascade)
+  A String
+  B String
 
-  @@unique([A, B], map: "_ExerciseToExerciseTag_AB_unique")
-  @@index([B], map: "_ExerciseToExerciseTag_B_index")
   @@map("_ExerciseToExerciseTag")
+  @@ignore
 }
 
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model ExerciseToTags {
-  A             String
-  B             String
-  exercises     Exercise    @relation(fields: [A], references: [id], onDelete: Cascade)
-  exercise_tags ExerciseTag @relation(fields: [B], references: [id], onDelete: Cascade)
+  A String
+  B String
 
-  @@unique([A, B], map: "_ExerciseToTags_AB_unique")
-  @@index([B], map: "_ExerciseToTags_B_index")
   @@map("_ExerciseToTags")
+  @@ignore
 }
 
 model ExerciseTags {
-  A             String
-  B             String
-  exercises     Exercise    @relation(fields: [A], references: [id], onDelete: Cascade)
-  exercise_tags ExerciseTag @relation(fields: [B], references: [id], onDelete: Cascade)
+  A String
+  B String
 
   @@id([A, B], map: "_ExerciseTags_AB_pkey")
-  @@index([B], map: "_ExerciseTags_B_index")
   @@map("_ExerciseTags")
 }
 
+model EventParticipants {
+  A String
+  B String
+
+  @@id([A, B], map: "_EventParticipants_AB_pkey")
+  @@map("_EventParticipants")
+}
+
+model TeamMembers {
+  A String
+  B String
+
+  @@id([A, B], map: "_TeamMembers_AB_pkey")
+  @@map("_TeamMembers")
+}
+
 enum UserRole {
-  USER
-  MANAGER
   ADMIN
-  SUPERADMIN
+  MANAGER
+  COACH
+  PLAYER
+  PARENT
 }
 
 enum EventStatus {
-  PLANNED
-  ONGOING
-  COMPLETED
+  ACTIVE
   CANCELLED
+  COMPLETED
 }
 
 enum TaskPriority {
   LOW
   MEDIUM
   HIGH
-  URGENT
 }
 
 enum TaskStatus {
-  TODO
+  PENDING
   IN_PROGRESS
-  REVIEW
-  DONE
+  COMPLETED
+  CANCELLED
 }
 
 enum NotificationType {
-  INFO
-  WARNING
-  ERROR
-  SUCCESS
+  TASK
+  EVENT
+  SYSTEM
 }
 
 enum PlayerPosition {
-  GOALKEEPER
-  DEFENDER
-  MIDFIELDER
-  FORWARD
+  GK
+  DF
+  MF
+  FW
 }
 
 enum Foot {
-  LEFT
   RIGHT
-  BOTH
+  LEFT
 }
 
 enum PlayerStatus {
-  READY
-  REHABILITATION
-  SICK
-  STUDY
-  OTHER
+  ACTIVE
+  INACTIVE
+  INJURED
+  SUSPENDED
 }
 
 enum AttendanceStatus {
-  READY
   PRESENT
   ABSENT
   LATE
