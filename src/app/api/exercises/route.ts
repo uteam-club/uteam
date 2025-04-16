@@ -322,50 +322,40 @@ export async function POST(request: Request) {
         fileName: baseData.fileName
       });
 
-      // Вставляем упражнение напрямую через SQL
-      await prisma.$executeRaw`
-        INSERT INTO "exercises" (
-          "id", "name", "description", "difficulty", "categoryId", 
-          "length", "width", "authorId", "fileUrl", "fileName", 
-          "fileType", "fileSize", "createdAt", "updatedAt"
-        ) VALUES (
-          ${baseData.id}, ${baseData.name}, ${baseData.description}, ${baseData.difficulty}, ${baseData.categoryId},
-          ${baseData.length}, ${baseData.width}, ${baseData.authorId}, ${baseData.fileUrl}, ${baseData.fileName},
-          ${baseData.fileType}, ${baseData.fileSize}, ${baseData.createdAt}, ${baseData.updatedAt}
-        )
-      `;
+      // Вставляем упражнение напрямую через Prisma
+      const createdExercise = await prisma.exercise.create({
+        data: {
+          id: baseData.id,
+          name: baseData.name,
+          description: baseData.description,
+          difficulty: baseData.difficulty,
+          categoryId: baseData.categoryId,
+          length: baseData.length,
+          width: baseData.width,
+          authorId: baseData.authorId,
+          fileUrl: baseData.fileUrl,
+          fileName: baseData.fileName,
+          fileType: baseData.fileType,
+          fileSize: baseData.fileSize
+        }
+      });
       
       console.log('[POST] Упражнение успешно создано в базе данных');
       
       // Затем добавляем теги отдельным запросом, если есть
       if (tagIds.length > 0) {
         try {
-          // Сначала проверяем, существуют ли теги
-          const result = await prisma.$queryRaw<Array<{count: string}>>`
-            SELECT COUNT(*) as count FROM "exercise_tags" 
-            WHERE "id" IN (${Prisma.join(tagIds)})
-          `;
-          
-          const tagsCount = result[0] ? Number(result[0].count) : 0;
-          console.log(`[POST] Найдено ${tagsCount} тегов из ${tagIds.length}`);
-          
-          // Добавляем в таблицу _ExerciseToExerciseTag
-          if (tagsCount > 0) {
-            await prisma.$executeRaw`
-              INSERT INTO "_ExerciseToExerciseTag" ("A", "B")
-              SELECT ${baseData.id}, id FROM "exercise_tags" 
-              WHERE id IN (${Prisma.join(tagIds)})
-            `;
-            
-            // Также добавляем в таблицу _ExerciseToTags для совместимости
-            await prisma.$executeRaw`
-              INSERT INTO "_ExerciseToTags" ("A", "B")
-              SELECT ${baseData.id}, id FROM "exercise_tags" 
-              WHERE id IN (${Prisma.join(tagIds)})
-            `;
-            
-            console.log('[POST] Теги успешно добавлены к упражнению в обе таблицы');
+          // Добавление тегов через Prisma
+          for (const tagId of tagIds) {
+            await prisma.exerciseTags.create({
+              data: {
+                A: baseData.id,
+                B: tagId
+              }
+            });
           }
+          
+          console.log('[POST] Теги успешно добавлены к упражнению');
         } catch (tagError) {
           console.error('[POST] Ошибка при добавлении тегов:', tagError);
           // Не прерываем выполнение, продолжаем без тегов
