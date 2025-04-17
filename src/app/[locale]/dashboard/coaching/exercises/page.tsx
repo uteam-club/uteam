@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -36,6 +36,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '../../../../../components/ui/textarea';
+import { toast } from 'sonner';
 
 type ExerciseCategory = {
   id: string;
@@ -157,6 +158,16 @@ export default function ExercisesPage() {
   const [editExerciseTagsDropdownOpen, setEditExerciseTagsDropdownOpen] = useState(false);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Добавим состояния для пагинации после объявления других состояний
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(12);
+  const [pagination, setPagination] = useState<{
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>({ total: 0, page: 1, limit: 12, totalPages: 1 });
+
   // Загрузка категорий упражнений
   useEffect(() => {
     const fetchCategories = async () => {
@@ -185,15 +196,16 @@ export default function ExercisesPage() {
     const fetchExercises = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/exercises');
+        const response = await fetch(`/api/exercises?page=${currentPage}&limit=${itemsPerPage}`);
         
         if (!response.ok) {
           throw new Error('Ошибка загрузки упражнений');
         }
         
         const data = await response.json();
-        setExercises(data);
-        setFilteredExercises(data);
+        setExercises(data.exercises);
+        setFilteredExercises(data.exercises);
+        setPagination(data.pagination);
       } catch (error) {
         console.error('Ошибка загрузки упражнений:', error);
       } finally {
@@ -202,7 +214,7 @@ export default function ExercisesPage() {
     };
 
     fetchExercises();
-  }, []);
+  }, [currentPage, itemsPerPage]);
 
   // Загрузка всех тегов и авторов
   useEffect(() => {
@@ -216,11 +228,24 @@ export default function ExercisesPage() {
           setAvailableTags(tagsData);
         }
         
-        // Загрузка авторов
+        // Загрузка всех пользователей, а затем фильтрация только авторов упражнений
         const authorsResponse = await fetch('/api/users?role=coach');
         if (authorsResponse.ok) {
-          const authorsData = await authorsResponse.json();
-          setAuthors(authorsData);
+          const allUsers = await authorsResponse.json();
+          
+          // Получаем уникальные ID авторов упражнений
+          const uniqueAuthorIds = Array.from(new Set(
+            exercises
+              .filter(ex => ex.authorId)
+              .map(ex => ex.authorId)
+          ));
+          
+          // Фильтруем пользователей, оставляя только авторов упражнений
+          const filteredAuthors = allUsers.filter((user: { id: string }) => 
+            uniqueAuthorIds.includes(user.id)
+          );
+          
+          setAuthors(filteredAuthors);
         }
       } catch (error) {
         console.error('Ошибка загрузки дополнительных данных:', error);
@@ -228,7 +253,7 @@ export default function ExercisesPage() {
     };
     
     fetchTagsAndAuthors();
-  }, []);
+  }, [exercises]);
 
   // Обработчик клика вне выпадающих списков для их закрытия
   useEffect(() => {
@@ -494,10 +519,26 @@ export default function ExercisesPage() {
     setExerciseErrors({});
   };
   
-  // Обработчик файла
+  // Обработчик выбора файла
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setExerciseFile(e.target.files[0]);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      
+      // Проверка типа файла
+      if (!file.type.match(/^(image\/|video\/)/)) {
+        toast.error('Пожалуйста, выберите изображение или видео');
+        return;
+      }
+      
+      // Проверка размера файла (ограничение 10 МБ)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('Размер файла не должен превышать 10 МБ');
+        return;
+      }
+      
+      console.log(`Выбран файл: ${file.name}, размер: ${file.size}, тип: ${file.type}`);
+      setExerciseFile(file);
     }
   };
   
@@ -535,8 +576,24 @@ export default function ExercisesPage() {
   
   // Обработчик выбора файла при редактировании
   const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setEditExerciseFile(e.target.files[0]);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      
+      // Проверка типа файла
+      if (!file.type.match(/^(image\/|video\/)/)) {
+        toast.error('Пожалуйста, выберите изображение или видео');
+        return;
+      }
+      
+      // Проверка размера файла (ограничение 10 МБ)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('Размер файла не должен превышать 10 МБ');
+        return;
+      }
+      
+      console.log(`Выбран файл для редактирования: ${file.name}, размер: ${file.size}, тип: ${file.type}`);
+      setEditExerciseFile(file);
     }
   };
   
@@ -625,6 +682,11 @@ export default function ExercisesPage() {
         ? prev.filter(id => id !== tagId) 
         : [...prev, tagId]
     );
+  };
+
+  // Добавим функцию для изменения страницы
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   // Отображение во время загрузки
@@ -1089,7 +1151,7 @@ export default function ExercisesPage() {
           {/* Информация о результатах поиска */}
           <div className="flex items-center justify-between mb-4">
             <div className="text-vista-light/70 text-sm">
-              Найдено упражнений: {filteredExercises.length}
+              Найдено упражнений: {pagination.total}
             </div>
           </div>
           
@@ -1546,6 +1608,54 @@ export default function ExercisesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Компонент пагинации внизу страницы */}
+      <div className="flex justify-center mt-8 mb-4 gap-2">
+        {/* Кнопка "Назад" */}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => handlePageChange(currentPage - 1)} 
+          disabled={currentPage === 1}
+        >
+          &lt;
+        </Button>
+
+        {/* Номера страниц */}
+        {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+          .filter(page => 
+            page === 1 || 
+            page === pagination.totalPages || 
+            (page >= currentPage - 1 && page <= currentPage + 1)
+          )
+          .map((page, index, array) => (
+            <React.Fragment key={page}>
+              {index > 0 && array[index - 1] !== page - 1 && (
+                <Button variant="ghost" size="sm" disabled key={`ellipsis-${index}`}>
+                  ...
+                </Button>
+              )}
+              <Button
+                variant={currentPage === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => handlePageChange(page)}
+              >
+                {page}
+              </Button>
+            </React.Fragment>
+          ))
+        }
+
+        {/* Кнопка "Вперёд" */}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => handlePageChange(currentPage + 1)} 
+          disabled={currentPage === pagination.totalPages}
+        >
+          &gt;
+        </Button>
+      </div>
     </div>
   );
 } 
