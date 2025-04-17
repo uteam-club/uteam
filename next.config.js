@@ -1,7 +1,4 @@
 const withNextIntl = require('next-intl/plugin')('./src/app/i18n.ts');
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-});
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -59,4 +56,4 @@ const nextConfig = {
   },
 };
 
-module.exports = withBundleAnalyzer(withNextIntl(nextConfig)); 
+module.exports = withNextIntl(nextConfig); 
