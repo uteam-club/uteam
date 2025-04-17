@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { memo } from "react";
 import OptimizedImage from './OptimizedImage';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
@@ -14,7 +15,7 @@ interface StaffAvatarProps {
   isRound?: boolean;
 }
 
-export default function StaffAvatar({
+function StaffAvatar({
   photoUrl,
   name,
   size = 'md',
@@ -72,3 +73,5 @@ export default function StaffAvatar({
     </div>
   );
 } 
+
+export default memo(StaffAvatar);

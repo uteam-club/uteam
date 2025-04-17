@@ -175,7 +175,7 @@ export default function CategoryPage() {
                         <div className="flex gap-1 mr-4">
                           {[...Array(5)].map((_, i) => (
                             <span 
-                              key={i} 
+                              key={`${exercise.id}-difficulty-${i}`} 
                               className={`w-2 h-2 rounded-full ${i < exercise.difficulty ? 'bg-vista-primary' : 'bg-vista-light/20'}`}
                             />
                           ))}

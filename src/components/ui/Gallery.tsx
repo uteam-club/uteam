@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect , memo } from 'react';
 import OptimizedImage from './OptimizedImage';
 import { useImagePreloader } from '@/hooks/useImagePreloader';
 import { getResponsiveSizes } from '@/lib/image-optimizations';
@@ -21,7 +21,7 @@ interface GalleryProps {
   maxWidth?: number;
 }
 
-export default function Gallery({
+function Gallery({
   images,
   className = '',
   columns = 3,
@@ -108,7 +108,7 @@ export default function Gallery({
       >
         {images.map((image, index) => (
           <div 
-            key={`gallery-image-${index}`}
+            key={`gallery-${image.src}-${index}`}
             className={`relative ${aspectRatioClass} cursor-pointer overflow-hidden rounded-lg group`}
             onClick={() => openLightbox(index)}
           >
@@ -174,3 +174,5 @@ export default function Gallery({
     </>
   );
 } 
+
+export default memo(Gallery);

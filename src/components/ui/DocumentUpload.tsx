@@ -1,4 +1,5 @@
 import React from 'react';
+import { memo } from "react";
 import { DocumentIcon, ArrowUpTrayIcon, PhotoIcon } from '@heroicons/react/24/outline';
 
 interface DocumentUploadProps {
@@ -37,7 +38,7 @@ const getFileType = (url?: string | null, name?: string | null): 'pdf' | 'image'
   return 'pdf';
 };
 
-export default function DocumentUpload({
+function DocumentUpload({
   title,
   documentUrl,
   documentName,
@@ -112,3 +113,5 @@ export default function DocumentUpload({
     </div>
   );
 } 
+
+export default memo(DocumentUpload);

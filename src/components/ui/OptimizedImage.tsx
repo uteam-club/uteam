@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 
 interface OptimizedImageProps {
   src: string;
@@ -18,7 +18,7 @@ interface OptimizedImageProps {
   placeholder?: string;
 }
 
-export default function OptimizedImage({
+function OptimizedImage({
   src,
   alt,
   width,
@@ -29,21 +29,17 @@ export default function OptimizedImage({
   quality = 85,
   className = '',
   objectFit = 'cover',
-  blur = true,
+  blur = false,
   placeholder,
 }: OptimizedImageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [blurDataURL, setBlurDataURL] = useState<string | undefined>(placeholder);
 
-  // Если плейсхолдер не передан и включен эффект размытия,
-  // используем базовый плейсхолдер (светло-серый фон)
+  // Простой плейсхолдер (светло-серый фон)
   const defaultBlurDataURL = 
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
-  // Зависимости: при изменении src и blur
   useEffect(() => {
-    setIsLoading(true);
-    
     if (!placeholder && blur) {
       setBlurDataURL(defaultBlurDataURL);
     } else {
@@ -56,7 +52,6 @@ export default function OptimizedImage({
       className={`
         relative overflow-hidden 
         ${fill ? 'w-full h-full' : ''} 
-        ${isLoading && blur ? 'animate-pulse bg-vista-dark-lighter/30' : ''} 
         ${className}
       `}
       style={!fill ? { width: width, height: height } : undefined}
@@ -71,12 +66,14 @@ export default function OptimizedImage({
         priority={priority}
         quality={quality}
         loading={priority ? 'eager' : 'lazy'}
-        placeholder={blurDataURL ? 'blur' : 'empty'}
-        blurDataURL={blurDataURL}
+        placeholder={blur && blurDataURL ? 'blur' : 'empty'}
+        blurDataURL={blur ? blurDataURL : undefined}
         className={`
-          transition-all duration-300 
-          ${isLoading ? 'scale-105 blur-sm' : 'scale-100 blur-0'} 
-          ${objectFit === 'contain' ? 'object-contain' : objectFit === 'cover' ? 'object-cover' : 'object-' + objectFit}
+          ${objectFit === 'contain' ? 'object-contain' : 
+            objectFit === 'cover' ? 'object-cover' : 
+            objectFit === 'fill' ? 'object-fill' : 
+            objectFit === 'none' ? 'object-none' : 
+            objectFit === 'scale-down' ? 'object-scale-down' : ''}
         `}
         onLoad={() => setIsLoading(false)}
         {...(!alt || alt === '' ? { 
@@ -87,3 +84,5 @@ export default function OptimizedImage({
     </div>
   );
 } 
+
+export default memo(OptimizedImage);

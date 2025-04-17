@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from "react";
 import { useTranslations } from 'next-intl';
 import { signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
@@ -10,7 +11,7 @@ interface LogoutButtonProps {
   className?: string;
 }
 
-export default function LogoutButton({ className }: LogoutButtonProps) {
+function LogoutButton({ className }: LogoutButtonProps) {
   const common = useTranslations('common');
   const pathname = usePathname();
   const locale = pathname.split('/')[1] || 'ru';
@@ -29,3 +30,5 @@ export default function LogoutButton({ className }: LogoutButtonProps) {
     </Button>
   );
 } 
+
+export default memo(LogoutButton);

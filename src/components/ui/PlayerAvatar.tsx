@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { memo } from "react";
 import OptimizedImage from './OptimizedImage';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
@@ -13,7 +14,7 @@ interface PlayerAvatarProps {
   onClick?: () => void;
 }
 
-export default function PlayerAvatar({
+function PlayerAvatar({
   photoUrl,
   name,
   size = 'md',
@@ -69,3 +70,5 @@ export default function PlayerAvatar({
     </div>
   );
 } 
+
+export default memo(PlayerAvatar);

@@ -5,7 +5,7 @@ import OptimizedImage from '@/components/ui/OptimizedImage';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { GlobeAltIcon, ChevronDownIcon, ChevronRightIcon, UserCircleIcon, MagnifyingGlassIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, BellIcon, DocumentIcon } from '@heroicons/react/24/outline';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect , memo } from 'react';
 import { Locale } from '@/i18n';
 
 // Тип для структуры команды
@@ -32,7 +32,7 @@ interface NavItem {
   icon?: React.ReactNode;
 }
 
-export default function Navbar() {
+function Navbar() {
   const t = useTranslations('navigation');
   const pathname = usePathname();
   const locale = pathname.split('/')[1];
@@ -201,13 +201,13 @@ export default function Navbar() {
           <Link href={`/${locale}/dashboard`} className="flex items-center">
             <div className="h-8 w-20">
               <OptimizedImage
-                src="/images/vista.png" 
+                src="/images/optimized/vista-logo.png" 
                 alt="VISTA UTEAM Logo" 
                 fill
                 sizes="(max-width: 768px) 80px, 100px"
                 priority
                 objectFit="contain"
-                quality={85}
+                quality={90}
               />
             </div>
           </Link>
@@ -362,3 +362,5 @@ export default function Navbar() {
     </nav>
   );
 } 
+
+export default memo(Navbar);

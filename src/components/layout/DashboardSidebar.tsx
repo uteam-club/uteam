@@ -1,3 +1,4 @@
+import { memo } from "react";
 'use client';
 
 import { useTranslations } from 'next-intl';
@@ -18,7 +19,7 @@ interface SidebarItem {
   href: string;
 }
 
-export default function DashboardSidebar() {
+function DashboardSidebar() {
   const t = useTranslations('navigation');
   const pathname = usePathname();
   const locale = pathname.split('/')[1]; // Извлекаем локаль из URL
@@ -89,3 +90,5 @@ export default function DashboardSidebar() {
     </aside>
   );
 } 
+
+export default memo(DashboardSidebar);

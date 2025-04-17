@@ -25,11 +25,23 @@ interface ExtendedExercise {
 }
 
 // GET /api/exercises - получить все упражнения
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // Получаем базовые данные упражнений с использованием raw SQL
+    // Получаем URL и параметры запроса
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '12', 10);
+    
+    // Вычисляем смещение
+    const offset = (page - 1) * limit;
+    
+    // Получаем общее количество упражнений для пагинации
+    const totalCount = await prisma.exercise.count();
+    
+    // Получаем базовые данные упражнений с использованием raw SQL с пагинацией
     const exercises = await prisma.$queryRaw`
       SELECT * FROM "exercises" ORDER BY "name" ASC
+      LIMIT ${limit} OFFSET ${offset}
     `;
     
     // Получаем категории для упражнений
@@ -135,7 +147,16 @@ export async function GET() {
       return formattedExercise;
     });
 
-    return NextResponse.json(formattedExercises);
+    // Отправляем результат с метаданными пагинации
+    return NextResponse.json({
+      exercises: formattedExercises,
+      pagination: {
+        total: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit)
+      }
+    });
   } catch (error) {
     console.error('Ошибка при получении упражнений:', error);
     return NextResponse.json(
@@ -452,6 +473,27 @@ export async function POST(request: Request) {
       return NextResponse.json(result);
     } catch (dbError: any) {
       console.error('Ошибка создания упражнения в БД:', dbError);
+      
+      // Удаляем загруженный файл, если произошла ошибка при создании записи в БД
+      if (fileData && fileData.fileName) {
+        try {
+          console.log(`[POST] Удаляем загруженный файл ${fileData.fileName} из-за ошибки создания упражнения`);
+          
+          const { data, error } = await supabaseAdmin
+            .storage
+            .from('exercises')
+            .remove([fileData.fileName]);
+            
+          if (error) {
+            console.error(`[POST] Ошибка при удалении файла: ${error.message}`);
+          } else {
+            console.log(`[POST] Файл успешно удален из Supabase Storage`);
+          }
+        } catch (fileError) {
+          console.error(`[POST] Ошибка при попытке удаления файла:`, fileError);
+        }
+      }
+      
       return NextResponse.json(
         { 
           error: 'Не удалось создать упражнение в базе данных', 
@@ -462,6 +504,27 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error('Общая ошибка при создании упражнения:', error);
+    
+    // Удаляем загруженный файл, если произошла общая ошибка
+    if (fileData && fileData.fileName) {
+      try {
+        console.log(`[POST] Удаляем загруженный файл ${fileData.fileName} из-за общей ошибки`);
+        
+        const { data, error } = await supabaseAdmin
+          .storage
+          .from('exercises')
+          .remove([fileData.fileName]);
+          
+        if (error) {
+          console.error(`[POST] Ошибка при удалении файла: ${error.message}`);
+        } else {
+          console.log(`[POST] Файл успешно удален из Supabase Storage`);
+        }
+      } catch (fileError) {
+        console.error(`[POST] Ошибка при попытке удаления файла:`, fileError);
+      }
+    }
+    
     return NextResponse.json(
       { error: 'Не удалось создать упражнение', details: String(error) },
       { status: 500 }

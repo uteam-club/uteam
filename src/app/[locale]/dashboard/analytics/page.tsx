@@ -10,33 +10,33 @@ export default function AnalyticsPage() {
   const t = useTranslations('navigation');
   const router = useRouter();
   const { locale } = useParams();
-  
+
   const analyticsOptions = [
-    {
-      title: t('gps'),
-      description: 'Анализ GPS-данных игроков и команд',
-      icon: <MapPinIcon className="h-12 w-12 text-vista-accent" />,
-      href: `/${locale}/dashboard/analytics/gps`,
-    },
-    {
-      title: t('attendance'),
-      description: 'Статистика посещаемости тренировок',
-      icon: <ChartBarIcon className="h-12 w-12 text-vista-accent" />,
-      href: `/${locale}/dashboard/analytics/attendance`,
-    },
-  ];
+  {
+    title: t('gps'),
+    description: 'Анализ GPS-данных игроков и команд',
+    icon: <MapPinIcon className="h-12 w-12 text-vista-accent" />,
+    href: `/${locale}/dashboard/analytics/gps`
+  },
+  {
+    title: t('attendance'),
+    description: 'Статистика посещаемости тренировок',
+    icon: <ChartBarIcon className="h-12 w-12 text-vista-accent" />,
+    href: `/${locale}/dashboard/analytics/attendance`
+  }];
+
 
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-8 text-vista-accent">{t('analytics')}</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {analyticsOptions.map((option, index) => (
-          <Card 
-            key={index}
-            className="bg-vista-dark-secondary border-vista-secondary hover:border-vista-accent transition-colors cursor-pointer"
-            onClick={() => router.push(option.href)}
-          >
+        {analyticsOptions.map((option, index) =>
+        <Card
+          key={`${option.href}-${index}`}
+          className="bg-vista-dark-secondary border-vista-secondary hover:border-vista-accent transition-colors cursor-pointer"
+          onClick={() => router.push(option.href)}>
+
             <CardHeader className="pb-2">
               <div className="flex items-center justify-center mb-4">
                 {option.icon}
@@ -50,17 +50,17 @@ export default function AnalyticsPage() {
                 {option.description}
               </CardDescription>
               <div className="flex justify-center">
-                <Button 
-                  variant="outline" 
-                  className="border-vista-accent text-vista-accent hover:bg-vista-accent/10"
-                >
+                <Button
+                variant="outline"
+                className="border-vista-accent text-vista-accent hover:bg-vista-accent/10">
+
                   Перейти
                 </Button>
               </div>
             </CardContent>
           </Card>
-        ))}
+        )}
       </div>
-    </div>
-  );
-} 
+    </div>);
+
+}

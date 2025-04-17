@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode , memo } from 'react';
 import Navbar from './Navbar';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
@@ -8,7 +8,7 @@ interface DashboardLayoutProps {
   children: ReactNode;
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="bg-vista-dark-lighter min-h-screen text-vista-light">
       <Navbar />
@@ -20,3 +20,5 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     </div>
   );
 } 
+
+export default memo(DashboardLayout);

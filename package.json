@@ -62,6 +62,10 @@
     "zod": "3.22.4"
   },
   "devDependencies": {
+    "@babel/generator": "^7.27.0",
+    "@babel/parser": "^7.27.0",
+    "@babel/traverse": "^7.27.0",
+    "@babel/types": "^7.27.0",
     "@types/bcrypt": "^5.0.2",
     "@types/node": "20.11.16",
     "@types/react": "18.2.55",

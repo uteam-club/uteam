@@ -10,7 +10,7 @@ import {
   ArrowRightOnRectangleIcon,
   LanguageIcon
 } from '@heroicons/react/24/outline';
-import { useState } from 'react';
+import { useState , memo } from 'react';
 import Link from 'next/link';
 
 interface TopBarProps {
@@ -18,7 +18,7 @@ interface TopBarProps {
   userRole: string;
 }
 
-export default function TopBar({ userName, userRole }: TopBarProps) {
+function TopBar({ userName, userRole }: TopBarProps) {
   const common = useTranslations('common');
   const navigation = useTranslations('navigation');
   const pathname = usePathname();
@@ -130,3 +130,5 @@ export default function TopBar({ userName, userRole }: TopBarProps) {
     </div>
   );
 } 
+
+export default memo(TopBar);
