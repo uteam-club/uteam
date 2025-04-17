@@ -54,25 +54,6 @@ const nextConfig = {
       transform: 'lucide-react/dist/esm/icons/{{member}}',
     },
   },
-  // Определение динамических маршрутов для правильного статического экспорта
-  exportPathMap: async function (
-    defaultPathMap,
-    { dev, dir, outDir, distDir, buildId }
-  ) {
-    // Базовые статические пути
-    return {
-      '/': { page: '/' },
-      '/404': { page: '/404' },
-      '/500': { page: '/500' },
-      '/ru': { page: '/ru' },
-      '/en': { page: '/en' },
-    };
-  },
-  // Указать, что маршруты dashboard требуют динамической генерации
-  dynamicRoutes: [
-    '/[locale]/dashboard/**',
-    '/api/**',
-  ],
 };
 
 module.exports = withNextIntl(nextConfig); 
