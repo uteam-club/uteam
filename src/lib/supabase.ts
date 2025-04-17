@@ -2,16 +2,22 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase.types';
 
 // Проверка обязательных переменных окружения
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  console.error('Ошибка: NEXT_PUBLIC_SUPABASE_URL не определен');
-}
-
-if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  console.error('Ошибка: NEXT_PUBLIC_SUPABASE_ANON_KEY не определен');
-}
-
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+// Логирование для отладки
+console.log('[SUPABASE_CONFIG] URL:', supabaseUrl ? 'Установлен' : 'Отсутствует');
+console.log('[SUPABASE_CONFIG] ANON_KEY:', supabaseAnonKey ? 'Установлен' : 'Отсутствует');
+console.log('[SUPABASE_CONFIG] SERVICE_KEY:', process.env.SUPABASE_SERVICE_KEY ? 'Установлен' : 'Отсутствует');
+
+// Проверка наличия обязательных переменных окружения
+if (!supabaseUrl) {
+  console.warn('ПРЕДУПРЕЖДЕНИЕ: NEXT_PUBLIC_SUPABASE_URL не определен. Подключение к Supabase будет невозможно.');
+}
+
+if (!supabaseAnonKey) {
+  console.warn('ПРЕДУПРЕЖДЕНИЕ: NEXT_PUBLIC_SUPABASE_ANON_KEY не определен. Подключение к Supabase будет невозможно.');
+}
 
 // Опции для клиента Supabase
 const supabaseOptions = {
@@ -23,40 +29,66 @@ const supabaseOptions = {
 };
 
 // Публичный клиент для клиентской части
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, supabaseOptions);
 
 // Сервисный клиент для административных функций
 // Поддержка обоих имен переменной для совместимости
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || 
+                           process.env.SUPABASE_SERVICE_ROLE_KEY || 
+                           process.env.SUPABASE_KEY || '';
 
 if (!supabaseServiceKey) {
-  console.error('Ошибка: SUPABASE_SERVICE_KEY или SUPABASE_SERVICE_ROLE_KEY не определен');
+  console.warn('ПРЕДУПРЕЖДЕНИЕ: SUPABASE_SERVICE_KEY или SUPABASE_SERVICE_ROLE_KEY не определен. Административные функции недоступны.');
 }
 
-console.log('[DEBUG] Используется ключ сервиса Supabase, доступен:', !!supabaseServiceKey);
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+// Создаем административный клиент только если есть ключ
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, supabaseOptions);
+
+// Проверка соединения с Supabase
+const checkSupabaseConnection = async () => {
+  try {
+    console.log('[SUPABASE_CONNECTION] Проверка соединения...');
+    // Простой запрос для проверки соединения
+    const { data, error } = await supabase.from('_health').select('*').limit(1);
+    if (error) {
+      console.error('[SUPABASE_CONNECTION] Ошибка:', error);
+      throw error;
+    }
+    console.log('✅ [SUPABASE_CONNECTION] Соединение успешно установлено');
+    return true;
+  } catch (error) {
+    console.warn('⚠️ [SUPABASE_CONNECTION] Не удалось подключиться:', error);
+    return false;
+  }
+};
 
 // Функция для проверки бакетов и создания их при необходимости
 export async function checkAndCreateBucket(bucketName: string): Promise<boolean> {
   try {
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('[SUPABASE_BUCKET] Невозможно проверить бакет: отсутствуют переменные окружения Supabase');
+      return false;
+    }
+    
+    console.log(`[SUPABASE_BUCKET] Проверка бакета ${bucketName}...`);
     // Получаем информацию о бакете
     const { data, error } = await supabaseAdmin.storage.getBucket(bucketName);
     
     // Если бакет не существует, создаем его
     if (error) {
-      console.log(`Бакет ${bucketName} не найден, создаем...`);
+      console.log(`[SUPABASE_BUCKET] Бакет ${bucketName} не найден, создаем...`);
       const { data: createData, error: createError } = await supabaseAdmin.storage
         .createBucket(bucketName, { public: true });
       
       if (createError) {
-        console.error(`Ошибка при создании бакета ${bucketName}:`, createError);
+        console.error(`[SUPABASE_BUCKET] Ошибка при создании бакета ${bucketName}:`, createError);
         return false;
       }
-      console.log(`Бакет ${bucketName} успешно создан`);
+      console.log(`[SUPABASE_BUCKET] Бакет ${bucketName} успешно создан`);
       
       // Настраиваем публичную политику доступа для бакета
       try {
-        console.log(`Настройка публичных политик для бакета ${bucketName}...`);
+        console.log(`[SUPABASE_BUCKET] Настройка публичных политик для бакета ${bucketName}...`);
         
         // Политика для чтения (разрешить всем)
         const { error: policyReadError } = await supabaseAdmin
@@ -65,12 +97,12 @@ export async function checkAndCreateBucket(bucketName: string): Promise<boolean>
           .createSignedUrl('test.txt', 60);
           
         if (policyReadError && !policyReadError.message.includes('does not exist')) {
-          console.error(`Ошибка при проверке прав чтения для ${bucketName}:`, policyReadError);
+          console.error(`[SUPABASE_BUCKET] Ошибка при проверке прав чтения для ${bucketName}:`, policyReadError);
         } else {
-          console.log(`Права чтения для ${bucketName} настроены или проверены`);
+          console.log(`[SUPABASE_BUCKET] Права чтения для ${bucketName} настроены или проверены`);
         }
         
-        console.log(`Создание тестового файла в бакете ${bucketName} для проверки политик...`);
+        console.log(`[SUPABASE_BUCKET] Создание тестового файла в бакете ${bucketName} для проверки политик...`);
         // Создаем тестовый файл для проверки политик доступа
         const { error: uploadError } = await supabaseAdmin
           .storage
@@ -81,9 +113,9 @@ export async function checkAndCreateBucket(bucketName: string): Promise<boolean>
           });
           
         if (uploadError) {
-          console.error(`Ошибка при создании тестового файла в ${bucketName}:`, uploadError);
+          console.error(`[SUPABASE_BUCKET] Ошибка при создании тестового файла в ${bucketName}:`, uploadError);
         } else {
-          console.log(`Тестовый файл успешно создан в ${bucketName}`);
+          console.log(`[SUPABASE_BUCKET] Тестовый файл успешно создан в ${bucketName}`);
           
           // Получаем публичный URL для проверки
           const { data: urlData } = supabaseAdmin
@@ -91,13 +123,13 @@ export async function checkAndCreateBucket(bucketName: string): Promise<boolean>
             .from(bucketName)
             .getPublicUrl('test-policy.txt');
             
-          console.log(`Публичный URL для тестового файла: ${urlData?.publicUrl || 'не удалось получить'}`);
+          console.log(`[SUPABASE_BUCKET] Публичный URL для тестового файла: ${urlData?.publicUrl || 'не удалось получить'}`);
         }
       } catch (policyError) {
-        console.error(`Ошибка при настройке политик для бакета ${bucketName}:`, policyError);
+        console.error(`[SUPABASE_BUCKET] Ошибка при настройке политик для бакета ${bucketName}:`, policyError);
       }
     } else {
-      console.log(`Бакет ${bucketName} существует`);
+      console.log(`[SUPABASE_BUCKET] Бакет ${bucketName} существует`);
       
       // Проверяем наличие публичного доступа
       try {
@@ -106,7 +138,7 @@ export async function checkAndCreateBucket(bucketName: string): Promise<boolean>
           .from(bucketName)
           .getPublicUrl('test-policy.txt');
           
-        console.log(`Публичный URL для тестового файла: ${urlData?.publicUrl || 'не удалось получить'}`);
+        console.log(`[SUPABASE_BUCKET] Публичный URL для тестового файла: ${urlData?.publicUrl || 'не удалось получить'}`);
         
         // Пробуем загрузить новый тестовый файл для проверки прав записи
         const testFilename = `test-policy-${Date.now()}.txt`;
@@ -119,32 +151,35 @@ export async function checkAndCreateBucket(bucketName: string): Promise<boolean>
           });
           
         if (uploadError) {
-          console.error(`Ошибка при создании тестового файла в ${bucketName}:`, uploadError);
+          console.error(`[SUPABASE_BUCKET] Ошибка при создании тестового файла в ${bucketName}:`, uploadError);
         } else {
-          console.log(`Тестовый файл ${testFilename} успешно создан в ${bucketName}`);
+          console.log(`[SUPABASE_BUCKET] Тестовый файл ${testFilename} успешно создан в ${bucketName}`);
           
           // Удаляем тестовый файл
           await supabaseAdmin.storage.from(bucketName).remove([testFilename]);
         }
       } catch (accessError) {
-        console.error(`Ошибка при проверке доступа к бакету ${bucketName}:`, accessError);
+        console.error(`[SUPABASE_BUCKET] Ошибка при проверке доступа к бакету ${bucketName}:`, accessError);
       }
     }
     
     return true;
   } catch (error) {
-    console.error(`Ошибка при проверке бакета ${bucketName}:`, error);
+    console.error(`[SUPABASE_BUCKET] Ошибка при проверке бакета ${bucketName}:`, error);
     return false;
   }
 }
 
 // Функция для обработки ошибок Supabase
 export function handleSupabaseError(error: any): string {
-  console.error('Supabase Error:', error);
+  console.error('[SUPABASE_ERROR]', error);
   
   if (error?.message) {
     return `Ошибка: ${error.message}`;
   }
   
   return 'Произошла неизвестная ошибка';
-} 
+}
+
+// Экспортируем функцию проверки соединения
+export { checkSupabaseConnection }; 
