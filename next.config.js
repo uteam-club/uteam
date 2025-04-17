@@ -1,4 +1,7 @@
 const withNextIntl = require('next-intl/plugin')('./src/app/i18n.ts');
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -45,7 +48,7 @@ const nextConfig = {
     pagesBufferLength: 5,
   },
   swcMinify: true,
-  transpilePackages: ['@supabase/supabase-js', 'uuid', 'date-fns'],
+  transpilePackages: ['@supabase/supabase-js', 'uuid', 'date-fns', 'critters'],
   modularizeImports: {
     '@heroicons/react': {
       transform: '@heroicons/react/{{member}}',
@@ -56,4 +59,4 @@ const nextConfig = {
   },
 };
 
-module.exports = withNextIntl(nextConfig); 
+module.exports = withBundleAnalyzer(withNextIntl(nextConfig)); 
