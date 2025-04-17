@@ -145,8 +145,6 @@ model Exercise {
   fileSize              Int?
   authorId              String?
   ExerciseTags          ExerciseTags[]
-  ExerciseToExerciseTag ExerciseToExerciseTag[] @ignore
-  ExerciseToTags        ExerciseToTags[]        @ignore
   users                 User?                   @relation(fields: [authorId], references: [id], onUpdate: NoAction)
   exercise_categories   ExerciseCategory        @relation(fields: [categoryId], references: [id])
   training_exercises    TrainingExercise[]
@@ -162,8 +160,6 @@ model ExerciseTag {
   updatedAt             DateTime                @updatedAt
   exerciseCategoryId    String
   ExerciseTags          ExerciseTags[]
-  ExerciseToExerciseTag ExerciseToExerciseTag[] @ignore
-  ExerciseToTags        ExerciseToTags[]        @ignore
   exercise_categories   ExerciseCategory        @relation(fields: [exerciseCategoryId], references: [id], onDelete: Cascade)
 
   @@unique([name, exerciseCategoryId])
@@ -335,28 +331,6 @@ model Player {
   training_participants    TrainingParticipant[]
 
   @@map("players")
-}
-
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model ExerciseToExerciseTag {
-  A String
-  B String
-  exercises Exercise @relation(fields: [A], references: [id])
-  tags ExerciseTag @relation(fields: [B], references: [id])
-
-  @@map("_ExerciseToExerciseTag")
-  @@ignore
-}
-
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model ExerciseToTags {
-  A String
-  B String
-  exercises Exercise @relation(fields: [A], references: [id])
-  tags ExerciseTag @relation(fields: [B], references: [id])
-
-  @@map("_ExerciseToTags")
-  @@ignore
 }
 
 model ExerciseTags {

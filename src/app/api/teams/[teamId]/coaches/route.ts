@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/options';
 
-// GET /api/teams/[teamId]/members - получить список участников команды
+// GET /api/teams/[teamId]/coaches - получить список тренеров команды
 export async function GET(
   request: Request,
   { params }: { params: { teamId: string } }
@@ -24,16 +24,6 @@ export async function GET(
     const team = await prisma.team.findUnique({
       where: {
         id: teamId
-      },
-      include: {
-        users: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true
-          }
-        }
       }
     });
     
@@ -44,10 +34,20 @@ export async function GET(
       );
     }
     
-    // Возвращаем список участников команды
-    return NextResponse.json(team.users);
+    // Получаем тренеров команды через SQL запрос
+    // Используем raw SQL для обхода ограничений типизации
+    const coaches = await prisma.$queryRaw`
+      SELECT u.id, u.name, u.email, u.image 
+      FROM "users" u
+      JOIN "_TeamMembers" tm ON u.id = tm."B"
+      WHERE tm."A" = ${teamId}
+      AND (u.role = 'MANAGER' OR u.role = 'ADMIN' OR u.role = 'SUPERADMIN')
+      ORDER BY u.name ASC
+    `;
+    
+    return NextResponse.json(coaches);
   } catch (error) {
-    console.error('Ошибка при получении участников команды:', error);
+    console.error('Ошибка при получении тренеров команды:', error);
     return NextResponse.json(
       { error: 'Внутренняя ошибка сервера' }, 
       { status: 500 }
@@ -55,7 +55,7 @@ export async function GET(
   }
 }
 
-// POST /api/teams/[teamId]/members - добавить пользователя в команду
+// POST /api/teams/[teamId]/coaches - добавить пользователя-тренера в команду
 export async function POST(
   request: Request,
   { params }: { params: { teamId: string } }
@@ -71,6 +71,14 @@ export async function POST(
     }
     
     const teamId = params.teamId;
+    const { userId } = await request.json();
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Не указан ID пользователя' },
+        { status: 400 }
+      );
+    }
     
     // Проверяем существование команды
     const team = await prisma.team.findUnique({
@@ -79,24 +87,14 @@ export async function POST(
     
     if (!team) {
       return NextResponse.json(
-        { error: 'Команда не найдена' }, 
+        { error: 'Команда не найдена' },
         { status: 404 }
-      );
-    }
-    
-    const data = await request.json();
-    
-    // Проверка обязательных полей
-    if (!data.userId) {
-      return NextResponse.json(
-        { error: 'Не указан ID пользователя' },
-        { status: 400 }
       );
     }
     
     // Проверяем существование пользователя
     const user = await prisma.user.findUnique({
-      where: { id: data.userId }
+      where: { id: userId }
     });
     
     if (!user) {
@@ -106,31 +104,37 @@ export async function POST(
       );
     }
     
-    // Добавляем пользователя в команду
-    const updatedTeam = await prisma.team.update({
-      where: { id: teamId },
-      data: {
-        users: {
-          connect: { id: data.userId }
-        }
-      },
-      include: {
-        users: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true
-          }
-        }
-      }
-    });
+    // Проверяем, не добавлен ли пользователь уже в команду
+    const existingMembership = await prisma.$queryRaw`
+      SELECT * FROM "_TeamMembers" 
+      WHERE "A" = ${teamId} AND "B" = ${userId}
+      LIMIT 1
+    `;
     
-    return NextResponse.json(updatedTeam);
+    if (Array.isArray(existingMembership) && existingMembership.length > 0) {
+      return NextResponse.json(
+        { error: 'Пользователь уже добавлен в команду' },
+        { status: 400 }
+      );
+    }
+    
+    // Добавляем пользователя в команду через промежуточную таблицу
+    await prisma.$executeRaw`
+      INSERT INTO "_TeamMembers" ("A", "B")
+      VALUES (${teamId}, ${userId})
+    `;
+    
+    // Возвращаем данные пользователя
+    return NextResponse.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      image: user.image
+    });
   } catch (error) {
     console.error('Ошибка при добавлении пользователя в команду:', error);
     return NextResponse.json(
-      { error: 'Внутренняя ошибка сервера' }, 
+      { error: 'Внутренняя ошибка сервера' },
       { status: 500 }
     );
   }

@@ -54,7 +54,7 @@ model Team {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  members     User[]   @relation("TeamMembers")
+  users       User[]   @relation("TeamMembers")
   events      Event[]
   
   @@map("teams")
@@ -317,7 +317,7 @@ model Team {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  members     User[]   @relation("TeamMembers")
+  users       User[]   @relation("TeamMembers")
   events      Event[]
   documents   Document[]
   tasks       Task[]
@@ -476,7 +476,7 @@ const newTeam = await prisma.team.create({
   data: {
     name: "Команда разработки",
     description: "Разработка нового функционала",
-    members: {
+    users: {
       connect: [{ id: userId1 }, { id: userId2 }]
     }
   }
@@ -486,7 +486,7 @@ const newTeam = await prisma.team.create({
 const updatedTeam = await prisma.team.update({
   where: { id: teamId },
   data: {
-    members: {
+    users: {
       connect: { id: newUserId }
     }
   }

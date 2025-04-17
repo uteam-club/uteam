@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "node check-and-create-buckets.js && npx prisma generate && next dev",
-    "build": "node check-and-create-buckets.js && prisma generate && next build",
+    "dev": "node src/scripts/check-and-create-buckets.js && npx prisma generate && next dev",
+    "build": "node src/scripts/check-and-create-buckets.js && prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "prisma:generate": "prisma generate",
@@ -13,8 +13,8 @@
     "prisma:migrate": "prisma migrate dev",
     "db:check": "node scripts/check-db.js",
     "create:admin": "node scripts/run-create-admin.js",
-    "init": "node check-and-create-buckets.js && node update-schema.js",
-    "deploy": "npx prisma generate && npx prisma migrate deploy && node production-deploy.js && next build"
+    "init": "node src/scripts/check-and-create-buckets.js && node update-schema.js",
+    "deploy": "node src/scripts/check-and-create-buckets.js && npx prisma generate && npx prisma migrate deploy && next build"
   },
   "keywords": [],
   "author": "",
