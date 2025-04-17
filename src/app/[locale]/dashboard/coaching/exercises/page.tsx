@@ -4,35 +4,42 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from '@/components/ui/dialog';
+import { 
+  BookOpenIcon,
+  PlusIcon, 
+  ChevronRightIcon,
+  TagIcon,
+  FolderIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon,
+  ChevronDownIcon,
+  CheckIcon,
+  UserIcon,
+  ArrowUpTrayIcon,
+  ArrowsPointingOutIcon,
+  PencilIcon,
+  TrashIcon,
+  DocumentIcon,
+  DocumentPlusIcon,
+  ChevronUpDownIcon
+} from '@heroicons/react/24/outline';
 
 // Отладочное сообщение при начале загрузки компонента
 console.log('[DEBUG] Loading ExercisesPage component');
-
-try {
-  // Детальный импорт с проверкой ошибок
-  import { 
-    BookOpenIcon,
-    PlusIcon, 
-    ChevronRightIcon,
-    TagIcon,
-    FolderIcon,
-    MagnifyingGlassIcon,
-    XMarkIcon,
-    ChevronDownIcon,
-    CheckIcon,
-    UserIcon,
-    ArrowUpTrayIcon,
-    ArrowsPointingOutIcon,
-    PencilIcon,
-    TrashIcon,
-    DocumentIcon,
-    DocumentPlusIcon,
-    ChevronUpDownIcon
-  } from '@heroicons/react/24/outline';
-  console.log('[DEBUG] Icons imported successfully');
-} catch (error) {
-  console.error('[DEBUG] Error importing icons:', error);
-}
 
 type ExerciseCategory = {
   id: string;
