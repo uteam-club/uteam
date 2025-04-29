@@ -1,0 +1,268 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient, AttendanceStatus } from '@prisma/client';
+
+// Создаем новый экземпляр PrismaClient для этого маршрута
+const prisma = new PrismaClient();
+
+// Функция для преобразования строкового статуса в enum AttendanceStatus
+const parseAttendanceStatus = (status: string | null | undefined): AttendanceStatus => {
+  if (!status) return 'TRAINED';
+  
+  switch (status) {
+    case 'TRAINED': return 'TRAINED';
+    case 'REHABILITATION': return 'REHABILITATION';
+    case 'SICK': return 'SICK';
+    case 'STUDY': return 'STUDY';
+    case 'OTHER': return 'OTHER';
+    default: return 'TRAINED';
+  }
+};
+
+// GET /api/trainings/[trainingId]/participants
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { trainingId: string } }
+) {
+  const trainingId = params.trainingId;
+  
+  if (!trainingId) {
+    return NextResponse.json(
+      { error: 'Не указан ID тренировки' },
+      { status: 400 }
+    );
+  }
+  
+  try {
+    console.log(`GET: Получение участников для тренировки ${trainingId}`);
+    
+    // Получаем всех участников тренировки
+    const participants = await prisma.trainingParticipant.findMany({
+      where: {
+        trainingId: trainingId
+      },
+      include: {
+        players: true
+      }
+    });
+    
+    console.log(`GET: Найдено ${participants.length} участников`);
+    
+    return NextResponse.json(participants);
+  } catch (error) {
+    console.error('GET: Ошибка при получении участников тренировки:', error);
+    return NextResponse.json(
+      { error: 'Не удалось получить участников тренировки' },
+      { status: 500 }
+    );
+  }
+}
+
+// Обработчик для обоих методов PUT и POST
+async function handleUpdateParticipants(
+  request: NextRequest,
+  { params }: { params: { trainingId: string } }
+) {
+  try {
+    const trainingId = params.trainingId;
+    if (!trainingId) {
+      console.log('Ошибка - не указан ID тренировки');
+      return NextResponse.json(
+        { error: 'Не указан ID тренировки' },
+        { status: 400 }
+      );
+    }
+    
+    console.log(`Обработка данных для тренировки ${trainingId}`);
+    
+    // Получаем тело запроса
+    const body = await request.json();
+    const { participants } = body;
+    
+    if (!participants || !Array.isArray(participants)) {
+      console.log('Ошибка - не предоставлен массив участников');
+      return NextResponse.json(
+        { error: 'Необходимо предоставить массив участников' },
+        { status: 400 }
+      );
+    }
+    
+    console.log(`Получено ${participants.length} участников для обновления`);
+    
+    // Массив для результатов операций
+    const results = [];
+    
+    // Обрабатываем каждого участника
+    for (const participant of participants) {
+      try {
+        const { id, playerId, attended, attendanceStatus, notes } = participant;
+        
+        if (!playerId) {
+          console.log('Ошибка - не указан ID игрока для участника');
+          results.push({
+            success: false,
+            error: 'Не указан ID игрока',
+            participant
+          });
+          continue;
+        }
+        
+        // Преобразуем строковый статус в enum
+        const parsedStatus = parseAttendanceStatus(attendanceStatus);
+        
+        let updatedParticipant;
+        
+        if (id) {
+          console.log(`Обновление участника с ID ${id}`);
+          
+          updatedParticipant = await prisma.trainingParticipant.update({
+            where: { id },
+            data: {
+              attended: attended === true,
+              attendanceStatus: parsedStatus,
+              notes: notes || null
+            },
+            include: { players: true }
+          });
+          
+          results.push({
+            success: true,
+            participant: updatedParticipant
+          });
+        } else {
+          console.log(`Поиск или создание участника для игрока ${playerId}`);
+          
+          // Ищем существующего участника
+          const existingParticipants = await prisma.trainingParticipant.findMany({
+            where: {
+              trainingId: trainingId,
+              playerId: playerId
+            }
+          });
+          
+          if (existingParticipants.length > 0) {
+            console.log(`Найден существующий участник для игрока ${playerId}, обновляем`);
+            
+            updatedParticipant = await prisma.trainingParticipant.update({
+              where: { id: existingParticipants[0].id },
+              data: {
+                attended: attended === true,
+                attendanceStatus: parsedStatus,
+                notes: notes || null
+              },
+              include: { players: true }
+            });
+          } else {
+            console.log(`Участник для игрока ${playerId} не найден, создаем нового`);
+            
+            updatedParticipant = await prisma.trainingParticipant.create({
+              data: {
+                trainingId,
+                playerId,
+                attended: attended === true,
+                attendanceStatus: parsedStatus,
+                notes: notes || null
+              },
+              include: { players: true }
+            });
+          }
+          
+          results.push({
+            success: true,
+            participant: updatedParticipant
+          });
+        }
+      } catch (error) {
+        console.error('Ошибка при обработке участника:', error);
+        results.push({
+          success: false,
+          error: `Не удалось обработать участника: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
+          participant
+        });
+      }
+    }
+    
+    console.log(`Обработка завершена. Успешно: ${results.filter(r => r.success).length}, Ошибок: ${results.filter(r => !r.success).length}`);
+    
+    return NextResponse.json({ results });
+  } catch (error) {
+    console.error('Общая ошибка при обновлении участников:', error);
+    return NextResponse.json(
+      { 
+        error: 'Не удалось обновить участников тренировки',
+        details: error instanceof Error ? error.message : 'Неизвестная ошибка'
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT /api/trainings/[trainingId]/participants
+export async function PUT(request: NextRequest, params: { params: { trainingId: string } }) {
+  return handleUpdateParticipants(request, params);
+}
+
+// POST /api/trainings/[trainingId]/participants  (запасной метод на случай, если PUT не работает)
+export async function POST(request: NextRequest, params: { params: { trainingId: string } }) {
+  return handleUpdateParticipants(request, params);
+}
+
+// DELETE /api/trainings/[trainingId]/participants
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { trainingId: string } }
+) {
+  try {
+    const trainingId = params.trainingId;
+    if (!trainingId) {
+      return NextResponse.json(
+        { error: 'Не указан ID тренировки' },
+        { status: 400 }
+      );
+    }
+    
+    const url = new URL(request.url);
+    const participantId = url.searchParams.get('participantId');
+    const playerId = url.searchParams.get('playerId');
+    
+    if (!participantId && !playerId) {
+      return NextResponse.json(
+        { error: 'Необходимо указать ID участника или ID игрока' },
+        { status: 400 }
+      );
+    }
+    
+    let deletedParticipant;
+    
+    if (participantId) {
+      deletedParticipant = await prisma.trainingParticipant.delete({
+        where: { id: participantId }
+      });
+    } else if (playerId) {
+      const participants = await prisma.trainingParticipant.findMany({
+        where: {
+          trainingId,
+          playerId
+        }
+      });
+      
+      if (participants.length > 0) {
+        deletedParticipant = await prisma.trainingParticipant.delete({
+          where: { id: participants[0].id }
+        });
+      } else {
+        return NextResponse.json(
+          { error: 'Участник не найден' },
+          { status: 404 }
+        );
+      }
+    }
+    
+    return NextResponse.json({ success: true, deletedParticipant });
+  } catch (error) {
+    console.error('Ошибка при удалении участника тренировки:', error);
+    return NextResponse.json(
+      { error: 'Не удалось удалить участника тренировки' },
+      { status: 500 }
+    );
+  }
+}

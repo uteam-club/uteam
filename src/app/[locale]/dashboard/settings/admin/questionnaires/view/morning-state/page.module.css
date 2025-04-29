@@ -1,0 +1,213 @@
+.bodyPart {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.bodyPart:hover,
+.hovered {
+  background-color: rgba(77, 178, 211, 0.3);
+  border-color: rgba(77, 178, 211, 0.7);
+  transform: scale(1.1);
+}
+
+.selected {
+  background-color: rgba(77, 178, 211, 0.5);
+  border-color: rgb(77, 178, 211);
+}
+
+.partNumber {
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Front view positioning */
+.bodyPart[data-id="head"] {
+  top: 7%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bodyPart[data-id="neck"] {
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bodyPart[data-id="chest"] {
+  top: 23%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bodyPart[data-id="leftShoulder"] {
+  top: 20%;
+  left: 32%;
+}
+
+.bodyPart[data-id="rightShoulder"] {
+  top: 20%;
+  right: 32%;
+}
+
+.bodyPart[data-id="leftArm"] {
+  top: 30%;
+  left: 25%;
+}
+
+.bodyPart[data-id="rightArm"] {
+  top: 30%;
+  right: 25%;
+}
+
+.bodyPart[data-id="abs"] {
+  top: 36%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bodyPart[data-id="leftThigh"] {
+  top: 50%;
+  left: 40%;
+}
+
+.bodyPart[data-id="rightThigh"] {
+  top: 50%;
+  right: 40%;
+}
+
+.bodyPart[data-id="leftCalf"] {
+  top: 67%;
+  left: 42%;
+}
+
+.bodyPart[data-id="rightCalf"] {
+  top: 67%;
+  right: 42%;
+}
+
+/* Back view positioning */
+.bodyPart[data-id="backHead"] {
+  top: 7%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bodyPart[data-id="backNeck"] {
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bodyPart[data-id="upperBack"] {
+  top: 22%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bodyPart[data-id="midBack"] {
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bodyPart[data-id="lowerBack"] {
+  top: 38%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bodyPart[data-id="leftBackShoulder"] {
+  top: 20%;
+  left: 32%;
+}
+
+.bodyPart[data-id="rightBackShoulder"] {
+  top: 20%;
+  right: 32%;
+}
+
+.bodyPart[data-id="leftBackArm"] {
+  top: 30%;
+  left: 25%;
+}
+
+.bodyPart[data-id="rightBackArm"] {
+  top: 30%;
+  right: 25%;
+}
+
+.bodyPart[data-id="glutes"] {
+  top: 45%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bodyPart[data-id="leftBackThigh"] {
+  top: 55%;
+  left: 40%;
+}
+
+.bodyPart[data-id="rightBackThigh"] {
+  top: 55%;
+  right: 40%;
+}
+
+.bodyPart[data-id="leftBackCalf"] {
+  top: 70%;
+  left: 42%;
+}
+
+.bodyPart[data-id="rightBackCalf"] {
+  top: 70%;
+  right: 42%;
+}
+
+/* For hover state, need to override transform for parts that use transform for centering */
+.bodyPart:hover[data-id="head"], 
+.bodyPart:hover[data-id="neck"],
+.bodyPart:hover[data-id="chest"],
+.bodyPart:hover[data-id="abs"],
+.bodyPart:hover[data-id="backHead"],
+.bodyPart:hover[data-id="backNeck"],
+.bodyPart:hover[data-id="upperBack"],
+.bodyPart:hover[data-id="midBack"],
+.bodyPart:hover[data-id="lowerBack"],
+.bodyPart:hover[data-id="glutes"] {
+  transform: translateX(-50%) scale(1.1);
+}
+
+.hovered[data-id="head"], 
+.hovered[data-id="neck"],
+.hovered[data-id="chest"],
+.hovered[data-id="abs"],
+.hovered[data-id="backHead"],
+.hovered[data-id="backNeck"],
+.hovered[data-id="upperBack"],
+.hovered[data-id="midBack"],
+.hovered[data-id="lowerBack"],
+.hovered[data-id="glutes"] {
+  transform: translateX(-50%) scale(1.1);
+}
+
+.selected:hover[data-id="head"], 
+.selected:hover[data-id="neck"],
+.selected:hover[data-id="chest"],
+.selected:hover[data-id="abs"],
+.selected:hover[data-id="backHead"],
+.selected:hover[data-id="backNeck"],
+.selected:hover[data-id="upperBack"],
+.selected:hover[data-id="midBack"],
+.selected:hover[data-id="lowerBack"],
+.selected:hover[data-id="glutes"] {
+  transform: translateX(-50%) scale(1.1);
+} 

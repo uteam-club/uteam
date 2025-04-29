@@ -1,0 +1,1 @@
+SELECT typname, enumlabels FROM pg_type JOIN pg_enum ON pg_enum.enumtypid = pg_type.oid JOIN LATERAL unnest(array_agg(pg_enum.enumlabel ORDER BY pg_enum.enumsortorder)) WITH ORDINALITY AS enumlabels ON TRUE WHERE typname = 'attendancestatus' GROUP BY typname, enumlabels;
