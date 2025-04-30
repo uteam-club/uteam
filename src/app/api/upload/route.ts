@@ -67,7 +67,10 @@ export async function POST(req: NextRequest) {
     
     // Выбираем папку в зависимости от типа файла
     let folderPath;
-    if (fileType === 'exercise') {
+    if (fileType === 'exercise' || 
+        (fileType === 'photo' && 
+         (file.name.match(/\b(exercise|training|rondo|passing|finishing|warm_up|game|football|handball|attacking|ball_possession|juggling)\b/i) || 
+          file.name.match(/\.(mp4|webm|ogg|mov)$/i)))) {
       folderPath = 'exercises';
     } else if (fileType === 'document') {
       folderPath = 'player-documents';
