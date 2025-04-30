@@ -33,7 +33,9 @@ type AttendanceStatus = 'TRAINED' | 'REHABILITATION' | 'SICK' | 'STUDY' | 'OTHER
 type AttendanceRecord = {
   id: string;
   playerId: string;
+  trainingId: string;
   date: string;
+  time: string;
   status: AttendanceStatus | null;
 };
 
@@ -208,25 +210,23 @@ export default function AttendancePage() {
     }
   };
 
-  // Получение статуса посещаемости для конкретного игрока и даты
-  const getAttendanceStatus = (playerId: string, date: Date): AttendanceStatus | null => {
-    const formattedDate = format(date, 'yyyy-MM-dd');
+  // Получение статуса посещаемости для конкретного игрока и тренировки
+  const getAttendanceStatus = (playerId: string, trainingId: string): AttendanceStatus | null => {
     const record = attendance.find(
-      a => a.playerId === playerId && a.date === formattedDate
+      a => a.playerId === playerId && a.trainingId === trainingId
     );
     
     return record ? record.status : null;
   };
 
-  // Обновление статуса посещаемости для конкретного игрока и даты
-  const updateAttendanceStatus = async (playerId: string, date: Date, newStatus: AttendanceStatus | null) => {
+  // Обновление статуса посещаемости для конкретного игрока и тренировки
+  const updateAttendanceStatus = async (playerId: string, trainingId: string, newStatus: AttendanceStatus | null) => {
     try {
       setLoading(true);
-      const formattedDate = format(date, 'yyyy-MM-dd');
       
       // Находим существующую запись
       const recordIndex = attendance.findIndex(
-        a => a.playerId === playerId && a.date === formattedDate
+        a => a.playerId === playerId && a.trainingId === trainingId
       );
       
       if (recordIndex === -1) {
@@ -242,7 +242,7 @@ export default function AttendancePage() {
         status: newStatus
       };
       
-      console.log(`Обновление статуса для игрока ${playerId} на дату ${formattedDate}: ${newStatus}`);
+      console.log(`Обновление статуса для игрока ${playerId} на тренировке ${trainingId}: ${newStatus}`);
       
       // Отправляем запрос на сервер
       const response = await fetch('/api/trainings/attendance', {
@@ -276,9 +276,9 @@ export default function AttendancePage() {
   };
 
   // Обработчик клика по индикатору статуса
-  const handleStatusClick = (playerId: string, date: Date) => {
+  const handleStatusClick = (playerId: string, trainingId: string) => {
     // Получаем текущий статус
-    const currentStatus = getAttendanceStatus(playerId, date);
+    const currentStatus = getAttendanceStatus(playerId, trainingId);
     
     // Циклически меняем статус
     let newStatus: AttendanceStatus | null;
@@ -307,16 +307,29 @@ export default function AttendancePage() {
     }
     
     // Обновляем статус
-    updateAttendanceStatus(playerId, date, newStatus);
+    updateAttendanceStatus(playerId, trainingId, newStatus);
   };
 
   // Подсчет количества тренировок, на которых игрок участвовал
   const getAttendanceStats = (playerId: string): { present: number, total: number } => {
-    const playerRecords = attendance.filter(record => record.playerId === playerId);
-    const presentCount = playerRecords.filter(record => record.status === 'TRAINED').length;
+    // Используем Map для группировки по тренировкам
+    const attendanceByTraining = new Map<string, AttendanceStatus | null>();
+    
+    // Группируем записи по тренировкам
+    attendance
+      .filter(record => record.playerId === playerId)
+      .forEach(record => {
+        attendanceByTraining.set(record.trainingId, record.status);
+      });
+    
+    // Подсчитываем только уникальные тренировки со статусом TRAINED
+    const presentCount = Array.from(attendanceByTraining.values())
+      .filter(status => status === 'TRAINED')
+      .length;
+    
     return {
       present: presentCount,
-      total: trainingDates.length
+      total: uniqueTrainings.length
     };
   };
 
@@ -386,10 +399,24 @@ export default function AttendancePage() {
     }
   };
 
-  // Получение уникальных дат, для которых есть записи посещаемости
-  const trainingDates = Array.from(new Set(attendance.map(record => record.date)))
-    .map(dateStr => new Date(dateStr))
-    .sort((a, b) => a.getTime() - b.getTime()); // Сортировка дат по возрастанию (от старых к новым)
+  // Получение уникальных тренировок
+  const uniqueTrainings = Array.from(
+    new Set(attendance.map(record => record.trainingId))
+  ).map(trainingId => {
+    const record = attendance.find(r => r.trainingId === trainingId);
+    return {
+      id: trainingId,
+      date: record?.date || '',
+      time: record?.time || ''
+    };
+  }).sort((a, b) => {
+    // Сначала сортируем по дате
+    const dateComparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+    if (dateComparison !== 0) return dateComparison;
+    
+    // Если даты совпадают, сортируем по времени
+    return a.time.localeCompare(b.time);
+  });
 
   return (
     <div className="container mx-auto py-8">
@@ -490,7 +517,7 @@ export default function AttendancePage() {
         <div className="flex justify-center items-center h-64 bg-[#1a2228] border border-[#2c3c42] rounded-md shadow-md">
           <p className="text-vista-light">{tCommon('loading')}</p>
         </div>
-      ) : trainingDates.length === 0 ? (
+      ) : uniqueTrainings.length === 0 ? (
         <div className="flex flex-col justify-center items-center h-64 bg-[#1a2228] border border-[#2c3c42] rounded-md shadow-md">
           <p className="text-vista-light mb-2">{t('noTrainings')}</p>
           <p className="text-vista-light text-sm text-center max-w-md">
@@ -506,14 +533,15 @@ export default function AttendancePage() {
                   {t('player')}
                 </th>
                 
-                {trainingDates.map((day, index) => (
+                {uniqueTrainings.map((training, index) => (
                   <th 
-                    key={format(day, 'yyyy-MM-dd')} 
+                    key={training.id} 
                     className={`border border-[#2c3c42] bg-[#16191d] p-3 text-center text-[#5acce5] min-w-[60px]`}
                   >
                     <div className="flex flex-col">
-                      <span className="text-xs font-medium">{format(day, 'EEE', { locale: ru })}</span>
-                      <span className="text-base">{format(day, 'd')}</span>
+                      <span className="text-xs font-medium">{format(new Date(training.date), 'EEE', { locale: ru })}</span>
+                      <span className="text-base">{format(new Date(training.date), 'd')}</span>
+                      <span className="text-xs mt-1">{training.time}</span>
                     </div>
                   </th>
                 ))}
@@ -550,17 +578,17 @@ export default function AttendancePage() {
                     </div>
                   </td>
                   
-                  {trainingDates.map((day) => {
-                    const status = getAttendanceStatus(player.id, day);
+                  {uniqueTrainings.map((training) => {
+                    const status = getAttendanceStatus(player.id, training.id);
                     return (
                       <td 
-                        key={`${player.id}-${format(day, 'yyyy-MM-dd')}`} 
+                        key={`${player.id}-${training.id}`} 
                         className="border border-[#2c3c42] p-1 text-center"
                       >
                         <div 
                           className={`w-6 h-6 rounded-full mx-auto ${getStatusColor(status)} cursor-pointer hover:scale-110 transition-transform`}
                           title={getStatusText(status)}
-                          onClick={() => handleStatusClick(player.id, day)}
+                          onClick={() => handleStatusClick(player.id, training.id)}
                         />
                       </td>
                     );

@@ -112,9 +112,8 @@ export async function GET(request: Request) {
     // Форматируем существующие данные и добавляем их в Map
     if (Array.isArray(attendanceData)) {
       attendanceData.forEach((record: any) => {
-        // Уникальный ключ в формате "playerId_trainingDate"
-        const trainingDate = format(new Date(record.startTime), 'yyyy-MM-dd');
-        const key = `${record.playerId}_${trainingDate}`;
+        // Уникальный ключ в формате "playerId_trainingId"
+        const key = `${record.playerId}_${record.trainingId}`;
         
         // Преобразуем статус из БД в формат для фронтенда
         let status = record.attendanceStatus;
@@ -123,7 +122,8 @@ export async function GET(request: Request) {
           id: record.id,
           playerId: record.playerId,
           trainingId: record.trainingId,
-          date: trainingDate,
+          date: format(new Date(record.startTime), 'yyyy-MM-dd'),
+          time: format(new Date(record.startTime), 'HH:mm'),
           status: status
         });
       });
@@ -132,11 +132,21 @@ export async function GET(request: Request) {
     // Создаем полный список записей для всех игроков и тренировок
     const formattedAttendance = [];
     
+    // Создаем Set для отслеживания уникальных комбинаций игрок-тренировка
+    const processedEntries = new Set<string>();
+    
     // Перебираем всех игроков и все тренировки
     for (const player of players) {
       for (const training of trainings) {
-        const trainingDate = format(training.startTime, 'yyyy-MM-dd');
-        const key = `${player.id}_${trainingDate}`;
+        const key = `${player.id}_${training.id}`;
+        
+        // Пропускаем, если уже обработали эту комбинацию игрок-тренировка
+        if (processedEntries.has(key)) {
+          continue;
+        }
+        
+        // Отмечаем как обработанную
+        processedEntries.add(key);
         
         // Проверяем, есть ли уже запись посещаемости для этого игрока и тренировки
         if (attendanceMap.has(key)) {
@@ -148,7 +158,8 @@ export async function GET(request: Request) {
             id: `temp_${key}`, // Временный ID для фронтенда
             playerId: player.id,
             trainingId: training.id,
-            date: trainingDate,
+            date: format(training.startTime, 'yyyy-MM-dd'),
+            time: format(training.startTime, 'HH:mm'),
             status: null // Игрок не отмечен
           });
         }
