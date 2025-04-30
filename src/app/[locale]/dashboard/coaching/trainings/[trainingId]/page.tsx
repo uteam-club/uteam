@@ -17,7 +17,9 @@ import {
   ChevronUpIcon,
   ChevronDownIcon,
   CheckIcon,
-  MinusIcon
+  MinusIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
@@ -160,6 +162,10 @@ export default function TrainingDetailsPage() {
   const [searchPlayerQuery, setSearchPlayerQuery] = useState('');
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   
+  // Добавим состояние для пагинации
+  const [currentPage, setCurrentPage] = useState(0);
+  const exercisesPerPage = 9; // 3 ряда по 3 карточки
+  
   // Загрузка данных о тренировке и ее упражнениях
   useEffect(() => {
     async function fetchTrainingData() {
@@ -225,12 +231,14 @@ export default function TrainingDetailsPage() {
     async function fetchExercisesData() {
       try {
         // Загрузка упражнений
-        const exResponse = await fetch('/api/exercises');
+        // Модифицируем запрос, чтобы получить все упражнения (добавляем limit=100)
+        const exResponse = await fetch('/api/exercises?limit=100');
         if (exResponse.ok) {
           const exData = await exResponse.json();
           // Исправляем: API возвращает объект с полем exercises, а не массив напрямую
           const exercisesArray = exData.exercises || [];
           setExercises(exercisesArray);
+          console.log(`Загружено ${exercisesArray.length} упражнений`);
           
           // Извлекаем уникальных авторов из упражнений
           const uniqueAuthors = new Map();
@@ -1256,33 +1264,31 @@ export default function TrainingDetailsPage() {
       </div>
       )}
       
-      {/* Модальное окно выбора упражнений */}
+      {/* Диалог для добавления упражнений */}
       <Dialog open={showExercisesDialog} onOpenChange={setShowExercisesDialog}>
-        <DialogContent className="max-w-4xl max-h-[calc(100vh-40px)] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-3xl max-h-[calc(100vh-40px)] overflow-hidden flex flex-col bg-vista-dark border border-vista-secondary/30 text-vista-light">
           <DialogHeader>
-            <DialogTitle>{t('selectExercisesToAdd')}</DialogTitle>
+            <DialogTitle className="text-vista-primary">{t('addExercises')}</DialogTitle>
           </DialogHeader>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            {/* Строка поиска */}
-            <div className="relative col-span-1 md:col-span-3">
-              <Input
-                type="text"
-                placeholder={t('searchExercisesPlaceholder')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10"
-              />
-              <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
-            </div>
-            
+          <div className="mt-2 mb-4 relative">
+            <MagnifyingGlassIcon className="w-5 h-5 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500" />
+            <Input 
+              placeholder={t('searchExercises')} 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-vista-dark-secondary border-vista-secondary/30 placeholder:text-gray-500 focus:border-vista-primary"
+            />
+          </div>
+          
+          <div className="flex flex-wrap gap-2 mb-4">
             {/* Фильтр по категории */}
             <div>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-vista-dark-secondary border-vista-secondary/30 focus:ring-vista-primary">
                   <SelectValue placeholder={t('allCategories')} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-vista-dark border-vista-secondary/30">
                   <SelectItem value="">{t('allCategories')}</SelectItem>
                   {exerciseCategories.map(category => (
                     <SelectItem key={category.id} value={category.id}>
@@ -1296,10 +1302,10 @@ export default function TrainingDetailsPage() {
             {/* Фильтр по автору */}
             <div>
               <Select value={selectedAuthor} onValueChange={setSelectedAuthor}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-vista-dark-secondary border-vista-secondary/30 focus:ring-vista-primary">
                   <SelectValue placeholder={t('allAuthors')} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-vista-dark border-vista-secondary/30">
                   <SelectItem value="">{t('allAuthors')}</SelectItem>
                   {exerciseAuthors.map(author => (
                     <SelectItem key={author.id} value={author.id}>
@@ -1313,10 +1319,10 @@ export default function TrainingDetailsPage() {
             {/* Фильтр по тегу */}
             <div>
               <Select value={selectedTag} onValueChange={setSelectedTag}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-vista-dark-secondary border-vista-secondary/30 focus:ring-vista-primary">
                   <SelectValue placeholder={t('allTags')} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-vista-dark border-vista-secondary/30">
                   <SelectItem value="">{t('allTags')}</SelectItem>
                   {exerciseTags.map(tag => (
                     <SelectItem key={tag.id} value={tag.id}>
@@ -1328,9 +1334,10 @@ export default function TrainingDetailsPage() {
             </div>
           </div>
           
-          <div className="grow overflow-y-auto border rounded-md p-4">
-            {exercises
-              .filter(ex => {
+          <div className="grow overflow-y-auto border border-vista-secondary/30 rounded-md bg-vista-dark-secondary p-4">
+            {/* Фильтрация и вычисление отображаемых упражнений с пагинацией */}
+            {(() => {
+              const filteredExercises = exercises.filter(ex => {
                 const matchesSearch = searchQuery 
                   ? ex.name.toLowerCase().includes(searchQuery.toLowerCase()) 
                   : true;
@@ -1345,79 +1352,221 @@ export default function TrainingDetailsPage() {
                   : true;
                 
                 return matchesSearch && matchesCategory && matchesAuthor && matchesTag;
-              })
-              .map(exercise => (
-                <div 
-                  key={exercise.id} 
-                  className={`p-3 border-b flex items-center ${
-                    selectedExercises.includes(exercise.id) 
-                      ? 'bg-[#1d3443] border-[#5acce5]/30' 
-                      : 'hover:bg-[#1a2228]'
-                  }`}
-                >
-                  <Checkbox 
-                    id={`exercise-${exercise.id}`}
-                    checked={selectedExercises.includes(exercise.id)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedExercises([...selectedExercises, exercise.id]);
-                      } else {
-                        setSelectedExercises(selectedExercises.filter(id => id !== exercise.id));
-                      }
-                    }}
-                  />
-                  <label 
-                    htmlFor={`exercise-${exercise.id}`}
-                    className="ml-3 flex-grow cursor-pointer"
-                  >
-                    <span className="font-medium">{exercise.name}</span>
-                    {exercise.exercise_categories?.name && (
-                      <span className="ml-2 text-sm text-[#5acce5]">
-                        {exercise.exercise_categories.name}
-                      </span>
-                    )}
-                  </label>
-                </div>
-              ))}
+              });
+              
+              const pageCount = Math.ceil(filteredExercises.length / exercisesPerPage);
+              const displayedExercises = filteredExercises.slice(
+                currentPage * exercisesPerPage, 
+                (currentPage + 1) * exercisesPerPage
+              );
+              
+              return (
+                <>
+                  {displayedExercises.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {displayedExercises.map(exercise => (
+                        <div 
+                          key={exercise.id} 
+                          className={`rounded-lg overflow-hidden border ${
+                            selectedExercises.includes(exercise.id) 
+                              ? 'border-vista-primary bg-vista-dark-secondary/90' 
+                              : 'border-vista-secondary/20 hover:border-vista-primary/50'
+                          } transition-colors cursor-pointer shadow-md`}
+                          onClick={() => {
+                            const isSelected = selectedExercises.includes(exercise.id);
+                            if (isSelected) {
+                              setSelectedExercises(selectedExercises.filter(id => id !== exercise.id));
+                            } else {
+                              setSelectedExercises([...selectedExercises, exercise.id]);
+                            }
+                          }}
+                        >
+                          {/* Изображение */}
+                          <div className="h-40 bg-vista-dark-secondary relative">
+                            {exercise.fileUrl ? (
+                              exercise.fileType?.includes('video/') || exercise.fileName?.match(/\.(mp4|webm|ogg|mov)$/i) ? (
+                                <video 
+                                  src={exercise.fileUrl}
+                                  className="w-full h-full object-cover" 
+                                  muted
+                                  playsInline
+                                  preload="metadata"
+                                />
+                              ) : (
+                                <img 
+                                  src={exercise.fileUrl} 
+                                  alt={exercise.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              )
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-vista-secondary/10">
+                                <span className="text-vista-secondary/50 text-sm">Нет изображения</span>
+                              </div>
+                            )}
+                            
+                            {/* Чекбокс в правом верхнем углу */}
+                            <div className="absolute top-2 right-2 z-10">
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                                selectedExercises.includes(exercise.id) 
+                                  ? 'bg-vista-primary' 
+                                  : 'bg-vista-dark-secondary border border-vista-secondary/50'
+                              }`}>
+                                {selectedExercises.includes(exercise.id) && (
+                                  <CheckIcon className="h-4 w-4 text-black" />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Информация об упражнении */}
+                          <div className="p-3">
+                            <h3 className="font-medium text-vista-light line-clamp-2 mb-1">{exercise.name}</h3>
+                            {exercise.exercise_categories?.name && (
+                              <span className="text-sm text-vista-primary">
+                                {exercise.exercise_categories.name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-48 text-vista-secondary/50">
+                      <p>Упражнения не найдены</p>
+                    </div>
+                  )}
+                  
+                  {/* Пагинация */}
+                  {pageCount > 1 && (
+                    <div className="flex justify-center mt-4 space-x-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(0)}
+                        disabled={currentPage === 0}
+                        className="h-8 w-8 p-0 border-vista-secondary/30 text-vista-light"
+                      >
+                        <ChevronLeftIcon className="h-4 w-4" />
+                        <ChevronLeftIcon className="h-4 w-4 -ml-2" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                        disabled={currentPage === 0}
+                        className="h-8 w-8 p-0 border-vista-secondary/30 text-vista-light"
+                      >
+                        <ChevronLeftIcon className="h-4 w-4" />
+                      </Button>
+                      
+                      {Array.from({ length: Math.min(5, pageCount) }, (_, i) => {
+                        // Логика отображения номеров страниц
+                        let pageNum;
+                        if (pageCount <= 5) {
+                          pageNum = i;
+                        } else if (currentPage < 2) {
+                          pageNum = i;
+                        } else if (currentPage > pageCount - 3) {
+                          pageNum = pageCount - 5 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        
+                        if (pageNum >= 0 && pageNum < pageCount) {
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setCurrentPage(pageNum)}
+                              className={`h-8 w-8 p-0 ${
+                                currentPage === pageNum 
+                                  ? 'bg-vista-primary text-black' 
+                                  : 'border-vista-secondary/30 text-vista-light'
+                              }`}
+                            >
+                              {pageNum + 1}
+                            </Button>
+                          );
+                        }
+                        return null;
+                      })}
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.min(pageCount - 1, prev + 1))}
+                        disabled={currentPage === pageCount - 1}
+                        className="h-8 w-8 p-0 border-vista-secondary/30 text-vista-light"
+                      >
+                        <ChevronRightIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(pageCount - 1)}
+                        disabled={currentPage === pageCount - 1}
+                        className="h-8 w-8 p-0 border-vista-secondary/30 text-vista-light"
+                      >
+                        <ChevronRightIcon className="h-4 w-4" />
+                        <ChevronRightIcon className="h-4 w-4 -ml-2" />
+                      </Button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
           
-          <DialogFooter className="mt-4">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setShowExercisesDialog(false);
-                setSelectedExercises([]);
-              }}
-            >
-              {common('cancel')}
-            </Button>
-            <Button 
-              disabled={selectedExercises.length === 0}
-              onClick={handleAddExercises}
-            >
-              {t('addSelectedExercises')}
-            </Button>
+          <DialogFooter className="mt-4 border-t border-vista-secondary/20 pt-4">
+            <div className="flex items-center justify-between w-full">
+              <div>
+                {selectedExercises.length > 0 && (
+                  <span className="text-vista-primary">Выбрано: {selectedExercises.length}</span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowExercisesDialog(false);
+                    setSelectedExercises([]);
+                  }}
+                  className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 hover:text-vista-light"
+                >
+                  {common('cancel')}
+                </Button>
+                <Button 
+                  disabled={selectedExercises.length === 0}
+                  onClick={handleAddExercises}
+                  className="bg-vista-primary hover:bg-vista-primary/90 text-black"
+                >
+                  {t('addSelectedExercises')}
+                </Button>
+              </div>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       
       {/* Диалог для редактирования параметров упражнения */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] bg-vista-dark border border-vista-secondary/30 text-vista-light">
           <DialogHeader>
-            <DialogTitle>{t('editExerciseParams')}</DialogTitle>
+            <DialogTitle className="text-vista-primary">{t('editExerciseParams')}</DialogTitle>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-duration" className="text-right">
+              <Label htmlFor="edit-duration" className="text-right text-vista-light">
                 {t('duration')}
               </Label>
               <Input
                 id="edit-duration"
                 type="number"
                 min={0}
-                className="col-span-3"
+                className="col-span-3 bg-vista-dark-secondary border-vista-secondary/30 focus:border-vista-primary text-vista-light"
                 placeholder={t('durationPlaceholder')}
                 value={editDuration}
                 onChange={(e) => setEditDuration(e.target.value)}
@@ -1425,14 +1574,14 @@ export default function TrainingDetailsPage() {
             </div>
             
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-sets" className="text-right">
+              <Label htmlFor="edit-sets" className="text-right text-vista-light">
                 {t('sets')}
               </Label>
               <Input
                 id="edit-sets"
                 type="number"
                 min={0}
-                className="col-span-3"
+                className="col-span-3 bg-vista-dark-secondary border-vista-secondary/30 focus:border-vista-primary text-vista-light"
                 placeholder={t('setsPlaceholder')}
                 value={editSets}
                 onChange={(e) => setEditSets(e.target.value)}
@@ -1440,14 +1589,14 @@ export default function TrainingDetailsPage() {
             </div>
             
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-repetitions" className="text-right">
+              <Label htmlFor="edit-repetitions" className="text-right text-vista-light">
                 {t('repetitions')}
               </Label>
               <Input
                 id="edit-repetitions"
                 type="number"
                 min={0}
-                className="col-span-3"
+                className="col-span-3 bg-vista-dark-secondary border-vista-secondary/30 focus:border-vista-primary text-vista-light"
                 placeholder={t('repetitionsPlaceholder')}
                 value={editRepetitions}
                 onChange={(e) => setEditRepetitions(e.target.value)}
@@ -1455,12 +1604,12 @@ export default function TrainingDetailsPage() {
             </div>
             
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-notes" className="text-right">
+              <Label htmlFor="edit-notes" className="text-right text-vista-light">
                 {t('notes')}
               </Label>
               <Input
                 id="edit-notes"
-                className="col-span-3"
+                className="col-span-3 bg-vista-dark-secondary border-vista-secondary/30 focus:border-vista-primary text-vista-light"
                 placeholder={t('notesPlaceholder')}
                 value={editNotes}
                 onChange={(e) => setEditNotes(e.target.value)}
@@ -1468,11 +1617,13 @@ export default function TrainingDetailsPage() {
             </div>
           </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+          <DialogFooter className="border-t border-vista-secondary/20 pt-4">
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}
+              className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 hover:text-vista-light">
               {common('cancel')}
             </Button>
-            <Button onClick={saveExerciseParams}>
+            <Button onClick={saveExerciseParams}
+              className="bg-vista-primary hover:bg-vista-primary/90 text-black">
               {common('save')}
             </Button>
           </DialogFooter>
