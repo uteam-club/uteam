@@ -25,32 +25,77 @@
   - You are about to drop the `verification_tokens` table. If the table is not empty, all the data it contains will be lost.
 
 */
--- CreateEnum
-CREATE TYPE "UserRole" AS ENUM ('USER', 'MANAGER', 'ADMIN', 'SUPERADMIN');
+-- Check and create UserRole if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'UserRole') THEN
+        CREATE TYPE "UserRole" AS ENUM ('USER', 'MANAGER', 'ADMIN', 'SUPERADMIN');
+    END IF;
+END $$;
 
--- CreateEnum
-CREATE TYPE "EventStatus" AS ENUM ('PLANNED', 'ONGOING', 'COMPLETED', 'CANCELLED');
+-- Check and create EventStatus if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'EventStatus') THEN
+        CREATE TYPE "EventStatus" AS ENUM ('PLANNED', 'ONGOING', 'COMPLETED', 'CANCELLED');
+    END IF;
+END $$;
 
--- CreateEnum
-CREATE TYPE "TaskPriority" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'URGENT');
+-- Check and create TaskPriority if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'TaskPriority') THEN
+        CREATE TYPE "TaskPriority" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'URGENT');
+    END IF;
+END $$;
 
--- CreateEnum
-CREATE TYPE "TaskStatus" AS ENUM ('TODO', 'IN_PROGRESS', 'REVIEW', 'DONE');
+-- Check and create TaskStatus if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'TaskStatus') THEN
+        CREATE TYPE "TaskStatus" AS ENUM ('TODO', 'IN_PROGRESS', 'REVIEW', 'DONE');
+    END IF;
+END $$;
 
--- CreateEnum
-CREATE TYPE "NotificationType" AS ENUM ('INFO', 'WARNING', 'ERROR', 'SUCCESS');
+-- Check and create NotificationType if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'NotificationType') THEN
+        CREATE TYPE "NotificationType" AS ENUM ('INFO', 'WARNING', 'ERROR', 'SUCCESS');
+    END IF;
+END $$;
 
--- CreateEnum
-CREATE TYPE "PlayerPosition" AS ENUM ('GOALKEEPER', 'DEFENDER', 'MIDFIELDER', 'FORWARD');
+-- Check and create PlayerPosition if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PlayerPosition') THEN
+        CREATE TYPE "PlayerPosition" AS ENUM ('GOALKEEPER', 'DEFENDER', 'MIDFIELDER', 'FORWARD');
+    END IF;
+END $$;
 
--- CreateEnum
-CREATE TYPE "Foot" AS ENUM ('LEFT', 'RIGHT', 'BOTH');
+-- Check and create Foot if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'Foot') THEN
+        CREATE TYPE "Foot" AS ENUM ('LEFT', 'RIGHT', 'BOTH');
+    END IF;
+END $$;
 
--- CreateEnum
-CREATE TYPE "PlayerStatus" AS ENUM ('READY', 'REHABILITATION', 'SICK', 'STUDY', 'OTHER');
+-- Check and create PlayerStatus if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PlayerStatus') THEN
+        CREATE TYPE "PlayerStatus" AS ENUM ('READY', 'REHABILITATION', 'SICK', 'STUDY', 'OTHER');
+    END IF;
+END $$;
 
--- CreateEnum
-CREATE TYPE "AttendanceStatus" AS ENUM ('OTHER', 'TRAINED', 'SICK', 'REHAB', 'STUDY');
+-- Check and create AttendanceStatus if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'AttendanceStatus') THEN
+        CREATE TYPE "AttendanceStatus" AS ENUM ('OTHER', 'TRAINED', 'SICK', 'REHAB', 'STUDY');
+    END IF;
+END $$;
 
 -- DropForeignKey
 ALTER TABLE "public"."_AssignedTasks" DROP CONSTRAINT "_AssignedTasks_A_fkey";
@@ -190,29 +235,62 @@ DROP TABLE "public"."users";
 -- DropTable
 DROP TABLE "public"."verification_tokens";
 
--- DropEnum
-DROP TYPE "public"."EventStatus";
+-- Drop enums conditionally
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'EventStatus') THEN
+        DROP TYPE "public"."EventStatus";
+    END IF;
+END $$;
 
--- DropEnum
-DROP TYPE "public"."Foot";
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'Foot') THEN
+        DROP TYPE "public"."Foot";
+    END IF;
+END $$;
 
--- DropEnum
-DROP TYPE "public"."NotificationType";
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'NotificationType') THEN
+        DROP TYPE "public"."NotificationType";
+    END IF;
+END $$;
 
--- DropEnum
-DROP TYPE "public"."PlayerPosition";
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PlayerPosition') THEN
+        DROP TYPE "public"."PlayerPosition";
+    END IF;
+END $$;
 
--- DropEnum
-DROP TYPE "public"."PlayerStatus";
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PlayerStatus') THEN
+        DROP TYPE "public"."PlayerStatus";
+    END IF;
+END $$;
 
--- DropEnum
-DROP TYPE "public"."TaskPriority";
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'TaskPriority') THEN
+        DROP TYPE "public"."TaskPriority";
+    END IF;
+END $$;
 
--- DropEnum
-DROP TYPE "public"."TaskStatus";
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'TaskStatus') THEN
+        DROP TYPE "public"."TaskStatus";
+    END IF;
+END $$;
 
--- DropEnum
-DROP TYPE "public"."UserRole";
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'UserRole') THEN
+        DROP TYPE "public"."UserRole";
+    END IF;
+END $$;
 
 -- CreateTable
 CREATE TABLE "users" (

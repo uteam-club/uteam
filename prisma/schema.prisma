@@ -130,31 +130,41 @@ model ExerciseCategory {
 
 /// Модель упражнения
 model Exercise {
-  id                  String             @id @default(cuid())
-  name                String
-  description         String?
-  difficulty          Int                @default(1)
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
-  categoryId          String
-  authorId            String?
-  ExerciseToTags      ExerciseToTags[]
-  users               User?              @relation(fields: [authorId], references: [id], onUpdate: NoAction)
-  exercise_categories ExerciseCategory   @relation(fields: [categoryId], references: [id])
-  training_exercises  TrainingExercise[]
+  id                    String                  @id @default(cuid())
+  name                  String
+  description           String?
+  difficulty            Int                     @default(1)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  categoryId            String
+  length                Int?
+  width                 Int?
+  fileUrl               String?
+  fileName              String?
+  fileType              String?
+  fileSize              Int?
+  authorId              String?
+  ExerciseTags          ExerciseTags[]
+  ExerciseToExerciseTag ExerciseToExerciseTag[]
+  ExerciseToTags        ExerciseToTags[]
+  users                 User?                   @relation(fields: [authorId], references: [id], onUpdate: NoAction)
+  exercise_categories   ExerciseCategory        @relation(fields: [categoryId], references: [id])
+  training_exercises    TrainingExercise[]
 
   @@map("exercises")
 }
 
 /// Модель тега упражнения
 model ExerciseTag {
-  id                  String           @id @default(cuid())
-  name                String
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
-  exerciseCategoryId  String
-  ExerciseToTags      ExerciseToTags[]
-  exercise_categories ExerciseCategory @relation(fields: [exerciseCategoryId], references: [id], onDelete: Cascade)
+  id                    String                  @id @default(cuid())
+  name                  String
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  exerciseCategoryId    String
+  ExerciseTags          ExerciseTags[]
+  ExerciseToExerciseTag ExerciseToExerciseTag[]
+  ExerciseToTags        ExerciseToTags[]
+  exercise_categories   ExerciseCategory        @relation(fields: [exerciseCategoryId], references: [id], onDelete: Cascade)
 
   @@unique([name, exerciseCategoryId])
   @@map("exercise_tags")
@@ -335,6 +345,28 @@ model training_participants {
   trainings        Training         @relation(fields: [trainingId], references: [id], onDelete: Cascade)
 
   @@unique([trainingId, playerId])
+}
+
+model ExerciseTags {
+  A             String
+  B             String
+  exercises     Exercise    @relation(fields: [A], references: [id], onDelete: Cascade)
+  exercise_tags ExerciseTag @relation(fields: [B], references: [id], onDelete: Cascade)
+
+  @@id([A, B], map: "_ExerciseTags_AB_pkey")
+  @@index([B], map: "_ExerciseTags_B_index")
+  @@map("_ExerciseTags")
+}
+
+model ExerciseToExerciseTag {
+  A             String
+  B             String
+  exercises     Exercise    @relation(fields: [A], references: [id], onDelete: Cascade)
+  exercise_tags ExerciseTag @relation(fields: [B], references: [id], onDelete: Cascade)
+
+  @@unique([A, B], map: "_ExerciseToExerciseTag_AB_unique")
+  @@index([B], map: "_ExerciseToExerciseTag_B_index")
+  @@map("_ExerciseToExerciseTag")
 }
 
 enum UserRole {
