@@ -11,9 +11,10 @@ export async function GET() {
         training_categories: true,
         teams: true
       },
-      orderBy: {
-        startTime: 'desc'
-      }
+      orderBy: [
+        { startTime: 'desc' },
+        { createdAt: 'desc' }
+      ]
     });
     
     return NextResponse.json(trainings);

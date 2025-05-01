@@ -105,18 +105,15 @@ export default function TrainingsPage() {
   // Фильтры
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
+  const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   
   // Состояния открытия выпадающих списков
-  const [authorDropdownOpen, setAuthorDropdownOpen] = useState(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
-  const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
+  const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
   
   // Refs для выпадающих списков для определения кликов вне списка
-  const authorDropdownRef = useRef<HTMLDivElement>(null);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
-  const tagDropdownRef = useRef<HTMLDivElement>(null);
+  const teamDropdownRef = useRef<HTMLDivElement>(null);
   
   // Диалоги
   const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
@@ -170,10 +167,6 @@ export default function TrainingsPage() {
   // Добавляем новые состояния после других состояний
   const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState('');
-  const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
-  
-  // Добавляем ref для выпадающего списка команд
-  const teamDropdownRef = useRef<HTMLDivElement>(null);
 
   // Загрузка категорий тренировок
   useEffect(() => {
@@ -232,6 +225,7 @@ export default function TrainingsPage() {
         const data = await response.json();
         setTrainings(data);
         setFilteredTrainings(data);
+        console.log(`Загружено ${data.length} тренировок`);
       } catch (error) {
         console.error('Ошибка загрузки тренировок:', error);
       } finally {
@@ -242,42 +236,9 @@ export default function TrainingsPage() {
     fetchTrainings();
   }, []);
 
-  // Загрузка всех тегов и авторов
-  useEffect(() => {
-    const fetchTagsAndAuthors = async () => {
-      try {
-        // Загрузка тегов
-        const tagsResponse = await fetch('/api/trainings/tags');
-        if (tagsResponse.ok) {
-          const tagsData = await tagsResponse.json();
-          setTags(tagsData);
-          setAvailableTags(tagsData);
-        }
-        
-        // Загрузка авторов
-        const authorsResponse = await fetch('/api/users?role=coach');
-        if (authorsResponse.ok) {
-          const authorsData = await authorsResponse.json();
-          setAuthors(authorsData);
-        }
-      } catch (error) {
-        console.error('Ошибка загрузки дополнительных данных:', error);
-      }
-    };
-    
-    fetchTagsAndAuthors();
-  }, []);
-
   // Обработчик клика вне выпадающих списков для их закрытия
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        authorDropdownRef.current && 
-        !authorDropdownRef.current.contains(event.target as Node)
-      ) {
-        setAuthorDropdownOpen(false);
-      }
-      
       if (
         categoryDropdownRef.current && 
         !categoryDropdownRef.current.contains(event.target as Node)
@@ -286,10 +247,10 @@ export default function TrainingsPage() {
       }
       
       if (
-        tagDropdownRef.current && 
-        !tagDropdownRef.current.contains(event.target as Node)
+        teamDropdownRef.current && 
+        !teamDropdownRef.current.contains(event.target as Node)
       ) {
-        setTagDropdownOpen(false);
+        setTeamDropdownOpen(false);
       }
       
       if (
@@ -297,14 +258,6 @@ export default function TrainingsPage() {
         !trainingCategoryDropdownRef.current.contains(event.target as Node)
       ) {
         setTrainingCategoryDropdownOpen(false);
-      }
-      
-      // Добавляем проверку для выпадающего списка команд
-      if (
-        teamDropdownRef.current && 
-        !teamDropdownRef.current.contains(event.target as Node)
-      ) {
-        setTeamDropdownOpen(false);
       }
     }
   
@@ -328,24 +281,15 @@ export default function TrainingsPage() {
       const matchesCategory = selectedCategories.length === 0 || 
         (training.categoryId && selectedCategories.includes(training.categoryId));
       
-      // Фильтр по автору
-      const matchesAuthor = selectedAuthors.length === 0 || 
-        (training.authorId && selectedAuthors.includes(training.authorId));
+      // Фильтр по команде
+      const matchesTeam = selectedTeams.length === 0 || 
+        (training.teams?.id && selectedTeams.includes(training.teams.id));
       
-      // Фильтр по тегам - учитываем, что tags может быть undefined
-      const matchesTag = selectedTags.length === 0 || 
-        (training.tags && 
-          Array.isArray(training.tags) && 
-          training.tags.length > 0 && 
-          selectedTags.every(tagId => 
-            training.tags!.some(tag => tag.id === tagId)
-          ));
-      
-      return matchesSearch && matchesCategory && matchesAuthor && matchesTag;
+      return matchesSearch && matchesCategory && matchesTeam;
     });
     
     setFilteredTrainings(filtered);
-  }, [searchQuery, selectedCategories, selectedAuthors, selectedTags, trainings]);
+  }, [searchQuery, selectedCategories, selectedTeams, trainings]);
 
   return (
     <div className="p-4">
@@ -365,40 +309,6 @@ export default function TrainingsPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
               <MagnifyingGlassIcon className="h-4 w-4 text-vista-light/60 absolute left-3 top-2.5" />
-            </div>
-            
-            {/* 2. Фильтр по автору */}
-            <div className="relative" ref={authorDropdownRef}>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className={`h-9 px-3 text-vista-light/70 border border-[#2c3c42] w-[150px] justify-between ${selectedAuthors.length > 0 ? 'border-vista-primary/60' : ''}`}
-                onClick={() => setAuthorDropdownOpen(!authorDropdownOpen)}
-              >
-                <span>Автор{selectedAuthors.length > 0 ? ` (${selectedAuthors.length})` : ''}</span>
-                <ChevronDownIcon className="h-3 w-3 ml-1" />
-              </Button>
-              
-              {authorDropdownOpen && (
-                <div className="absolute z-50 mt-1 min-w-[200px] max-h-[320px] overflow-y-auto bg-[#1a2228]/80 backdrop-blur-md border border-[#2c3c42] rounded-md shadow-lg">
-                  <div className="py-1">
-                    {authors.map(author => (
-                      <div 
-                        key={author.id}
-                        className={`flex items-center px-4 py-2 cursor-pointer ${selectedAuthors.includes(author.id) ? 'bg-[#2c3c42]/50 text-vista-primary' : 'text-[#e6f0f0] hover:bg-[#2c3c42]/30'}`}
-                        onClick={() => toggleAuthor(author.id)}
-                      >
-                        <div className="flex items-center flex-grow">
-                          <span>{author.name}</span>
-                        </div>
-                        {selectedAuthors.includes(author.id) && 
-                          <CheckIcon className="h-4 w-4 text-vista-primary" />
-                        }
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
             
             {/* 3. Фильтр по категории */}
@@ -435,42 +345,48 @@ export default function TrainingsPage() {
               )}
             </div>
             
-            {/* 4. Фильтр по тегу */}
-            <div className="relative" ref={tagDropdownRef}>
+            {/* 4. Фильтр по команде */}
+            <div className="relative" ref={teamDropdownRef}>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className={`h-9 px-3 text-vista-light/70 border border-[#2c3c42] w-[150px] justify-between ${selectedTags.length > 0 ? 'border-vista-primary/60' : ''}`}
-                onClick={() => setTagDropdownOpen(!tagDropdownOpen)}
+                className={`h-9 px-3 text-vista-light/70 border border-[#2c3c42] w-[150px] justify-between ${selectedTeams.length > 0 ? 'border-vista-primary/60' : ''}`}
+                onClick={() => setTeamDropdownOpen(!teamDropdownOpen)}
               >
-                <span>Тег{selectedTags.length > 0 ? ` (${selectedTags.length})` : ''}</span>
+                <span>Команда{selectedTeams.length > 0 ? ` (${selectedTeams.length})` : ''}</span>
                 <ChevronDownIcon className="h-3 w-3 ml-1" />
               </Button>
               
-              {tagDropdownOpen && (
+              {teamDropdownOpen && (
                 <div className="absolute z-50 mt-1 min-w-[200px] max-h-[320px] overflow-y-auto bg-[#1a2228]/80 backdrop-blur-md border border-[#2c3c42] rounded-md shadow-lg">
                   <div className="py-1">
-                    {availableTags.map(tag => (
-                      <div 
-                        key={tag.id}
-                        className={`flex items-center px-4 py-2 cursor-pointer ${selectedTags.includes(tag.id) ? 'bg-[#2c3c42]/50 text-vista-primary' : 'text-[#e6f0f0] hover:bg-[#2c3c42]/30'}`}
-                        onClick={() => toggleTag(tag.id)}
-                      >
-                        <div className="flex items-center flex-grow">
-                          <span>{tag.name}</span>
+                    {teams.length > 0 ? (
+                      teams.map(team => (
+                        <div 
+                          key={team.id}
+                          className={`flex items-center px-4 py-2 cursor-pointer ${selectedTeams.includes(team.id) ? 'bg-[#2c3c42]/50 text-vista-primary' : 'text-[#e6f0f0] hover:bg-[#2c3c42]/30'}`}
+                          onClick={() => toggleTeam(team.id)}
+                        >
+                          <div className="flex items-center flex-grow">
+                            <span>{team.name}</span>
+                          </div>
+                          {selectedTeams.includes(team.id) && 
+                            <CheckIcon className="h-4 w-4 text-vista-primary" />
+                          }
                         </div>
-                        {selectedTags.includes(tag.id) && 
-                          <CheckIcon className="h-4 w-4 text-vista-primary" />
-                        }
+                      ))
+                    ) : (
+                      <div className="px-4 py-2 text-vista-light/50">
+                        Нет доступных команд
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               )}
             </div>
             
             {/* Кнопка сброса фильтров, если активны */}
-            {(searchQuery || selectedCategories.length > 0 || selectedTags.length > 0 || selectedAuthors.length > 0) && (
+            {(searchQuery || selectedCategories.length > 0 || selectedTeams.length > 0) && (
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -811,35 +727,15 @@ export default function TrainingsPage() {
   );
   
   // Вспомогательные функции (заглушки)
-  function toggleAuthor(authorId: string) {
-    setSelectedAuthors(prev => 
-      prev.includes(authorId) 
-        ? prev.filter(id => id !== authorId) 
-        : [...prev, authorId]
-    );
-  }
-
   function toggleCategory(categoryId: string) {
     setSelectedCategories(prev => 
-      prev.includes(categoryId) 
-        ? prev.filter(id => id !== categoryId) 
-        : [...prev, categoryId]
+      prev.includes(categoryId) ? prev.filter(id => id !== categoryId) : [...prev, categoryId]
     );
   }
 
-  function toggleTag(tagId: string) {
-    setSelectedTags(prev => 
-      prev.includes(tagId)
-      ? prev.filter(id => id !== tagId)
-      : [...prev, tagId]
-    );
-  }
-
-  function toggleTrainingTag(tagId: string) {
-    setTrainingTagIds(prev => 
-      prev.includes(tagId) 
-        ? prev.filter(id => id !== tagId) 
-        : [...prev, tagId]
+  function toggleTeam(teamId: string) {
+    setSelectedTeams(prev => 
+      prev.includes(teamId) ? prev.filter(id => id !== teamId) : [...prev, teamId]
     );
   }
   
@@ -871,8 +767,7 @@ export default function TrainingsPage() {
   function resetFilters() {
     setSearchQuery('');
     setSelectedCategories([]);
-    setSelectedTags([]);
-    setSelectedAuthors([]);
+    setSelectedTeams([]);
   }
 
   async function handleAddTraining() {
