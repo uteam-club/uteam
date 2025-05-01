@@ -772,21 +772,6 @@ export default function ExercisesPage() {
 
     return (
       <div className="container-app py-6">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
-          <div>
-            <Button 
-              variant="default" 
-              size="sm"
-              onClick={() => {
-                refreshTags(); // Обновляем список тегов перед открытием диалога
-                setShowAddExerciseDialog(true);
-              }}
-            >
-              <PlusIcon className="h-4 w-4 mr-1" />
-              {t('addExercise')}
-            </Button>
-          </div>
-        </div>
         <div className="flex items-center justify-between mb-4">
           {/* Поисковая строка и фильтры */}
           <div className="flex flex-wrap gap-2 mb-6">
@@ -922,243 +907,258 @@ export default function ExercisesPage() {
               </Button>
             )}
           </div>
+          
+          {/* Кнопка добавления упражнения */}
+          <div>
+            <Button 
+              variant="default" 
+              size="sm"
+              onClick={() => {
+                refreshTags(); // Обновляем список тегов перед открытием диалога
+                setShowAddExerciseDialog(true);
+              }}
+            >
+              <PlusIcon className="h-4 w-4 mr-1" />
+              {t('addExercise')}
+            </Button>
+          </div>
+        </div>
             
-          {/* Диалоговое окно для добавления упражнения */}
-          <Dialog open={showAddExerciseDialog} onOpenChange={(open) => {
-            setShowAddExerciseDialog(open);
-            if (!open) resetExerciseForm();
-          }}>
-            <DialogContent className="bg-vista-dark border border-vista-secondary/70 sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle className="text-vista-light">
-                  {t('addExercise')}
-                </DialogTitle>
-              </DialogHeader>
+        {/* Диалоговое окно для добавления упражнения */}
+        <Dialog open={showAddExerciseDialog} onOpenChange={(open) => {
+          setShowAddExerciseDialog(open);
+          if (!open) resetExerciseForm();
+        }}>
+          <DialogContent className="bg-vista-dark border border-vista-secondary/70 sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="text-vista-light">
+                {t('addExercise')}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="py-4 space-y-6">
+              {/* Название */}
+              <div>
+                <Label htmlFor="exercise-name" className="text-vista-light">
+                  {t('name')}*
+                </Label>
+                <Input 
+                  id="exercise-name"
+                  value={exerciseName}
+                  onChange={(e) => setExerciseName(e.target.value)}
+                  className="bg-vista-dark/70 border-vista-secondary/50"
+                  placeholder={`${t('name')}...`}
+                />
+                {exerciseErrors.name && (
+                  <p className="text-sm text-red-400 mt-1">{exerciseErrors.name}</p>
+                )}
+              </div>
               
-              <div className="py-4 space-y-6">
-                {/* Название */}
-                <div>
-                  <Label htmlFor="exercise-name" className="text-vista-light">
-                    {t('name')}*
-                  </Label>
-                  <Input 
-                    id="exercise-name"
-                    value={exerciseName}
-                    onChange={(e) => setExerciseName(e.target.value)}
-                    className="bg-vista-dark/70 border-vista-secondary/50"
-                    placeholder={`${t('name')}...`}
-                  />
-                  {exerciseErrors.name && (
-                    <p className="text-sm text-red-400 mt-1">{exerciseErrors.name}</p>
-                  )}
-                </div>
-                
-                {/* Описание */}
-                <div>
-                  <Label htmlFor="exercise-description" className="text-vista-light">
-                    {t('description')}*
-                  </Label>
-                  <Textarea 
-                    id="exercise-description"
-                    value={exerciseDescription}
-                    onChange={(e) => setExerciseDescription(e.target.value)}
-                    className="bg-vista-dark/70 border-vista-secondary/50 min-h-[100px]"
-                    placeholder={`${t('description')}...`}
-                  />
-                  {exerciseErrors.description && (
-                    <p className="text-sm text-red-400 mt-1">{exerciseErrors.description}</p>
-                  )}
-                </div>
-                
-                {/* Размеры */}
-                <div>
-                  <Label className="text-vista-light">
-                    {t('dimensions')}
-                  </Label>
-                  <div className="grid grid-cols-2 gap-4 mt-2">
-                    <div>
-                      <Label htmlFor="exercise-length" className="text-vista-light/80 text-sm">
-                        {t('length')}
-                      </Label>
-                      <Input 
-                        id="exercise-length"
-                        type="number"
-                        value={exerciseLength}
-                        onChange={(e) => setExerciseLength(e.target.value)}
-                        className="bg-vista-dark/70 border-vista-secondary/50"
-                      />
-                      {exerciseErrors.length && (
-                        <p className="text-sm text-red-400 mt-1">{exerciseErrors.length}</p>
-                      )}
-                    </div>
-                    <div>
-                      <Label htmlFor="exercise-width" className="text-vista-light/80 text-sm">
-                        {t('width')}
-                      </Label>
-                      <Input 
-                        id="exercise-width"
-                        type="number"
-                        value={exerciseWidth}
-                        onChange={(e) => setExerciseWidth(e.target.value)}
-                        className="bg-vista-dark/70 border-vista-secondary/50"
-                      />
-                      {exerciseErrors.width && (
-                        <p className="text-sm text-red-400 mt-1">{exerciseErrors.width}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Категория */}
-                <div className="relative">
-                  <Label className="text-vista-light">
-                    {t('category')}*
-                  </Label>
-                  <div 
-                    ref={exerciseCategoryDropdownRef}
-                    className="relative"
-                  >
-                    <div
-                      className="flex items-center justify-between bg-vista-dark/70 border border-vista-secondary/50 rounded-md px-3 py-2 cursor-pointer"
-                      onClick={() => setExerciseCategoryDropdownOpen(!exerciseCategoryDropdownOpen)}
-                    >
-                      <span className="text-vista-light">
-                        {categories.find(c => c.id === exerciseCategoryId)?.name || t('selectCategories')}
-                      </span>
-                      <ChevronUpDownIcon className="h-4 w-4 text-vista-light/70" />
-                    </div>
-                    
-                    {exerciseCategoryDropdownOpen && (
-                      <div className="absolute z-50 mt-1 w-full max-h-[200px] overflow-y-auto bg-vista-dark/95 border border-vista-secondary/50 rounded-md shadow-lg">
-                        {categories.map((category) => (
-                          <div
-                            key={category.id}
-                            className={`px-3 py-2 cursor-pointer ${
-                              category.id === exerciseCategoryId 
-                                ? 'bg-vista-secondary/40 text-vista-primary'
-                                : 'text-vista-light hover:bg-vista-secondary/20'
-                            }`}
-                            onClick={() => {
-                              handleCategorySelect(category.id);
-                              setExerciseCategoryDropdownOpen(false);
-                            }}
-                          >
-                            {category.name}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {exerciseErrors.categoryId && (
-                    <p className="text-sm text-red-400 mt-1">{exerciseErrors.categoryId}</p>
-                  )}
-                </div>
-                
-                {/* Теги */}
-                <div className="relative">
-                  <Label className="text-vista-light">
-                    {t('tags')}
-                  </Label>
-                  <div 
-                    ref={exerciseTagsDropdownRef}
-                    className="relative"
-                  >
-                    <div
-                      className="flex items-center justify-between bg-vista-dark/70 border border-vista-secondary/50 rounded-md px-3 py-2 cursor-pointer"
-                      onClick={() => setExerciseTagsDropdownOpen(!exerciseTagsDropdownOpen)}
-                    >
-                      <div className="flex flex-wrap gap-1">
-                        {exerciseTagIds.length > 0 ? (
-                          tags.filter(tag => exerciseTagIds.includes(tag.id)).map(tag => (
-                            <span key={tag.id} className="bg-vista-secondary/50 px-2 py-0.5 rounded-full text-xs">
-                              {tag.name}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-vista-light/70">{t('selectTags')}</span>
-                        )}
-                      </div>
-                      <ChevronUpDownIcon className="h-4 w-4 text-vista-light/70 ml-2 flex-shrink-0" />
-                    </div>
-                    
-                    {exerciseTagsDropdownOpen && (
-                      <div className="absolute z-50 mt-1 w-full max-h-[200px] overflow-y-auto bg-vista-dark/95 border border-vista-secondary/50 rounded-md shadow-lg">
-                        {getTagsForCategory().map((tag) => (
-                          <div
-                            key={tag.id}
-                            className={`px-3 py-2 cursor-pointer ${
-                              exerciseTagIds.includes(tag.id)
-                                ? 'bg-vista-primary/20 text-vista-primary'
-                                : 'text-vista-light hover:bg-vista-secondary/20'
-                            }`}
-                            onClick={() => toggleExerciseTag(tag.id)}
-                          >
-                            {tag.name}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {exerciseErrors.tags && (
-                    <p className="text-sm text-red-400 mt-1">{exerciseErrors.tags}</p>
-                  )}
-                </div>
-                
-                {/* Файл */}
-                <div>
-                  <Label className="text-vista-light">
-                    {t('file')}
-                  </Label>
-                  <div
-                    className="mt-2 p-4 border border-dashed border-vista-secondary/50 rounded-md cursor-pointer text-center"
-                    onClick={openFileDialog}
-                  >
-                    {exerciseFile ? (
-                      <div className="flex items-center justify-center flex-col">
-                        <DocumentIcon className="h-8 w-8 text-vista-primary mb-2" />
-                        <p className="text-sm text-vista-light">{exerciseFile.name}</p>
-                        <p className="text-xs text-vista-light/70 mt-1">
-                          {(exerciseFile.size / 1024 / 1024).toFixed(2)} MB
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center flex-col">
-                        <ArrowUpTrayIcon className="h-8 w-8 text-vista-light/50 mb-2" />
-                        <p className="text-sm text-vista-light/70">{t('uploadFile')}</p>
-                      </div>
-                    )}
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      className="hidden"
-                      accept=".pdf,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov"
+              {/* Описание */}
+              <div>
+                <Label htmlFor="exercise-description" className="text-vista-light">
+                  {t('description')}*
+                </Label>
+                <Textarea 
+                  id="exercise-description"
+                  value={exerciseDescription}
+                  onChange={(e) => setExerciseDescription(e.target.value)}
+                  className="bg-vista-dark/70 border-vista-secondary/50 min-h-[100px]"
+                  placeholder={`${t('description')}...`}
+                />
+                {exerciseErrors.description && (
+                  <p className="text-sm text-red-400 mt-1">{exerciseErrors.description}</p>
+                )}
+              </div>
+              
+              {/* Размеры */}
+              <div>
+                <Label className="text-vista-light">
+                  {t('dimensions')}
+                </Label>
+                <div className="grid grid-cols-2 gap-4 mt-2">
+                  <div>
+                    <Label htmlFor="exercise-length" className="text-vista-light/80 text-sm">
+                      {t('length')}
+                    </Label>
+                    <Input 
+                      id="exercise-length"
+                      type="number"
+                      value={exerciseLength}
+                      onChange={(e) => setExerciseLength(e.target.value)}
+                      className="bg-vista-dark/70 border-vista-secondary/50"
                     />
+                    {exerciseErrors.length && (
+                      <p className="text-sm text-red-400 mt-1">{exerciseErrors.length}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label htmlFor="exercise-width" className="text-vista-light/80 text-sm">
+                      {t('width')}
+                    </Label>
+                    <Input 
+                      id="exercise-width"
+                      type="number"
+                      value={exerciseWidth}
+                      onChange={(e) => setExerciseWidth(e.target.value)}
+                      className="bg-vista-dark/70 border-vista-secondary/50"
+                    />
+                    {exerciseErrors.width && (
+                      <p className="text-sm text-red-400 mt-1">{exerciseErrors.width}</p>
+                    )}
                   </div>
                 </div>
               </div>
               
-              <DialogFooter>
-                <Button 
-                  variant="ghost" 
-                  onClick={() => {
-                    setShowAddExerciseDialog(false);
-                    resetExerciseForm();
-                  }}
-                  className="text-vista-light"
+              {/* Категория */}
+              <div className="relative">
+                <Label className="text-vista-light">
+                  {t('category')}*
+                </Label>
+                <div 
+                  ref={exerciseCategoryDropdownRef}
+                  className="relative"
                 >
-                  {t('cancel')}
-                </Button>
-                <Button 
-                  onClick={handleAddExercise}
-                  className="bg-vista-primary text-vista-dark hover:bg-vista-primary/90"
+                  <div
+                    className="flex items-center justify-between bg-vista-dark/70 border border-vista-secondary/50 rounded-md px-3 py-2 cursor-pointer"
+                    onClick={() => setExerciseCategoryDropdownOpen(!exerciseCategoryDropdownOpen)}
+                  >
+                    <span className="text-vista-light">
+                      {categories.find(c => c.id === exerciseCategoryId)?.name || t('selectCategories')}
+                    </span>
+                    <ChevronUpDownIcon className="h-4 w-4 text-vista-light/70" />
+                  </div>
+                  
+                  {exerciseCategoryDropdownOpen && (
+                    <div className="absolute z-50 mt-1 w-full max-h-[200px] overflow-y-auto bg-vista-dark/95 border border-vista-secondary/50 rounded-md shadow-lg">
+                      {categories.map((category) => (
+                        <div
+                          key={category.id}
+                          className={`px-3 py-2 cursor-pointer ${
+                            category.id === exerciseCategoryId 
+                              ? 'bg-vista-secondary/40 text-vista-primary'
+                              : 'text-vista-light hover:bg-vista-secondary/20'
+                          }`}
+                          onClick={() => {
+                            handleCategorySelect(category.id);
+                            setExerciseCategoryDropdownOpen(false);
+                          }}
+                        >
+                          {category.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {exerciseErrors.categoryId && (
+                  <p className="text-sm text-red-400 mt-1">{exerciseErrors.categoryId}</p>
+                )}
+              </div>
+              
+              {/* Теги */}
+              <div className="relative">
+                <Label className="text-vista-light">
+                  {t('tags')}
+                </Label>
+                <div 
+                  ref={exerciseTagsDropdownRef}
+                  className="relative"
                 >
-                  {t('addExercise')}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+                  <div
+                    className="flex items-center justify-between bg-vista-dark/70 border border-vista-secondary/50 rounded-md px-3 py-2 cursor-pointer"
+                    onClick={() => setExerciseTagsDropdownOpen(!exerciseTagsDropdownOpen)}
+                  >
+                    <div className="flex flex-wrap gap-1">
+                      {exerciseTagIds.length > 0 ? (
+                        tags.filter(tag => exerciseTagIds.includes(tag.id)).map(tag => (
+                          <span key={tag.id} className="bg-vista-secondary/50 px-2 py-0.5 rounded-full text-xs">
+                            {tag.name}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-vista-light/70">{t('selectTags')}</span>
+                      )}
+                    </div>
+                    <ChevronUpDownIcon className="h-4 w-4 text-vista-light/70 ml-2 flex-shrink-0" />
+                  </div>
+                  
+                  {exerciseTagsDropdownOpen && (
+                    <div className="absolute z-50 mt-1 w-full max-h-[200px] overflow-y-auto bg-vista-dark/95 border border-vista-secondary/50 rounded-md shadow-lg">
+                      {getTagsForCategory().map((tag) => (
+                        <div
+                          key={tag.id}
+                          className={`px-3 py-2 cursor-pointer ${
+                            exerciseTagIds.includes(tag.id)
+                              ? 'bg-vista-primary/20 text-vista-primary'
+                              : 'text-vista-light hover:bg-vista-secondary/20'
+                          }`}
+                          onClick={() => toggleExerciseTag(tag.id)}
+                        >
+                          {tag.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {exerciseErrors.tags && (
+                  <p className="text-sm text-red-400 mt-1">{exerciseErrors.tags}</p>
+                )}
+              </div>
+              
+              {/* Файл */}
+              <div>
+                <Label className="text-vista-light">
+                  {t('file')}
+                </Label>
+                <div
+                  className="mt-2 p-4 border border-dashed border-vista-secondary/50 rounded-md cursor-pointer text-center"
+                  onClick={openFileDialog}
+                >
+                  {exerciseFile ? (
+                    <div className="flex items-center justify-center flex-col">
+                      <DocumentIcon className="h-8 w-8 text-vista-primary mb-2" />
+                      <p className="text-sm text-vista-light">{exerciseFile.name}</p>
+                      <p className="text-xs text-vista-light/70 mt-1">
+                        {(exerciseFile.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center flex-col">
+                      <ArrowUpTrayIcon className="h-8 w-8 text-vista-light/50 mb-2" />
+                      <p className="text-sm text-vista-light/70">{t('uploadFile')}</p>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    className="hidden"
+                    accept=".pdf,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button 
+                variant="ghost" 
+                onClick={() => {
+                  setShowAddExerciseDialog(false);
+                  resetExerciseForm();
+                }}
+                className="text-vista-light"
+              >
+                {t('cancel')}
+              </Button>
+              <Button 
+                onClick={handleAddExercise}
+                className="bg-vista-primary text-vista-dark hover:bg-vista-primary/90"
+              >
+                {t('addExercise')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Отображение выбранных фильтров */}
         {(selectedCategories.length > 0 || selectedTags.length > 0 || selectedAuthors.length > 0) && (
