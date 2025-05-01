@@ -50,6 +50,11 @@ type PlayerData = {
   };
 };
 
+type Team = {
+  id: string;
+  name: string;
+};
+
 // Функция для генерации случайного 6-значного PIN-кода
 const generatePinCode = (): string => {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -70,6 +75,8 @@ export default function PlayerProfilePage() {
   const [uploadingCertificate, setUploadingCertificate] = useState(false);
   const [uploadingInsurance, setUploadingInsurance] = useState(false);
   const [generatingPin, setGeneratingPin] = useState(false);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loadingTeams, setLoadingTeams] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const passportInputRef = useRef<HTMLInputElement>(null);
@@ -100,6 +107,32 @@ export default function PlayerProfilePage() {
     fetchPlayer();
   }, [playerId]);
 
+  // Загрузка списка команд при включении режима редактирования
+  useEffect(() => {
+    if (isEditing) {
+      fetchTeams();
+    }
+  }, [isEditing]);
+
+  // Функция для загрузки списка команд
+  const fetchTeams = async () => {
+    try {
+      setLoadingTeams(true);
+      const response = await fetch('/api/coaching/teams');
+      
+      if (!response.ok) {
+        throw new Error('Ошибка загрузки списка команд');
+      }
+      
+      const teamsData = await response.json();
+      setTeams(teamsData);
+    } catch (error) {
+      console.error('Ошибка при загрузке команд:', error);
+    } finally {
+      setLoadingTeams(false);
+    }
+  };
+
   // Обработчик изменения формы
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -127,7 +160,15 @@ export default function PlayerProfilePage() {
       const updatedPlayer = await response.json();
       setPlayer(updatedPlayer);
       setIsEditing(false);
-      alert('Профиль успешно сохранен');
+      
+      // Проверяем, была ли изменена команда
+      if (player && player.teamId !== updatedPlayer.teamId) {
+        alert('Игрок успешно перемещен в другую команду');
+        // Перенаправление на страницу новой команды
+        router.push(`/${locale}/dashboard/coaching/teams/${updatedPlayer.teamId}`);
+      } else {
+        alert('Профиль успешно сохранен');
+      }
     } catch (error) {
       console.error('Ошибка сохранения профиля:', error);
       alert(`Не удалось сохранить профиль: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
@@ -749,6 +790,31 @@ export default function PlayerProfilePage() {
                   </select>
                 ) : (
                   <p className="text-vista-light">{getFootText(player?.foot) || '—'}</p>
+                )}
+              </div>
+              
+              {/* Команда */}
+              <div>
+                <p className="text-vista-light/60 text-sm">Команда</p>
+                {isEditing ? (
+                  <select 
+                    name="teamId" 
+                    value={formData.teamId || ''} 
+                    onChange={handleInputChange}
+                    className="w-full bg-vista-dark border border-vista-secondary rounded p-1 text-vista-light"
+                  >
+                    {loadingTeams ? (
+                      <option value="">Загрузка команд...</option>
+                    ) : (
+                      <>
+                        {teams.map(team => (
+                          <option key={team.id} value={team.id}>{team.name}</option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                ) : (
+                  <p className="text-vista-light">{player?.teams?.name || '—'}</p>
                 )}
               </div>
               
