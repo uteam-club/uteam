@@ -773,9 +773,6 @@ export default function ExercisesPage() {
     return (
       <div className="container-app py-6">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
-          <h1 className="text-2xl font-medium text-vista-light mb-4 lg:mb-0">
-            {t('exercisesLibrary')}
-          </h1>
           <div>
             <Button 
               variant="default" 
@@ -926,21 +923,11 @@ export default function ExercisesPage() {
             )}
           </div>
             
-          {/* Кнопка добавления упражнения справа */}
+          {/* Диалоговое окно для добавления упражнения */}
           <Dialog open={showAddExerciseDialog} onOpenChange={(open) => {
             setShowAddExerciseDialog(open);
             if (!open) resetExerciseForm();
           }}>
-            <DialogTrigger asChild>
-              <Button 
-                variant="default" 
-                size="sm"
-                className="h-9 bg-vista-primary text-vista-dark hover:bg-vista-primary/90"
-              >
-                <PlusIcon className="h-4 w-4 mr-1" /> {t('addExercise')}
-              </Button>
-            </DialogTrigger>
-            
             <DialogContent className="bg-vista-dark border border-vista-secondary/70 sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle className="text-vista-light">
