@@ -263,6 +263,22 @@ export default function ExercisesPage() {
       fetchTagsAndAuthors();
     }, [exercises]);
 
+    // Функция для обновления списка тегов
+    const refreshTags = async () => {
+      try {
+        console.log('Обновление списка тегов...');
+        const tagsResponse = await fetch('/api/exercises/tags');
+        if (tagsResponse.ok) {
+          const tagsData = await tagsResponse.json();
+          setTags(tagsData);
+          setAvailableTags(tagsData);
+          console.log('Список тегов обновлен:', tagsData);
+        }
+      } catch (error) {
+        console.error('Ошибка обновления списка тегов:', error);
+      }
+    };
+
     // Обработчик клика вне выпадающих списков для их закрытия
     useEffect(() => {
       function handleClickOutside(event: MouseEvent) {
@@ -398,6 +414,12 @@ export default function ExercisesPage() {
     const getTagsForCategory = () => {
       if (!exerciseCategoryId) return [];
       return tags.filter(tag => tag.exerciseCategoryId === exerciseCategoryId);
+    };
+    
+    // Получение тегов для выбранной категории при редактировании упражнения
+    const getTagsForEditCategory = () => {
+      if (!editExerciseCategoryId) return [];
+      return tags.filter(tag => tag.exerciseCategoryId === editExerciseCategoryId);
     };
     
     // Валидация формы упражнения
@@ -708,6 +730,35 @@ export default function ExercisesPage() {
       setCurrentPage(page);
     };
 
+    // Где-то внутри компонента добавим новую функцию для обработки выбора категории
+    const handleCategorySelect = (categoryId: string) => {
+      // Устанавливаем выбранную категорию
+      setExerciseCategoryId(categoryId);
+      
+      // Если выбрана категория, обновляем список тегов
+      if (categoryId) {
+        refreshTags();
+      }
+      
+      // Очищаем выбранные теги, так как они относятся к предыдущей категории
+      setExerciseTagIds([]);
+    };
+
+    // Где-то внутри компонента после функции handleCategorySelect 
+    // добавляем аналогичную функцию для редактирования
+    const handleEditCategorySelect = (categoryId: string) => {
+      // Устанавливаем выбранную категорию
+      setEditExerciseCategoryId(categoryId);
+      
+      // Если выбрана категория, обновляем список тегов
+      if (categoryId) {
+        refreshTags();
+      }
+      
+      // Очищаем выбранные теги, так как они относятся к предыдущей категории
+      setEditExerciseTagIds([]);
+    };
+
     // Отображение во время загрузки
     if (loading && exercises.length === 0) {
       return (
@@ -720,7 +771,25 @@ export default function ExercisesPage() {
     }
 
     return (
-      <div className="py-6">
+      <div className="container-app py-6">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
+          <h1 className="text-2xl font-medium text-vista-light mb-4 lg:mb-0">
+            {t('exercisesLibrary')}
+          </h1>
+          <div>
+            <Button 
+              variant="default" 
+              size="sm"
+              onClick={() => {
+                refreshTags(); // Обновляем список тегов перед открытием диалога
+                setShowAddExerciseDialog(true);
+              }}
+            >
+              <PlusIcon className="h-4 w-4 mr-1" />
+              {t('addExercise')}
+            </Button>
+          </div>
+        </div>
         <div className="flex items-center justify-between mb-4">
           {/* Поисковая строка и фильтры */}
           <div className="flex flex-wrap gap-2 mb-6">
@@ -788,8 +857,15 @@ export default function ExercisesPage() {
                     {categories.map(category => (
                       <div 
                         key={category.id}
-                        className={`flex items-center px-4 py-2 cursor-pointer ${selectedCategories.includes(category.id) ? 'bg-[#2c3c42]/50 text-vista-primary' : 'text-[#e6f0f0] hover:bg-[#2c3c42]/30'}`}
-                        onClick={() => toggleCategory(category.id)}
+                        className={`flex items-center px-4 py-2 cursor-pointer ${
+                          category.id === exerciseCategoryId 
+                            ? 'bg-vista-secondary/40 text-vista-primary'
+                            : 'text-vista-light hover:bg-vista-secondary/20'
+                        }`}
+                        onClick={() => {
+                          handleCategorySelect(category.id);
+                          setExerciseCategoryDropdownOpen(false);
+                        }}
                       >
                         <div className="flex items-center flex-grow">
                           <span>{category.name}</span>
@@ -971,12 +1047,12 @@ export default function ExercisesPage() {
                           <div
                             key={category.id}
                             className={`px-3 py-2 cursor-pointer ${
-                              exerciseCategoryId === category.id
-                                ? 'bg-vista-primary/20 text-vista-primary'
+                              category.id === exerciseCategoryId 
+                                ? 'bg-vista-secondary/40 text-vista-primary'
                                 : 'text-vista-light hover:bg-vista-secondary/20'
                             }`}
                             onClick={() => {
-                              setExerciseCategoryId(category.id);
+                              handleCategorySelect(category.id);
                               setExerciseCategoryDropdownOpen(false);
                             }}
                           >
@@ -1476,7 +1552,7 @@ export default function ExercisesPage() {
                               key={category.id}
                               className={`px-3 py-2 cursor-pointer hover:bg-vista-secondary/50 ${editExerciseCategoryId === category.id ? 'bg-vista-secondary/30' : ''}`}
                               onClick={() => {
-                                setEditExerciseCategoryId(category.id);
+                                handleEditCategorySelect(category.id);
                                 setEditExerciseCategoryDropdownOpen(false);
                               }}
                             >
@@ -1515,7 +1591,7 @@ export default function ExercisesPage() {
                       
                       {editExerciseTagsDropdownOpen && (
                         <div className="absolute z-10 mt-1 w-full bg-vista-dark border border-vista-secondary/50 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                          {tags.map(tag => (
+                          {getTagsForEditCategory().map(tag => (
                             <div
                               key={tag.id}
                               className={`px-3 py-2 cursor-pointer hover:bg-vista-secondary/50 ${editExerciseTagIds.includes(tag.id) ? 'bg-vista-secondary/30' : ''}`}
