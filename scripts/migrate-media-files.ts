@@ -102,24 +102,37 @@ async function migrateMediaFiles() {
         if (downloadError) {
           console.error(`Ошибка скачивания файла ${mediaItem.url}:`, downloadError.message);
           // Попробуем проверить, существует ли файл по новому пути (возможно, миграция уже была)
-          const { data: existingNewFile, error: checkNewError } = await storage
-            .from(BUCKET_NAME)
-            .getPublicUrl(newFilePath); // Просто для проверки существования
+          
+          let newFilePublicUrl: string | null = null;
+          try {
+            // Check if file exists at newFilePath by attempting to list it
+            const newFileDir = path.dirname(newFilePath);
+            const newFileName = path.basename(newFilePath);
 
-          if (checkNewError && checkNewError.message.includes('not found')) {
-             console.log(`Файл ${newFilePath} также не найден. Пропускаем.`);
-          } else if (existingNewFile) {
-            console.log(`Файл ${newFilePath} уже существует. Обновляем запись в БД.`);
-            // Обновляем запись в базе данных с новым URL
-            const { data: urlData } = storage
-            .from(BUCKET_NAME)
-            .getPublicUrl(newFilePath);
+            const { data: listResult, error: listError } = await storage
+              .from(BUCKET_NAME)
+              .list(newFileDir, { search: newFileName, limit: 1 });
 
+            if (listError) {
+              console.warn(`Предупреждение при проверке файла ${newFilePath} через list(): ${listError.message}. Предполагаем, что файл не существует.`);
+            } else if (listResult && listResult.length > 0) {
+              // File exists, get its public URL
+              const publicUrlData = storage.from(BUCKET_NAME).getPublicUrl(newFilePath);
+              newFilePublicUrl = publicUrlData.data.publicUrl;
+            }
+          } catch (e: any) {
+            console.warn(`Исключение при проверке файла ${newFilePath} через list(): ${e.message}. Предполагаем, что файл не существует.`);
+          }
+
+          if (!newFilePublicUrl) { // If newFilePublicUrl is still null, file was not found at new path
+             console.log(`Файл ${newFilePath} (по новому пути) также не найден. Пропускаем файл ${mediaItem.name}.`);
+          } else { // File found at new path
+            console.log(`Файл ${newFilePath} уже существует по новому пути. Обновляем запись в БД для ${mediaItem.name}.`);
             await prisma.mediaItem.update({
               where: { id: mediaItem.id },
-              data: { publicUrl: urlData.publicUrl, url: newFilePath },
+              data: { publicUrl: newFilePublicUrl, url: newFilePath },
             });
-            console.log(`Запись в БД для ${mediaItem.name} обновлена новым URL: ${urlData.publicUrl}`);
+            console.log(`Запись в БД для ${mediaItem.name} обновлена новым URL: ${newFilePublicUrl}`);
           }
           continue;
         }
