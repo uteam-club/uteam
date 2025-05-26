@@ -1,34 +1,30 @@
 // Сначала импортируем только dotenv и настраиваем переменные окружения
-import { config } from 'dotenv';
+import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import { StorageClient } from '@supabase/storage-js';
+import { PrismaClient } from '@/generated/prisma';
+import { createAdminClient, initializeStorageBucket, listFilesInBucket } from './supabase-admin';
 
 // Загружаем переменные окружения из файла .env
-const dotenvPath = path.resolve(process.cwd(), '.env');
-if (fs.existsSync(dotenvPath)) {
-  config({ path: dotenvPath });
-  console.log('Переменные окружения загружены из файла .env');
-} else {
-  console.warn('Файл .env не найден!');
-}
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-// Проверяем, что переменные окружения загружены
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  console.error('Ошибка: не найдены переменные окружения Supabase.');
-  console.error('Убедитесь, что файл .env содержит:');
-  console.error('- NEXT_PUBLIC_SUPABASE_URL');
-  console.error('- NEXT_PUBLIC_SUPABASE_ANON_KEY');
-  console.error('- SUPABASE_SERVICE_ROLE_KEY');
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // Для операций на стороне сервера
+
+if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
+  console.error('Supabase URL, Anon Key, or Service Role Key is not defined in .env');
   process.exit(1);
 }
 
-// После настройки переменных окружения импортируем остальные модули
-import { PrismaClient } from '@prisma/client';
-import { createAdminClient, initializeStorageBucket, listFilesInBucket } from './supabase-admin';
-
-// Константы
-const STORAGE_BUCKET = 'club-media';
 const prisma = new PrismaClient();
+const storage = new StorageClient(supabaseUrl, {
+    apikey: supabaseServiceRoleKey, // Используем service role key для серверных операций
+    Authorization: `Bearer ${supabaseServiceRoleKey}`,
+});
+
+const BUCKET_NAME = 'media'; // Замените на имя вашего бакета
 
 // Формирование пути для файлов конкретного упражнения
 const getExerciseFilesPath = (clubId: string, exerciseId: string) => {
@@ -40,152 +36,164 @@ const getExerciseFilesPath = (clubId: string, exerciseId: string) => {
  * Запуск: npx tsx scripts/migrate-media-files.ts
  */
 async function migrateMediaFiles() {
-  console.log('====================================================');
-  console.log('Запуск миграции файлов в новую структуру хранилища');
-  console.log('====================================================');
-  
   try {
+    console.log('Начало миграции медиафайлов...');
+
+    // Получаем административный клиент Supabase
+    const supabase = createAdminClient();
+    if (!supabase) {
+      console.error('Не удалось создать административный клиент Supabase.');
+      return;
+    }
+
     // Инициализируем хранилище
     console.log('Инициализация хранилища...');
-    await initializeStorageBucket(STORAGE_BUCKET, true);
+    await initializeStorageBucket(BUCKET_NAME, true);
     
     // Считаем количество файлов в базе данных
-    const mediaCount = await prisma.mediaItem.count();
-    console.log(`Всего файлов в базе данных: ${mediaCount}`);
-    
-    // Получаем статистику по упражнениям
-    const exercisesCount = await prisma.exercise.count();
-    console.log(`Всего упражнений в базе данных: ${exercisesCount}`);
-    
-    // Запускаем миграцию всех файлов
-    console.log('====================================================');
-    console.log('Запуск процесса миграции...');
-    console.log('====================================================');
-    
-    const supabase = createAdminClient();
-    
-    // Получаем список всех клубов
-    const clubs = await prisma.club.findMany();
-    console.log(`Найдено ${clubs.length} клубов для миграции`);
-    
-    // Обрабатываем каждый клуб
-    for (const club of clubs) {
-      console.log(`\nМиграция файлов клуба "${club.name}" (${club.id})`);
-      
-      // Получаем все упражнения этого клуба
-      const exercises = await prisma.exercise.findMany({
-        where: { clubId: club.id },
-        include: { mediaItems: true }
-      });
-      
-      console.log(`Найдено ${exercises.length} упражнений для клуба "${club.name}"`);
-      
-      // Обрабатываем каждое упражнение
-      for (const exercise of exercises) {
-        console.log(`\n-- Обработка упражнения "${exercise.title}" (${exercise.id})`);
-        
-        if (exercise.mediaItems.length === 0) {
-          console.log(`   У упражнения нет медиафайлов в базе данных`);
-          continue;
+    const totalMediaItems = await prisma.mediaItem.count();
+    console.log(`Всего медиафайлов в базе данных: ${totalMediaItems}`);
+    let processedCount = 0;
+
+    // Получаем все медиафайлы из базы данных
+    const mediaItems = await prisma.mediaItem.findMany({
+        where: {
+            exerciseId: {
+                not: null
+            }
         }
+    });
+    console.log(`Найдено медиафайлов для миграции: ${mediaItems.length}`);
+
+    for (const mediaItem of mediaItems) {
+      processedCount++;
+      console.log(`Обработка файла ${processedCount} из ${mediaItems.length}: ${mediaItem.name} (ID: ${mediaItem.id})`);
+
+      if (!mediaItem.exerciseId) {
+        console.log(`Пропуск файла ${mediaItem.name}: отсутствует exerciseId.`);
+        continue;
+      }
+
+      const exercise = await prisma.exercise.findUnique({
+        where: { id: mediaItem.exerciseId },
+        include: { club: true },
+      });
+
+      if (!exercise) {
+        console.error(`Упражнение с ID ${mediaItem.exerciseId} не найдено для медиафайла ${mediaItem.name}.`);
+        continue;
+      }
+
+      const clubSubdomain = exercise.club.subdomain;
+      const newFilePath = `${clubSubdomain}/exercises/${mediaItem.exerciseId}/${mediaItem.name}`;
+      console.log(`Новый путь для файла ${mediaItem.name}: ${newFilePath}`);
+
+      try {
+        // Проверяем, существует ли файл в старом месте
+        // Для этого нам нужно знать старый путь или предположить его структуру
+        // В данном случае, предполагаем, что mediaItem.url - это старый путь к файлу в бакете
+        console.log(`Проверка старого файла по пути: ${mediaItem.url}`);
         
-        // Новый путь для файлов этого упражнения
-        const newPath = getExerciseFilesPath(club.id, exercise.id);
-        
-        // Перебираем все медиафайлы упражнения
-        for (const mediaItem of exercise.mediaItems) {
-          if (!mediaItem.url) {
-            console.log(`   Медиафайл ${mediaItem.id} не имеет URL в базе данных`);
-            continue;
-          }
-          
-          // Проверяем, находится ли файл уже в правильной структуре
-          if (mediaItem.url.startsWith(newPath)) {
-            console.log(`   Файл ${mediaItem.name} уже в правильной структуре`);
-            continue;
-          }
-          
-          console.log(`   Миграция файла ${mediaItem.name} (${mediaItem.id})`);
-          
-          try {
-            // Извлекаем имя файла из URL
-            const fileName = mediaItem.url.split('/').pop() || '';
-            
-            // Формируем новый путь
-            const newFilePath = `${newPath}/${fileName}`;
-            
-            // Скачиваем файл
-            const { data: fileData, error: downloadError } = await supabase.storage
-              .from(STORAGE_BUCKET)
-              .download(mediaItem.url);
-            
-            if (downloadError) {
-              console.error(`   Ошибка при скачивании файла ${mediaItem.url}:`, downloadError);
-              continue;
-            }
-            
-            // Загружаем файл в новое место
-            const { data: uploadData, error: uploadError } = await supabase.storage
-              .from(STORAGE_BUCKET)
-              .upload(newFilePath, fileData, {
-                contentType: mediaItem.type === 'IMAGE' ? 'image/jpeg' : 
-                             mediaItem.type === 'VIDEO' ? 'video/mp4' : 
-                             'application/octet-stream',
-                upsert: true
-              });
-            
-            if (uploadError) {
-              console.error(`   Ошибка при загрузке файла в новую структуру:`, uploadError);
-              continue;
-            }
-            
-            // Получаем публичный URL для нового файла
-            const { data: urlData } = supabase.storage
-              .from(STORAGE_BUCKET)
-              .getPublicUrl(newFilePath);
-            
-            // Обновляем запись в базе данных
+        // Скачиваем файл
+        const { data: fileData, error: downloadError } = await storage
+          .from(BUCKET_NAME)
+          .download(mediaItem.url);
+
+        if (downloadError) {
+          console.error(`Ошибка скачивания файла ${mediaItem.url}:`, downloadError.message);
+          // Попробуем проверить, существует ли файл по новому пути (возможно, миграция уже была)
+          const { data: existingNewFile, error: checkNewError } = await storage
+            .from(BUCKET_NAME)
+            .getPublicUrl(newFilePath); // Просто для проверки существования
+
+          if (checkNewError && checkNewError.message.includes('not found')) {
+             console.log(`Файл ${newFilePath} также не найден. Пропускаем.`);
+          } else if (existingNewFile) {
+            console.log(`Файл ${newFilePath} уже существует. Обновляем запись в БД.`);
+            // Обновляем запись в базе данных с новым URL
+            const { data: urlData } = storage
+            .from(BUCKET_NAME)
+            .getPublicUrl(newFilePath);
+
             await prisma.mediaItem.update({
               where: { id: mediaItem.id },
-              data: { 
-                url: newFilePath,
-                publicUrl: urlData.publicUrl
-              }
+              data: { publicUrl: urlData.publicUrl, url: newFilePath },
             });
-            
-            console.log(`   Файл успешно мигрирован в ${newFilePath}`);
-            
-            // Удаляем старый файл
-            const { error: deleteError } = await supabase.storage
-              .from(STORAGE_BUCKET)
-              .remove([mediaItem.url]);
-            
-            if (deleteError) {
-              console.error(`   Ошибка при удалении старого файла:`, deleteError);
-            } else {
-              console.log(`   Старый файл успешно удален`);
-            }
-            
-          } catch (fileError) {
-            console.error(`   Ошибка при миграции файла ${mediaItem.name}:`, fileError);
+            console.log(`Запись в БД для ${mediaItem.name} обновлена новым URL: ${urlData.publicUrl}`);
           }
+          continue;
         }
+
+        if (!fileData) {
+          console.error(`Скачанные данные для файла ${mediaItem.url} пусты.`);
+          continue;
+        }
+        console.log(`Файл ${mediaItem.url} успешно скачан.`);
+
+        // Загружаем файл в новое место
+        const { data: uploadData, error: uploadError } = await storage
+          .from(BUCKET_NAME)
+          .upload(newFilePath, fileData, {
+            contentType: mediaItem.type === 'IMAGE' ? 'image/jpeg' : // Пример, уточните типы
+                         mediaItem.type === 'VIDEO' ? 'video/mp4' : 'application/octet-stream',
+            upsert: true, // Перезаписываем, если файл существует
+          });
+
+        if (uploadError) {
+          console.error(`Ошибка загрузки файла ${newFilePath}:`, uploadError.message);
+          continue;
+        }
+        console.log(`Файл ${newFilePath} успешно загружен.`);
+
+        // Получаем публичный URL для нового файла
+        const { data: urlData } = storage
+          .from(BUCKET_NAME)
+          .getPublicUrl(newFilePath);
+
+        if (!urlData || !urlData.publicUrl) {
+            console.error(`Не удалось получить публичный URL для ${newFilePath}`);
+            continue;
+        }
+        console.log(`Новый публичный URL для ${mediaItem.name}: ${urlData.publicUrl}`);
+
+
+        // Обновляем запись в базе данных с новым URL
+        await prisma.mediaItem.update({
+          where: { id: mediaItem.id },
+          data: { publicUrl: urlData.publicUrl, url: newFilePath }, // Сохраняем и новый относительный путь
+        });
+        console.log(`Запись в БД для ${mediaItem.name} обновлена новым URL: ${urlData.publicUrl}`);
+
+        // Удаляем старый файл, если он не совпадает с новым путем
+        // И если mediaItem.url не был пустым и не является новым путем
+        if (mediaItem.url && mediaItem.url !== newFilePath) {
+            console.log(`Попытка удаления старого файла: ${mediaItem.url}`);
+            const { error: deleteError } = await storage
+              .from(BUCKET_NAME)
+              .remove([mediaItem.url]);
+
+            if (deleteError) {
+              console.error(`Ошибка удаления старого файла ${mediaItem.url}:`, deleteError.message);
+            } else {
+              console.log(`Старый файл ${mediaItem.url} успешно удален.`);
+            }
+        }
+
+
+      } catch (error: any) {
+        console.error(`Произошла ошибка при обработке файла ${mediaItem.name}:`, error.message);
       }
     }
-    
-    console.log('====================================================');
-    console.log('Миграция файлов успешно завершена');
-    console.log('====================================================');
-    return true;
-    
-  } catch (error) {
-    console.error('Ошибка при миграции файлов:', error);
-    return false;
+
+    console.log('Миграция медиафайлов завершена.');
+  } catch (error: any) {
+    console.error('Критическая ошибка в процессе миграции:', error.message);
   } finally {
-    // Закрываем соединение с базой данных
     await prisma.$disconnect();
+    console.log('Соединение с базой данных закрыто.');
   }
 }
 
-// Запускаем миграцию
-migrateMediaFiles(); 
+migrateMediaFiles();
+
+export {}; // Добавляем, чтобы сделать файл модулем и избежать ошибки "Cannot compile namespaces when the '--isolatedModules' flag is provided" 
