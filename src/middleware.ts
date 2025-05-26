@@ -19,7 +19,7 @@ export function middleware(request: NextRequest) {
     }
     
     // Перенаправляем на страницу клуба, если не находимся на ней
-    if (!url.pathname.startsWith('/club/[subdomain]')) {
+    if (!url.pathname.startsWith('/club/')) {
       const newUrl = new URL(`/club/${subdomain}`, url.origin);
       return NextResponse.redirect(newUrl);
     }

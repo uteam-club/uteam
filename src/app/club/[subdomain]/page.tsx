@@ -1,116 +1,91 @@
-'use client';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/club.service';
 
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-
-export default function ClubPage({ params }: { params: { subdomain: string } }) {
-  const router = useRouter();
-  const { subdomain } = params;
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      setError('Пожалуйста, заполните все поля');
-      return;
-    }
-
-    try {
-      setError('');
-      setIsLoading(true);
-      
-      const result = await signIn('credentials', {
-        redirect: false,
-        email,
-        password,
-      });
-
-      if (result?.error) {
-        setError('Неверный email или пароль');
-      } else {
-        router.push('/dashboard');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      setError('Произошла ошибка при входе');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+export default async function ClubPage({ params }: { params: { subdomain: string } }) {
+  const headersList = headers();
+  const host = headersList.get('host') || '';
+  const subdomain = getSubdomain(host);
+  
+  if (!subdomain) {
+    redirect('/');
+  }
+  
+  const club = await getClubBySubdomain(subdomain);
+  
+  if (!club) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4">Клуб не найден</h1>
+          <p className="text-gray-600 mb-8">
+            Клуб с поддоменом <span className="font-semibold">{subdomain}</span> не найден.
+          </p>
+          <a 
+            href="https://uteam.club" 
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Вернуться на главную
+          </a>
+        </div>
+      </main>
+    );
+  }
+  
   return (
-    <div className="min-h-screen bg-vista-dark flex flex-col py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="text-center text-3xl font-bold text-vista-primary mb-6">
-          {subdomain.toUpperCase()}
-        </h2>
-        <p className="text-center text-vista-light/80">
-          Добро пожаловать! Пожалуйста, войдите в систему.
-        </p>
-      </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="card">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
-              <div className="p-3 mb-3 text-sm text-white bg-vista-error rounded">
-                {error}
-              </div>
-            )}
-            
-            <div className="form-group">
-              <label htmlFor="email" className="form-label">
-                Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="form-input"
-              />
+    <main className="flex min-h-screen flex-col items-center justify-between p-8">
+      <div className="z-10 max-w-5xl w-full">
+        <div className="flex flex-col md:flex-row items-center gap-6 mb-8">
+          {club.logoUrl ? (
+            <img 
+              src={club.logoUrl} 
+              alt={club.name} 
+              className="w-24 h-24 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center">
+              <span className="text-3xl font-bold text-gray-500">
+                {club.name.charAt(0)}
+              </span>
             </div>
-
-            <div className="form-group">
-              <label htmlFor="password" className="form-label">
-                Пароль
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="form-input"
-              />
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full btn-primary flex justify-center items-center"
-              >
-                {isLoading ? (
-                  <span className="inline-block animate-spin mr-2">⟳</span>
-                ) : null}
-                Войти
-              </button>
-            </div>
-          </form>
+          )}
+          <div className="text-center md:text-left">
+            <h1 className="text-4xl font-bold">{club.name}</h1>
+            <p className="text-gray-500">{club.subdomain}.uteam.club</p>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+          <div className="p-6 border rounded-lg">
+            <h2 className="text-xl font-semibold mb-4">О клубе</h2>
+            <p className="text-gray-700">
+              Информация о клубе будет добавлена администратором.
+            </p>
+          </div>
+          
+          <div className="p-6 border rounded-lg">
+            <h2 className="text-xl font-semibold mb-4">Контакты</h2>
+            <p className="text-gray-700">
+              Контактная информация будет добавлена администратором.
+            </p>
+          </div>
+        </div>
+        
+        <div className="p-6 border rounded-lg mb-12">
+          <h2 className="text-xl font-semibold mb-4">Предстоящие события</h2>
+          <div className="text-gray-700">
+            <p>Пока нет запланированных событий.</p>
+          </div>
+        </div>
+        
+        <div className="p-6 border rounded-lg">
+          <h2 className="text-xl font-semibold mb-4">Команды</h2>
+          <div className="text-gray-700">
+            <p>Информация о командах клуба будет добавлена.</p>
+          </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 } 
