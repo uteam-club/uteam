@@ -18,7 +18,11 @@ export const baseHeaders = {
 };
 
 // Функция для создания ответа с правильными заголовками
-export function createApiResponse(data: any, status: number = 200, headers: CacheHeaders = {}) {
+export function createApiResponse(
+  data: any,
+  status: number = 200,
+  headers: Partial<CacheHeaders> = { 'Cache-Control': 'no-store' }
+) {
   const finalHeaders: Record<string, string> = {
     ...baseHeaders,
   };
