@@ -1,0 +1,446 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { X, Filter, Plus } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+
+interface User {
+  id: string;
+  name: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface Tag {
+  id: string;
+  name: string;
+  exerciseCategoryId: string;
+}
+
+interface Exercise {
+  id: string;
+  title: string;
+  description: string;
+  authorId: string;
+  author: User;
+  categoryId: string;
+  category: Category;
+  tags: Tag[];
+  createdAt: string;
+  width?: number;
+  length?: number;
+  mediaItems?: {
+    id: string;
+    name: string;
+    type: string;
+    url: string;
+    publicUrl: string;
+  }[];
+}
+
+export default function ExercisesPage() {
+  const { data: session } = useSession();
+  
+  // Состояния для данных
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Состояния для фильтров
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  
+  // Состояния для модального окна создания
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newExercise, setNewExercise] = useState({
+    title: '',
+    description: '',
+    categoryId: '',
+  });
+
+  // Получение данных при загрузке страницы
+  useEffect(() => {
+    if (session?.user) {
+      fetchData();
+    }
+  }, [session]);
+
+  // Функция для получения всех необходимых данных
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      // Сначала загружаем упражнения
+      const exercisesData = await fetchExercises();
+      setExercises(exercisesData);
+      
+      // Затем загружаем все остальные данные
+      const [usersData, categoriesData, tagsData] = await Promise.all([
+        fetchUsers(),
+        fetchCategories(),
+        fetchTags(),
+      ]);
+      
+      setUsers(usersData);
+      setCategories(categoriesData);
+      setTags(tagsData);
+    } catch (error) {
+      console.error('Ошибка при загрузке данных:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Получение списка упражнений
+  const fetchExercises = async () => {
+    try {
+      const response = await fetch('/api/exercises');
+      if (!response.ok) {
+        throw new Error('Ошибка при загрузке упражнений');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Ошибка при загрузке упражнений:', error);
+      return [];
+    }
+  };
+
+  // Получение списка пользователей
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/users');
+      if (!response.ok) {
+        throw new Error('Ошибка при загрузке пользователей');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Ошибка при загрузке пользователей:', error);
+      return [];
+    }
+  };
+
+  // Получение списка категорий упражнений
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/exercise-categories');
+      if (!response.ok) {
+        throw new Error('Ошибка при загрузке категорий');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Ошибка при загрузке категорий:', error);
+      return [];
+    }
+  };
+
+  // Получение списка тегов упражнений
+  const fetchTags = async () => {
+    try {
+      const response = await fetch('/api/exercise-tags');
+      if (!response.ok) {
+        throw new Error('Ошибка при загрузке тегов');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Ошибка при загрузке тегов:', error);
+      return [];
+    }
+  };
+
+  // Сброс всех фильтров
+  const resetFilters = () => {
+    setSearchQuery('');
+    setSelectedAuthor(null);
+    setSelectedCategory(null);
+    setSelectedTags([]);
+  };
+  
+  // Обработчик изменения полей нового упражнения
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setNewExercise((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+  
+  // Сохранение нового упражнения
+  const saveExercise = async () => {
+    try {
+      const response = await fetch('/api/exercises', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: newExercise.title,
+          description: newExercise.description,
+          categoryId: newExercise.categoryId,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Ошибка при создании упражнения');
+      }
+      
+      // Закрываем модальное окно и обновляем список упражнений
+      setIsCreateDialogOpen(false);
+      setNewExercise({ title: '', description: '', categoryId: '' });
+      await fetchData();
+    } catch (error) {
+      console.error('Ошибка при создании упражнения:', error);
+    }
+  };
+
+  // Проверка наличия активных фильтров
+  const hasActiveFilters = searchQuery || selectedAuthor || selectedCategory || selectedTags.length > 0;
+
+  // Фильтрация упражнений
+  const filteredExercises = exercises.filter(exercise => {
+    // Фильтр по поисковому запросу
+    if (searchQuery && !exercise.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+    
+    // Фильтр по автору
+    if (selectedAuthor && exercise.authorId !== selectedAuthor) {
+      return false;
+    }
+    
+    // Фильтр по категории
+    if (selectedCategory && exercise.categoryId !== selectedCategory) {
+      return false;
+    }
+    
+    // Фильтр по тегам
+    if (selectedTags.length > 0) {
+      const exerciseTagIds = exercise.tags.map(tag => tag.id);
+      // Проверяем, содержит ли упражнение хотя бы один из выбранных тегов
+      if (!selectedTags.some(tagId => exerciseTagIds.includes(tagId))) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-vista-dark/50 border-vista-secondary/30">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-vista-light">Упражнения</CardTitle>
+          <Button 
+            className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
+            onClick={() => setIsCreateDialogOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Добавить упражнение
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {/* Блок с фильтрами */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            {/* Поисковый запрос */}
+            <Input
+              placeholder="Поиск упражнений..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light"
+            />
+
+            {/* Фильтр по автору */}
+            <Select
+              value={selectedAuthor || "all"}
+              onValueChange={(value) => setSelectedAuthor(value === "all" ? null : value)}
+            >
+              <SelectTrigger className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light">
+                <SelectValue placeholder="Выберите автора" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все авторы</SelectItem>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Фильтр по категории */}
+            <Select
+              value={selectedCategory || "all"}
+              onValueChange={(value) => setSelectedCategory(value === "all" ? null : value)}
+            >
+              <SelectTrigger className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light">
+                <SelectValue placeholder="Выберите категорию" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все категории</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {hasActiveFilters && (
+              <Button
+                variant="outline"
+                onClick={resetFilters}
+                className="text-vista-light/70 hover:text-vista-light border-vista-secondary/30"
+              >
+                Сбросить
+              </Button>
+            )}
+          </div>
+
+          {/* Список упражнений */}
+          <div className="space-y-4">
+            {isLoading ? (
+              <div className="text-center py-8 text-vista-light/70">Загрузка...</div>
+            ) : filteredExercises.length === 0 ? (
+              <div className="text-center py-8 text-vista-light/70">
+                {hasActiveFilters ? "Нет упражнений, соответствующих выбранным фильтрам" : "Нет доступных упражнений"}
+              </div>
+            ) : (
+              filteredExercises.map((exercise) => (
+                <Card key={exercise.id} className="bg-vista-dark/30 border-vista-secondary/20 hover:bg-vista-dark/40 transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex flex-col">
+                      <div className="flex justify-between">
+                        <h3 className="text-lg font-medium text-vista-light">{exercise.title}</h3>
+                        <span className="text-xs text-vista-light/70">
+                          {new Date(exercise.createdAt).toLocaleDateString('ru-RU')}
+                        </span>
+                      </div>
+                      
+                      <p className="text-vista-light/80 text-sm mt-1 line-clamp-2">
+                        {exercise.description}
+                      </p>
+                      
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        <Badge className="bg-vista-primary/20 text-vista-light">
+                          {exercise.category.name}
+                        </Badge>
+                        
+                        {exercise.tags.map((tag) => (
+                          <Badge key={tag.id} variant="outline" className="border-vista-secondary/30 text-vista-light/80">
+                            {tag.name}
+                          </Badge>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center mt-3">
+                        <span className="text-xs text-vista-light/60">
+                          Автор: {exercise.author.name}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Модальное окно создания упражнения */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="bg-vista-dark border-vista-secondary/30 text-vista-light max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-vista-light">Создать новое упражнение</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title" className="text-vista-light text-sm">Название упражнения</Label>
+              <Input
+                id="title"
+                name="title"
+                value={newExercise.title}
+                onChange={handleInputChange}
+                placeholder="Введите название"
+                className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-vista-light text-sm">Описание</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={newExercise.description}
+                onChange={handleInputChange}
+                placeholder="Введите описание"
+                className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light min-h-[80px]"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="category" className="text-vista-light text-sm">Категория</Label>
+              <Select
+                value={newExercise.categoryId}
+                onValueChange={(value) => setNewExercise(prev => ({ ...prev, categoryId: value }))}
+              >
+                <SelectTrigger className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light">
+                  <SelectValue placeholder="Выберите категорию" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsCreateDialogOpen(false)}
+              className="border-vista-secondary/30 text-vista-light"
+            >
+              Отмена
+            </Button>
+            <Button 
+              onClick={saveExercise}
+              className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
+              disabled={!newExercise.title || !newExercise.description || !newExercise.categoryId}
+            >
+              Сохранить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+} 

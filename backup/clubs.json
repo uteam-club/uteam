@@ -1,0 +1,26 @@
+[
+  {
+    "id": "62b36e34-1799-468b-afc0-c22cda600874",
+    "name": "Основной клуб",
+    "subdomain": "main",
+    "logoUrl": null,
+    "createdAt": "2025-05-08T14:04:15.937Z",
+    "updatedAt": "2025-05-08T14:04:15.937Z"
+  },
+  {
+    "id": "56233e76-6e97-4d50-977b-f6272fe0f5e9",
+    "name": "FDC VISTA",
+    "subdomain": "fdcvista",
+    "logoUrl": "/vista.png",
+    "createdAt": "2025-05-11T05:47:48.214Z",
+    "updatedAt": "2025-05-19T16:33:10.946Z"
+  },
+  {
+    "id": "24e0bd68-d7d8-4fc1-a16e-a97ea25231b1",
+    "name": "FC VAN",
+    "subdomain": "van",
+    "logoUrl": "/van.png",
+    "createdAt": "2025-05-19T16:14:35.994Z",
+    "updatedAt": "2025-05-19T16:33:11.068Z"
+  }
+]

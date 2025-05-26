@@ -1,0 +1,38 @@
+[
+  {
+    "id": "56414760-60ba-4396-965c-6adf5a28928f",
+    "email": "admin@example.com",
+    "name": "Администратор",
+    "password": "$2b$10$2pafkwpfhPSKP0g58n7BA.ITpKcAmXv/a/peVjWhT7Np1o2cVvmCy",
+    "role": "SUPER_ADMIN",
+    "emailVerified": null,
+    "imageUrl": null,
+    "createdAt": "2025-05-08T14:04:16.402Z",
+    "updatedAt": "2025-05-08T14:04:16.402Z",
+    "clubId": "62b36e34-1799-468b-afc0-c22cda600874"
+  },
+  {
+    "id": "e9635a8a-d4ec-4061-868f-64d94a9dfe33",
+    "email": "admin@fdcvista.uteam.club",
+    "name": "Администратор FDC VISTA",
+    "password": "$2b$10$9SSKG3DuDWpjNEDKNzpCl.DVhDRmkHDAuurivKLVjYshKqbJqRC9C",
+    "role": "SUPER_ADMIN",
+    "emailVerified": null,
+    "imageUrl": null,
+    "createdAt": "2025-05-11T05:47:48.509Z",
+    "updatedAt": "2025-05-11T05:47:48.509Z",
+    "clubId": "56233e76-6e97-4d50-977b-f6272fe0f5e9"
+  },
+  {
+    "id": "351678b8-6354-4ff5-af71-55839b07b3a5",
+    "email": "admin@van.uteam.club",
+    "name": "Администратор FC VAN",
+    "password": "$2b$10$ih4nXwpm2Qt.AQeBUCzANekBezGTKq/VJy4y02KvVEZqH4NwQ0H72",
+    "role": "SUPER_ADMIN",
+    "emailVerified": null,
+    "imageUrl": null,
+    "createdAt": "2025-05-19T16:26:10.866Z",
+    "updatedAt": "2025-05-19T16:26:10.866Z",
+    "clubId": "24e0bd68-d7d8-4fc1-a16e-a97ea25231b1"
+  }
+]

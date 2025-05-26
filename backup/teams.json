@@ -1,0 +1,83 @@
+[
+  {
+    "id": "de7dd3be-9731-483d-b74b-ce40a0cfcd16",
+    "name": "Junior Малыши",
+    "description": null,
+    "order": 9,
+    "createdAt": "2025-05-19T14:45:43.741Z",
+    "updatedAt": "2025-05-19T17:26:50.966Z",
+    "clubId": "56233e76-6e97-4d50-977b-f6272fe0f5e9"
+  },
+  {
+    "id": "566a461d-cd6f-4239-b660-bf1743204f56",
+    "name": "Junior 2018-2019",
+    "description": null,
+    "order": 8,
+    "createdAt": "2025-05-19T14:45:30.488Z",
+    "updatedAt": "2025-05-19T17:26:54.895Z",
+    "clubId": "56233e76-6e97-4d50-977b-f6272fe0f5e9"
+  },
+  {
+    "id": "1821cecf-0ecc-4604-810c-16594c1bfcae",
+    "name": "Junior 2017",
+    "description": null,
+    "order": 7,
+    "createdAt": "2025-05-19T14:45:18.503Z",
+    "updatedAt": "2025-05-19T17:26:56.345Z",
+    "clubId": "56233e76-6e97-4d50-977b-f6272fe0f5e9"
+  },
+  {
+    "id": "a74e705a-b0b8-49a0-a954-3767ba334cc7",
+    "name": "Junior 2016",
+    "description": null,
+    "order": 6,
+    "createdAt": "2025-05-19T14:44:58.942Z",
+    "updatedAt": "2025-05-19T17:26:57.544Z",
+    "clubId": "56233e76-6e97-4d50-977b-f6272fe0f5e9"
+  },
+  {
+    "id": "1489e1c1-c63f-4e18-8096-73f419e82d7c",
+    "name": "Junior 2015",
+    "description": null,
+    "order": 5,
+    "createdAt": "2025-05-19T14:44:50.954Z",
+    "updatedAt": "2025-05-19T17:26:58.706Z",
+    "clubId": "56233e76-6e97-4d50-977b-f6272fe0f5e9"
+  },
+  {
+    "id": "5366abb5-898a-4811-be05-c5980d7924b0",
+    "name": "Junior 2014",
+    "description": null,
+    "order": 4,
+    "createdAt": "2025-05-19T14:44:44.156Z",
+    "updatedAt": "2025-05-19T17:26:59.920Z",
+    "clubId": "56233e76-6e97-4d50-977b-f6272fe0f5e9"
+  },
+  {
+    "id": "a06ca85b-e13b-4014-a0f1-aafde5b2adb3",
+    "name": "Junior 2012(2)",
+    "description": null,
+    "order": 3,
+    "createdAt": "2025-05-19T14:44:34.262Z",
+    "updatedAt": "2025-05-19T17:27:02.966Z",
+    "clubId": "56233e76-6e97-4d50-977b-f6272fe0f5e9"
+  },
+  {
+    "id": "1d83ba7f-362b-487c-8277-1ab4c30c3793",
+    "name": "Vista",
+    "description": null,
+    "order": 1,
+    "createdAt": "2025-05-11T05:52:33.146Z",
+    "updatedAt": "2025-05-19T17:27:04.388Z",
+    "clubId": "56233e76-6e97-4d50-977b-f6272fe0f5e9"
+  },
+  {
+    "id": "b0860cdf-6e71-48d6-8c60-444dc6075001",
+    "name": "Junior 2012",
+    "description": null,
+    "order": 2,
+    "createdAt": "2025-05-11T06:00:00.825Z",
+    "updatedAt": "2025-05-19T17:27:04.531Z",
+    "clubId": "56233e76-6e97-4d50-977b-f6272fe0f5e9"
+  }
+]

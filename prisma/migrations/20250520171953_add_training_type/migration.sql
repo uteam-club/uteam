@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Training" ADD COLUMN     "type" TEXT NOT NULL DEFAULT 'TRAINING';
