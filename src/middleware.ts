@@ -6,26 +6,26 @@ export function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const host = request.headers.get('host') || '';
   
-  // Проверяем, является ли это запросом к основному домену
-  const isMain = isMainDomain(host);
-  
-  // Если это не основной домен, значит это поддомен клуба
-  if (!isMain) {
-    const subdomain = getSubdomain(host);
-    
-    // Если это API запрос или запрос к статическим файлам, пропускаем его
-    if (url.pathname.startsWith('/api') || url.pathname.startsWith('/_next') || url.pathname.startsWith('/static')) {
-      return NextResponse.next();
-    }
-    
-    // Перенаправляем на страницу клуба, если не находимся на ней
-    if (!url.pathname.startsWith('/club/')) {
-      const newUrl = new URL(`/club/${subdomain}`, url.origin);
-      return NextResponse.redirect(newUrl);
-    }
+  // Если основной домен — ничего не делаем
+  if (isMainDomain(host)) {
+    return NextResponse.next();
   }
   
-  // Для всех остальных запросов просто продолжаем обработку
+  // Если это поддомен клуба
+  const subdomain = getSubdomain(host);
+  
+  // Разрешаем /login и /dashboard без редиректа
+  if (url.pathname === '/login' || url.pathname.startsWith('/dashboard')) {
+    return NextResponse.next();
+  }
+  
+  // Если пользователь на главной странице поддомена — редиректим на /login
+  if (url.pathname === '/') {
+    const newUrl = new URL(`/login`, url.origin);
+    return NextResponse.redirect(newUrl);
+  }
+  
+  // Все остальные страницы доступны как есть
   return NextResponse.next();
 }
 
