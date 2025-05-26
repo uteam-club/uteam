@@ -19,7 +19,7 @@ export function middleware(request: NextRequest) {
     }
     
     // Перенаправляем на страницу клуба, если не находимся на ней
-    if (!url.pathname.startsWith(`/club/${subdomain}`)) {
+    if (!url.pathname.startsWith('/club/[subdomain]')) {
       const newUrl = new URL(`/club/${subdomain}`, url.origin);
       return NextResponse.redirect(newUrl);
     }
@@ -37,7 +37,7 @@ export const config = {
      * 1. /api routes
      * 2. /_next (Next.js internals)
      * 3. /fonts, /icons (static files)
-     * 4. /favicon.ico, /sitemap.xml (static files)
+     * 4. /favicon.ico, sitemap.xml (static files)
      */
     '/((?!api|_next|fonts|icons|favicon.ico|sitemap.xml).*)',
   ],
