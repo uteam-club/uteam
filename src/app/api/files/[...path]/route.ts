@@ -5,6 +5,10 @@ import { getFullFilePath } from '@/lib/storage';
 import fs from 'fs';
 import path from 'path';
 import { prisma } from '@/lib/prisma';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 // Разрешенные MIME типы и их соответствующие расширения файлов
 const ALLOWED_MIME_TYPES: Record<string, string> = {

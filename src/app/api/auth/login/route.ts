@@ -4,6 +4,10 @@ import { getClubBySubdomain } from '@/services/club.service';
 import { getSubdomain } from '@/lib/utils';
 import { sign } from 'jsonwebtoken';
 import { cookies } from 'next/headers';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 export async function POST(request: NextRequest) {
   try {

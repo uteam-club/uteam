@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { updateClub, deleteClub } from '@/services/club.service';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 // Получение клуба по ID
 export async function GET(

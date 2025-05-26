@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase, getServiceSupabase } from '@/lib/supabase';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 // Тестовый API-маршрут для проверки соединения с Supabase Storage
 export async function GET(request: NextRequest) {

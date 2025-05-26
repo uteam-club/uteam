@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClub, getAllClubs } from '@/services/club.service';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 // Получение всех клубов
 export async function GET(request: NextRequest) {

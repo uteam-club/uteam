@@ -1,8 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { createApiResponse, dynamicConfig } from '../../config';
+
+// Экспортируем конфигурацию для Next.js
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Время кеширования ответа в секундах
 const CACHE_MAX_AGE = 3; // Уменьшаем до 3 секунд для более быстрого обновления данных
@@ -28,7 +33,7 @@ export async function GET(request: NextRequest) {
     // Получаем сессию пользователя
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return createApiResponse({ error: 'Unauthorized' }, 401);
     }
 
     // Получаем ID клуба пользователя
@@ -185,47 +190,31 @@ export async function GET(request: NextRequest) {
     };
 
     // Определяем заголовки кеширования
-    let cacheHeaders = {};
-    
-    // Если передан параметр timestamp, отключаем кеширование
-    if (timestamp) {
-      cacheHeaders = {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'Surrogate-Control': 'no-store'
-      };
-    } else {
-      // Используем короткое время кеширования
-      cacheHeaders = {
-        'Cache-Control': `max-age=${CACHE_MAX_AGE}, s-maxage=${CACHE_MAX_AGE}, stale-while-revalidate`,
-      };
-    }
+    const cacheHeaders = timestamp ? {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Surrogate-Control': 'no-store'
+    } : {
+      'Cache-Control': `public, max-age=${CACHE_MAX_AGE}, must-revalidate`,
+      'CDN-Cache-Control': `public, max-age=${CACHE_MAX_AGE}`,
+    };
 
-    // Создаем ответ с заголовками
-    const nextResponse = NextResponse.json(response, { 
-      status: 200,
-      headers: {
-        ...cacheHeaders,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    return nextResponse;
+    return createApiResponse(response, 200, cacheHeaders);
   } catch (error: any) {
     console.error('Ошибка при фильтрации упражнений:', error);
     
     // Если ошибка валидации, возвращаем понятное сообщение
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ 
+      return createApiResponse({ 
         error: 'Некорректные параметры запроса',
         details: error.errors 
-      }, { status: 400 });
+      }, 400);
     }
     
-    return NextResponse.json({
+    return createApiResponse({
       error: 'Произошла ошибка при фильтрации упражнений',
       message: error.message
-    }, { status: 500 });
+    }, 500);
   }
 } 

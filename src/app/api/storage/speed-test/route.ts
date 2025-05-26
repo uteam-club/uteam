@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 const supabaseUrl = 'https://eprnjqohtlxxqufvofbr.supabase.co';
 

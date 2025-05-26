@@ -3,6 +3,10 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
 import { prisma } from '@/lib/prisma';
 import { saveExerciseFile, getFileUrl, deleteExerciseFiles } from '@/lib/supabase-storage';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 // Обработчик GET-запроса для получения упражнения по ID
 export async function GET(

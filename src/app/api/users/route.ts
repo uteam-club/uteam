@@ -3,6 +3,10 @@ import { createUser, getUsersByClubId } from '@/services/user.service';
 import { generateRandomPassword } from '@/lib/utils';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 const allowedRoles = ['ADMIN', 'SUPER_ADMIN'];
 

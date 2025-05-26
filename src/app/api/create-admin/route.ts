@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClub } from '@/services/club.service';
 import { createSuperAdmin } from '@/services/user.service';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 // Защищенный ключ для создания админа
 const ADMIN_CREATION_SECRET = process.env.ADMIN_CREATION_SECRET || 'development-super-secret-key';

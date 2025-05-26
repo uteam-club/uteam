@@ -3,6 +3,10 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
 import { saveExerciseFile, getFileUrl } from '@/lib/supabase-storage';
 import { prisma } from '@/lib/prisma';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 // Типы медиафайлов из схемы Prisma
 const MediaType = {

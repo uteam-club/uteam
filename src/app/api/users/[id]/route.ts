@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserById, updateUser, deleteUser } from '@/services/user.service';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 const allowedRoles = ['ADMIN', 'SUPER_ADMIN'];
 

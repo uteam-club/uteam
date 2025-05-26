@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { PrismaClient } from '@/generated/prisma';
 import { authOptions } from '@/lib/auth';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 const prisma = new PrismaClient();
 

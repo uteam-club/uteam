@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
 import { initializeStorage } from '@/lib/supabase-storage';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 // API-маршрут для инициализации хранилища файлов
 export async function POST(request: NextRequest) {

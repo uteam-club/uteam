@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 // Функция для получения токена
 async function getTokenFromRequest(request: NextRequest) {

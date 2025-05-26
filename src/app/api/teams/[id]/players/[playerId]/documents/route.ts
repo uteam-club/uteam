@@ -5,6 +5,10 @@ import * as jwt from 'jsonwebtoken';
 import { uploadPlayerFile, deletePlayerFile } from '@/lib/supabase';
 import { getServiceSupabase } from '@/lib/supabase';
 import { transliterate } from '@/lib/transliterate';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 // Функция для чтения токена из заголовка Authorization
 async function getTokenFromRequest(request: NextRequest) {

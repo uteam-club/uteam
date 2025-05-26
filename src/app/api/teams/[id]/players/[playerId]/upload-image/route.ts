@@ -3,6 +3,10 @@ import { getTokenFromRequest } from '@/lib/auth';
 import { getServiceSupabase } from '@/lib/supabase';
 import { prisma } from '@/lib/prisma';
 import { transliterate } from '@/lib/transliterate';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 // Импортируем URL из настроек
 const supabaseUrl = 'https://eprnjqohtlxxqufvofbr.supabase.co';

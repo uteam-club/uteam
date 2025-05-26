@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/auth-options';
 import { prisma } from '@/lib/prisma';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 // Проверка и получение ID из параметров
 interface RouteParams {

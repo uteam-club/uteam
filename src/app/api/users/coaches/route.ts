@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getToken } from 'next-auth/jwt';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 /**
  * Получение токена из запроса с проверкой

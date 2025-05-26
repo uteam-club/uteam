@@ -4,6 +4,10 @@ import { authOptions } from '../auth/[...nextauth]/auth-options';
 import { prisma } from '@/lib/prisma';
 import { initializeStorage } from '@/lib/storage';
 import { JwtPayload, verify } from 'jsonwebtoken';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 
 // Массив ролей, которым разрешено создавать категории
 const allowedRoles = ['SUPER_ADMIN', 'ADMIN', 'COACH'];
