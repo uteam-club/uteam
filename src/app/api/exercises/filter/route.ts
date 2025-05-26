@@ -197,7 +197,7 @@ export async function GET(request: NextRequest) {
       'Surrogate-Control': 'no-store'
     } : {
       'Cache-Control': `public, max-age=${CACHE_MAX_AGE}, must-revalidate`,
-      'CDN-Cache-Control': `public, max-age=${CACHE_MAX_AGE}`,
+      'CDN-Cache-Control': `public, max-age=${CACHE_MAX_AGE}`
     };
 
     return createApiResponse(response, 200, cacheHeaders);

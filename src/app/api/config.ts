@@ -1,5 +1,14 @@
 import { NextResponse } from 'next/server';
 
+// Типы для заголовков кеширования
+type CacheHeaders = {
+  'Cache-Control': string;
+  'CDN-Cache-Control'?: string;
+  'Pragma'?: string;
+  'Expires'?: string;
+  'Surrogate-Control'?: string;
+};
+
 // Базовые заголовки для всех API ответов
 export const baseHeaders = {
   'Access-Control-Allow-Credentials': 'true',
@@ -9,13 +18,21 @@ export const baseHeaders = {
 };
 
 // Функция для создания ответа с правильными заголовками
-export function createApiResponse(data: any, status: number = 200, headers: Record<string, string> = {}) {
+export function createApiResponse(data: any, status: number = 200, headers: CacheHeaders = {}) {
+  const finalHeaders: Record<string, string> = {
+    ...baseHeaders,
+  };
+
+  // Добавляем только определенные заголовки
+  Object.entries(headers).forEach(([key, value]) => {
+    if (value !== undefined) {
+      finalHeaders[key] = value;
+    }
+  });
+
   return NextResponse.json(data, {
     status,
-    headers: {
-      ...baseHeaders,
-      ...headers,
-    },
+    headers: finalHeaders,
   });
 }
 

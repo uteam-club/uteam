@@ -11,10 +11,6 @@ const nextConfig = {
     
     return config;
   },
-  // Добавляем конфигурацию для API роутов
-  experimental: {
-    serverActions: true,
-  },
   // Отключаем статическую оптимизацию для API роутов
   async headers() {
     return [
