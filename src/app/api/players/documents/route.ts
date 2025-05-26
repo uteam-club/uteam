@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       return createApiResponse({ error: 'Unauthorized' }, 401);
     }
 
-    const documents = await prisma.document.findMany({
+    const documents = await prisma.playerDocument.findMany({
       where: {
         player: {
           team: {
@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
         player: {
           select: {
             id: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             team: {
               select: {
                 id: true,
