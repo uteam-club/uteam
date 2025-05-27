@@ -281,7 +281,7 @@ export default function TrainingsPage() {
       setTrainings(prev => [...prev, {
         ...createdTraining,
         team: teams.find(t => t.id === createdTraining.teamId)?.name || '',
-        category: categories.find(c => c.id === createdTraining.categoryId)?.name || ''
+        category: categories.find((c: Category) => c.id === createdTraining.categoryId)?.name || ''
       }]);
       
       // Сбрасываем форму и закрываем диалог
@@ -480,7 +480,7 @@ export default function TrainingsPage() {
                 
                 {selectedCategory && (
                   <Badge variant="secondary" className="bg-vista-secondary/30 text-vista-light">
-                    Категория: {categories.find(c => c.id === selectedCategory)?.name}
+                    Категория: {categories.find((c: Category) => c.id === selectedCategory)?.name}
                     <button onClick={() => setSelectedCategory(null)} className="ml-1">
                       <X className="h-3 w-3" />
                     </button>

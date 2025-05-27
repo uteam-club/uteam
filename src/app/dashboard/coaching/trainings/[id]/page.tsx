@@ -83,6 +83,11 @@ interface Author {
   name: string;
 }
 
+interface Category {
+  id: string;
+  name: string;
+}
+
 export default function TrainingPage() {
   const params = useParams();
   const router = useRouter();
@@ -1098,9 +1103,9 @@ export default function TrainingPage() {
                   </SelectTrigger>
                   <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
                     <SelectItem value="all">Все категории</SelectItem>
-                    {categories.map(category => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
+                    {categories.map((c: Category) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1182,7 +1187,7 @@ export default function TrainingPage() {
                 
                 {selectedCategory && (
                   <Badge className="bg-vista-primary/20 text-vista-primary gap-1 shadow-sm">
-                    Категория: {categories.find(c => c.id === selectedCategory)?.name}
+                    Категория: {categories.find((c: Category) => c.id === selectedCategory)?.name}
                     <button onClick={() => setSelectedCategory(null)}>
                       <X className="h-3 w-3" />
                     </button>
