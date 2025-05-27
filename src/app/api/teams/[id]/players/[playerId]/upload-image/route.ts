@@ -84,8 +84,9 @@ export async function POST(
       // Настраиваем CORS
       const corsConfig = {
         origin: '*',
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['*'],
+        exposedHeaders: ['ETag'],
         maxAgeSeconds: 3600
       };
 
@@ -100,10 +101,15 @@ export async function POST(
         });
 
         if (!response.ok) {
-          throw new Error('Failed to configure CORS');
+          const errorText = await response.text();
+          console.error('Error configuring CORS:', errorText);
+          throw new Error(`Failed to configure CORS: ${errorText}`);
         }
+
+        console.log('CORS configured successfully');
       } catch (error) {
         console.error('Error configuring CORS:', error);
+        return NextResponse.json({ error: 'Failed to configure CORS' }, { status: 500 });
       }
     }
 
@@ -131,6 +137,14 @@ export async function POST(
     if (!publicUrlData || !publicUrlData.publicUrl) {
       console.error('Failed to get public URL');
       return NextResponse.json({ error: 'Failed to get public URL' }, { status: 500 });
+    }
+
+    // Проверяем валидность URL
+    try {
+      new URL(publicUrlData.publicUrl);
+    } catch (e) {
+      console.error('Invalid public URL generated:', publicUrlData.publicUrl);
+      return NextResponse.json({ error: 'Invalid public URL generated' }, { status: 500 });
     }
 
     const publicUrl = publicUrlData.publicUrl;

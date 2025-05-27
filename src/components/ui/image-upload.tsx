@@ -119,6 +119,8 @@ export default function ImageUpload({
 
     setIsLoading(true);
     setError(null);
+    setIsUploading(true);
+    setUploadProgress(0);
 
     try {
       const formData = new FormData();
@@ -135,7 +137,20 @@ export default function ImageUpload({
       }
 
       const data = await response.json();
+      
+      // Проверяем валидность URL
+      try {
+        new URL(data.imageUrl);
+      } catch (e) {
+        throw new Error('Получен некорректный URL изображения');
+      }
+
       onChange(data.imageUrl);
+      toast({
+        title: "Успех",
+        description: "Изображение успешно загружено",
+        variant: "default"
+      });
     } catch (error) {
       console.error('Ошибка загрузки изображения:', error);
       setError(error instanceof Error ? error.message : 'Ошибка загрузки изображения');
@@ -146,6 +161,8 @@ export default function ImageUpload({
       });
     } finally {
       setIsLoading(false);
+      setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -211,6 +228,9 @@ export default function ImageUpload({
                   onChange(defaultImageUrl);
                   (e.target as HTMLImageElement).src = defaultImageUrl;
                 }
+              }}
+              onLoad={() => {
+                setError(null);
               }}
             />
             <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-all flex items-center justify-center gap-2">

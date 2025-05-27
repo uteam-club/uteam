@@ -187,6 +187,14 @@ export async function getFileUrl(path: string): Promise<string | null> {
       return null;
     }
 
+    // Проверяем валидность URL
+    try {
+      new URL(data.publicUrl);
+    } catch (e) {
+      console.error('getFileUrl: Invalid URL generated:', data.publicUrl);
+      return null;
+    }
+
     // Логируем для отладки
     console.log('getFileUrl: Generated URL:', {
       path,
