@@ -19,32 +19,49 @@ export async function GET(request: NextRequest) {
       return createApiResponse({ error: 'Unauthorized' }, 401);
     }
 
-    const documents = await prisma.playerDocument.findMany({
+    // Получаем всех игроков с их документами
+    const players = await prisma.player.findMany({
       where: {
-        player: {
-          team: {
-            clubId: session.user.clubId
-          }
+        team: {
+          clubId: session.user.clubId
         }
       },
-      include: {
-        player: {
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        birthCertificateNumber: true,
+        imageUrl: true,
+        team: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
-            team: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
+            name: true
+          }
+        },
+        documents: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            publicUrl: true,
+            createdAt: true
           }
         }
       }
     });
 
-    return createApiResponse({ documents });
+    // Преобразуем документы в нужный формат
+    const formattedPlayers = players.map(player => ({
+      ...player,
+      documents: {
+        PASSPORT: player.documents.find(doc => doc.type === 'PASSPORT') || null,
+        BIRTH_CERTIFICATE: player.documents.find(doc => doc.type === 'BIRTH_CERTIFICATE') || null,
+        MEDICAL_INSURANCE: player.documents.find(doc => doc.type === 'MEDICAL_INSURANCE') || null,
+        OTHER: player.documents.find(doc => doc.type === 'OTHER') || null
+      }
+    }));
+
+    return createApiResponse(formattedPlayers);
   } catch (error) {
     console.error('Error fetching player documents:', error);
     return createApiResponse({ error: 'Internal Server Error' }, 500);
