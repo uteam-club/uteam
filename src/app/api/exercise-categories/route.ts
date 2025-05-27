@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../auth/[...nextauth]/auth-options';
 import { prisma } from '@/lib/prisma';
+import { getToken } from 'next-auth/jwt';
+import * as jwt from 'jsonwebtoken';
 import { initializeStorage } from '@/lib/storage';
-import { JwtPayload, verify } from 'jsonwebtoken';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-
 
 // Массив ролей, которым разрешено создавать категории
 const allowedRoles = ['SUPER_ADMIN', 'ADMIN', 'COACH'];
@@ -16,24 +13,36 @@ const allowedRoles = ['SUPER_ADMIN', 'ADMIN', 'COACH'];
 let storageInitialized = false;
 
 // Функция для получения и проверки токена из запроса
-async function getTokenFromRequest(request: NextRequest): Promise<JwtPayload | null> {
+async function getTokenFromRequest(request: NextRequest) {
+  // Сначала пробуем стандартный способ NextAuth
+  const token = await getToken({ req: request });
+  
+  if (token) return token;
+  
+  // Если нет токена NextAuth, проверяем заголовок Authorization
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  
   try {
-    // Получаем данные сессии пользователя через getServerSession
-    const session = await getServerSession(authOptions);
+    // Извлекаем токен из заголовка
+    const bearerToken = authHeader.replace('Bearer ', '');
     
-    // Проверяем аутентификацию
-    if (!session || !session.user) {
-      return null;
-    }
+    // Верифицируем JWT токен
+    const decodedToken = jwt.verify(
+      bearerToken, 
+      process.env.NEXTAUTH_SECRET || 'fdcvista-default-secret-key-change-me'
+    ) as any;
     
-    // Возвращаем данные пользователя из сессии
+    // Возвращаем декодированный токен в том же формате, что и NextAuth
     return {
-      id: session.user.id,
-      clubId: session.user.clubId,
-      role: session.user.role
-    } as JwtPayload;
+      id: decodedToken.id,
+      email: decodedToken.email,
+      name: decodedToken.name,
+      role: decodedToken.role,
+      clubId: decodedToken.clubId,
+    };
   } catch (error) {
-    console.error('Ошибка при получении токена:', error);
+    console.error('Ошибка при декодировании токена:', error);
     return null;
   }
 }
@@ -46,16 +55,16 @@ export async function GET(req: NextRequest) {
       storageInitialized = true;
     }
     
-    // Получаем данные сессии пользователя
-    const session = await getServerSession(authOptions);
+    // Получаем токен пользователя
+    const token = await getTokenFromRequest(req);
     
     // Проверяем аутентификацию
-    if (!session || !session.user) {
+    if (!token) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
     
-    // Получаем ID клуба из сессии пользователя
-    const clubId = session.user.clubId;
+    // Получаем ID клуба из токена
+    const clubId = token.clubId;
     
     // Формируем запрос на получение категорий упражнений для данного клуба
     const categories = await prisma.exerciseCategory.findMany({
