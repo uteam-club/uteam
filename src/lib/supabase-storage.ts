@@ -163,8 +163,22 @@ export const getFileUrl = async (relativePath: string) => {
       console.error('Не удалось получить публичный URL для файла:', relativePath);
       return '';
     }
+
+    // Заменяем домен Supabase на CDN URL
+    const cdnUrl = data.publicUrl.replace(
+      'eprnjqohtlxxqufvofbr.supabase.co',
+      'eprnjqohtlxxqufvofbr.supabase.co/storage/v1/object/public'
+    );
+
+    // Добавляем логирование для отладки
+    console.log('Generated public URL:', {
+      relativePath,
+      originalUrl: data.publicUrl,
+      cdnUrl,
+      bucket: STORAGE_BUCKET
+    });
     
-    return data.publicUrl;
+    return cdnUrl;
   } catch (error) {
     console.error('Ошибка при получении URL файла:', error);
     return '';
