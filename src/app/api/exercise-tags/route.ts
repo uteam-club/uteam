@@ -5,16 +5,22 @@ import { prisma } from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-
-
 // Обработчик GET-запроса для получения всех тегов упражнений
 export async function GET(req: NextRequest) {
   try {
+    console.log('Начало обработки GET-запроса для тегов упражнений');
+    
     // Получаем данные сессии пользователя
     const session = await getServerSession(authOptions);
+    console.log('Данные сессии:', { 
+      authenticated: !!session, 
+      userId: session?.user?.id,
+      clubId: session?.user?.clubId 
+    });
     
     // Проверяем аутентификацию
     if (!session || !session.user) {
+      console.error('Ошибка аутентификации: пользователь не авторизован');
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
     
@@ -34,6 +40,8 @@ export async function GET(req: NextRequest) {
       orderBy: { name: 'asc' },
     });
     
+    console.log(`Найдено ${exerciseTags.length} тегов для клуба ${clubId}`);
+    
     // Возвращаем список тегов
     return NextResponse.json(exerciseTags);
   } catch (error) {
@@ -48,15 +56,25 @@ export async function GET(req: NextRequest) {
 // Обработчик POST-запроса для создания нового тега упражнений
 export async function POST(req: NextRequest) {
   try {
+    console.log('Начало обработки POST-запроса для создания тега упражнений');
+    
     // Получаем данные сессии пользователя
     const session = await getServerSession(authOptions);
+    console.log('Данные сессии:', {
+      authenticated: !!session,
+      userId: session?.user?.id,
+      clubId: session?.user?.clubId,
+      role: session?.user?.role
+    });
     
     // Проверяем аутентификацию и права доступа
     if (!session || !session.user) {
+      console.error('Ошибка аутентификации: пользователь не авторизован');
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
     
     if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN') {
+      console.error('Ошибка прав доступа:', { userRole: session.user.role });
       return NextResponse.json({ error: 'Нет прав доступа' }, { status: 403 });
     }
     
@@ -65,9 +83,11 @@ export async function POST(req: NextRequest) {
     
     // Получаем данные из запроса
     const data = await req.json();
+    console.log('Полученные данные:', data);
     
     // Проверяем обязательные поля
     if (!data.name || !data.exerciseCategoryId) {
+      console.error('Ошибка валидации: отсутствуют обязательные поля');
       return NextResponse.json(
         { error: 'Название и категория обязательны' },
         { status: 400 }
@@ -75,7 +95,7 @@ export async function POST(req: NextRequest) {
     }
     
     // Проверяем существование категории и принадлежность к клубу
-    const category = await prisma.exerciseCategory.findUnique({
+    const category = await prisma.exerciseCategory.findFirst({
       where: {
         id: data.exerciseCategoryId,
         clubId,
@@ -83,6 +103,7 @@ export async function POST(req: NextRequest) {
     });
     
     if (!category) {
+      console.error('Ошибка: категория не найдена или принадлежит другому клубу');
       return NextResponse.json(
         { error: 'Категория не найдена' },
         { status: 400 }
@@ -97,6 +118,8 @@ export async function POST(req: NextRequest) {
         exerciseCategoryId: data.exerciseCategoryId,
       },
     });
+    
+    console.log('Тег успешно создан:', exerciseTag);
     
     // Возвращаем созданный тег
     return NextResponse.json(exerciseTag);

@@ -11,16 +11,16 @@ const nextConfig = {
     
     return config;
   },
-  // Отключаем статическую оптимизацию для API роутов
+  // Настройки для API роутов
   async headers() {
     return [
       {
         source: '/api/:path*',
         headers: [
           { key: 'Access-Control-Allow-Credentials', value: 'true' },
-          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Origin', value: 'https://*.uteam.club' },
           { key: 'Access-Control-Allow-Methods', value: 'GET,DELETE,PATCH,POST,PUT' },
-          { key: 'Access-Control-Allow-Headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version' },
+          { key: 'Access-Control-Allow-Headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization' },
         ],
       },
     ];
@@ -31,6 +31,10 @@ const nextConfig = {
       bodyParser: true,
       externalResolver: true,
     },
+  },
+  // Настройки для поддоменов
+  experimental: {
+    allowedRevalidateHeaderKeys: ['x-revalidate-secret'],
   },
   // Отключаем статическую оптимизацию для всех страниц
   staticPageGenerationTimeout: 0,

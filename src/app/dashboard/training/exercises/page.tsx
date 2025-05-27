@@ -36,7 +36,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { X, Filter, Check, ChevronDown, Search, Plus, Upload, Play } from 'lucide-react';
+import { X, Filter, Check, ChevronDown, Search, Plus, Upload, Play, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { 
   useExercises, 
@@ -126,16 +126,15 @@ export default function ExercisesPage() {
   // Используем хуки для получения данных
   const { users, isLoading: usersLoading } = useUsers();
   const { categories, isLoading: categoriesLoading } = useCategories();
-  const { tags, isLoading: tagsLoading } = useTags();
+  const { tags: tagsData, isLoading: isLoadingTags, isError: isTagsError, mutate: mutateTags } = useTags();
   const { exercises, pagination, isLoading: exercisesLoading, mutate: mutateExercises } = useFilteredExercises(filterParams);
   
   // Объединяем флаг загрузки и эффективно храним данные
-  const isLoading = usersLoading || categoriesLoading || tagsLoading || exercisesLoading;
+  const isLoading = usersLoading || categoriesLoading || isLoadingTags || exercisesLoading;
   
   // Мемоизированные данные для производительности
   const usersData = useMemo(() => users || [], [users]);
   const categoriesData = useMemo(() => categories || [], [categories]);
-  const tagsData = useMemo(() => tags || [], [tags]);
 
   // Состояние для просмотра упражнения
   const [previewExercise, setPreviewExercise] = useState<Exercise | null>(null);
@@ -605,6 +604,94 @@ export default function ExercisesPage() {
     setCurrentPage(1);
   }, []);
 
+  // Обработчик ошибок загрузки тегов
+  const handleTagsRefresh = async () => {
+    try {
+      await mutateTags();
+    } catch (error) {
+      console.error('Ошибка при обновлении тегов:', error);
+    }
+  };
+
+  // Компонент для отображения тегов с состояниями загрузки и ошибок
+  const TagsSection = () => {
+    if (isLoadingTags) {
+      return (
+        <div className="flex items-center justify-center p-4">
+          <Loader2 className="h-6 w-6 animate-spin text-vista-primary" />
+          <span className="ml-2">Загрузка тегов...</span>
+        </div>
+      );
+    }
+
+    if (isTagsError) {
+      return (
+        <div className="flex flex-col items-center justify-center p-4">
+          <div className="text-red-500 mb-2">Не удалось загрузить список тегов</div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleTagsRefresh}
+            className="flex items-center"
+          >
+            <Play className="h-4 w-4 mr-2" />
+            Повторить загрузку
+          </Button>
+        </div>
+      );
+    }
+
+    if (!tagsData || tagsData.length === 0) {
+      return (
+        <div className="text-center p-4 text-vista-secondary">
+          Нет доступных тегов
+        </div>
+      );
+    }
+
+    return (
+      <div className="max-h-[300px] overflow-y-auto space-y-1 pr-1">
+        {tagsData.map((tag: Tag) => {
+          const isSelected = selectedTags.includes(tag.id);
+          return (
+            <div 
+              key={tag.id}
+              className={`flex items-center space-x-2 rounded-md p-2 cursor-pointer hover:bg-vista-secondary/20 ${
+                isSelected ? 'bg-vista-primary/20' : ''
+              }`}
+              onClick={() => {
+                setSelectedTags(
+                  isSelected
+                    ? selectedTags.filter(id => id !== tag.id)
+                    : [...selectedTags, tag.id]
+                );
+              }}
+            >
+              <div 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedTags(
+                    isSelected
+                      ? selectedTags.filter(id => id !== tag.id)
+                      : [...selectedTags, tag.id]
+                  );
+                }}
+                className={`flex h-4 w-4 items-center justify-center rounded-sm border ${
+                  isSelected
+                    ? 'border-vista-primary bg-vista-primary' 
+                    : 'border-vista-secondary/50'
+                }`}
+              >
+                {isSelected && <Check className="h-3 w-3 text-vista-dark" />}
+              </div>
+              <span className="text-vista-light">{tag.name}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Card className="bg-vista-dark/30 border-vista-secondary/30">
@@ -700,43 +787,7 @@ export default function ExercisesPage() {
                       </div>
                       
                       <div className="max-h-[300px] overflow-y-auto space-y-1 pr-1">
-                        {tagsData.map((tag: Tag) => {
-                          const isSelected = selectedTags.includes(tag.id);
-                          return (
-                            <div 
-                              key={tag.id}
-                              className={`flex items-center space-x-2 rounded-md p-2 cursor-pointer hover:bg-vista-secondary/20 ${
-                                isSelected ? 'bg-vista-primary/20' : ''
-                              }`}
-                              onClick={() => {
-                                setSelectedTags(
-                                  isSelected
-                                    ? selectedTags.filter(id => id !== tag.id)
-                                    : [...selectedTags, tag.id]
-                                );
-                              }}
-                            >
-                              <div 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedTags(
-                                    isSelected
-                                      ? selectedTags.filter(id => id !== tag.id)
-                                      : [...selectedTags, tag.id]
-                                  );
-                                }}
-                                className={`flex h-4 w-4 items-center justify-center rounded-sm border ${
-                                  isSelected
-                                    ? 'border-vista-primary bg-vista-primary' 
-                                    : 'border-vista-secondary/50'
-                                }`}
-                              >
-                                {isSelected && <Check className="h-3 w-3 text-vista-dark" />}
-                              </div>
-                              <span className="text-vista-light">{tag.name}</span>
-                            </div>
-                          );
-                        })}
+                        <TagsSection />
                       </div>
                       
                       <div className="flex justify-end mt-2 pt-2 border-t border-vista-secondary/30">

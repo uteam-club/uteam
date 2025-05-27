@@ -159,19 +159,52 @@ export function useCategories() {
   };
 }
 
+// Функция для получения тегов с учетом поддомена
+async function fetchTags(url: string) {
+  try {
+    const response = await fetch(url, {
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Ошибка при загрузке тегов:', error);
+    throw error;
+  }
+}
+
 // Хук для получения тегов с кешированием и стабильным ключом
 export function useTags() {
-  const { data, error, isLoading } = useSWR(CACHE_KEYS.TAGS, fetcher, {
+  const { data, error, isLoading, mutate } = useSWR(CACHE_KEYS.TAGS, fetchTags, {
     revalidateOnFocus: false,
-    dedupingInterval: 300000, // 5 минут - данные тегов меняются редко
-    errorRetryCount: 2, 
+    dedupingInterval: 30000, // Уменьшаем до 30 секунд для более частого обновления
+    errorRetryCount: 3,
     suspense: false,
+    shouldRetryOnError: true,
+    onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
+      // Повторяем запрос только 3 раза
+      if (retryCount >= 3) return;
+      
+      // Повторяем через увеличивающийся интервал
+      setTimeout(() => revalidate({ retryCount }), Math.min(1000 * 2 ** retryCount, 30000));
+    }
   });
 
   return {
     tags: data || [],
     isLoading,
     isError: error,
+    mutate,
   };
 }
 
