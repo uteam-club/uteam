@@ -11,68 +11,76 @@ const STORAGE_BUCKET = 'club-media';
 // Это обеспечивает четкую структуру для всех файлов и упрощает удаление
 
 // Инициализация хранилища (создание бакета, если он не существует)
-export const initializeStorage = async () => {
+export async function initializeStorage() {
   try {
-    // Используем сервисную роль для административных операций
-    const adminSupabase = getServiceSupabase();
+    console.log('Инициализация хранилища...');
     
     // Проверяем существование бакета
-    const { data: buckets, error } = await adminSupabase.storage.listBuckets();
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
     
-    if (error) {
-      throw error;
+    if (listError) {
+      console.error('Ошибка при получении списка бакетов:', listError);
+      throw listError;
     }
     
-    // Если бакет не существует, создаем его
-    if (!buckets.find(bucket => bucket.name === STORAGE_BUCKET)) {
-      const { error: createError } = await adminSupabase.storage.createBucket(STORAGE_BUCKET, {
-        public: true, // Публичный бакет для доступа к файлам
+    const bucketExists = buckets.some(bucket => bucket.name === STORAGE_BUCKET);
+    
+    if (!bucketExists) {
+      console.log('Создание бакета...');
+      const { error: createError } = await supabase.storage.createBucket(STORAGE_BUCKET, {
+        public: true,
         fileSizeLimit: 10485760, // 10 МБ
-        allowedMimeTypes: ['image/*', 'video/*', 'application/pdf'],
+        allowedMimeTypes: ['image/*', 'video/*', 'application/pdf']
       });
       
       if (createError) {
+        console.error('Ошибка при создании бакета:', createError);
         throw createError;
       }
       
-      // Проверяем, что бакет создан и публичный
-      const { data: newBucket, error: checkError } = await adminSupabase.storage.getBucket(STORAGE_BUCKET);
-      
-      if (checkError || !newBucket?.public) {
-        console.error('Ошибка при проверке бакета:', checkError);
-        throw new Error('Не удалось создать публичный бакет');
-      }
-      
-      console.log(`Бакет '${STORAGE_BUCKET}' успешно создан в Supabase`);
+      console.log('Бакет успешно создан');
     } else {
-      // Обновляем существующий бакет, делаем его публичным и настраиваем CORS
-      const { error: updateError } = await adminSupabase.storage.updateBucket(STORAGE_BUCKET, {
+      console.log('Бакет уже существует, обновляем настройки...');
+      const { error: updateError } = await supabase.storage.updateBucket(STORAGE_BUCKET, {
         public: true,
-        allowedMimeTypes: ['image/*', 'video/*', 'application/pdf'],
         fileSizeLimit: 10485760,
+        allowedMimeTypes: ['image/*', 'video/*', 'application/pdf']
       });
       
       if (updateError) {
         console.error('Ошибка при обновлении бакета:', updateError);
-      } else {
-        // Проверяем, что бакет обновлен и публичный
-        const { data: updatedBucket, error: checkError } = await adminSupabase.storage.getBucket(STORAGE_BUCKET);
-        
-        if (checkError || !updatedBucket?.public) {
-          console.error('Ошибка при проверке бакета:', checkError);
-          throw new Error('Не удалось сделать бакет публичным');
-        }
-        
-        console.log(`Бакет '${STORAGE_BUCKET}' уже существует в Supabase и обновлен`);
+        throw updateError;
       }
+      
+      console.log('Настройки бакета обновлены');
     }
+    
+    // Настраиваем CORS для бакета через API
+    const corsConfig = {
+      origin: '*',
+      methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE'],
+      allowedHeaders: ['*'],
+      exposedHeaders: ['ETag'],
+      maxAgeSeconds: 3600
+    };
+    
+    // Используем сервисную роль для настройки CORS
+    const adminSupabase = getServiceSupabase();
+    const { error: corsError } = await adminSupabase.storage.from(STORAGE_BUCKET).setCors(corsConfig);
+    
+    if (corsError) {
+      console.error('Ошибка при настройке CORS:', corsError);
+      throw corsError;
+    }
+    
+    console.log('CORS настройки применены');
     
     return true;
   } catch (error) {
-    console.error('Ошибка при инициализации хранилища Supabase:', error);
-    return false;
+    console.error('Ошибка при инициализации хранилища:', error);
+    throw error;
   }
-};
+}
 
 // Формирование базового пути для файлов клуба
 export const getClubBasePath = (clubId: string) => {
@@ -150,40 +158,47 @@ export const saveExerciseFile = async (
 };
 
 // Получение URL для доступа к файлу
-export const getFileUrl = async (relativePath: string) => {
-  if (!relativePath) return '';
-  
+export async function getFileUrl(path: string): Promise<string> {
   try {
-    // Получаем публичный URL напрямую
-    const { data } = supabase.storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(relativePath);
-    
-    if (!data?.publicUrl) {
-      console.error('Не удалось получить публичный URL для файла:', relativePath);
+    if (!path) {
+      console.error('getFileUrl: Путь к файлу не указан');
       return '';
     }
 
-    // Заменяем домен Supabase на CDN URL
-    const cdnUrl = data.publicUrl.replace(
-      'eprnjqohtlxxqufvofbr.supabase.co',
-      'eprnjqohtlxxqufvofbr.supabase.co/storage/v1/object/public'
-    );
+    // Получаем публичный URL через Supabase API
+    const { data } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(path);
 
-    // Добавляем логирование для отладки
-    console.log('Generated public URL:', {
-      relativePath,
-      originalUrl: data.publicUrl,
-      cdnUrl,
+    if (!data?.publicUrl) {
+      console.error('getFileUrl: Публичный URL не получен');
+      return '';
+    }
+
+    // Проверяем доступность файла
+    try {
+      const response = await fetch(data.publicUrl, { method: 'HEAD' });
+      if (!response.ok) {
+        console.error('getFileUrl: Файл недоступен по URL:', data.publicUrl, 'Статус:', response.status);
+        return '';
+      }
+    } catch (fetchError) {
+      console.error('getFileUrl: Ошибка проверки доступности файла:', fetchError);
+      return '';
+    }
+
+    console.log('getFileUrl: Успешно получен URL для файла:', {
+      path,
+      publicUrl: data.publicUrl,
       bucket: STORAGE_BUCKET
     });
-    
-    return cdnUrl;
+
+    return data.publicUrl;
   } catch (error) {
-    console.error('Ошибка при получении URL файла:', error);
+    console.error('getFileUrl: Неожиданная ошибка:', error);
     return '';
   }
-};
+}
 
 // Удаление файла
 export const deleteFile = async (relativePath: string) => {
