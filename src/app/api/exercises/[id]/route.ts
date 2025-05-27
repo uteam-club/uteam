@@ -262,7 +262,7 @@ export async function PUT(
         const storagePath = await saveExerciseFile(clubId, params.id, file, file.name);
         
         // Получаем публичный URL для файла
-        const publicUrl = getFileUrl(storagePath);
+        const publicUrl = await getFileUrl(storagePath);
         
         // Создаем запись о медиафайле в базе данных
         const mediaItem = await prisma.mediaItem.create({
@@ -410,4 +410,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-} 
+}

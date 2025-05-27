@@ -398,7 +398,7 @@ export const migrateExerciseFiles = async (clubId: string, exerciseId: string) =
           where: { id: item.id },
           data: { 
             url: newFilePath,
-            publicUrl: getFileUrl(newFilePath)
+            publicUrl: await getFileUrl(newFilePath)
           }
         });
         

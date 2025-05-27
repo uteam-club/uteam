@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Получаем публичный URL для файла
-    const publicUrl = getFileUrl(storagePath);
+    const publicUrl = await getFileUrl(storagePath);
 
     // Записываем информацию о файле в БД
     const mediaItem = await prisma.mediaItem.create({
