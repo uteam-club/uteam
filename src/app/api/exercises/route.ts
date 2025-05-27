@@ -231,7 +231,7 @@ export async function POST(req: NextRequest) {
         const storagePath = await saveExerciseFile(session.user.clubId, exercise.id, file, file.name);
         
         // Получаем публичный URL
-        const publicUrl = getFileUrl(storagePath);
+        const publicUrl = await getFileUrl(storagePath);
         
         // Создаем запись о медиафайле в базе данных
         const mediaItem = await prisma.mediaItem.create({

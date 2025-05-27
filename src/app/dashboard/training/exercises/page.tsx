@@ -925,6 +925,16 @@ export default function ExercisesPage() {
                             decoding="async"
                             width={300} 
                             height={200}
+                            onError={(e) => {
+                              // При ошибке загрузки показываем заглушку
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              target.parentElement?.classList.add('flex', 'items-center', 'justify-center');
+                              const fallback = document.createElement('div');
+                              fallback.className = 'text-vista-light/30';
+                              fallback.innerHTML = '<svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
+                              target.parentElement?.appendChild(fallback);
+                            }}
                           />
                         ) : exercise.mediaItems[0].type === 'VIDEO' ? (
                           <div className="relative w-full h-full">

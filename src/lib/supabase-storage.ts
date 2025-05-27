@@ -28,17 +28,31 @@ export const initializeStorage = async () => {
       const { error: createError } = await adminSupabase.storage.createBucket(STORAGE_BUCKET, {
         public: true, // Публичный бакет для доступа к файлам
         fileSizeLimit: 10485760, // 10 МБ
+        allowedMimeTypes: ['image/*', 'video/*', 'application/pdf'],
       });
       
       if (createError) {
         throw createError;
       }
       
+      // Настраиваем CORS для бакета
+      const { error: corsError } = await adminSupabase.storage.updateBucket(STORAGE_BUCKET, {
+        public: true,
+        allowedMimeTypes: ['image/*', 'video/*', 'application/pdf'],
+        fileSizeLimit: 10485760,
+      });
+      
+      if (corsError) {
+        console.error('Ошибка при настройке CORS для бакета:', corsError);
+      }
+      
       console.log(`Бакет '${STORAGE_BUCKET}' успешно создан в Supabase`);
     } else {
-      // Обновляем существующий бакет, делаем его публичным
+      // Обновляем существующий бакет, делаем его публичным и настраиваем CORS
       const { error: updateError } = await adminSupabase.storage.updateBucket(STORAGE_BUCKET, {
-        public: true
+        public: true,
+        allowedMimeTypes: ['image/*', 'video/*', 'application/pdf'],
+        fileSizeLimit: 10485760,
       });
       
       if (updateError) {
@@ -131,14 +145,42 @@ export const saveExerciseFile = async (
 };
 
 // Получение URL для доступа к файлу
-export const getFileUrl = (relativePath: string) => {
+export const getFileUrl = async (relativePath: string) => {
   if (!relativePath) return '';
   
-  const { data } = supabase.storage
-    .from(STORAGE_BUCKET)
-    .getPublicUrl(relativePath);
-  
-  return data.publicUrl;
+  try {
+    // Проверяем существование файла
+    const { data: fileData, error: fileError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .list(path.dirname(relativePath), {
+        search: path.basename(relativePath)
+      });
+    
+    if (fileError) {
+      console.error('Ошибка при проверке файла:', fileError);
+      return '';
+    }
+    
+    if (!fileData || fileData.length === 0) {
+      console.error('Файл не найден:', relativePath);
+      return '';
+    }
+    
+    // Получаем публичный URL
+    const { data } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(relativePath);
+    
+    if (!data?.publicUrl) {
+      console.error('Не удалось получить публичный URL для файла:', relativePath);
+      return '';
+    }
+    
+    return data.publicUrl;
+  } catch (error) {
+    console.error('Ошибка при получении URL файла:', error);
+    return '';
+  }
 };
 
 // Удаление файла
