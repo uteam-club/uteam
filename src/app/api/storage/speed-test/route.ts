@@ -5,7 +5,7 @@ export const revalidate = 0;
 
 
 
-const supabaseUrl = 'https://eprnjqohtlxxqufvofbr.supabase.co';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
 /**
  * GET /api/storage/speed-test

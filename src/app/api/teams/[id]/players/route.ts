@@ -31,7 +31,10 @@ async function getTokenFromRequest(request: NextRequest) {
     // Верифицируем JWT токен
     const decodedToken = jwt.verify(
       bearerToken, 
-      process.env.NEXTAUTH_SECRET || 'fdcvista-default-secret-key-change-me'
+      (() => {
+        if (!process.env.NEXTAUTH_SECRET) throw new Error('NEXTAUTH_SECRET не задан в .env');
+        return process.env.NEXTAUTH_SECRET;
+      })()
     ) as any;
     
     console.log('Token found via Authorization header:', decodedToken.email);

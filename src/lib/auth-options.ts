@@ -65,5 +65,8 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: process.env.NEXTAUTH_SECRET || "fdcvista-default-secret-key-change-me",
+  secret: (() => {
+    if (!process.env.NEXTAUTH_SECRET) throw new Error('NEXTAUTH_SECRET не задан в .env');
+    return process.env.NEXTAUTH_SECRET;
+  })(),
 }; 

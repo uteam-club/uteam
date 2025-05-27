@@ -1,13 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Инициализация клиента Supabase с явными значениями (для отладки)
-const supabaseUrl = 'https://eprnjqohtlxxqufvofbr.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwcm5qcW9odGx4eHF1ZnZvZmJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODcxMzYsImV4cCI6MjA2MTc2MzEzNn0.K-rKPFwPc-DOMgzMOXVB09NUyWtETTmewndRQwQYPtg';
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwcm5qcW9odGx4eHF1ZnZvZmJyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjE4NzEzNiwiZXhwIjoyMDYxNzYzMTM2fQ.SEcVYg6fzswxAGShe0EDtY8ZPz0zO3as_39fjHIOZA4';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-// Проверка наличия ключей
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase URL or key is missing. Using hard-coded values.');
+  throw new Error('Supabase URL или анонимный ключ не заданы в .env');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -28,6 +26,9 @@ export const checkSupabaseConnection = async () => {
 
 // Создаем клиент Supabase с сервисной ролью (только для серверной стороны!)
 export const getServiceSupabase = (options?: { timeout?: number, retryCount?: number }) => {
+  if (!supabaseServiceKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY не задан в .env');
+  }
   console.log('Использую сервисный ключ для Supabase', {
     url: supabaseUrl,
     keyLength: supabaseServiceKey.length,

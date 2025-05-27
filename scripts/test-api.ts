@@ -30,7 +30,10 @@ async function getAuthToken(email: string, password: string): Promise<string | n
         role: user.role,
         clubId: user.clubId,
       },
-      process.env.NEXTAUTH_SECRET || 'fdcvista-default-secret-key-change-me',
+      (() => {
+        if (!process.env.NEXTAUTH_SECRET) throw new Error('NEXTAUTH_SECRET не задан в .env');
+        return process.env.NEXTAUTH_SECRET;
+      })(),
       { expiresIn: '1h' }
     );
     
