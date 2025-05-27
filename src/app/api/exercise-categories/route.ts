@@ -2,17 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
-import { initializeStorage } from '@/lib/storage';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 // Массив ролей, которым разрешено создавать категории
 const allowedRoles = ['SUPER_ADMIN', 'ADMIN', 'COACH'];
 
-// Инициализируем хранилище при первом запросе (только один раз)
-let storageInitialized = false;
-
-// Функция для получения и проверки токена из запроса
+// Функция для чтения токена из заголовка Authorization
 async function getTokenFromRequest(request: NextRequest) {
   // Сначала пробуем стандартный способ NextAuth
   const token = await getToken({ req: request });
@@ -49,22 +45,26 @@ async function getTokenFromRequest(request: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    // Инициализация хранилища при первом запросе к API
-    if (!storageInitialized) {
-      initializeStorage();
-      storageInitialized = true;
-    }
+    console.log('Начало обработки GET-запроса для категорий упражнений');
     
     // Получаем токен пользователя
     const token = await getTokenFromRequest(req);
     
     // Проверяем аутентификацию
     if (!token) {
+      console.error('Ошибка аутентификации: пользователь не авторизован');
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
     
     // Получаем ID клуба из токена
     const clubId = token.clubId;
+    
+    if (!clubId) {
+      console.error('Ошибка: отсутствует ID клуба в токене');
+      return NextResponse.json({ error: 'Отсутствует ID клуба' }, { status: 400 });
+    }
+    
+    console.log('Получение категорий для клуба:', clubId);
     
     // Формируем запрос на получение категорий упражнений для данного клуба
     const categories = await prisma.exerciseCategory.findMany({
@@ -76,12 +76,17 @@ export async function GET(req: NextRequest) {
       },
     });
     
+    console.log(`Найдено ${categories.length} категорий`);
+    
     // Возвращаем список категорий упражнений
     return NextResponse.json(categories);
   } catch (error) {
     console.error('Ошибка при получении категорий упражнений:', error);
     return NextResponse.json(
-      { error: 'Ошибка при получении категорий упражнений' },
+      { 
+        error: 'Ошибка при получении категорий упражнений',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

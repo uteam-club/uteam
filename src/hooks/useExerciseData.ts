@@ -145,17 +145,47 @@ export function useUsers() {
 
 // Хук для получения категорий с кешированием и стабильным ключом
 export function useCategories() {
-  const { data, error, isLoading } = useSWR(CACHE_KEYS.CATEGORIES, fetcher, {
+  const { data, error, isLoading, mutate } = useSWR(CACHE_KEYS.CATEGORIES, async (url) => {
+    try {
+      const response = await fetch(url, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      console.error('Ошибка при загрузке категорий:', error);
+      throw error;
+    }
+  }, {
     revalidateOnFocus: false,
     dedupingInterval: 300000, // 5 минут - данные категорий меняются редко
     errorRetryCount: 2,
     suspense: false,
+    shouldRetryOnError: true,
+    onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
+      // Повторяем запрос только 2 раза
+      if (retryCount >= 2) return;
+      
+      // Повторяем через увеличивающийся интервал
+      setTimeout(() => revalidate({ retryCount }), Math.min(1000 * 2 ** retryCount, 30000));
+    }
   });
 
   return {
     categories: data || [],
     isLoading,
     isError: error,
+    mutate,
   };
 }
 
