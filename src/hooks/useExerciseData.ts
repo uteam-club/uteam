@@ -256,4 +256,60 @@ export function useClub(clubId: string) {
     isLoading,
     isError: error,
   };
+}
+
+// Хук для получения категорий тренировок
+export function useTrainingCategories() {
+  const { data, error, isLoading, mutate } = useSWR('/api/training-categories', async (url) => {
+    try {
+      console.log('Fetching training categories...');
+      const response = await fetch(url, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error response from server:', errorData);
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Training categories fetched successfully:', data.length);
+      return data;
+    } catch (error) {
+      console.error('Error fetching training categories:', error);
+      throw error;
+    }
+  }, {
+    revalidateOnFocus: false,
+    dedupingInterval: 300000, // 5 минут
+    errorRetryCount: 2,
+    suspense: false,
+    shouldRetryOnError: true,
+    onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
+      // Повторяем запрос только 2 раза
+      if (retryCount >= 2) {
+        console.log('Max retry count reached, stopping retries');
+        return;
+      }
+      
+      // Повторяем через увеличивающийся интервал
+      const delay = Math.min(1000 * 2 ** retryCount, 30000);
+      console.log(`Retrying in ${delay}ms (attempt ${retryCount + 1})`);
+      setTimeout(() => revalidate({ retryCount }), delay);
+    }
+  });
+
+  return {
+    categories: data || [],
+    isLoading,
+    isError: error,
+    error: error ? error.message : null,
+    mutate,
+  };
 } 

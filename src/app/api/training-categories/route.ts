@@ -9,37 +9,16 @@ export const revalidate = 0;
 
 const allowedRoles = ['ADMIN', 'SUPER_ADMIN'];
 
-// Функция для чтения токена из заголовка Authorization
+// Вспомогательная функция для получения токена из запроса
 async function getTokenFromRequest(request: NextRequest) {
-  // Сначала пробуем стандартный способ NextAuth
-  const token = await getToken({ req: request });
-  
-  if (token) return token;
-  
-  // Если нет токена NextAuth, проверяем заголовок Authorization
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  
   try {
-    // Извлекаем токен из заголовка
-    const bearerToken = authHeader.replace('Bearer ', '');
-    
-    // Верифицируем JWT токен
-    const decodedToken = jwt.verify(
-      bearerToken, 
-      process.env.NEXTAUTH_SECRET || 'fdcvista-default-secret-key-change-me'
-    ) as any;
-    
-    // Возвращаем декодированный токен в том же формате, что и NextAuth
-    return {
-      id: decodedToken.id,
-      email: decodedToken.email,
-      name: decodedToken.name,
-      role: decodedToken.role,
-      clubId: decodedToken.clubId,
-    };
+    const token = await getToken({ req: request });
+    if (!token) {
+      return null;
+    }
+    return token;
   } catch (error) {
-    console.error('Ошибка при декодировании токена:', error);
+    console.error('Error getting token:', error);
     return null;
   }
 }
@@ -50,16 +29,30 @@ async function getTokenFromRequest(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    console.log('Starting GET /api/training-categories request');
+    
     // Получаем токен пользователя
     const token = await getTokenFromRequest(request);
+    console.log('Token received:', token ? 'Yes' : 'No');
     
     if (!token) {
+      console.log('No token found, returning 401');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const clubId = token.clubId as string;
+    const clubId = token.clubId;
+    console.log('Club ID from token:', clubId);
+    
+    if (!clubId || typeof clubId !== 'string') {
+      console.log('Invalid club ID:', clubId);
+      return NextResponse.json({ 
+        error: 'Invalid club ID',
+        details: 'Club ID is missing or invalid in the token'
+      }, { status: 400 });
+    }
     
     // Получаем категории тренировок клуба
+    console.log('Fetching categories for club:', clubId);
     const categories = await prisma.trainingCategory.findMany({
       where: {
         clubId,
@@ -68,10 +61,12 @@ export async function GET(request: NextRequest) {
         name: 'asc',
       },
     });
+    console.log('Found categories:', categories.length);
     
     return NextResponse.json(categories);
   } catch (error: any) {
-    console.error('Error fetching training categories:', error);
+    console.error('Error in GET /api/training-categories:', error);
+    console.error('Error stack:', error.stack);
     return NextResponse.json({ 
       error: 'Failed to fetch training categories',
       details: error.message || 'Unknown error'

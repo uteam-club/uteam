@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { X, Search, Plus, Calendar, Filter, CalendarIcon, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTrainingCategories } from '@/hooks/useExerciseData';
 
 // Типы данных
 interface Team {
@@ -52,6 +53,7 @@ interface Training {
 export default function TrainingsPage() {
   const { data: session } = useSession();
   const router = useRouter();
+  const { categories, isLoading: isLoadingCategories, isError: categoriesError } = useTrainingCategories();
   
   // Состояние для фильтров
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,11 +65,9 @@ export default function TrainingsPage() {
   
   // Состояние для данных
   const [teams, setTeams] = useState<Team[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingTeams, setIsLoadingTeams] = useState(true);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   
   // Состояние для модального окна создания тренировки
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -119,40 +119,6 @@ export default function TrainingsPage() {
     
     if (session?.user) {
       fetchTeams();
-    }
-  }, [session]);
-  
-  // Получение данных категорий тренировок
-  useEffect(() => {
-    async function fetchCategories() {
-      try {
-        setIsLoadingCategories(true);
-        const response = await fetch('/api/training-categories', {
-          credentials: 'include',
-          headers: {
-            'Accept': 'application/json',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Не удалось загрузить категории тренировок');
-        }
-        
-        const data = await response.json();
-        setCategories(data);
-      } catch (error) {
-        console.error('Ошибка при загрузке категорий тренировок:', error);
-        // Можно добавить toast или другое уведомление для пользователя
-      } finally {
-        setIsLoadingCategories(false);
-      }
-    }
-    
-    if (session?.user) {
-      fetchCategories();
     }
   }, [session]);
   
@@ -411,9 +377,9 @@ export default function TrainingsPage() {
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
                   <SelectItem value="all">Все категории</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
+                  {categories.map((c: Category) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -713,7 +679,7 @@ export default function TrainingsPage() {
                   <SelectValue placeholder={isLoadingCategories ? "Загрузка..." : "Выберите категорию"} />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
-                  {categories.map(category => (
+                  {categories.map((category: Category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
                     </SelectItem>
