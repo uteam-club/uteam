@@ -3,224 +3,157 @@ import { getTokenFromRequest } from '@/lib/auth';
 import { getServiceSupabase } from '@/lib/supabase';
 import { prisma } from '@/lib/prisma';
 import { transliterate } from '@/lib/transliterate';
-import { getFileUrl } from '@/lib/supabase-storage';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
-// Кеш для статуса бакета
-let bucketInitialized = false;
-
-/**
- * POST /api/teams/[id]/players/[playerId]/upload-image
- * Загрузка изображения игрока через FormData - оптимизированная версия
- */
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string, playerId: string } }
 ) {
   try {
-    // Проверка авторизации
+    // Проверяем авторизацию
     const token = await getTokenFromRequest(request);
-    
     if (!token) {
-      console.log('POST /player/upload-image: Unauthorized access attempt');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    // Получаем параметры запроса
-    const clubId = token.clubId as string;
-    const teamId = params.id;
-    const playerId = params.playerId;
-    
-    console.log(`POST /player/upload-image: Загрузка изображения для игрока ${playerId} из команды ${teamId} клуба ${clubId}`);
-    
+
+    const { id: teamId, playerId } = params;
+
     // Проверяем существование игрока
     const player = await prisma.player.findUnique({
-      where: {
-        id: playerId,
-        teamId: teamId,
-        team: {
-          clubId: clubId
-        }
-      }
+      where: { id: playerId },
+      select: { id: true, teamId: true }
     });
-    
+
     if (!player) {
-      console.log(`POST /player/upload-image: Игрок ${playerId} не найден`);
-      return NextResponse.json({ error: 'Игрок не найден' }, { status: 404 });
+      return NextResponse.json({ error: 'Player not found' }, { status: 404 });
     }
-    
-    // Получаем данные формы
+
+    if (player.teamId !== teamId) {
+      return NextResponse.json({ error: 'Player does not belong to this team' }, { status: 403 });
+    }
+
+    // Получаем файл из FormData
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    
+
     if (!file) {
-      return NextResponse.json({ error: 'Файл не найден в запросе' }, { status: 400 });
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
-    
-    console.log(`POST /player/upload-image: Получен файл ${file.name} (${file.size} байт)`);
-    
-    // Проверяем размер файла
-    if (file.size > 5 * 1024 * 1024) { // 5MB
-      return NextResponse.json({ error: 'Файл слишком большой (макс. 5MB)' }, { status: 400 });
+
+    // Проверяем размер файла (максимум 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: 'File size exceeds 5MB limit' }, { status: 400 });
     }
-    
+
     // Проверяем тип файла
     if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Неверный формат файла. Разрешены только изображения' }, { status: 400 });
+      return NextResponse.json({ error: 'File must be an image' }, { status: 400 });
     }
-    
-    // Создаем путь к файлу
-    const timestamp = Date.now();
-    const originalName = file.name.replace(/\s+/g, '_');
-    const safeFileName = `${timestamp}-${transliterate(originalName)}`;
-    const filePath = `clubs/${clubId}/players/${playerId}/avatars/${safeFileName}`;
-    
-    console.log(`POST /player/upload-image: Загрузка файла по пути ${filePath}`);
-    
-    // Получаем сервисный клиент Supabase
-    const supabase = getServiceSupabase();
-    
-    // Инициализируем бакет при необходимости
-    if (!bucketInitialized) {
-      const initialized = await initializeBucketAsync(supabase);
-      if (initialized) {
-        bucketInitialized = true;
-      }
-    }
-    
-    try {
-      // Загружаем файл
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('club-media')
-        .upload(filePath, file, {
-          upsert: true,
-          contentType: file.type,
-          cacheControl: '3600'
-        });
-      
-      if (uploadError) {
-        console.error('Ошибка загрузки файла в Supabase:', uploadError);
-        return NextResponse.json({ error: uploadError.message }, { status: 500 });
-      }
-      
-      console.log('Файл успешно загружен:', uploadData);
-      
-      // Получаем публичный URL
-      const { data: publicUrlData } = supabase.storage
-        .from('club-media')
-        .getPublicUrl(filePath);
-      
-      if (!publicUrlData || !publicUrlData.publicUrl) {
-        console.error('Не удалось получить публичный URL для файла');
-        return NextResponse.json({ error: 'Ошибка получения публичного URL' }, { status: 500 });
-      }
-      
-      const publicUrl = publicUrlData.publicUrl;
-      
-      // Обновляем imageUrl игрока в базе данных
-      await prisma.player.update({
-        where: { id: playerId },
-        data: { imageUrl: publicUrl }
-      });
-      
-      console.log(`Обновлен imageUrl игрока ${playerId}:`, publicUrl);
-      
-      return NextResponse.json({
-        success: true,
-        imageUrl: publicUrl,
-        path: filePath,
-        fileName: file.name
-      });
-    } catch (uploadError) {
-      console.error('Ошибка при загрузке файла:', uploadError);
-      return NextResponse.json(
-        { error: uploadError instanceof Error ? uploadError.message : 'Ошибка загрузки файла' }, 
-        { status: 500 }
-      );
-    }
-  } catch (error) {
-    console.error('Ошибка при загрузке изображения игрока:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Непредвиденная ошибка при загрузке файла' }, 
-      { status: 500 }
-    );
-  }
-}
 
-/**
- * Асинхронная инициализация бакета без блокировки основного потока
- */
-async function initializeBucketAsync(supabase: any): Promise<boolean> {
-  try {
-    // Проверяем существование бакета
-    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-    
-    if (bucketsError) {
-      console.error('Ошибка при получении списка бакетов:', bucketsError);
-      return false;
-    }
-    
-    // Проверяем, существует ли бакет club-media
-    const bucketExists = buckets.some((bucket: any) => bucket.name === 'club-media');
-    
+    // Создаем безопасное имя файла
+    const timestamp = Date.now();
+    const safeFileName = `${timestamp}-${transliterate(file.name)}`;
+    const filePath = `clubs/${player.teamId}/players/${playerId}/avatars/${safeFileName}`;
+
+    console.log('Uploading file:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      filePath
+    });
+
+    // Инициализируем бакет если нужно
+    const supabase = getServiceSupabase();
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const bucketExists = buckets?.some(b => b.name === 'club-media');
+
     if (!bucketExists) {
-      // Создаем бакет
+      console.log('Creating club-media bucket...');
       const { error: createError } = await supabase.storage.createBucket('club-media', {
         public: true,
         fileSizeLimit: 52428800, // 50MB
         allowedMimeTypes: ['image/*', 'video/*', 'application/pdf']
       });
-      
+
       if (createError) {
-        console.error('Ошибка при создании бакета:', createError);
-        return false;
+        console.error('Error creating bucket:', createError);
+        return NextResponse.json({ error: 'Failed to initialize storage' }, { status: 500 });
       }
-      
-      console.log('Бакет club-media успешно создан');
-    } else {
-      // Обновляем настройки бакета
+
+      // Настраиваем CORS
+      const corsConfig = {
+        origin: '*',
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['*'],
+        maxAgeSeconds: 3600
+      };
+
       try {
-        await supabase.storage.updateBucket('club-media', {
-          public: true,
-          fileSizeLimit: 52428800,
-          allowedMimeTypes: ['image/*', 'video/*', 'application/pdf']
+        const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/bucket/club-media/cors`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
+          },
+          body: JSON.stringify(corsConfig)
         });
-        console.log('Настройки бакета обновлены');
-      } catch (updateError) {
-        console.warn('Ошибка при обновлении настроек бакета:', updateError);
+
+        if (!response.ok) {
+          throw new Error('Failed to configure CORS');
+        }
+      } catch (error) {
+        console.error('Error configuring CORS:', error);
       }
     }
 
-    // Настраиваем CORS для бакета
-    const corsConfig = {
-      origin: '*',
-      methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE'],
-      allowedHeaders: ['*'],
-      exposedHeaders: ['ETag'],
-      maxAgeSeconds: 3600
-    };
+    // Загружаем файл
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('club-media')
+      .upload(filePath, file, {
+        upsert: true,
+        contentType: file.type,
+        cacheControl: '3600'
+      });
 
-    // Используем REST API для настройки CORS
-    const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/bucket/club-media/cors`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
-      },
-      body: JSON.stringify(corsConfig)
+    if (uploadError) {
+      console.error('Error uploading file:', uploadError);
+      return NextResponse.json({ error: uploadError.message }, { status: 500 });
+    }
+
+    console.log('File uploaded successfully:', uploadData);
+
+    // Получаем публичный URL
+    const { data: publicUrlData } = supabase.storage
+      .from('club-media')
+      .getPublicUrl(filePath);
+
+    if (!publicUrlData || !publicUrlData.publicUrl) {
+      console.error('Failed to get public URL');
+      return NextResponse.json({ error: 'Failed to get public URL' }, { status: 500 });
+    }
+
+    const publicUrl = publicUrlData.publicUrl;
+
+    // Обновляем imageUrl игрока в базе данных
+    await prisma.player.update({
+      where: { id: playerId },
+      data: { imageUrl: publicUrl }
     });
 
-    if (!response.ok) {
-      console.error('Ошибка настройки CORS:', await response.text());
-      return false;
-    }
+    console.log(`Updated player ${playerId} imageUrl:`, publicUrl);
 
-    console.log('CORS настройки успешно применены');
-    return true;
+    return NextResponse.json({
+      success: true,
+      imageUrl: publicUrl,
+      path: filePath,
+      fileName: file.name
+    });
   } catch (error) {
-    console.error('Ошибка при инициализации бакета:', error);
-    return false;
+    console.error('Error in upload handler:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    );
   }
 } 

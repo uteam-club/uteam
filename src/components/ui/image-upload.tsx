@@ -108,118 +108,44 @@ export default function ImageUpload({
   };
 
   const handleUpload = async (file: File) => {
-    try {
-      setIsUploading(true);
-      setError(null);
-      setUploadProgress(0);
-      
-      if (!file) {
-        throw new Error('Файл не выбран');
-      }
-      
-      // Сразу показываем локальный предпросмотр
-      handleLocalPreview(file);
-      
-      // Проверяем наличие всех необходимых параметров
-      if (!clubId) {
-        console.error('ImageUpload: clubId не указан');
-        throw new Error('ID клуба не указан');
-      }
-      
-      if (!teamId) {
-        console.error('ImageUpload: teamId не указан');
-        throw new Error('ID команды не указан');
-      }
-      
-      if (!entityId) {
-        console.error('ImageUpload: entityId не указан');
-        throw new Error('ID сущности не указан');
-      }
-      
-      // Сжимаем изображение перед загрузкой если оно больше 500KB
-      let fileToUpload = file;
-      if (file.size > 500 * 1024) {
-        try {
-          fileToUpload = await compressImage(file);
-          console.log(`ImageUpload: Файл сжат с ${file.size} до ${fileToUpload.size} байт`);
-        } catch (compressError) {
-          console.warn('Ошибка сжатия изображения, загружаем оригинал:', compressError);
-        }
-      }
-      
-      console.log(`ImageUpload: Загрузка файла ${fileToUpload.name} (${fileToUpload.size} байт) для ${entityType} с ID ${entityId}`);
-      
-      // Устанавливаем таймаут для загрузки
-      const uploadTimeout = setTimeout(() => {
-        if (isUploading) {
-          // В случае таймаута, оставляем локальный предпросмотр
-          console.log('Превышено время ожидания загрузки на сервер');
-          setIsUploading(false);
-          
-          toast({
-            title: 'Предупреждение',
-            description: 'Загрузка на сервер займет больше времени. Предпросмотр уже доступен.',
-            variant: 'default',
-          });
-        }
-      }, 3000);
-      
-      if (entityType === 'player' && clubId && teamId && entityId) {
-        // Используем FormData и загрузку через API
-        const formData = new FormData();
-        formData.append('file', fileToUpload);
-        
-        // Используем fetch с AbortController для таймаута
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 секунд максимум
-        
-        try {
-          const uploadResponse = await fetch(`/api/teams/${teamId}/players/${entityId}/upload-image`, {
-            method: 'POST',
-            body: formData,
-            signal: controller.signal
-          });
-          
-          clearTimeout(timeoutId);
-          
-          if (!uploadResponse.ok) {
-            const errorData = await uploadResponse.json();
-            throw new Error(errorData.error || 'Ошибка загрузки файла');
-          }
-          
-          const responseData = await uploadResponse.json();
-          
-          if (responseData && responseData.imageUrl) {
-            onChange(responseData.imageUrl);
-            
-            toast({
-              title: 'Файл загружен',
-              description: 'Изображение профиля успешно обновлено',
-              variant: 'default'
-            });
-          } else {
-            throw new Error('Не получен URL изображения в ответе');
-          }
-        } catch (uploadError) {
-          console.error('Ошибка при загрузке через API:', uploadError);
-          throw uploadError;
-        } finally {
-          clearTimeout(uploadTimeout);
-        }
-      }
-    } catch (error) {
-      console.error('ImageUpload: Ошибка при загрузке изображения:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-      setError(errorMessage);
-      
+    if (!clubId || !teamId || !entityId || !entityType) {
       toast({
-        title: 'Ошибка загрузки',
-        description: errorMessage,
-        variant: 'destructive'
+        title: "Ошибка",
+        description: "Не указаны необходимые параметры для загрузки",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`/api/teams/${teamId}/players/${entityId}/upload-image`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Ошибка загрузки изображения');
+      }
+
+      const data = await response.json();
+      onChange(data.imageUrl);
+    } catch (error) {
+      console.error('Ошибка загрузки изображения:', error);
+      setError(error instanceof Error ? error.message : 'Ошибка загрузки изображения');
+      toast({
+        title: "Ошибка",
+        description: error instanceof Error ? error.message : 'Ошибка загрузки изображения',
+        variant: "destructive"
       });
     } finally {
-      setIsUploading(false);
-      setUploadProgress(100);
+      setIsLoading(false);
     }
   };
 

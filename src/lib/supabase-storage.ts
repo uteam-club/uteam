@@ -177,8 +177,8 @@ export async function getFileUrl(path: string): Promise<string | null> {
   }
 
   try {
-    // Используем метод getPublicUrl из Supabase клиента
-    const { data } = supabase.storage
+    // Используем сервисный клиент для получения URL
+    const { data } = getServiceSupabase().storage
       .from(STORAGE_BUCKET)
       .getPublicUrl(path);
     
