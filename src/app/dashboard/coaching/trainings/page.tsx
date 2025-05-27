@@ -93,12 +93,25 @@ export default function TrainingsPage() {
     async function fetchTeams() {
       try {
         setIsLoadingTeams(true);
-        const response = await fetch('/api/teams');
-        if (!response.ok) throw new Error('Не удалось загрузить команды');
+        const response = await fetch('/api/teams', {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Не удалось загрузить команды');
+        }
+        
         const data = await response.json();
         setTeams(data);
       } catch (error) {
         console.error('Ошибка при загрузке команд:', error);
+        // Можно добавить toast или другое уведомление для пользователя
       } finally {
         setIsLoadingTeams(false);
       }
@@ -114,12 +127,25 @@ export default function TrainingsPage() {
     async function fetchCategories() {
       try {
         setIsLoadingCategories(true);
-        const response = await fetch('/api/training-categories');
-        if (!response.ok) throw new Error('Не удалось загрузить категории тренировок');
+        const response = await fetch('/api/training-categories', {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Не удалось загрузить категории тренировок');
+        }
+        
         const data = await response.json();
         setCategories(data);
       } catch (error) {
         console.error('Ошибка при загрузке категорий тренировок:', error);
+        // Можно добавить toast или другое уведомление для пользователя
       } finally {
         setIsLoadingCategories(false);
       }

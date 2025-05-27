@@ -21,11 +21,32 @@ export async function GET(req: NextRequest) {
     // Проверяем аутентификацию
     if (!session || !session.user) {
       console.error('Ошибка аутентификации: пользователь не авторизован');
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
+      return new NextResponse(
+        JSON.stringify({ error: 'Не авторизован' }), 
+        { 
+          status: 401,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
     }
     
     // Получаем ID клуба из сессии пользователя
     const clubId = session.user.clubId;
+    
+    if (!clubId) {
+      console.error('Ошибка: отсутствует ID клуба в сессии пользователя');
+      return new NextResponse(
+        JSON.stringify({ error: 'Отсутствует ID клуба' }), 
+        { 
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+    }
     
     // Получаем список тегов упражнений для клуба пользователя
     const exerciseTags = await prisma.exerciseTag.findMany({
@@ -43,12 +64,28 @@ export async function GET(req: NextRequest) {
     console.log(`Найдено ${exerciseTags.length} тегов для клуба ${clubId}`);
     
     // Возвращаем список тегов
-    return NextResponse.json(exerciseTags);
+    return new NextResponse(
+      JSON.stringify(exerciseTags),
+      { 
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
+    );
   } catch (error) {
     console.error('Ошибка при получении тегов упражнений:', error);
-    return NextResponse.json(
-      { error: 'Ошибка при получении тегов упражнений' },
-      { status: 500 }
+    return new NextResponse(
+      JSON.stringify({ 
+        error: 'Ошибка при получении тегов упражнений',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }),
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
     );
   }
 }

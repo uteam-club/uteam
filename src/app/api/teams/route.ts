@@ -54,11 +54,31 @@ export async function GET(request: NextRequest) {
     const token = await getTokenFromRequest(request);
     
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return new NextResponse(
+        JSON.stringify({ error: 'Unauthorized' }), 
+        { 
+          status: 401,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
     }
     
     const role = token.role as string;
     const clubId = token.clubId as string;
+    
+    if (!clubId) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Отсутствует ID клуба' }), 
+        { 
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+    }
     
     // Получаем команды клуба
     const teams = await prisma.team.findMany({
@@ -71,13 +91,29 @@ export async function GET(request: NextRequest) {
       ],
     });
     
-    return NextResponse.json(teams);
+    return new NextResponse(
+      JSON.stringify(teams),
+      { 
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
+    );
   } catch (error: any) {
     console.error('Error fetching teams:', error);
-    return NextResponse.json({ 
-      error: 'Failed to fetch teams',
-      details: error.message || 'Unknown error'
-    }, { status: 500 });
+    return new NextResponse(
+      JSON.stringify({ 
+        error: 'Failed to fetch teams',
+        details: error.message || 'Unknown error'
+      }), 
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
+    );
   }
 }
 
