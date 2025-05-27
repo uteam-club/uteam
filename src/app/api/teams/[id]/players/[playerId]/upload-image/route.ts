@@ -3,13 +3,10 @@ import { getTokenFromRequest } from '@/lib/auth';
 import { getServiceSupabase } from '@/lib/supabase';
 import { prisma } from '@/lib/prisma';
 import { transliterate } from '@/lib/transliterate';
+import { getFileUrl } from '@/lib/supabase-storage';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-
-
-// Импортируем URL из настроек
-const supabaseUrl = 'https://eprnjqohtlxxqufvofbr.supabase.co';
 
 // Кеш для статуса бакета
 let bucketInitialized = false;
@@ -82,33 +79,14 @@ export async function POST(
     
     console.log(`POST /player/upload-image: Загрузка файла по пути ${filePath}`);
     
-    // Получаем сервисный клиент Supabase с уменьшенным таймаутом
-    const supabase = getServiceSupabase({ 
-      timeout: 5000, 
-      retryCount: 1 
-    });
-    
-    // Проверяем и создаем бакет только если еще не инициализирован
-    try {
-      if (!bucketInitialized) {
-        // Инициализируем бакет синхронно перед загрузкой
-        bucketInitialized = await initializeBucketAsync(supabase);
-        console.log(`Бакет инициализирован: ${bucketInitialized}`);
-      }
-    } catch (error) {
-      // Ошибка инициализации бакета не должна блокировать загрузку
-      console.warn('Ошибка при проверке/создании бакета:', error);
-    }
-    
-    // Получаем данные файла в виде ArrayBuffer
-    const arrayBuffer = await file.arrayBuffer();
-    const fileBuffer = new Uint8Array(arrayBuffer);
+    // Получаем сервисный клиент Supabase
+    const supabase = getServiceSupabase();
     
     try {
-      // Загружаем файл синхронно
+      // Загружаем файл
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('club-media')
-        .upload(filePath, fileBuffer, {
+        .upload(filePath, file, {
           upsert: true,
           contentType: file.type,
         });
@@ -120,13 +98,12 @@ export async function POST(
       
       console.log('Файл успешно загружен:', uploadData);
       
-      // Формируем публичный URL
-      const publicUrl = `${supabaseUrl}/storage/v1/object/public/club-media/${filePath}`;
+      // Получаем публичный URL
+      const publicUrl = await getFileUrl(filePath);
       
-      // Проверяем доступность файла перед обновлением профиля
-      const fileCheckResponse = await fetch(publicUrl, { method: 'HEAD' });
-      if (!fileCheckResponse.ok) {
-        console.warn(`Файл загружен, но недоступен по URL ${publicUrl}`);
+      if (!publicUrl) {
+        console.error('Не удалось получить публичный URL для файла');
+        return NextResponse.json({ error: 'Ошибка получения публичного URL' }, { status: 500 });
       }
       
       // Обновляем imageUrl игрока в базе данных
@@ -140,7 +117,7 @@ export async function POST(
       return NextResponse.json({
         success: true,
         imageUrl: publicUrl,
-        path: uploadData.path,
+        path: filePath,
         fileName: file.name
       });
     } catch (uploadError) {
@@ -204,46 +181,5 @@ async function initializeBucketAsync(supabase: any): Promise<boolean> {
   } catch (error) {
     console.error('Ошибка при инициализации бакета:', error);
     return false;
-  }
-}
-
-/**
- * Асинхронная загрузка файла в хранилище Supabase
- */
-async function uploadFileAsync(
-  supabase: any, 
-  bucket: string, 
-  filePath: string, 
-  fileBuffer: Uint8Array, 
-  contentType: string,
-  playerId: string
-): Promise<any> {
-  try {
-    // Загружаем файл в хранилище
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, fileBuffer, {
-        upsert: true,
-        contentType,
-      });
-    
-    if (uploadError) {
-      console.error('Ошибка загрузки файла в Supabase:', uploadError);
-      throw uploadError;
-    }
-    
-    console.log('Файл успешно загружен:', uploadData);
-    
-    // Формируем публичный URL вручную
-    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${filePath}`;
-    
-    return {
-      success: true,
-      path: uploadData.path,
-      publicUrl: publicUrl
-    };
-  } catch (error) {
-    console.error('Ошибка при асинхронной загрузке файла:', error);
-    throw error;
   }
 } 

@@ -277,13 +277,12 @@ export default function ImageUpload({
               )}
               onError={(e) => {
                 console.error('Ошибка загрузки изображения:', value);
-                // Если изображение не загрузилось, показываем запасное
-                setError('Не удалось загрузить изображение по указанному URL');
+                setError('Не удалось загрузить изображение');
+                
                 // Используем аватар по умолчанию при ошибке загрузки
                 if (entityType === 'player') {
                   const defaultImageUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent('User')}&background=162a5b&color=fff&size=100`;
                   onChange(defaultImageUrl);
-                  // Обновляем src изображения напрямую для мгновенного отображения
                   (e.target as HTMLImageElement).src = defaultImageUrl;
                 }
               }}
