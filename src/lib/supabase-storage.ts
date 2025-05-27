@@ -35,15 +35,12 @@ export const initializeStorage = async () => {
         throw createError;
       }
       
-      // Настраиваем CORS для бакета
-      const { error: corsError } = await adminSupabase.storage.updateBucket(STORAGE_BUCKET, {
-        public: true,
-        allowedMimeTypes: ['image/*', 'video/*', 'application/pdf'],
-        fileSizeLimit: 10485760,
-      });
+      // Проверяем, что бакет создан и публичный
+      const { data: newBucket, error: checkError } = await adminSupabase.storage.getBucket(STORAGE_BUCKET);
       
-      if (corsError) {
-        console.error('Ошибка при настройке CORS для бакета:', corsError);
+      if (checkError || !newBucket?.public) {
+        console.error('Ошибка при проверке бакета:', checkError);
+        throw new Error('Не удалось создать публичный бакет');
       }
       
       console.log(`Бакет '${STORAGE_BUCKET}' успешно создан в Supabase`);
@@ -58,6 +55,14 @@ export const initializeStorage = async () => {
       if (updateError) {
         console.error('Ошибка при обновлении бакета:', updateError);
       } else {
+        // Проверяем, что бакет обновлен и публичный
+        const { data: updatedBucket, error: checkError } = await adminSupabase.storage.getBucket(STORAGE_BUCKET);
+        
+        if (checkError || !updatedBucket?.public) {
+          console.error('Ошибка при проверке бакета:', checkError);
+          throw new Error('Не удалось сделать бакет публичным');
+        }
+        
         console.log(`Бакет '${STORAGE_BUCKET}' уже существует в Supabase и обновлен`);
       }
     }
@@ -149,24 +154,7 @@ export const getFileUrl = async (relativePath: string) => {
   if (!relativePath) return '';
   
   try {
-    // Проверяем существование файла
-    const { data: fileData, error: fileError } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .list(path.dirname(relativePath), {
-        search: path.basename(relativePath)
-      });
-    
-    if (fileError) {
-      console.error('Ошибка при проверке файла:', fileError);
-      return '';
-    }
-    
-    if (!fileData || fileData.length === 0) {
-      console.error('Файл не найден:', relativePath);
-      return '';
-    }
-    
-    // Получаем публичный URL
+    // Получаем публичный URL напрямую
     const { data } = supabase.storage
       .from(STORAGE_BUCKET)
       .getPublicUrl(relativePath);
