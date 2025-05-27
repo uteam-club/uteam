@@ -82,6 +82,14 @@ export async function POST(
     // Получаем сервисный клиент Supabase
     const supabase = getServiceSupabase();
     
+    // Инициализируем бакет при необходимости
+    if (!bucketInitialized) {
+      const initialized = await initializeBucketAsync(supabase);
+      if (initialized) {
+        bucketInitialized = true;
+      }
+    }
+    
     try {
       // Загружаем файл
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -89,6 +97,7 @@ export async function POST(
         .upload(filePath, file, {
           upsert: true,
           contentType: file.type,
+          cacheControl: '3600'
         });
       
       if (uploadError) {
@@ -99,12 +108,16 @@ export async function POST(
       console.log('Файл успешно загружен:', uploadData);
       
       // Получаем публичный URL
-      const publicUrl = await getFileUrl(filePath);
+      const { data: publicUrlData } = supabase.storage
+        .from('club-media')
+        .getPublicUrl(filePath);
       
-      if (!publicUrl) {
+      if (!publicUrlData || !publicUrlData.publicUrl) {
         console.error('Не удалось получить публичный URL для файла');
         return NextResponse.json({ error: 'Ошибка получения публичного URL' }, { status: 500 });
       }
+      
+      const publicUrl = publicUrlData.publicUrl;
       
       // Обновляем imageUrl игрока в базе данных
       await prisma.player.update({
@@ -157,6 +170,7 @@ async function initializeBucketAsync(supabase: any): Promise<boolean> {
       const { error: createError } = await supabase.storage.createBucket('club-media', {
         public: true,
         fileSizeLimit: 52428800, // 50MB
+        allowedMimeTypes: ['image/*', 'video/*', 'application/pdf']
       });
       
       if (createError) {
@@ -169,14 +183,41 @@ async function initializeBucketAsync(supabase: any): Promise<boolean> {
       // Обновляем настройки бакета
       try {
         await supabase.storage.updateBucket('club-media', {
-          public: true
+          public: true,
+          fileSizeLimit: 52428800,
+          allowedMimeTypes: ['image/*', 'video/*', 'application/pdf']
         });
         console.log('Настройки бакета обновлены');
       } catch (updateError) {
         console.warn('Ошибка при обновлении настроек бакета:', updateError);
       }
     }
-    
+
+    // Настраиваем CORS для бакета
+    const corsConfig = {
+      origin: '*',
+      methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE'],
+      allowedHeaders: ['*'],
+      exposedHeaders: ['ETag'],
+      maxAgeSeconds: 3600
+    };
+
+    // Используем REST API для настройки CORS
+    const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/bucket/club-media/cors`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
+      },
+      body: JSON.stringify(corsConfig)
+    });
+
+    if (!response.ok) {
+      console.error('Ошибка настройки CORS:', await response.text());
+      return false;
+    }
+
+    console.log('CORS настройки успешно применены');
     return true;
   } catch (error) {
     console.error('Ошибка при инициализации бакета:', error);

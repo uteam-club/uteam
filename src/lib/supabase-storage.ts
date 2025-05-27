@@ -177,17 +177,24 @@ export async function getFileUrl(path: string): Promise<string | null> {
   }
 
   try {
-    // Формируем URL напрямую
-    const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
+    // Используем метод getPublicUrl из Supabase клиента
+    const { data } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(path);
     
+    if (!data || !data.publicUrl) {
+      console.error('getFileUrl: Failed to get public URL');
+      return null;
+    }
+
     // Логируем для отладки
     console.log('getFileUrl: Generated URL:', {
       path,
-      publicUrl,
+      publicUrl: data.publicUrl,
       bucket: STORAGE_BUCKET
     });
 
-    return publicUrl;
+    return data.publicUrl;
   } catch (error) {
     console.error('getFileUrl: Error getting public URL:', error);
     return null;
