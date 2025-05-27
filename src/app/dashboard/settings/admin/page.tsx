@@ -202,10 +202,18 @@ export default function AdminPage() {
   // Функция для получения списка категорий упражнений
   const fetchExerciseCategories = async () => {
     try {
-      const response = await fetch('/api/exercise-categories');
+      const response = await fetch('/api/exercise-categories', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
       if (!response.ok) {
-        throw new Error('Ошибка при загрузке категорий упражнений');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Ошибка при загрузке категорий упражнений');
       }
+
       const data = await response.json();
       setExerciseCategories(data);
     } catch (error: any) {

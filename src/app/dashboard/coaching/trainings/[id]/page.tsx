@@ -257,7 +257,12 @@ export default function TrainingPage() {
     setIsLoadingExercises(true);
     try {
       // Загрузка упражнений
-      const response = await fetch('/api/exercises');
+      const response = await fetch('/api/exercises', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (!response.ok) throw new Error('Не удалось загрузить упражнения');
       const data = await response.json();
       
@@ -276,14 +281,27 @@ export default function TrainingPage() {
       setFilteredExercises(data);
       
       // Загрузка категорий
-      const catResponse = await fetch('/api/exercise-categories');
+      const catResponse = await fetch('/api/exercise-categories', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (catResponse.ok) {
         const catData = await catResponse.json();
         setCategories(catData);
+      } else {
+        const errorData = await catResponse.json();
+        console.error('Ошибка при загрузке категорий:', errorData);
       }
       
       // Загрузка тегов
-      const tagResponse = await fetch('/api/exercise-tags');
+      const tagResponse = await fetch('/api/exercise-tags', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (tagResponse.ok) {
         const tagData = await tagResponse.json();
         setTags(tagData);

@@ -692,6 +692,28 @@ export default function ExercisesPage() {
     );
   };
 
+  // Получение списка категорий упражнений
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/exercise-categories', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Ошибка при загрузке категорий');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Ошибка при загрузке категорий:', error);
+      return [];
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card className="bg-vista-dark/30 border-vista-secondary/30">
