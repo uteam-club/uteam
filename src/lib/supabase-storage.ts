@@ -55,7 +55,7 @@ export async function initializeStorage() {
       console.log('Настройки бакета обновлены');
     }
     
-    // Настраиваем CORS для бакета через API
+    // Настраиваем CORS для бакета через REST API
     const corsConfig = {
       origin: '*',
       methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE'],
@@ -66,14 +66,45 @@ export async function initializeStorage() {
     
     // Используем сервисную роль для настройки CORS
     const adminSupabase = getServiceSupabase();
-    const { error: corsError } = await adminSupabase.storage.from(STORAGE_BUCKET).setCors(corsConfig);
+    const { error: corsError } = await adminSupabase.storage.updateBucket(STORAGE_BUCKET, {
+      public: true,
+      fileSizeLimit: 10485760,
+      allowedMimeTypes: ['image/*', 'video/*', 'application/pdf']
+    });
     
     if (corsError) {
-      console.error('Ошибка при настройке CORS:', corsError);
+      console.error('Ошибка при обновлении настроек бакета:', corsError);
       throw corsError;
     }
     
-    console.log('CORS настройки применены');
+    // Настраиваем CORS через REST API
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Отсутствуют необходимые переменные окружения для настройки CORS');
+      }
+      
+      const response = await fetch(`${supabaseUrl}/storage/v1/bucket/${STORAGE_BUCKET}/cors`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': supabaseKey
+        },
+        body: JSON.stringify(corsConfig)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      console.log('CORS настройки применены через REST API');
+    } catch (corsError) {
+      console.error('Ошибка при настройке CORS через REST API:', corsError);
+      // Не прерываем выполнение, так как это не критическая ошибка
+    }
     
     return true;
   } catch (error) {
