@@ -10,52 +10,57 @@ const STORAGE_BUCKET = 'club-media';
 // /clubs/{clubId}/exercises/{exerciseId}/{fileUuid}-{safeFilename}
 // Это обеспечивает четкую структуру для всех файлов и упрощает удаление
 
-// Инициализация хранилища (создание бакета, если он не существует)
+/**
+ * Инициализация хранилища (создание бакета, если он не существует)
+ */
 export async function initializeStorage() {
   try {
-    console.log('Инициализация хранилища...');
+    console.log('Initializing storage...');
+    
+    // Используем сервисный клиент для административных операций
+    const adminSupabase = getServiceSupabase();
     
     // Проверяем существование бакета
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    const { data: buckets, error: listError } = await adminSupabase.storage.listBuckets();
     
     if (listError) {
-      console.error('Ошибка при получении списка бакетов:', listError);
+      console.error('Error listing buckets:', listError);
       throw listError;
     }
     
     const bucketExists = buckets.some(bucket => bucket.name === STORAGE_BUCKET);
     
     if (!bucketExists) {
-      console.log('Создание бакета...');
-      const { error: createError } = await supabase.storage.createBucket(STORAGE_BUCKET, {
+      console.log('Creating bucket...');
+      const { error: createError } = await adminSupabase.storage.createBucket(STORAGE_BUCKET, {
         public: true,
         fileSizeLimit: 10485760, // 10 МБ
         allowedMimeTypes: ['image/*', 'video/*', 'application/pdf']
       });
       
       if (createError) {
-        console.error('Ошибка при создании бакета:', createError);
+        console.error('Error creating bucket:', createError);
         throw createError;
       }
       
-      console.log('Бакет успешно создан');
+      console.log('Bucket created successfully');
     } else {
-      console.log('Бакет уже существует, обновляем настройки...');
-      const { error: updateError } = await supabase.storage.updateBucket(STORAGE_BUCKET, {
+      console.log('Bucket exists, updating settings...');
+      const { error: updateError } = await adminSupabase.storage.updateBucket(STORAGE_BUCKET, {
         public: true,
         fileSizeLimit: 10485760,
         allowedMimeTypes: ['image/*', 'video/*', 'application/pdf']
       });
       
       if (updateError) {
-        console.error('Ошибка при обновлении бакета:', updateError);
+        console.error('Error updating bucket:', updateError);
         throw updateError;
       }
       
-      console.log('Настройки бакета обновлены');
+      console.log('Bucket settings updated');
     }
     
-    // Настраиваем CORS для бакета через REST API
+    // Настраиваем CORS для бакета
     const corsConfig = {
       origin: '*',
       methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE'],
@@ -64,51 +69,25 @@ export async function initializeStorage() {
       maxAgeSeconds: 3600
     };
     
-    // Используем сервисную роль для настройки CORS
-    const adminSupabase = getServiceSupabase();
-    const { error: corsError } = await adminSupabase.storage.updateBucket(STORAGE_BUCKET, {
-      public: true,
-      fileSizeLimit: 10485760,
-      allowedMimeTypes: ['image/*', 'video/*', 'application/pdf']
+    // Используем REST API для настройки CORS
+    const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/bucket/${STORAGE_BUCKET}/cors`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
+      },
+      body: JSON.stringify(corsConfig)
     });
     
-    if (corsError) {
-      console.error('Ошибка при обновлении настроек бакета:', corsError);
-      throw corsError;
+    if (!response.ok) {
+      console.error('Error setting CORS:', await response.text());
+      throw new Error('Failed to set CORS configuration');
     }
     
-    // Настраиваем CORS через REST API
-    try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      
-      if (!supabaseUrl || !supabaseKey) {
-        throw new Error('Отсутствуют необходимые переменные окружения для настройки CORS');
-      }
-      
-      const response = await fetch(`${supabaseUrl}/storage/v1/bucket/${STORAGE_BUCKET}/cors`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseKey}`,
-          'apikey': supabaseKey
-        },
-        body: JSON.stringify(corsConfig)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      console.log('CORS настройки применены через REST API');
-    } catch (corsError) {
-      console.error('Ошибка при настройке CORS через REST API:', corsError);
-      // Не прерываем выполнение, так как это не критическая ошибка
-    }
-    
+    console.log('Storage initialized successfully');
     return true;
   } catch (error) {
-    console.error('Ошибка при инициализации хранилища:', error);
+    console.error('Error initializing storage:', error);
     throw error;
   }
 }
@@ -188,37 +167,28 @@ export const saveExerciseFile = async (
   }
 };
 
-// Получение URL для доступа к файлу
-export async function getFileUrl(path: string): Promise<string> {
-  try {
-    if (!path) {
-      console.error('getFileUrl: Путь к файлу не указан');
-      return '';
-    }
+/**
+ * Получение публичного URL для файла
+ */
+export async function getFileUrl(path: string): Promise<string | null> {
+  if (!path) {
+    console.error('getFileUrl: path is required');
+    return null;
+  }
 
+  try {
     // Получаем публичный URL через Supabase API
     const { data } = supabase.storage
       .from(STORAGE_BUCKET)
       .getPublicUrl(path);
 
     if (!data?.publicUrl) {
-      console.error('getFileUrl: Публичный URL не получен');
-      return '';
+      console.error('getFileUrl: Failed to get public URL for path:', path);
+      return null;
     }
 
-    // Проверяем доступность файла
-    try {
-      const response = await fetch(data.publicUrl, { method: 'HEAD' });
-      if (!response.ok) {
-        console.error('getFileUrl: Файл недоступен по URL:', data.publicUrl, 'Статус:', response.status);
-        return '';
-      }
-    } catch (fetchError) {
-      console.error('getFileUrl: Ошибка проверки доступности файла:', fetchError);
-      return '';
-    }
-
-    console.log('getFileUrl: Успешно получен URL для файла:', {
+    // Логируем для отладки
+    console.log('getFileUrl: Generated URL:', {
       path,
       publicUrl: data.publicUrl,
       bucket: STORAGE_BUCKET
@@ -226,8 +196,8 @@ export async function getFileUrl(path: string): Promise<string> {
 
     return data.publicUrl;
   } catch (error) {
-    console.error('getFileUrl: Неожиданная ошибка:', error);
-    return '';
+    console.error('getFileUrl: Error getting public URL:', error);
+    return null;
   }
 }
 

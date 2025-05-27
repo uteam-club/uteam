@@ -168,10 +168,6 @@ export default function ImageUpload({
         // Используем FormData и загрузку через API
         const formData = new FormData();
         formData.append('file', fileToUpload);
-        formData.append('clubId', clubId);
-        formData.append('teamId', teamId);
-        formData.append('playerId', entityId);
-        formData.append('fileType', 'avatar');
         
         // Используем fetch с AbortController для таймаута
         const controller = new AbortController();
@@ -188,24 +184,25 @@ export default function ImageUpload({
           
           if (!uploadResponse.ok) {
             const errorData = await uploadResponse.json();
-            console.warn('API загрузка не удалась, но предпросмотр сохранен', errorData);
-            // Продолжаем с предпросмотром
-          } else {
-            const responseData = await uploadResponse.json();
+            throw new Error(errorData.error || 'Ошибка загрузки файла');
+          }
+          
+          const responseData = await uploadResponse.json();
+          
+          if (responseData && responseData.imageUrl) {
+            onChange(responseData.imageUrl);
             
-            if (responseData && responseData.imageUrl) {
-              onChange(responseData.imageUrl);
-              
-              toast({
-                title: 'Файл загружен',
-                description: 'Изображение профиля успешно обновлено',
-                variant: 'default'
-              });
-            }
+            toast({
+              title: 'Файл загружен',
+              description: 'Изображение профиля успешно обновлено',
+              variant: 'default'
+            });
+          } else {
+            throw new Error('Не получен URL изображения в ответе');
           }
         } catch (uploadError) {
-          console.warn('Ошибка при загрузке через API, используя предпросмотр:', uploadError);
-          // В случае ошибки, уже есть локальный предпросмотр
+          console.error('Ошибка при загрузке через API:', uploadError);
+          throw uploadError;
         } finally {
           clearTimeout(uploadTimeout);
         }
@@ -216,9 +213,9 @@ export default function ImageUpload({
       setError(errorMessage);
       
       toast({
-        title: 'Предупреждение',
-        description: 'Изображение доступно локально, но не сохранено на сервере.',
-        variant: 'default'
+        title: 'Ошибка загрузки',
+        description: errorMessage,
+        variant: 'destructive'
       });
     } finally {
       setIsUploading(false);
