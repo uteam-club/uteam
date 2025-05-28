@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,23 @@ export default function SurveyPage() {
   const [showPainAreas, setShowPainAreas] = useState(false);
   const [view, setView] = useState<'front' | 'back'>('front');
 
+  const [surveyIdState, setSurveyIdState] = useState<string | null>(surveyId || null);
+  const [surveyIdError, setSurveyIdError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!surveyId && tenantId) {
+      fetch(`/api/survey/active-id?tenantId=${encodeURIComponent(tenantId)}`)
+        .then(async (res) => {
+          if (!res.ok) throw new Error('Опросник не найден');
+          const data = await res.json();
+          setSurveyIdState(data.surveyId);
+        })
+        .catch(() => {
+          setSurveyIdError('Не удалось найти актуальный опросник для клуба. Обратитесь к тренеру.');
+        });
+    }
+  }, [surveyId, tenantId]);
+
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -60,14 +77,14 @@ export default function SurveyPage() {
   };
 
   const handleSubmit = async () => {
-    if (!player) return;
+    if (!player || !surveyIdState) return;
     try {
       const response = await fetch('/api/survey/response', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          surveyId,
+          surveyId: surveyIdState,
           tenantId,
           playerId: player.id,
         }),
@@ -89,11 +106,15 @@ export default function SurveyPage() {
     (!formData.hasPain || (
       (formData.painAreas.front.length > 0 || formData.painAreas.back.length > 0) &&
       [...formData.painAreas.front, ...formData.painAreas.back].every(area => area.painLevel > 0)
-    ));
+    )) &&
+    !!surveyIdState && !surveyIdError;
 
   return (
     <div className="w-full min-h-screen flex flex-col justify-center items-center bg-vista-dark px-2 py-6">
       <div className="w-full max-w-md sm:max-w-lg md:max-w-2xl mx-auto">
+        {surveyIdError && (
+          <div className="text-red-500 text-center text-base animate-fade-in mb-4">{surveyIdError}</div>
+        )}
         {!player ? (
           <Card className="p-6 shadow-lg bg-vista-dark/80 border-vista-secondary/40">
             <form onSubmit={handlePinSubmit} className="flex flex-col gap-6">
