@@ -263,6 +263,7 @@ exports.Prisma.PlayerScalarFieldEnum = {
   status: 'status',
   birthCertificateNumber: 'birthCertificateNumber',
   pinCode: 'pinCode',
+  telegramId: 'telegramId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   teamId: 'teamId'

@@ -1,19 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-
-
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
     const body = await req.json();
     const {
       sleepDuration,
@@ -24,14 +15,25 @@ export async function POST(req: Request) {
       painAreas,
       surveyId,
       tenantId,
+      playerId,
     } = body;
 
-    // Проверяем, что все необходимые поля присутствуют
-    if (!surveyId || !tenantId) {
+    if (!surveyId || !tenantId || !playerId) {
       return new NextResponse('Missing required fields', { status: 400 });
     }
 
-    // Создаем запись опросника с областями боли в одной транзакции
+    // Проверяем, что игрок существует
+    const player = await prisma.player.findUnique({ where: { id: playerId } });
+    if (!player) {
+      return new NextResponse('Player not found', { status: 404 });
+    }
+
+    // painAreas: { front: [{id, name, painLevel}], back: [{id, name, painLevel}] }
+    const allPainAreas = [
+      ...(painAreas?.front || []),
+      ...(painAreas?.back || []),
+    ];
+
     const response = await prisma.morningSurveyResponse.create({
       data: {
         sleepDuration,
@@ -39,22 +41,19 @@ export async function POST(req: Request) {
         recovery,
         mood,
         muscleCondition,
-        playerId: session.user.id,
+        playerId,
         surveyId,
         tenantId,
         completedAt: new Date(),
-        // Создаем связанные записи областей боли
         painAreas: {
-          create: painAreas.map((area: { areaName: string; painLevel: number }) => ({
-            areaName: area.areaName,
-            painLevel: area.painLevel,
+          create: allPainAreas.map((area: { id: string; name: string; painLevel?: number }) => ({
+            areaId: area.id,
+            areaName: area.name,
+            painLevel: area.painLevel || 1,
           }))
         }
       },
-      // Включаем области боли в ответ
-      include: {
-        painAreas: true
-      }
+      include: { painAreas: true }
     });
 
     return NextResponse.json(response);

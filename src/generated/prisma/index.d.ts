@@ -16852,6 +16852,7 @@ export namespace Prisma {
     status: string | null
     birthCertificateNumber: string | null
     pinCode: string | null
+    telegramId: string | null
     createdAt: Date | null
     updatedAt: Date | null
     teamId: string | null
@@ -16872,6 +16873,7 @@ export namespace Prisma {
     status: string | null
     birthCertificateNumber: string | null
     pinCode: string | null
+    telegramId: string | null
     createdAt: Date | null
     updatedAt: Date | null
     teamId: string | null
@@ -16892,6 +16894,7 @@ export namespace Prisma {
     status: number
     birthCertificateNumber: number
     pinCode: number
+    telegramId: number
     createdAt: number
     updatedAt: number
     teamId: number
@@ -16922,6 +16925,7 @@ export namespace Prisma {
     status?: true
     birthCertificateNumber?: true
     pinCode?: true
+    telegramId?: true
     createdAt?: true
     updatedAt?: true
     teamId?: true
@@ -16942,6 +16946,7 @@ export namespace Prisma {
     status?: true
     birthCertificateNumber?: true
     pinCode?: true
+    telegramId?: true
     createdAt?: true
     updatedAt?: true
     teamId?: true
@@ -16962,6 +16967,7 @@ export namespace Prisma {
     status?: true
     birthCertificateNumber?: true
     pinCode?: true
+    telegramId?: true
     createdAt?: true
     updatedAt?: true
     teamId?: true
@@ -17069,6 +17075,7 @@ export namespace Prisma {
     status: string | null
     birthCertificateNumber: string | null
     pinCode: string
+    telegramId: string | null
     createdAt: Date
     updatedAt: Date
     teamId: string
@@ -17108,6 +17115,7 @@ export namespace Prisma {
     status?: boolean
     birthCertificateNumber?: boolean
     pinCode?: boolean
+    telegramId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     teamId?: boolean
@@ -17134,6 +17142,7 @@ export namespace Prisma {
     status?: boolean
     birthCertificateNumber?: boolean
     pinCode?: boolean
+    telegramId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     teamId?: boolean
@@ -17155,6 +17164,7 @@ export namespace Prisma {
     status?: boolean
     birthCertificateNumber?: boolean
     pinCode?: boolean
+    telegramId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     teamId?: boolean
@@ -17176,12 +17186,13 @@ export namespace Prisma {
     status?: boolean
     birthCertificateNumber?: boolean
     pinCode?: boolean
+    telegramId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     teamId?: boolean
   }
 
-  export type PlayerOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "firstName" | "lastName" | "middleName" | "number" | "position" | "strongFoot" | "dateOfBirth" | "academyJoinDate" | "nationality" | "imageUrl" | "status" | "birthCertificateNumber" | "pinCode" | "createdAt" | "updatedAt" | "teamId", ExtArgs["result"]["player"]>
+  export type PlayerOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "firstName" | "lastName" | "middleName" | "number" | "position" | "strongFoot" | "dateOfBirth" | "academyJoinDate" | "nationality" | "imageUrl" | "status" | "birthCertificateNumber" | "pinCode" | "telegramId" | "createdAt" | "updatedAt" | "teamId", ExtArgs["result"]["player"]>
   export type PlayerInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     team?: boolean | TeamDefaultArgs<ExtArgs>
     attendances?: boolean | Player$attendancesArgs<ExtArgs>
@@ -17221,6 +17232,7 @@ export namespace Prisma {
       status: string | null
       birthCertificateNumber: string | null
       pinCode: string
+      telegramId: string | null
       createdAt: Date
       updatedAt: Date
       teamId: string
@@ -17666,6 +17678,7 @@ export namespace Prisma {
     readonly status: FieldRef<"Player", 'String'>
     readonly birthCertificateNumber: FieldRef<"Player", 'String'>
     readonly pinCode: FieldRef<"Player", 'String'>
+    readonly telegramId: FieldRef<"Player", 'String'>
     readonly createdAt: FieldRef<"Player", 'DateTime'>
     readonly updatedAt: FieldRef<"Player", 'DateTime'>
     readonly teamId: FieldRef<"Player", 'String'>
@@ -29724,6 +29737,7 @@ export namespace Prisma {
     status: 'status',
     birthCertificateNumber: 'birthCertificateNumber',
     pinCode: 'pinCode',
+    telegramId: 'telegramId',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
     teamId: 'teamId'
@@ -31048,6 +31062,7 @@ export namespace Prisma {
     status?: StringNullableFilter<"Player"> | string | null
     birthCertificateNumber?: StringNullableFilter<"Player"> | string | null
     pinCode?: StringFilter<"Player"> | string
+    telegramId?: StringNullableFilter<"Player"> | string | null
     createdAt?: DateTimeFilter<"Player"> | Date | string
     updatedAt?: DateTimeFilter<"Player"> | Date | string
     teamId?: StringFilter<"Player"> | string
@@ -31073,6 +31088,7 @@ export namespace Prisma {
     status?: SortOrderInput | SortOrder
     birthCertificateNumber?: SortOrderInput | SortOrder
     pinCode?: SortOrder
+    telegramId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     teamId?: SortOrder
@@ -31085,6 +31101,7 @@ export namespace Prisma {
 
   export type PlayerWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    telegramId?: string
     pinCode_teamId?: PlayerPinCodeTeamIdCompoundUniqueInput
     AND?: PlayerWhereInput | PlayerWhereInput[]
     OR?: PlayerWhereInput[]
@@ -31110,7 +31127,7 @@ export namespace Prisma {
     documents?: PlayerDocumentListRelationFilter
     matchStats?: PlayerMatchStatListRelationFilter
     morningSurveys?: MorningSurveyResponseListRelationFilter
-  }, "id" | "pinCode_teamId">
+  }, "id" | "telegramId" | "pinCode_teamId">
 
   export type PlayerOrderByWithAggregationInput = {
     id?: SortOrder
@@ -31127,6 +31144,7 @@ export namespace Prisma {
     status?: SortOrderInput | SortOrder
     birthCertificateNumber?: SortOrderInput | SortOrder
     pinCode?: SortOrder
+    telegramId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     teamId?: SortOrder
@@ -31155,6 +31173,7 @@ export namespace Prisma {
     status?: StringNullableWithAggregatesFilter<"Player"> | string | null
     birthCertificateNumber?: StringNullableWithAggregatesFilter<"Player"> | string | null
     pinCode?: StringWithAggregatesFilter<"Player"> | string
+    telegramId?: StringNullableWithAggregatesFilter<"Player"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Player"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Player"> | Date | string
     teamId?: StringWithAggregatesFilter<"Player"> | string
@@ -32948,6 +32967,7 @@ export namespace Prisma {
     status?: string | null
     birthCertificateNumber?: string | null
     pinCode: string
+    telegramId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     team: TeamCreateNestedOneWithoutPlayersInput
@@ -32972,6 +32992,7 @@ export namespace Prisma {
     status?: string | null
     birthCertificateNumber?: string | null
     pinCode: string
+    telegramId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     teamId: string
@@ -32996,6 +33017,7 @@ export namespace Prisma {
     status?: NullableStringFieldUpdateOperationsInput | string | null
     birthCertificateNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pinCode?: StringFieldUpdateOperationsInput | string
+    telegramId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     team?: TeamUpdateOneRequiredWithoutPlayersNestedInput
@@ -33020,6 +33042,7 @@ export namespace Prisma {
     status?: NullableStringFieldUpdateOperationsInput | string | null
     birthCertificateNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pinCode?: StringFieldUpdateOperationsInput | string
+    telegramId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     teamId?: StringFieldUpdateOperationsInput | string
@@ -33044,6 +33067,7 @@ export namespace Prisma {
     status?: string | null
     birthCertificateNumber?: string | null
     pinCode: string
+    telegramId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     teamId: string
@@ -33064,6 +33088,7 @@ export namespace Prisma {
     status?: NullableStringFieldUpdateOperationsInput | string | null
     birthCertificateNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pinCode?: StringFieldUpdateOperationsInput | string
+    telegramId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -33083,6 +33108,7 @@ export namespace Prisma {
     status?: NullableStringFieldUpdateOperationsInput | string | null
     birthCertificateNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pinCode?: StringFieldUpdateOperationsInput | string
+    telegramId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     teamId?: StringFieldUpdateOperationsInput | string
@@ -34813,6 +34839,7 @@ export namespace Prisma {
     status?: SortOrder
     birthCertificateNumber?: SortOrder
     pinCode?: SortOrder
+    telegramId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     teamId?: SortOrder
@@ -34837,6 +34864,7 @@ export namespace Prisma {
     status?: SortOrder
     birthCertificateNumber?: SortOrder
     pinCode?: SortOrder
+    telegramId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     teamId?: SortOrder
@@ -34857,6 +34885,7 @@ export namespace Prisma {
     status?: SortOrder
     birthCertificateNumber?: SortOrder
     pinCode?: SortOrder
+    telegramId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     teamId?: SortOrder
@@ -39285,6 +39314,7 @@ export namespace Prisma {
     status?: string | null
     birthCertificateNumber?: string | null
     pinCode: string
+    telegramId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     attendances?: PlayerAttendanceCreateNestedManyWithoutPlayerInput
@@ -39308,6 +39338,7 @@ export namespace Prisma {
     status?: string | null
     birthCertificateNumber?: string | null
     pinCode: string
+    telegramId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     attendances?: PlayerAttendanceUncheckedCreateNestedManyWithoutPlayerInput
@@ -39507,6 +39538,7 @@ export namespace Prisma {
     status?: StringNullableFilter<"Player"> | string | null
     birthCertificateNumber?: StringNullableFilter<"Player"> | string | null
     pinCode?: StringFilter<"Player"> | string
+    telegramId?: StringNullableFilter<"Player"> | string | null
     createdAt?: DateTimeFilter<"Player"> | Date | string
     updatedAt?: DateTimeFilter<"Player"> | Date | string
     teamId?: StringFilter<"Player"> | string
@@ -42021,6 +42053,7 @@ export namespace Prisma {
     status?: string | null
     birthCertificateNumber?: string | null
     pinCode: string
+    telegramId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     team: TeamCreateNestedOneWithoutPlayersInput
@@ -42044,6 +42077,7 @@ export namespace Prisma {
     status?: string | null
     birthCertificateNumber?: string | null
     pinCode: string
+    telegramId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     teamId: string
@@ -42124,6 +42158,7 @@ export namespace Prisma {
     status?: NullableStringFieldUpdateOperationsInput | string | null
     birthCertificateNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pinCode?: StringFieldUpdateOperationsInput | string
+    telegramId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     team?: TeamUpdateOneRequiredWithoutPlayersNestedInput
@@ -42147,6 +42182,7 @@ export namespace Prisma {
     status?: NullableStringFieldUpdateOperationsInput | string | null
     birthCertificateNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pinCode?: StringFieldUpdateOperationsInput | string
+    telegramId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     teamId?: StringFieldUpdateOperationsInput | string
@@ -42377,6 +42413,7 @@ export namespace Prisma {
     status?: string | null
     birthCertificateNumber?: string | null
     pinCode: string
+    telegramId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     team: TeamCreateNestedOneWithoutPlayersInput
@@ -42400,6 +42437,7 @@ export namespace Prisma {
     status?: string | null
     birthCertificateNumber?: string | null
     pinCode: string
+    telegramId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     teamId: string
@@ -42482,6 +42520,7 @@ export namespace Prisma {
     status?: NullableStringFieldUpdateOperationsInput | string | null
     birthCertificateNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pinCode?: StringFieldUpdateOperationsInput | string
+    telegramId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     team?: TeamUpdateOneRequiredWithoutPlayersNestedInput
@@ -42505,6 +42544,7 @@ export namespace Prisma {
     status?: NullableStringFieldUpdateOperationsInput | string | null
     birthCertificateNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pinCode?: StringFieldUpdateOperationsInput | string
+    telegramId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     teamId?: StringFieldUpdateOperationsInput | string
@@ -42836,6 +42876,7 @@ export namespace Prisma {
     status?: string | null
     birthCertificateNumber?: string | null
     pinCode: string
+    telegramId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     team: TeamCreateNestedOneWithoutPlayersInput
@@ -42859,6 +42900,7 @@ export namespace Prisma {
     status?: string | null
     birthCertificateNumber?: string | null
     pinCode: string
+    telegramId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     teamId: string
@@ -42951,6 +42993,7 @@ export namespace Prisma {
     status?: NullableStringFieldUpdateOperationsInput | string | null
     birthCertificateNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pinCode?: StringFieldUpdateOperationsInput | string
+    telegramId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     team?: TeamUpdateOneRequiredWithoutPlayersNestedInput
@@ -42974,6 +43017,7 @@ export namespace Prisma {
     status?: NullableStringFieldUpdateOperationsInput | string | null
     birthCertificateNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pinCode?: StringFieldUpdateOperationsInput | string
+    telegramId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     teamId?: StringFieldUpdateOperationsInput | string
@@ -43102,6 +43146,7 @@ export namespace Prisma {
     status?: string | null
     birthCertificateNumber?: string | null
     pinCode: string
+    telegramId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     team: TeamCreateNestedOneWithoutPlayersInput
@@ -43125,6 +43170,7 @@ export namespace Prisma {
     status?: string | null
     birthCertificateNumber?: string | null
     pinCode: string
+    telegramId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     teamId: string
@@ -43188,6 +43234,7 @@ export namespace Prisma {
     status?: NullableStringFieldUpdateOperationsInput | string | null
     birthCertificateNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pinCode?: StringFieldUpdateOperationsInput | string
+    telegramId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     team?: TeamUpdateOneRequiredWithoutPlayersNestedInput
@@ -43211,6 +43258,7 @@ export namespace Prisma {
     status?: NullableStringFieldUpdateOperationsInput | string | null
     birthCertificateNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pinCode?: StringFieldUpdateOperationsInput | string
+    telegramId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     teamId?: StringFieldUpdateOperationsInput | string
@@ -44218,6 +44266,7 @@ export namespace Prisma {
     status?: string | null
     birthCertificateNumber?: string | null
     pinCode: string
+    telegramId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -44365,6 +44414,7 @@ export namespace Prisma {
     status?: NullableStringFieldUpdateOperationsInput | string | null
     birthCertificateNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pinCode?: StringFieldUpdateOperationsInput | string
+    telegramId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     attendances?: PlayerAttendanceUpdateManyWithoutPlayerNestedInput
@@ -44388,6 +44438,7 @@ export namespace Prisma {
     status?: NullableStringFieldUpdateOperationsInput | string | null
     birthCertificateNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pinCode?: StringFieldUpdateOperationsInput | string
+    telegramId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     attendances?: PlayerAttendanceUncheckedUpdateManyWithoutPlayerNestedInput
@@ -44411,6 +44462,7 @@ export namespace Prisma {
     status?: NullableStringFieldUpdateOperationsInput | string | null
     birthCertificateNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pinCode?: StringFieldUpdateOperationsInput | string
+    telegramId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

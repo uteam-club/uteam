@@ -32,7 +32,7 @@ const prisma = new PrismaClient({
 // Настройки для создания
 const CLUB_NAME = 'FC VAN';
 const CLUB_SUBDOMAIN = 'van';
-const ADMIN_EMAIL = 'admin@fdcvista.uteam.club'; // Такой же email как у FDC VISTA
+const ADMIN_EMAIL = 'admin@van.uteam.club'; // Уникальный email для FC VAN
 const ADMIN_PASSWORD = 'FDCvista2024!'; // Такой же пароль как у FDC VISTA
 const ADMIN_NAME = 'Администратор FC VAN';
 

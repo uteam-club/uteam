@@ -239,6 +239,7 @@ model Player {
   status                 String?
   birthCertificateNumber String?
   pinCode                String
+  telegramId             String?   @unique
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
   teamId                 String
@@ -246,7 +247,7 @@ model Player {
   attendances            PlayerAttendance[]
   documents              PlayerDocument[]
   matchStats             PlayerMatchStat[]
-  morningSurveys          MorningSurveyResponse[]
+  morningSurveys         MorningSurveyResponse[]
 
   @@unique([pinCode, teamId])
   @@index([teamId])
