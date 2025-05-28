@@ -6,6 +6,7 @@ export const revalidate = 0;
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    console.log('[SURVEY_RESPONSE_POST] body:', body);
     const {
       sleepDuration,
       sleepQuality,
@@ -19,13 +20,13 @@ export async function POST(req: Request) {
     } = body;
 
     if (!surveyId || !tenantId || !playerId) {
-      return new NextResponse('Missing required fields', { status: 400 });
+      return NextResponse.json({ error: 'Missing required fields', body }, { status: 400 });
     }
 
     // Проверяем, что игрок существует
     const player = await prisma.player.findUnique({ where: { id: playerId } });
     if (!player) {
-      return new NextResponse('Player not found', { status: 404 });
+      return NextResponse.json({ error: 'Player not found', playerId }, { status: 404 });
     }
 
     // painAreas: { front: [{id, name, painLevel}], back: [{id, name, painLevel}] }
@@ -57,8 +58,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(response);
-  } catch (error) {
+  } catch (error: any) {
     console.error('[SURVEY_RESPONSE_POST]', error);
-    return new NextResponse('Internal error', { status: 500 });
+    return NextResponse.json({ error: error.message, stack: error.stack }, { status: 500 });
   }
 } 

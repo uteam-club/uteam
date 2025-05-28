@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useParams, useSearchParams } from 'next/navigation';
 import { BodyMap } from '@/components/surveys/BodyMap';
 import { RatingTiles } from '@/components/surveys/RatingTiles';
+import { Lock } from 'lucide-react';
 
 interface PainArea {
   id: string;
@@ -35,8 +36,8 @@ export default function SurveyPage() {
     muscleCondition: 3,
     hasPain: false,
     painAreas: {
-      front: [] as PainArea[],
-      back: [] as PainArea[]
+      front: [] as { id: string; name: string; painLevel: number }[],
+      back: [] as { id: string; name: string; painLevel: number }[]
     }
   });
   const [showPainAreas, setShowPainAreas] = useState(false);
@@ -82,9 +83,15 @@ export default function SurveyPage() {
     <div className="w-full min-h-screen flex flex-col justify-center items-center bg-vista-dark px-2 py-6">
       <div className="w-full max-w-md sm:max-w-lg md:max-w-2xl mx-auto">
         {!player ? (
-          <Card className="p-6 shadow-lg">
+          <Card className="p-6 shadow-lg bg-vista-dark/80 border-vista-secondary/40">
             <form onSubmit={handlePinSubmit} className="flex flex-col gap-6">
-              <Label htmlFor="pinCode" className="text-lg text-vista-light text-center">Введите ваш 6-значный пинкод</Label>
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-vista-accent/20 mb-2">
+                  <Lock className="w-7 h-7 text-vista-accent" />
+                </div>
+                <Label htmlFor="pinCode" className="text-xl text-vista-light text-center font-semibold">Введите ваш 6-значный пинкод</Label>
+                <span className="text-vista-light/60 text-sm text-center">Пинкод выдается тренером или в личном кабинете</span>
+              </div>
               <input
                 id="pinCode"
                 type="tel"
@@ -93,14 +100,14 @@ export default function SurveyPage() {
                 maxLength={6}
                 minLength={6}
                 autoFocus
-                className="text-center text-2xl p-4 rounded-lg border border-vista-secondary focus:outline-none focus:ring-2 focus:ring-vista-accent"
+                className={`text-center tracking-widest text-3xl p-4 rounded-xl border-2 border-vista-accent/40 bg-vista-dark/60 text-vista-accent font-mono outline-none focus:border-vista-accent focus:ring-2 focus:ring-vista-accent transition-all duration-200 ${pinError ? 'animate-shake border-red-500' : ''}`}
                 value={pinCode}
                 onChange={e => setPinCode(e.target.value.replace(/\D/g, ''))}
                 disabled={loading}
                 placeholder="000000"
               />
-              {pinError && <div className="text-red-500 text-center text-sm">{pinError}</div>}
-              <Button type="submit" className="w-full py-4 text-lg" disabled={loading || pinCode.length !== 6}>
+              {pinError && <div className="text-red-500 text-center text-base animate-fade-in">{pinError}</div>}
+              <Button type="submit" className="w-full py-4 text-lg bg-vista-accent hover:bg-vista-accent/90 transition" disabled={loading || pinCode.length !== 6}>
                 {loading ? 'Проверка...' : 'Войти'}
               </Button>
             </form>
@@ -208,11 +215,11 @@ export default function SurveyPage() {
                   <BodyMap
                     view={view}
                     selectedAreas={formData.painAreas[view].map(area => area.id)}
+                    painLevels={Object.fromEntries(formData.painAreas[view].map(area => [area.id, area.painLevel]))}
                     onAreaSelect={(area, muscleName, painLevel) => {
                       setFormData(prev => {
                         const currentAreas = prev.painAreas[view];
-                        
-                        // Если область уже выбрана, удаляем её
+                        // Если область уже выбрана — удаляем её
                         if (currentAreas.find(a => a.id === area)) {
                           return {
                             ...prev,
@@ -222,19 +229,16 @@ export default function SurveyPage() {
                             }
                           };
                         }
-                        
-                        // Если область не выбрана и есть уровень боли, добавляем её
+                        // Если область не выбрана и есть уровень боли — добавляем её
                         if (painLevel) {
                           return {
                             ...prev,
                             painAreas: {
                               ...prev.painAreas,
-                              [view]: [...currentAreas, { id: area, name: muscleName }]
+                              [view]: [...currentAreas, { id: area, name: muscleName, painLevel }]
                             }
                           };
                         }
-                        
-                        // В остальных случаях не меняем состояние
                         return prev;
                       });
                     }}
@@ -247,7 +251,7 @@ export default function SurveyPage() {
                         {formData.painAreas[view].map(area => (
                           <li key={area.id} className="flex items-center">
                             <span className="mr-2">•</span>
-                            <span>{area.name || 'Без названия'}</span>
+                            <span>{area.name || 'Без названия'} — <span className="font-bold text-vista-accent">{area.painLevel}/10</span></span>
                           </li>
                         ))}
                       </ul>

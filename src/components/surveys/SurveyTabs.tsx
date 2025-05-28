@@ -2,11 +2,41 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 function TelegramBotSettings() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [broadcastTime, setBroadcastTime] = useState('08:00');
+  const [savingTime, setSavingTime] = useState(false);
+
+  // Загрузка времени рассылки при монтировании
+  useEffect(() => {
+    fetch('/api/telegram/broadcast-time')
+      .then(res => res.json())
+      .then(data => {
+        if (data.time) setBroadcastTime(data.time);
+      });
+  }, []);
+
+  // Сохранение времени рассылки
+  const handleSaveTime = async () => {
+    setSavingTime(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/telegram/broadcast-time', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ time: broadcastTime }),
+      });
+      const data = await res.json();
+      setResult(data.message || 'Время рассылки сохранено!');
+    } catch (e) {
+      setResult('Ошибка при сохранении времени');
+    } finally {
+      setSavingTime(false);
+    }
+  };
 
   const handleTestBroadcast = async () => {
     setLoading(true);
@@ -30,6 +60,22 @@ function TelegramBotSettings() {
         <li>Игроки должны пройти привязку (нажать /start и ввести свой пинкод).</li>
         <li>После этого вы сможете делать рассылку опросников через Telegram.</li>
       </ol>
+      <div className="mb-4 flex items-center gap-4">
+        <label className="text-vista-light/90 font-semibold">Время рассылки:</label>
+        <input
+          type="time"
+          value={broadcastTime}
+          onChange={e => setBroadcastTime(e.target.value)}
+          className="px-2 py-1 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light"
+        />
+        <button
+          onClick={handleSaveTime}
+          disabled={savingTime}
+          className="px-4 py-1 rounded bg-vista-accent text-white font-semibold hover:bg-vista-accent/90 transition"
+        >
+          {savingTime ? 'Сохраняю...' : 'Сохранить'}
+        </button>
+      </div>
       <button
         onClick={handleTestBroadcast}
         disabled={loading}

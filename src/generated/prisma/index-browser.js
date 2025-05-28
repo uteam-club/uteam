@@ -126,7 +126,8 @@ exports.Prisma.ClubScalarFieldEnum = {
   subdomain: 'subdomain',
   logoUrl: 'logoUrl',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  broadcastTime: 'broadcastTime'
 };
 
 exports.Prisma.UserScalarFieldEnum = {

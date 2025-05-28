@@ -22,7 +22,8 @@
     "migrate-media": "tsx scripts/migrate-media-files.ts",
     "map-teams": "tsx scripts/map-teams.ts",
     "migrate-players": "tsx scripts/migrate-players.ts",
-    "seed-muscles": "tsx prisma/seed-muscles.ts"
+    "seed-muscles": "tsx prisma/seed-muscles.ts",
+    "start:bot": "tsx scripts/telegram-morning-bot.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

@@ -25,6 +25,7 @@ model Club {
   trainings          Training[]
   trainingCategories TrainingCategory[]
   users              User[]
+  broadcastTime      String? // Время рассылки опросника, например "08:00"
 }
 
 model User {

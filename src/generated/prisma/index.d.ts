@@ -3515,6 +3515,7 @@ export namespace Prisma {
     logoUrl: string | null
     createdAt: Date | null
     updatedAt: Date | null
+    broadcastTime: string | null
   }
 
   export type ClubMaxAggregateOutputType = {
@@ -3524,6 +3525,7 @@ export namespace Prisma {
     logoUrl: string | null
     createdAt: Date | null
     updatedAt: Date | null
+    broadcastTime: string | null
   }
 
   export type ClubCountAggregateOutputType = {
@@ -3533,6 +3535,7 @@ export namespace Prisma {
     logoUrl: number
     createdAt: number
     updatedAt: number
+    broadcastTime: number
     _all: number
   }
 
@@ -3544,6 +3547,7 @@ export namespace Prisma {
     logoUrl?: true
     createdAt?: true
     updatedAt?: true
+    broadcastTime?: true
   }
 
   export type ClubMaxAggregateInputType = {
@@ -3553,6 +3557,7 @@ export namespace Prisma {
     logoUrl?: true
     createdAt?: true
     updatedAt?: true
+    broadcastTime?: true
   }
 
   export type ClubCountAggregateInputType = {
@@ -3562,6 +3567,7 @@ export namespace Prisma {
     logoUrl?: true
     createdAt?: true
     updatedAt?: true
+    broadcastTime?: true
     _all?: true
   }
 
@@ -3644,6 +3650,7 @@ export namespace Prisma {
     logoUrl: string | null
     createdAt: Date
     updatedAt: Date
+    broadcastTime: string | null
     _count: ClubCountAggregateOutputType | null
     _min: ClubMinAggregateOutputType | null
     _max: ClubMaxAggregateOutputType | null
@@ -3670,6 +3677,7 @@ export namespace Prisma {
     logoUrl?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    broadcastTime?: boolean
     events?: boolean | Club$eventsArgs<ExtArgs>
     exercises?: boolean | Club$exercisesArgs<ExtArgs>
     exerciseCategories?: boolean | Club$exerciseCategoriesArgs<ExtArgs>
@@ -3690,6 +3698,7 @@ export namespace Prisma {
     logoUrl?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    broadcastTime?: boolean
   }, ExtArgs["result"]["club"]>
 
   export type ClubSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -3699,6 +3708,7 @@ export namespace Prisma {
     logoUrl?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    broadcastTime?: boolean
   }, ExtArgs["result"]["club"]>
 
   export type ClubSelectScalar = {
@@ -3708,9 +3718,10 @@ export namespace Prisma {
     logoUrl?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    broadcastTime?: boolean
   }
 
-  export type ClubOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "subdomain" | "logoUrl" | "createdAt" | "updatedAt", ExtArgs["result"]["club"]>
+  export type ClubOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "subdomain" | "logoUrl" | "createdAt" | "updatedAt" | "broadcastTime", ExtArgs["result"]["club"]>
   export type ClubInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     events?: boolean | Club$eventsArgs<ExtArgs>
     exercises?: boolean | Club$exercisesArgs<ExtArgs>
@@ -3748,6 +3759,7 @@ export namespace Prisma {
       logoUrl: string | null
       createdAt: Date
       updatedAt: Date
+      broadcastTime: string | null
     }, ExtArgs["result"]["club"]>
     composites: {}
   }
@@ -4187,6 +4199,7 @@ export namespace Prisma {
     readonly logoUrl: FieldRef<"Club", 'String'>
     readonly createdAt: FieldRef<"Club", 'DateTime'>
     readonly updatedAt: FieldRef<"Club", 'DateTime'>
+    readonly broadcastTime: FieldRef<"Club", 'String'>
   }
     
 
@@ -29567,7 +29580,8 @@ export namespace Prisma {
     subdomain: 'subdomain',
     logoUrl: 'logoUrl',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    broadcastTime: 'broadcastTime'
   };
 
   export type ClubScalarFieldEnum = (typeof ClubScalarFieldEnum)[keyof typeof ClubScalarFieldEnum]
@@ -30114,6 +30128,7 @@ export namespace Prisma {
     logoUrl?: StringNullableFilter<"Club"> | string | null
     createdAt?: DateTimeFilter<"Club"> | Date | string
     updatedAt?: DateTimeFilter<"Club"> | Date | string
+    broadcastTime?: StringNullableFilter<"Club"> | string | null
     events?: EventListRelationFilter
     exercises?: ExerciseListRelationFilter
     exerciseCategories?: ExerciseCategoryListRelationFilter
@@ -30133,6 +30148,7 @@ export namespace Prisma {
     logoUrl?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    broadcastTime?: SortOrderInput | SortOrder
     events?: EventOrderByRelationAggregateInput
     exercises?: ExerciseOrderByRelationAggregateInput
     exerciseCategories?: ExerciseCategoryOrderByRelationAggregateInput
@@ -30155,6 +30171,7 @@ export namespace Prisma {
     logoUrl?: StringNullableFilter<"Club"> | string | null
     createdAt?: DateTimeFilter<"Club"> | Date | string
     updatedAt?: DateTimeFilter<"Club"> | Date | string
+    broadcastTime?: StringNullableFilter<"Club"> | string | null
     events?: EventListRelationFilter
     exercises?: ExerciseListRelationFilter
     exerciseCategories?: ExerciseCategoryListRelationFilter
@@ -30174,6 +30191,7 @@ export namespace Prisma {
     logoUrl?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    broadcastTime?: SortOrderInput | SortOrder
     _count?: ClubCountOrderByAggregateInput
     _max?: ClubMaxOrderByAggregateInput
     _min?: ClubMinOrderByAggregateInput
@@ -30189,6 +30207,7 @@ export namespace Prisma {
     logoUrl?: StringNullableWithAggregatesFilter<"Club"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Club"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Club"> | Date | string
+    broadcastTime?: StringNullableWithAggregatesFilter<"Club"> | string | null
   }
 
   export type UserWhereInput = {
@@ -31961,6 +31980,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventCreateNestedManyWithoutClubInput
     exercises?: ExerciseCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryCreateNestedManyWithoutClubInput
@@ -31980,6 +32000,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventUncheckedCreateNestedManyWithoutClubInput
     exercises?: ExerciseUncheckedCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryUncheckedCreateNestedManyWithoutClubInput
@@ -31999,6 +32020,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUpdateManyWithoutClubNestedInput
@@ -32018,6 +32040,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUncheckedUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUncheckedUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUncheckedUpdateManyWithoutClubNestedInput
@@ -32037,6 +32060,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
   }
 
   export type ClubUpdateManyMutationInput = {
@@ -32046,6 +32070,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ClubUncheckedUpdateManyInput = {
@@ -32055,6 +32080,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type UserCreateInput = {
@@ -34092,6 +34118,7 @@ export namespace Prisma {
     logoUrl?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    broadcastTime?: SortOrder
   }
 
   export type ClubMaxOrderByAggregateInput = {
@@ -34101,6 +34128,7 @@ export namespace Prisma {
     logoUrl?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    broadcastTime?: SortOrder
   }
 
   export type ClubMinOrderByAggregateInput = {
@@ -34110,6 +34138,7 @@ export namespace Prisma {
     logoUrl?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    broadcastTime?: SortOrder
   }
 
   export type StringWithAggregatesFilter<$PrismaModel = never> = {
@@ -39003,6 +39032,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventCreateNestedManyWithoutClubInput
     exercises?: ExerciseCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryCreateNestedManyWithoutClubInput
@@ -39021,6 +39051,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventUncheckedCreateNestedManyWithoutClubInput
     exercises?: ExerciseUncheckedCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryUncheckedCreateNestedManyWithoutClubInput
@@ -39180,6 +39211,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUpdateManyWithoutClubNestedInput
@@ -39198,6 +39230,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUncheckedUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUncheckedUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUncheckedUpdateManyWithoutClubNestedInput
@@ -39364,6 +39397,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventCreateNestedManyWithoutClubInput
     exercises?: ExerciseCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryCreateNestedManyWithoutClubInput
@@ -39382,6 +39416,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventUncheckedCreateNestedManyWithoutClubInput
     exercises?: ExerciseUncheckedCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryUncheckedCreateNestedManyWithoutClubInput
@@ -39562,6 +39597,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUpdateManyWithoutClubNestedInput
@@ -39580,6 +39616,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUncheckedUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUncheckedUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUncheckedUpdateManyWithoutClubNestedInput
@@ -39630,6 +39667,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     exercises?: ExerciseCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryCreateNestedManyWithoutClubInput
     exerciseTags?: ExerciseTagCreateNestedManyWithoutClubInput
@@ -39648,6 +39686,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     exercises?: ExerciseUncheckedCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryUncheckedCreateNestedManyWithoutClubInput
     exerciseTags?: ExerciseTagUncheckedCreateNestedManyWithoutClubInput
@@ -39796,6 +39835,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     exercises?: ExerciseUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUpdateManyWithoutClubNestedInput
     exerciseTags?: ExerciseTagUpdateManyWithoutClubNestedInput
@@ -39814,6 +39854,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     exercises?: ExerciseUncheckedUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUncheckedUpdateManyWithoutClubNestedInput
     exerciseTags?: ExerciseTagUncheckedUpdateManyWithoutClubNestedInput
@@ -39934,6 +39975,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventCreateNestedManyWithoutClubInput
     exercises?: ExerciseCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryCreateNestedManyWithoutClubInput
@@ -39952,6 +39994,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventUncheckedCreateNestedManyWithoutClubInput
     exercises?: ExerciseUncheckedCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryUncheckedCreateNestedManyWithoutClubInput
@@ -40095,6 +40138,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUpdateManyWithoutClubNestedInput
@@ -40113,6 +40157,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUncheckedUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUncheckedUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUncheckedUpdateManyWithoutClubNestedInput
@@ -40306,6 +40351,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventCreateNestedManyWithoutClubInput
     exercises?: ExerciseCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryCreateNestedManyWithoutClubInput
@@ -40324,6 +40370,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventUncheckedCreateNestedManyWithoutClubInput
     exercises?: ExerciseUncheckedCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryUncheckedCreateNestedManyWithoutClubInput
@@ -40374,6 +40421,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUpdateManyWithoutClubNestedInput
@@ -40392,6 +40440,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUncheckedUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUncheckedUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUncheckedUpdateManyWithoutClubNestedInput
@@ -40459,6 +40508,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventCreateNestedManyWithoutClubInput
     exercises?: ExerciseCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryCreateNestedManyWithoutClubInput
@@ -40477,6 +40527,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventUncheckedCreateNestedManyWithoutClubInput
     exercises?: ExerciseUncheckedCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryUncheckedCreateNestedManyWithoutClubInput
@@ -40669,6 +40720,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUpdateManyWithoutClubNestedInput
@@ -40687,6 +40739,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUncheckedUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUncheckedUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUncheckedUpdateManyWithoutClubNestedInput
@@ -40884,6 +40937,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryCreateNestedManyWithoutClubInput
     exerciseTags?: ExerciseTagCreateNestedManyWithoutClubInput
@@ -40902,6 +40956,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventUncheckedCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryUncheckedCreateNestedManyWithoutClubInput
     exerciseTags?: ExerciseTagUncheckedCreateNestedManyWithoutClubInput
@@ -41103,6 +41158,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUpdateManyWithoutClubNestedInput
     exerciseTags?: ExerciseTagUpdateManyWithoutClubNestedInput
@@ -41121,6 +41177,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUncheckedUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUncheckedUpdateManyWithoutClubNestedInput
     exerciseTags?: ExerciseTagUncheckedUpdateManyWithoutClubNestedInput
@@ -41227,6 +41284,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventCreateNestedManyWithoutClubInput
     exercises?: ExerciseCreateNestedManyWithoutClubInput
     exerciseTags?: ExerciseTagCreateNestedManyWithoutClubInput
@@ -41245,6 +41303,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventUncheckedCreateNestedManyWithoutClubInput
     exercises?: ExerciseUncheckedCreateNestedManyWithoutClubInput
     exerciseTags?: ExerciseTagUncheckedCreateNestedManyWithoutClubInput
@@ -41323,6 +41382,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUpdateManyWithoutClubNestedInput
     exerciseTags?: ExerciseTagUpdateManyWithoutClubNestedInput
@@ -41341,6 +41401,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUncheckedUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUncheckedUpdateManyWithoutClubNestedInput
     exerciseTags?: ExerciseTagUncheckedUpdateManyWithoutClubNestedInput
@@ -41375,6 +41436,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventCreateNestedManyWithoutClubInput
     exercises?: ExerciseCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryCreateNestedManyWithoutClubInput
@@ -41393,6 +41455,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventUncheckedCreateNestedManyWithoutClubInput
     exercises?: ExerciseUncheckedCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryUncheckedCreateNestedManyWithoutClubInput
@@ -41485,6 +41548,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUpdateManyWithoutClubNestedInput
@@ -41503,6 +41567,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUncheckedUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUncheckedUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUncheckedUpdateManyWithoutClubNestedInput
@@ -42609,6 +42674,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventCreateNestedManyWithoutClubInput
     exercises?: ExerciseCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryCreateNestedManyWithoutClubInput
@@ -42627,6 +42693,7 @@ export namespace Prisma {
     logoUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    broadcastTime?: string | null
     events?: EventUncheckedCreateNestedManyWithoutClubInput
     exercises?: ExerciseUncheckedCreateNestedManyWithoutClubInput
     exerciseCategories?: ExerciseCategoryUncheckedCreateNestedManyWithoutClubInput
@@ -42730,6 +42797,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUpdateManyWithoutClubNestedInput
@@ -42748,6 +42816,7 @@ export namespace Prisma {
     logoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    broadcastTime?: NullableStringFieldUpdateOperationsInput | string | null
     events?: EventUncheckedUpdateManyWithoutClubNestedInput
     exercises?: ExerciseUncheckedUpdateManyWithoutClubNestedInput
     exerciseCategories?: ExerciseCategoryUncheckedUpdateManyWithoutClubNestedInput
