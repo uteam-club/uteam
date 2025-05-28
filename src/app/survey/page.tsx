@@ -79,6 +79,18 @@ export default function SurveyPage() {
     }
   };
 
+  // Проверка валидности формы
+  const isFormValid =
+    formData.sleepDuration > 0 &&
+    formData.sleepQuality > 0 &&
+    formData.recovery > 0 &&
+    formData.mood > 0 &&
+    formData.muscleCondition > 0 &&
+    (!formData.hasPain || (
+      (formData.painAreas.front.length > 0 || formData.painAreas.back.length > 0) &&
+      [...formData.painAreas.front, ...formData.painAreas.back].every(area => area.painLevel > 0)
+    ));
+
   return (
     <div className="w-full min-h-screen flex flex-col justify-center items-center bg-vista-dark px-2 py-6">
       <div className="w-full max-w-md sm:max-w-lg md:max-w-2xl mx-auto">
@@ -107,7 +119,16 @@ export default function SurveyPage() {
                 placeholder="000000"
               />
               {pinError && <div className="text-red-500 text-center text-base animate-fade-in">{pinError}</div>}
-              <Button type="submit" className="w-full py-4 text-lg bg-vista-accent hover:bg-vista-accent/90 transition" disabled={loading || pinCode.length !== 6}>
+              <Button
+                type="submit"
+                className={`w-full py-4 text-lg bg-vista-accent hover:bg-vista-accent/90 transition ${loading || pinCode.length !== 6 ? 'opacity-70 text-white' : 'text-white'}`}
+                style={{
+                  backgroundColor: loading || pinCode.length !== 6 ? 'rgba(90, 204, 229, 0.7)' : '#5acce5',
+                  color: '#fff',
+                  cursor: loading || pinCode.length !== 6 ? 'not-allowed' : 'pointer',
+                }}
+                disabled={loading || pinCode.length !== 6}
+              >
                 {loading ? 'Проверка...' : 'Войти'}
               </Button>
             </form>
@@ -260,10 +281,31 @@ export default function SurveyPage() {
                 </div>
               )}
 
+              {/* Общий список выбранных областей боли */}
+              {(formData.painAreas.front.length > 0 || formData.painAreas.back.length > 0) && (
+                <div className="mt-4">
+                  <h3 className="font-medium mb-2">Выбранные области (всего):</h3>
+                  <ul className="list-disc list-inside">
+                    {formData.painAreas.front.map(area => (
+                      <li key={area.id + '-front'} className="flex items-center">
+                        <span className="mr-2">•</span>
+                        <span>{area.name || 'Без названия'} — <span className="font-bold text-vista-accent">{area.painLevel}/10</span> <span className="text-xs text-vista-light/60">(спереди)</span></span>
+                      </li>
+                    ))}
+                    {formData.painAreas.back.map(area => (
+                      <li key={area.id + '-back'} className="flex items-center">
+                        <span className="mr-2">•</span>
+                        <span>{area.name || 'Без названия'} — <span className="font-bold text-vista-accent">{area.painLevel}/10</span> <span className="text-xs text-vista-light/60">(сзади)</span></span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {/* Кнопка отправки */}
               <Button
                 onClick={handleSubmit}
-                disabled={formData.hasPain && formData.painAreas.front.length === 0 && formData.painAreas.back.length === 0}
+                disabled={!isFormValid}
                 className="w-full mt-6 py-4 text-lg"
               >
                 Отправить ответ

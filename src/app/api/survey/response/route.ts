@@ -29,6 +29,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Player not found', playerId }, { status: 404 });
     }
 
+    // Проверяем, есть ли уже ответ за сегодня
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+    const existing = await prisma.morningSurveyResponse.findFirst({
+      where: {
+        playerId,
+        surveyId,
+        tenantId,
+        createdAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+    });
+    if (existing) {
+      await prisma.painArea.deleteMany({ where: { surveyId: existing.id } });
+      await prisma.morningSurveyResponse.delete({ where: { id: existing.id } });
+    }
+
     // painAreas: { front: [{id, name, painLevel}], back: [{id, name, painLevel}] }
     const allPainAreas = [
       ...(painAreas?.front || []),
