@@ -264,20 +264,6 @@ export default function SurveyPage() {
                       });
                     }}
                   />
-                  {/* Отображение выбранных областей */}
-                  {formData.painAreas[view].length > 0 && (
-                    <div className="mt-4">
-                      <h3 className="font-medium mb-2">Выбранные области:</h3>
-                      <ul className="list-disc list-inside">
-                        {formData.painAreas[view].map(area => (
-                          <li key={area.id} className="flex items-center">
-                            <span className="mr-2">•</span>
-                            <span>{area.name || 'Без названия'} — <span className="font-bold text-vista-accent">{area.painLevel}/10</span></span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
                 </div>
               )}
 
