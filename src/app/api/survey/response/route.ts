@@ -64,7 +64,6 @@ export async function POST(req: Request) {
       tenantId,
       completedAt: new Date(),
       createdAt: new Date(),
-      updatedAt: new Date(),
     }).returning();
 
     // Вставляем painAreas
