@@ -1,23 +1,21 @@
-import { prisma } from "@/lib/prisma";
-import { Team } from "@/generated/prisma/client";
+import { db } from '@/lib/db';
+import { team } from '@/db/schema';
+import { eq, asc } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 
-export async function getTeamsByClubId(clubId: string): Promise<Team[]> {
+export async function getTeamsByClubId(clubId: string) {
   try {
-    return await prisma.team.findMany({
-      where: { clubId },
-      orderBy: { name: 'asc' },
-    });
+    return await db.select().from(team).where(eq(team.clubId, clubId)).orderBy(asc(team.name));
   } catch (error) {
     console.error("Error fetching teams by club id:", error);
     return [];
   }
 }
 
-export async function getTeamById(id: string): Promise<Team | null> {
+export async function getTeamById(id: string) {
   try {
-    return await prisma.team.findUnique({
-      where: { id },
-    });
+    const [result] = await db.select().from(team).where(eq(team.id, id));
+    return result ?? null;
   } catch (error) {
     console.error("Error fetching team by id:", error);
     return null;
@@ -29,11 +27,15 @@ export async function createTeam(data: {
   clubId: string;
   description?: string;
   logoUrl?: string;
-}): Promise<Team | null> {
+}) {
   try {
-    return await prisma.team.create({
-      data,
-    });
+    const [created] = await db.insert(team).values({
+      ...data,
+      id: uuidv4(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+    return created ?? null;
   } catch (error) {
     console.error("Error creating team:", error);
     return null;
@@ -47,23 +49,22 @@ export async function updateTeam(
     description?: string;
     logoUrl?: string;
   }
-): Promise<Team | null> {
+) {
   try {
-    return await prisma.team.update({
-      where: { id },
-      data,
-    });
+    const [updated] = await db.update(team)
+      .set(data)
+      .where(eq(team.id, id))
+      .returning();
+    return updated ?? null;
   } catch (error) {
     console.error("Error updating team:", error);
     return null;
   }
 }
 
-export async function deleteTeam(id: string): Promise<boolean> {
+export async function deleteTeam(id: string) {
   try {
-    await prisma.team.delete({
-      where: { id },
-    });
+    await db.delete(team).where(eq(team.id, id));
     return true;
   } catch (error) {
     console.error("Error deleting team:", error);

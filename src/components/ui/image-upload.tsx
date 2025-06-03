@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CameraIcon, TrashIcon, AlertCircleIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { uploadPlayerFile } from '@/lib/supabase';
+import { uploadPlayerFile, deletePlayerFile } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 
 interface ImageUploadProps {
@@ -46,43 +46,37 @@ export default function ImageUpload({
         const img = new Image();
         img.src = event.target?.result as string;
         img.onload = () => {
-          // Определяем новые размеры с сохранением пропорций
           let width = img.width;
           let height = img.height;
-          
           if (width > maxWidth) {
             height = Math.round(height * (maxWidth / width));
             width = maxWidth;
           }
-          
           if (height > maxHeight) {
             width = Math.round(width * (maxHeight / height));
             height = maxHeight;
           }
-          
           const canvas = document.createElement('canvas');
           canvas.width = width;
           canvas.height = height;
-          
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
-          
-          // Конвертируем в Blob с указанным качеством
+
+          // Определяем формат для сохранения
+          const isPng = file.type === 'image/png' || file.name.toLowerCase().endsWith('.png');
+          const mimeType = isPng ? 'image/png' : 'image/jpeg';
+
           canvas.toBlob((blob) => {
             if (!blob) {
               reject(new Error('Ошибка сжатия изображения'));
               return;
             }
-            
-            // Создаем новый File из сжатого Blob
             const compressedFile = new File([blob], file.name, {
-              type: 'image/jpeg',
+              type: mimeType,
               lastModified: Date.now()
             });
-            
-            console.log(`Сжатие: исходный размер ${file.size / 1024}KB -> новый размер ${compressedFile.size / 1024}KB`);
             resolve(compressedFile);
-          }, 'image/jpeg', quality);
+          }, mimeType, quality);
         };
         img.onerror = () => reject(new Error('Ошибка загрузки изображения для сжатия'));
       };
@@ -139,9 +133,7 @@ export default function ImageUpload({
       const data = await response.json();
       
       // Проверяем валидность URL
-      try {
-        new URL(data.imageUrl);
-      } catch (e) {
+      if (!data.imageUrl || typeof data.imageUrl !== 'string' || !/^https?:\/\//.test(data.imageUrl)) {
         throw new Error('Получен некорректный URL изображения');
       }
 
@@ -174,7 +166,10 @@ export default function ImageUpload({
       setIsLoading(true);
       setError(null);
 
-      await handleUpload(file);
+      // Сжимаем изображение перед загрузкой
+      const compressedFile = await compressImage(file);
+
+      await handleUpload(compressedFile);
 
     } catch (error) {
       console.error('ImageUpload: Ошибка при обработке файла:', error);
@@ -188,9 +183,33 @@ export default function ImageUpload({
     }
   };
 
-  const handleRemoveImage = () => {
-    onChange(null);
-    setError(null);
+  // Удаление изображения с сервера и сброс imageUrl
+  const handleDeleteImage = async () => {
+    if (!value || !clubId || !teamId || !entityId) return;
+    try {
+      setIsLoading(true);
+      setError(null);
+      // Получаем путь к файлу из URL
+      const url = new URL(value);
+      const path = decodeURIComponent(url.pathname.replace('/storage/v1/object/public/club-media/', ''));
+      await deletePlayerFile(path);
+      // Сброс imageUrl в базе (вызывается onChange(null), а родитель должен обновить профиль)
+      onChange(null);
+      toast({
+        title: 'Фото удалено',
+        description: 'Изображение успешно удалено',
+        variant: 'default',
+      });
+    } catch (error) {
+      setError('Ошибка при удалении изображения');
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось удалить изображение',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const triggerFileInput = () => {
@@ -211,18 +230,20 @@ export default function ImageUpload({
             'relative w-full h-full overflow-hidden',
             avatarMode ? 'rounded-full' : 'rounded-md'
           )}>
+            {avatarMode && (
+              <div className="absolute inset-0 bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)] z-0" />
+            )}
             <img
               src={value}
               alt="Uploaded"
               className={cn(
                 'w-full h-full object-cover',
-                avatarMode ? 'rounded-full' : 'rounded-md'
+                avatarMode ? 'rounded-full z-10 relative' : 'rounded-md'
               )}
+              style={{ background: 'transparent' }}
               onError={(e) => {
                 console.error('Ошибка загрузки изображения:', value);
                 setError('Не удалось загрузить изображение');
-                
-                // Используем аватар по умолчанию при ошибке загрузки
                 if (entityType === 'player') {
                   const defaultImageUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent('User')}&background=162a5b&color=fff&size=100`;
                   onChange(defaultImageUrl);
@@ -233,27 +254,33 @@ export default function ImageUpload({
                 setError(null);
               }}
             />
-            <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-all flex items-center justify-center gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                size="icon"
-                onClick={triggerFileInput}
-                disabled={disabled || isLoading || isUploading}
-                className="h-8 w-8 rounded-full bg-white/50 hover:bg-white/70"
-              >
-                <CameraIcon className="h-4 w-4 text-white" />
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                onClick={handleRemoveImage}
-                disabled={disabled || isLoading || isUploading}
-                className="h-8 w-8 rounded-full bg-red-500/80 hover:bg-red-500"
-              >
-                <TrashIcon className="h-4 w-4 text-white" />
-              </Button>
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center gap-2 z-20">
+              <div className="flex flex-col items-center gap-1">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="icon"
+                  onClick={triggerFileInput}
+                  disabled={disabled || isLoading || isUploading}
+                  className="h-8 w-8 rounded-full bg-white/50 hover:bg-white/70"
+                >
+                  <CameraIcon className="h-4 w-4 text-white" />
+                </Button>
+                <span className="text-xs text-white">Заменить</span>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  onClick={handleDeleteImage}
+                  disabled={disabled || isLoading || isUploading}
+                  className="h-8 w-8 rounded-full bg-red-500/80 hover:bg-red-500"
+                >
+                  <TrashIcon className="h-4 w-4 text-white" />
+                </Button>
+                <span className="text-xs text-white">Удалить</span>
+              </div>
             </div>
             
             {/* Индикатор загрузки */}

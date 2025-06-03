@@ -1,348 +1,150 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
-import { prisma } from '@/lib/prisma';
-import { PrismaClient, Prisma } from '@prisma/client';
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
+import { db } from '@/lib/db';
+import { trainingExercise, exercise, user, exerciseCategory, exerciseTag, exerciseTagToExercise, mediaItem } from '@/db/schema';
+import { eq, and, inArray, asc } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 
-
-
-// Добавляем типы для результатов SQL запросов
-interface MaxPositionResult {
-  max_position: number;
-}
-
-interface ExerciseLink {
-  exerciseId: string;
-}
-
-interface TrainingExerciseResult {
-  id: string;
-}
-
-// GET /api/trainings/[id]/exercises - получение всех упражнений тренировки
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// Получить упражнения тренировки
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
-    
     const trainingId = params.id;
-    
-    // Проверяем существование тренировки
-    const training = await prisma.training.findUnique({
-      where: { id: trainingId },
-      include: { club: true }
+    // Получаем все связи training-exercise
+    const links = await db.select().from(trainingExercise)
+      .where(eq(trainingExercise.trainingId, trainingId))
+      .orderBy(asc(trainingExercise.position));
+    if (!links.length) return NextResponse.json([]);
+    const exerciseIds = links.map(l => l.exerciseId);
+    // Получаем упражнения
+    const exercises = await db.select().from(exercise).where(inArray(exercise.id, exerciseIds));
+    // Получаем авторов
+    const authorIds = Array.from(new Set(exercises.map(e => e.authorId)));
+    const authors = authorIds.length ? await db.select().from(user).where(inArray(user.id, authorIds)) : [];
+    // Получаем категории
+    const categoryIds = Array.from(new Set(exercises.map(e => e.categoryId)));
+    const categories = categoryIds.length ? await db.select().from(exerciseCategory).where(inArray(exerciseCategory.id, categoryIds)) : [];
+    // Получаем связи упражнение-тег
+    const tagLinks = await db.select().from(exerciseTagToExercise).where(inArray(exerciseTagToExercise.exerciseId, exerciseIds));
+    const tagIds = tagLinks.map(t => t.exerciseTagId);
+    const tags = tagIds.length ? await db.select().from(exerciseTag).where(inArray(exerciseTag.id, tagIds)) : [];
+    // Получаем mediaItems
+    const mediaItems = await db.select().from(mediaItem).where(inArray(mediaItem.exerciseId, exerciseIds));
+    // Маппинг
+    const tagsByExercise: Record<string, any[]> = {};
+    tagLinks.forEach(link => {
+      if (!tagsByExercise[link.exerciseId]) tagsByExercise[link.exerciseId] = [];
+      const tag = tags.find(t => t.id === link.exerciseTagId);
+      if (tag) tagsByExercise[link.exerciseId].push(tag);
     });
-    
-    if (!training) {
-      return NextResponse.json({ error: 'Training not found' }, { status: 404 });
-    }
-    
-    // Проверяем принадлежность пользователя к клубу
-    if (training.clubId !== session.user.clubId) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-    
-    // Пробуем загрузить связи между тренировкой и упражнениями напрямую
-    const exercises = await prisma.$queryRaw`
-      SELECT 
-        e.id, e.title, e.description, e.author_id as "authorId", 
-        u.id as "authorId", u.name as "authorName",
-        e.category_id as "categoryId", ec.name as "categoryName",
-        te.id as "trainingExerciseId", te.position, te.notes,
-        COALESCE(json_agg(json_build_object('id', et.id, 'name', et.name)) FILTER (WHERE et.id IS NOT NULL), '[]') as tags,
-        COALESCE(json_agg(json_build_object(
-          'id', mi.id, 
-          'url', mi.url, 
-          'publicUrl', mi.public_url, 
-          'type', mi.type
-        )) FILTER (WHERE mi.id IS NOT NULL), '[]') as "mediaItems"
-      FROM "Exercise" e
-      JOIN "TrainingExercise" te ON te.exerciseId = e.id
-      JOIN "User" u ON e.author_id = u.id
-      JOIN "ExerciseCategory" ec ON e.category_id = ec.id
-      LEFT JOIN "_ExerciseToTag" ett ON ett.a = e.id
-      LEFT JOIN "ExerciseTag" et ON et.id = ett.b
-      LEFT JOIN "MediaItem" mi ON mi.exercise_id = e.id
-      WHERE te.trainingId = ${trainingId}
-      GROUP BY e.id, te.id, u.id, ec.id
-      ORDER BY te.position ASC
-    `;
-    
-    return NextResponse.json(exercises);
+    const mediaByExercise: Record<string, any[]> = {};
+    mediaItems.forEach(m => {
+      if (!m.exerciseId) return;
+      if (!mediaByExercise[m.exerciseId]) mediaByExercise[m.exerciseId] = [];
+      mediaByExercise[m.exerciseId].push(m);
+    });
+    const categoryMap = Object.fromEntries(categories.map(c => [c.id, { id: c.id, name: c.name }]));
+    const authorMap = Object.fromEntries(authors.map(a => [a.id, { id: a.id, name: a.name || 'Неизвестно' }]));
+    // Собираем финальный результат
+    const result = links.map(link => {
+      const ex = exercises.find(e => e.id === link.exerciseId);
+      if (!ex) return null;
+      return {
+        ...ex,
+        position: link.position,
+        trainingExerciseId: link.id,
+        notes: link.notes,
+        tags: tagsByExercise[ex.id] || [],
+        mediaItems: mediaByExercise[ex.id] || [],
+        category: categoryMap[ex.categoryId] || { id: '', name: 'Без категории' },
+        author: authorMap[ex.authorId] || { id: '', name: 'Неизвестно' },
+      };
+    }).filter(Boolean);
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('Error fetching training exercises:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Ошибка при получении упражнений тренировки:', error);
+    return NextResponse.json({ error: 'Ошибка при получении упражнений тренировки' }, { status: 500 });
   }
 }
 
-// POST /api/trainings/[id]/exercises - добавление упражнений к тренировке
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// Добавить упражнения к тренировке
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
-    
     const trainingId = params.id;
-    const { exerciseIds } = await request.json();
-    
-    if (!Array.isArray(exerciseIds) || exerciseIds.length === 0) {
-      return NextResponse.json(
-        { error: 'Invalid request body. exerciseIds array is required.' },
-        { status: 400 }
-      );
+    const { exerciseIds } = await req.json(); // ожидаем { exerciseIds: string[] }
+    if (!Array.isArray(exerciseIds) || !exerciseIds.length) {
+      return NextResponse.json({ error: 'exerciseIds должен быть массивом' }, { status: 400 });
     }
-    
-    // Проверяем существование тренировки
-    const training = await prisma.training.findUnique({
-      where: { id: trainingId },
-      include: { club: true }
-    });
-    
-    if (!training) {
-      return NextResponse.json({ error: 'Training not found' }, { status: 404 });
-    }
-    
-    // Проверяем принадлежность пользователя к клубу
-    if (training.clubId !== session.user.clubId) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-    
-    // Используем SQL для вставки напрямую, так как модель может быть недоступна
-    // Сначала найдем максимальную позицию
-    const maxPositionResult = await prisma.$queryRaw<MaxPositionResult[]>`
-      SELECT COALESCE(MAX(position), 0) as max_position 
-      FROM "TrainingExercise" 
-      WHERE trainingId = ${trainingId}
-    `;
-    
-    let nextPosition = (maxPositionResult[0]?.max_position || 0) + 1;
-    
-    // Найдем уже существующие связи
-    // Создаем безопасный запрос с параметрами
-    const placeholders = exerciseIds.map((_, i) => `$${i + 1}`).join(', ');
-    const query = `
-      SELECT "exerciseId" 
-      FROM "TrainingExercise" 
-      WHERE "trainingId" = '${trainingId}' AND "exerciseId" IN (${placeholders})
-    `;
-    
-    const existingLinks = await prisma.$queryRawUnsafe<ExerciseLink[]>(query, ...exerciseIds);
-    
-    const existingIds = new Set(existingLinks.map(e => e.exerciseId));
-    const newExerciseIds = exerciseIds.filter(id => !existingIds.has(id));
-    
-    // Добавим новые связи
-    const createdExercises = [];
-    for (let i = 0; i < newExerciseIds.length; i++) {
-      const exerciseId = newExerciseIds[i];
-      const result = await prisma.$executeRaw`
-        INSERT INTO "TrainingExercise" (id, position, trainingId, exerciseId, created_at, updated_at)
-        VALUES (
-          gen_random_uuid(), 
-          ${nextPosition + i}, 
-          ${trainingId}, 
-          ${exerciseId}, 
-          NOW(), 
-          NOW()
-        )
-        RETURNING *
-      `;
-      createdExercises.push(result);
-    }
-    
-    // Обновляем тренировку
-    await prisma.training.update({
-      where: { id: trainingId },
-      data: { updatedAt: new Date() }
-    });
-    
-    return NextResponse.json({
-      message: `Added ${newExerciseIds.length} exercises to training`,
-      addedExercises: newExerciseIds
-    });
+    // Получаем текущие позиции
+    const existing = await db.select().from(trainingExercise).where(eq(trainingExercise.trainingId, trainingId));
+    let maxPosition = existing.length > 0 ? Math.max(...existing.map(e => e.position)) : 0;
+    // Вставляем новые связи
+    const now = new Date();
+    const values = exerciseIds.map((exerciseId, idx) => ({
+      id: uuidv4(),
+      trainingId,
+      exerciseId,
+      position: maxPosition + idx + 1,
+      createdAt: now,
+      updatedAt: now,
+    }));
+    await db.insert(trainingExercise).values(values);
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error adding exercises to training:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Ошибка при добавлении упражнений к тренировке:', error);
+    return NextResponse.json({ error: 'Ошибка при добавлении упражнений к тренировке' }, { status: 500 });
   }
 }
 
-// PUT /api/trainings/[id]/exercises - обновление порядка упражнений
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// Удалить упражнение из тренировки
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
-    
     const trainingId = params.id;
-    const { exercises } = await request.json();
-    
-    if (!Array.isArray(exercises) || exercises.length === 0) {
-      return NextResponse.json(
-        { error: 'Invalid request body. exercises array is required.' },
-        { status: 400 }
-      );
+    const { trainingExerciseId } = await req.json(); // ожидаем { trainingExerciseId: string }
+    if (!trainingExerciseId) {
+      return NextResponse.json({ error: 'trainingExerciseId обязателен' }, { status: 400 });
     }
-    
-    // Проверяем существование тренировки
-    const training = await prisma.training.findUnique({
-      where: { id: trainingId },
-      include: { club: true }
-    });
-    
-    if (!training) {
-      return NextResponse.json({ error: 'Training not found' }, { status: 404 });
-    }
-    
-    // Проверяем принадлежность пользователя к клубу
-    if (training.clubId !== session.user.clubId) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-    
-    // Обновляем каждое упражнение отдельно
-    for (let i = 0; i < exercises.length; i++) {
-      const exercise = exercises[i];
-      await prisma.$executeRaw`
-        UPDATE "TrainingExercise"
-        SET position = ${i + 1}, 
-            notes = ${exercise.notes || null},
-            updated_at = NOW()
-        WHERE id = ${exercise.trainingExerciseId}
-      `;
-    }
-    
-    // Обновляем тренировку
-    await prisma.training.update({
-      where: { id: trainingId },
-      data: { updatedAt: new Date() }
-    });
-    
-    return NextResponse.json({
-      message: 'Training exercises order updated successfully'
-    });
+    await db.delete(trainingExercise).where(and(eq(trainingExercise.id, trainingExerciseId), eq(trainingExercise.trainingId, trainingId)));
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error updating training exercises order:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Ошибка при удалении упражнения из тренировки:', error);
+    return NextResponse.json({ error: 'Ошибка при удалении упражнения из тренировки' }, { status: 500 });
   }
 }
 
-// DELETE /api/trainings/[id]/exercises/[exerciseId] - удаление упражнения из тренировки
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// PATCH — обновить порядок упражнений
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
-    
     const trainingId = params.id;
-    const url = new URL(request.url);
-    const exerciseId = url.searchParams.get('exerciseId');
-    
-    if (!exerciseId) {
-      return NextResponse.json(
-        { error: 'exerciseId query parameter is required' },
-        { status: 400 }
-      );
+    const { positions } = await req.json(); // ожидаем { positions: [{ trainingExerciseId, position }] }
+    if (!Array.isArray(positions) || positions.length === 0) {
+      return NextResponse.json({ error: 'positions должен быть массивом' }, { status: 400 });
     }
-    
-    // Проверяем существование тренировки
-    const training = await prisma.training.findUnique({
-      where: { id: trainingId },
-      include: { club: true }
-    });
-    
-    if (!training) {
-      return NextResponse.json({ error: 'Training not found' }, { status: 404 });
+    // Обновляем позиции
+    for (const { trainingExerciseId, position } of positions) {
+      await db.update(trainingExercise)
+        .set({ position, updatedAt: new Date() })
+        .where(and(eq(trainingExercise.id, trainingExerciseId), eq(trainingExercise.trainingId, trainingId)));
     }
-    
-    // Проверяем принадлежность пользователя к клубу
-    if (training.clubId !== session.user.clubId) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-    
-    // Найдем сначала нужную связь
-    const trainingExercise = await prisma.$queryRaw<TrainingExerciseResult[]>`
-      SELECT id 
-      FROM "TrainingExercise" 
-      WHERE trainingId = ${trainingId} AND exerciseId = ${exerciseId}
-      LIMIT 1
-    `;
-    
-    if (!trainingExercise || trainingExercise.length === 0) {
-      return NextResponse.json(
-        { error: 'Exercise not found in this training' },
-        { status: 404 }
-      );
-    }
-    
-    // Удаляем упражнение из тренировки
-    await prisma.$executeRaw`
-      DELETE FROM "TrainingExercise" 
-      WHERE id = ${trainingExercise[0].id}
-    `;
-    
-    // Обновляем позиции оставшихся упражнений
-    const remainingExercises = await prisma.$queryRaw<TrainingExerciseResult[]>`
-      SELECT id 
-      FROM "TrainingExercise" 
-      WHERE trainingId = ${trainingId}
-      ORDER BY position ASC
-    `;
-    
-    // Обновляем порядковые номера
-    for (let i = 0; i < remainingExercises.length; i++) {
-      await prisma.$executeRaw`
-        UPDATE "TrainingExercise"
-        SET position = ${i + 1},
-            updated_at = NOW()
-        WHERE id = ${remainingExercises[i].id}
-      `;
-    }
-    
-    // Обновляем тренировку
-    await prisma.training.update({
-      where: { id: trainingId },
-      data: { updatedAt: new Date() }
-    });
-    
-    return NextResponse.json({
-      message: 'Exercise removed from training successfully'
-    });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error removing exercise from training:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Ошибка при обновлении порядка упражнений:', error);
+    return NextResponse.json({ error: 'Ошибка при обновлении порядка упражнений' }, { status: 500 });
   }
 } 

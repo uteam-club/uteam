@@ -3,7 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRouter } from 'next/navigation';
-import { useClub } from '@/context/club-context';
+import { useClub } from '@/providers/club-provider';
 
 export default function SurveysPage() {
   const router = useRouter();

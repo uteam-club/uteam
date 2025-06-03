@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { PrismaClient } from '@/generated/prisma';
+import { db } from '@/lib/db';
+import { schedule, scheduleEvent } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { authOptions } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-
-
-const prisma = new PrismaClient();
 
 export async function GET(request: Request) {
   try {
@@ -15,28 +13,18 @@ export async function GET(request: Request) {
     if (!session) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
-
     const { searchParams } = new URL(request.url);
     const teamId = searchParams.get('teamId');
     const date = searchParams.get('date');
-
     if (!teamId || !date) {
       return new NextResponse('Missing required parameters', { status: 400 });
     }
-
-    const schedule = await prisma.schedule.findFirst({
-      where: {
-        teamId,
-        date: new Date(date),
-      },
-      include: {
-        events: true,
-      },
-    });
-
-    return NextResponse.json({
-      events: schedule?.events || [],
-    });
+    const [sched] = await db.select().from(schedule).where(and(eq(schedule.teamId, teamId), eq(schedule.date, new Date(date))));
+    let events: any[] = [];
+    if (sched) {
+      events = await db.select().from(scheduleEvent).where(eq(scheduleEvent.scheduleId, sched.id));
+    }
+    return NextResponse.json({ events });
   } catch (error) {
     console.error('Error fetching schedule:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
@@ -49,55 +37,36 @@ export async function POST(request: Request) {
     if (!session) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
-
     const body = await request.json();
     const { teamId, date, events } = body;
-
     if (!teamId || !date || !events) {
       return new NextResponse('Missing required parameters', { status: 400 });
     }
-
     // Удаляем старые события
-    await prisma.scheduleEvent.deleteMany({
-      where: {
-        schedule: {
-          teamId,
-          date: new Date(date),
-        },
-      },
-    });
-
+    const [sched] = await db.select().from(schedule).where(and(eq(schedule.teamId, teamId), eq(schedule.date, new Date(date))));
+    if (sched) {
+      await db.delete(scheduleEvent).where(eq(scheduleEvent.scheduleId, sched.id));
+    }
     // Создаем или обновляем расписание
-    const schedule = await prisma.schedule.upsert({
-      where: {
-        teamId_date: {
-          teamId,
-          date: new Date(date),
-        },
-      },
-      create: {
-        teamId,
-        date: new Date(date),
-        events: {
-          create: events.map((event: any) => ({
-            time: event.time,
-            description: event.description,
-            type: event.type,
-          })),
-        },
-      },
-      update: {
-        events: {
-          create: events.map((event: any) => ({
-            time: event.time,
-            description: event.description,
-            type: event.type,
-          })),
-        },
-      },
-    });
-
-    return NextResponse.json(schedule);
+    let schedId = sched?.id;
+    if (!schedId) {
+      const [created] = await db.insert(schedule).values({ teamId, date: new Date(date) }).returning();
+      schedId = created.id;
+    }
+    // Вставляем новые события
+    if (events && events.length > 0) {
+      await db.insert(scheduleEvent).values(
+        events.map((event: any) => ({
+          scheduleId: schedId,
+          time: event.time,
+          description: event.description,
+          type: event.type,
+        }))
+      );
+    }
+    // Возвращаем расписание с событиями
+    const newEvents = await db.select().from(scheduleEvent).where(eq(scheduleEvent.scheduleId, schedId));
+    return NextResponse.json({ id: schedId, events: newEvents });
   } catch (error) {
     console.error('Error saving schedule:', error);
     return new NextResponse('Internal Server Error', { status: 500 });

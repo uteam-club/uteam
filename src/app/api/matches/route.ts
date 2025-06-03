@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { match, team } from '@/db/schema';
+import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
+import crypto from 'crypto';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -34,33 +38,48 @@ export async function GET(request: NextRequest) {
     const toDate = searchParams.get('toDate');
 
     // Базовые условия фильтрации
-    const where: any = {
-      clubId: session.user.clubId,
-    };
+    const whereArr = [eq(match.clubId, session.user.clubId)];
 
     // Применяем фильтры, если они указаны
     if (teamId) {
-      where.teamId = teamId;
+      whereArr.push(eq(match.teamId, teamId));
     }
 
-    if (fromDate && toDate) {
-      where.date = {
-        gte: new Date(fromDate),
-        lte: new Date(toDate),
-      };
+    if (fromDate) {
+      whereArr.push(gte(match.date, new Date(fromDate)));
     }
 
-    const matches = await prisma.match.findMany({
-      where,
-      include: {
-        team: true,
-      },
-      orderBy: {
-        date: 'desc',
-      },
-    });
+    if (toDate) {
+      const endDate = new Date(toDate); endDate.setHours(23,59,59,999); whereArr.push(lte(match.date, endDate));
+    }
 
-    return NextResponse.json(matches);
+    const rows = await db.select({
+      id: match.id,
+      competitionType: match.competitionType,
+      date: match.date,
+      time: match.time,
+      isHome: match.isHome,
+      teamId: match.teamId,
+      opponentName: match.opponentName,
+      teamGoals: match.teamGoals,
+      opponentGoals: match.opponentGoals,
+      createdAt: match.createdAt,
+      updatedAt: match.updatedAt,
+      clubId: match.clubId,
+      formation: match.formation,
+      gameFormat: match.gameFormat,
+      markerColor: match.markerColor,
+      notes: match.notes,
+      playerPositions: match.playerPositions,
+      positionAssignments: match.positionAssignments,
+      teamName: team.name
+    })
+      .from(match)
+      .leftJoin(team, eq(match.teamId, team.id))
+      .where(and(...whereArr))
+      .orderBy(desc(match.date));
+
+    return NextResponse.json(rows);
   } catch (error) {
     console.error('Ошибка при получении матчей:', error);
     return NextResponse.json({ error: 'Ошибка при получении матчей' }, { status: 500 });
@@ -98,35 +117,33 @@ export async function POST(request: NextRequest) {
     } = validationResult.data;
 
     // Проверка существования команды и её принадлежности к клубу пользователя
-    const team = await prisma.team.findFirst({
-      where: {
-        id: teamId,
-        clubId: session.user.clubId,
-      },
-    });
+    const [teamRow] = await db.select().from(team).where(and(eq(team.id, teamId), eq(team.clubId, session.user.clubId)));
 
-    if (!team) {
+    if (!teamRow) {
       return NextResponse.json({ error: 'Команда не найдена' }, { status: 404 });
     }
 
     // Создание нового матча
-    const match = await prisma.match.create({
-      data: {
-        competitionType,
-        date: new Date(date),
-        time,
-        isHome,
-        teamId,
-        opponentName,
-        teamGoals,
-        opponentGoals,
-        clubId: session.user.clubId,
-      },
-    });
+    const now = new Date();
+    const [created] = await db.insert(match).values({
+      id: crypto.randomUUID(),
+      competitionType,
+      date: new Date(date),
+      time,
+      isHome,
+      teamId,
+      opponentName,
+      teamGoals,
+      opponentGoals,
+      clubId: session.user.clubId,
+      createdAt: now,
+      updatedAt: now,
+    }).returning();
 
-    return NextResponse.json(match, { status: 201 });
+    return NextResponse.json(created, { status: 201 });
   } catch (error) {
-    console.error('Ошибка при создании матча:', error);
-    return NextResponse.json({ error: 'Ошибка при создании матча' }, { status: 500 });
+    const err = error as any;
+    console.error('Ошибка при создании матча:', err);
+    return NextResponse.json({ error: 'Ошибка при создании матча', details: err?.message, stack: err?.stack }, { status: 500 });
   }
 } 

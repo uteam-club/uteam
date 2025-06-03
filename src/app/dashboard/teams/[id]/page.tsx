@@ -192,6 +192,25 @@ export default function TeamPage() {
     }
   }, [session, teamId]);
 
+  // Защита от автоперезагрузки при возврате на вкладку (visibilitychange)
+  useEffect(() => {
+    // На всякий случай удаляем все обработчики visibilitychange, если они были добавлены где-то глобально
+    const listeners = [] as EventListener[];
+    // @ts-ignore
+    if (window && window.__vite_plugin_react_preamble_installed) return; // для Vite/Next.js dev mode
+    const clone = document.createElement('div');
+    for (const key in window) {
+      if (key.startsWith('onvisibilitychange')) {
+        // @ts-ignore
+        window[key] = null;
+      }
+    }
+    document.removeEventListener('visibilitychange', () => {});
+    return () => {
+      listeners.forEach((l) => document.removeEventListener('visibilitychange', l));
+    };
+  }, []);
+
   // Обработчик возврата к списку команд
   const handleBackToList = () => {
     router.push('/dashboard/teams');
@@ -237,7 +256,7 @@ export default function TeamPage() {
       const createdPlayer = await response.json();
       
       // Добавляем созданного игрока в список
-      setPlayers(prev => [...prev, createdPlayer]);
+      setPlayers(prev => [...prev, createdPlayer.player]);
       
       // Закрываем модальное окно и сбрасываем форму
       setIsAddPlayerDialogOpen(false);
@@ -672,17 +691,17 @@ export default function TeamPage() {
                           )}
                           
                           {/* Фото игрока */}
-                          <div className="w-full aspect-square relative bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
+                          <div className="w-full aspect-square relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)] z-0" />
                             {player.imageUrl ? (
                               <img 
                                 src={player.imageUrl}
                                 alt={`${player.firstName} ${player.lastName}`}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover z-10 relative"
+                                style={{ background: 'transparent' }}
                               />
                             ) : (
-                              <div 
-                                className="w-full h-full flex items-center justify-center"
-                              >
+                              <div className="w-full h-full flex items-center justify-center z-10 relative">
                                 <UserIcon className="w-12 h-12 text-slate-300" />
                               </div>
                             )}

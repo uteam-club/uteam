@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { muscleArea } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -17,11 +17,9 @@ export async function GET(request: Request) {
   }
 
   try {
-    const muscles = await prisma.muscleArea.findMany({
-      where: { view },
-      select: { number: true, name: true }
-    });
-
+    const muscles = await db.select({ number: muscleArea.number, name: muscleArea.name })
+      .from(muscleArea)
+      .where(eq(muscleArea.view, view));
     return NextResponse.json(muscles);
   } catch (error) {
     console.error('Error fetching muscles:', error);

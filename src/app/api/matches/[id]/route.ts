@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { match, team, playerMatchStat, player } from '@/db/schema';
+import { eq, and, desc } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -13,151 +13,97 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     if (!session || !session.user) {
       return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
     }
-
     const matchId = params.id;
-    
-    // Получаем детали матча с информацией о команде
-    const match = await prisma.match.findFirst({
-      where: {
-        id: matchId,
-        clubId: session.user.clubId,
-      },
-      include: {
-        team: true,
-        playerStats: {
-          include: {
-            player: true,
-          },
-          orderBy: {
-            isStarter: 'desc', // Сначала основной состав, потом запасные
-          },
-        },
-      },
-    });
-
-    if (!match) {
+    // Получаем детали матча с join
+    const [row] = await db.select({
+      id: match.id,
+      competitionType: match.competitionType,
+      date: match.date,
+      time: match.time,
+      isHome: match.isHome,
+      teamId: match.teamId,
+      opponentName: match.opponentName,
+      teamGoals: match.teamGoals,
+      opponentGoals: match.opponentGoals,
+      createdAt: match.createdAt,
+      updatedAt: match.updatedAt,
+      clubId: match.clubId,
+      formation: match.formation,
+      gameFormat: match.gameFormat,
+      markerColor: match.markerColor,
+      notes: match.notes,
+      playerPositions: match.playerPositions,
+      positionAssignments: match.positionAssignments,
+      teamName: team.name
+    })
+      .from(match)
+      .leftJoin(team, eq(match.teamId, team.id))
+      .where(and(eq(match.id, matchId), eq(match.clubId, session.user.clubId)));
+    if (!row) {
       return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
     }
-
-    return NextResponse.json(match);
+    // Получаем playerStats с join на player
+    const stats = await db.select({
+      id: playerMatchStat.id,
+      matchId: playerMatchStat.matchId,
+      playerId: playerMatchStat.playerId,
+      isStarter: playerMatchStat.isStarter,
+      minutesPlayed: playerMatchStat.minutesPlayed,
+      goals: playerMatchStat.goals,
+      assists: playerMatchStat.assists,
+      yellowCards: playerMatchStat.yellowCards,
+      redCards: playerMatchStat.redCards,
+      createdAt: playerMatchStat.createdAt,
+      updatedAt: playerMatchStat.updatedAt,
+      player: player
+    })
+      .from(playerMatchStat)
+      .leftJoin(player, eq(playerMatchStat.playerId, player.id))
+      .where(eq(playerMatchStat.matchId, matchId))
+      .orderBy(desc(playerMatchStat.isStarter));
+    return NextResponse.json({ ...row, playerStats: stats });
   } catch (error) {
     console.error('Ошибка при получении деталей матча:', error);
     return NextResponse.json({ error: 'Ошибка при получении деталей матча' }, { status: 500 });
   }
 }
 
-// PATCH запрос для обновления данных матча
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
       return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
     }
-
     const matchId = params.id;
     const body = await request.json();
-    
-    console.log('Получен запрос на обновление матча:', matchId);
-    console.log('Данные для обновления (поля):', Object.keys(body));
-
     // Проверяем, существует ли матч и принадлежит ли он клубу пользователя
-    const existingMatch = await prisma.match.findFirst({
-      where: {
-        id: matchId,
-        clubId: session.user.clubId,
-      },
-    });
-
-    if (!existingMatch) {
+    const [existing] = await db.select().from(match).where(and(eq(match.id, matchId), eq(match.clubId, session.user.clubId)));
+    if (!existing) {
       return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
     }
-
     // Подготавливаем данные для обновления
-    const updateData: any = {
-        date: body.date ? new Date(body.date) : undefined,
-        time: body.time,
-        competitionType: body.competitionType,
-        isHome: body.isHome,
-        teamGoals: body.teamGoals,
-        opponentGoals: body.opponentGoals,
-        opponentName: body.opponentName,
-        gameFormat: body.gameFormat,
-        formation: body.formation,
-        markerColor: body.markerColor,
-        notes: body.notes,
-    };
-    
-    try {
-      // Отдельно обрабатываем поле playerPositions как JSON
-      if (body.playerPositions) {
-        console.log('Обновление playerPositions, элементов:', body.playerPositions.length);
-        console.log('Структура playerPositions:', JSON.stringify(body.playerPositions));
-        
-        // Очищаем объекты от возможных циклических ссылок и undefined значений
-        const cleanedPositions = body.playerPositions.map((pos: any) => ({
-          x: pos.x,
-          y: pos.y,
-          isGoalkeeper: pos.isGoalkeeper || false,
-          playerId: pos.playerId || null,
-          playerNumber: pos.playerNumber || null,
-          playerName: pos.playerName || null
-        }));
-        
-        console.log('Очищенные позиции:', JSON.stringify(cleanedPositions));
-        
-        // Напрямую присваиваем в updateData, Prisma сама конвертирует в JSON
-        updateData.playerPositions = cleanedPositions;
-      }
-
-      // Добавляем сохранение привязок игроков к позициям
-      if (body.positionAssignments) {
-        console.log('Обновление positionAssignments, привязок:', Object.keys(body.positionAssignments).length);
-        console.log('Структура positionAssignments:', JSON.stringify(body.positionAssignments));
-        
-        // Создаем чистый объект без возможных проблемных значений
-        const cleanedAssignments: Record<string, number> = {};
-        Object.entries(body.positionAssignments).forEach(([key, value]) => {
-          if (key && value !== undefined && value !== null) {
-            cleanedAssignments[key] = Number(value);
-          }
-        });
-        
-        console.log('Очищенные привязки:', JSON.stringify(cleanedAssignments));
-        
-        // Напрямую присваиваем в updateData, Prisma сама конвертирует в JSON
-        updateData.positionAssignments = cleanedAssignments;
-      }
-    } catch (jsonError) {
-      console.error('Ошибка при обработке JSON данных:', jsonError);
-      return NextResponse.json({ 
-        error: 'Ошибка при обработке данных', 
-        details: (jsonError as Error).message 
-      }, { status: 400 });
-    }
-
-    // Обновляем данные матча
-    try {
-      console.log('Отправка updateData в БД:', JSON.stringify(updateData));
-      const updatedMatch = await prisma.match.update({
-        where: {
-          id: matchId,
-        },
-        data: updateData,
-      });
-
-      console.log('Матч успешно обновлен:', matchId);
-      return NextResponse.json(updatedMatch);
-    } catch (prismaError) {
-      console.error('Ошибка при обновлении в базе данных:', prismaError);
-      console.error('Подробности ошибки:', prismaError);
-      return NextResponse.json({ 
-        error: 'Ошибка при сохранении в базу данных', 
-        details: (prismaError as Error).message 
-      }, { status: 500 });
-    }
+    const updateData: any = {};
+    if ('date' in body) updateData.date = new Date(body.date);
+    if ('time' in body) updateData.time = body.time;
+    if ('competitionType' in body) updateData.competitionType = body.competitionType;
+    if ('isHome' in body) updateData.isHome = body.isHome;
+    if ('teamGoals' in body) updateData.teamGoals = body.teamGoals;
+    if ('opponentGoals' in body) updateData.opponentGoals = body.opponentGoals;
+    if ('opponentName' in body) updateData.opponentName = body.opponentName;
+    if ('gameFormat' in body) updateData.gameFormat = body.gameFormat;
+    if ('formation' in body) updateData.formation = body.formation;
+    if ('markerColor' in body) updateData.markerColor = body.markerColor;
+    if ('notes' in body) updateData.notes = body.notes;
+    if ('playerPositions' in body) updateData.playerPositions = JSON.stringify(body.playerPositions);
+    if ('positionAssignments' in body) updateData.positionAssignments = JSON.stringify(body.positionAssignments);
+    const [updated] = await db.update(match)
+      .set(updateData)
+      .where(eq(match.id, matchId))
+      .returning();
+    return NextResponse.json(updated);
   } catch (error) {
     console.error('Ошибка при обновлении матча:', error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Ошибка при обновлении матча',
       details: (error as Error).message
     }, { status: 500 });

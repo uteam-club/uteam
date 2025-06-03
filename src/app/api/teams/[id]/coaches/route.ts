@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { user, team, teamCoach } from '@/db/schema';
+import { eq, and, inArray } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
 import * as z from 'zod';
 export const dynamic = 'force-dynamic';
@@ -52,36 +54,29 @@ export async function GET(
     console.log(`GET /team/coaches: Fetching coaches for team ${teamId} in club ${clubId}`);
     
     // Проверяем, принадлежит ли команда клубу пользователя
-    const team = await prisma.team.findUnique({
-      where: {
-        id: teamId,
-        clubId
-      }
-    });
-    
-    if (!team) {
+    const [foundTeam]: any = await db.select().from(team)
+      .where(and(eq(team.id, teamId), eq(team.clubId, clubId)))
+      .limit(1);
+    if (!foundTeam) {
       console.log(`GET /team/coaches: Team ${teamId} not found in club ${clubId}`);
       return NextResponse.json({ error: 'Team not found' }, { status: 404 });
     }
     
     // Получаем список тренеров команды с информацией о пользователях
-    const teamCoaches = await prisma.teamCoach.findMany({
-      where: {
-        teamId
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            imageUrl: true,
-            role: true
-          }
-        }
+    const teamCoaches = await db.select({
+      userId: teamCoach.userId,
+      teamId: teamCoach.teamId,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        imageUrl: user.imageUrl,
+        role: user.role
       }
-    });
-    
+    })
+      .from(teamCoach)
+      .leftJoin(user, eq(teamCoach.userId, user.id))
+      .where(eq(teamCoach.teamId, teamId));
     console.log(`GET /team/coaches: Found ${teamCoaches.length} coaches for team ${teamId}`);
     
     // Возвращаем данные о тренерах
@@ -117,14 +112,10 @@ export async function POST(
     const teamId = params.id;
     
     // Проверяем, принадлежит ли команда клубу пользователя
-    const team = await prisma.team.findUnique({
-      where: {
-        id: teamId,
-        clubId
-      }
-    });
-    
-    if (!team) {
+    const [foundTeam]: any = await db.select().from(team)
+      .where(and(eq(team.id, teamId), eq(team.clubId, clubId)))
+      .limit(1);
+    if (!foundTeam) {
       console.log(`POST /team/coaches: Team ${teamId} not found in club ${clubId}`);
       return NextResponse.json({ error: 'Team not found' }, { status: 404 });
     }
@@ -144,14 +135,8 @@ export async function POST(
     const { coachIds } = validationResult.data;
     
     // Проверяем, что все пользователи существуют и имеют роль COACH в том же клубе
-    const coaches = await prisma.user.findMany({
-      where: {
-        id: { in: coachIds },
-        clubId,
-        role: 'COACH'
-      }
-    });
-    
+    const coaches = await db.select().from(user)
+      .where(and(inArray(user.id, coachIds), eq(user.clubId, clubId), eq(user.role, 'COACH')));
     if (coaches.length !== coachIds.length) {
       console.log(`POST /team/coaches: Some coaches not found or not COACH role`);
       return NextResponse.json(
@@ -161,13 +146,8 @@ export async function POST(
     }
     
     // Получаем существующих тренеров, чтобы избежать дубликатов
-    const existingCoaches = await prisma.teamCoach.findMany({
-      where: {
-        teamId,
-        userId: { in: coachIds }
-      }
-    });
-    
+    const existingCoaches = await db.select().from(teamCoach)
+      .where(and(eq(teamCoach.teamId, teamId), inArray(teamCoach.userId, coachIds)));
     const existingCoachIds = existingCoaches.map(coach => coach.userId);
     const newCoachIds = coachIds.filter(id => !existingCoachIds.includes(id));
     
@@ -180,20 +160,12 @@ export async function POST(
     }
     
     // Добавляем новых тренеров
-    const result = await prisma.$transaction(
-      newCoachIds.map(coachId => 
-        prisma.teamCoach.create({
-          data: {
-            teamId,
-            userId: coachId
-          }
-        })
-      )
-    );
+    const inserted = await db.insert(teamCoach).values(
+      newCoachIds.map(coachId => ({ teamId, userId: coachId }))
+    ).returning();
+    console.log(`POST /team/coaches: Added ${inserted.length} coaches to team ${teamId}`);
     
-    console.log(`POST /team/coaches: Added ${result.length} coaches to team ${teamId}`);
-    
-    return NextResponse.json(result);
+    return NextResponse.json(inserted);
     
   } catch (error) {
     console.error('POST /team/coaches: Error:', error);
@@ -225,14 +197,10 @@ export async function DELETE(
     const teamId = params.id;
     
     // Проверяем, принадлежит ли команда клубу пользователя
-    const team = await prisma.team.findUnique({
-      where: {
-        id: teamId,
-        clubId
-      }
-    });
-    
-    if (!team) {
+    const [foundTeam]: any = await db.select().from(team)
+      .where(and(eq(team.id, teamId), eq(team.clubId, clubId)))
+      .limit(1);
+    if (!foundTeam) {
       console.log(`DELETE /team/coaches: Team ${teamId} not found in club ${clubId}`);
       return NextResponse.json({ error: 'Team not found' }, { status: 404 });
     }
@@ -252,16 +220,11 @@ export async function DELETE(
     const { coachIds } = validationResult.data;
     
     // Удаляем связи тренеров с командой
-    const result = await prisma.teamCoach.deleteMany({
-      where: {
-        teamId,
-        userId: { in: coachIds }
-      }
-    });
+    const result = await db.delete(teamCoach)
+      .where(and(eq(teamCoach.teamId, teamId), inArray(teamCoach.userId, coachIds)));
     
-    console.log(`DELETE /team/coaches: Removed ${result.count} coaches from team ${teamId}`);
-    
-    return NextResponse.json({ count: result.count });
+    console.log(`DELETE /team/coaches: Removed coaches from team ${teamId}`);
+    return NextResponse.json({ success: true });
     
   } catch (error) {
     console.error('DELETE /team/coaches: Error:', error);

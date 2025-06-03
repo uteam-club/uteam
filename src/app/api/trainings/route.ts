@@ -1,39 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { training, team, trainingCategory } from '@/db/schema';
+import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-
 
 const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
 // Функция для чтения токена из заголовка Authorization
 async function getTokenFromRequest(request: NextRequest) {
-  // Сначала пробуем стандартный способ NextAuth
   const token = await getToken({ req: request });
-  
   if (token) return token;
-  
-  // Если нет токена NextAuth, проверяем заголовок Authorization
   const authHeader = request.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) return null;
-  
   try {
-    // Извлекаем токен из заголовка
     const bearerToken = authHeader.replace('Bearer ', '');
-    
-    // Верифицируем JWT токен
     const decodedToken = jwt.verify(
-      bearerToken, 
+      bearerToken,
       (() => {
         if (!process.env.NEXTAUTH_SECRET) throw new Error('NEXTAUTH_SECRET не задан в .env');
         return process.env.NEXTAUTH_SECRET;
       })()
     ) as any;
-    
-    // Возвращаем декодированный токен в том же формате, что и NextAuth
     return {
       id: decodedToken.id,
       email: decodedToken.email,
@@ -53,88 +44,72 @@ async function getTokenFromRequest(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    // Получаем токен пользователя
     const token = await getTokenFromRequest(request);
-    
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    const role = token.role as string;
     const clubId = token.clubId as string;
-    
-    // Получаем параметры запроса
     const searchParams = request.nextUrl.searchParams;
     const teamId = searchParams.get('teamId');
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
-    
-    // Формируем условие фильтрации
-    const whereCondition: any = { clubId };
-    
-    // Если указан ID команды, добавляем фильтр по команде
+    // Формируем where через массив условий
+    const whereArr = [eq(training.clubId, clubId)];
     if (teamId) {
-      whereCondition.teamId = teamId;
+      whereArr.push(eq(training.teamId, teamId));
     }
-    
-    // Если указаны даты, добавляем фильтр по диапазону дат
-    if (fromDate || toDate) {
-      whereCondition.date = {};
-      
-      if (fromDate) {
-        whereCondition.date.gte = new Date(fromDate);
-      }
-      
-      if (toDate) {
-        // Устанавливаем конец дня для включения всех тренировок в указанный день
-        const endDate = new Date(toDate);
-        endDate.setHours(23, 59, 59, 999);
-        whereCondition.date.lte = endDate;
-      }
+    if (fromDate) {
+      whereArr.push(gte(training.date, new Date(fromDate)));
     }
-    
-    // Получаем тренировки клуба с фильтрацией
-    const trainings = await prisma.training.findMany({
-      where: whereCondition,
-      include: {
-        team: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        category: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-      },
-      orderBy: {
-        date: 'desc',
-      },
-    });
-    
-    // Преобразуем данные в формат, ожидаемый клиентом
-    const formattedTrainings = trainings.map(training => ({
+    if (toDate) {
+      const endDate = new Date(toDate);
+      endDate.setHours(23, 59, 59, 999);
+      whereArr.push(lte(training.date, endDate));
+    }
+    // JOIN с team и trainingCategory
+    const rows = await db.select({
       id: training.id,
       title: training.title,
       teamId: training.teamId,
-      team: training.team.name,
-      date: training.date.toISOString().split('T')[0],
-      time: training.time,
+      date: training.date,
       categoryId: training.categoryId,
-      category: training.category.name,
-      status: training.status || 'SCHEDULED',
-      type: training.type || 'TRAINING',
+      status: training.status,
+      type: training.type,
       createdAt: training.createdAt,
-      updatedAt: training.updatedAt
-    }));
-    
-    return NextResponse.json(formattedTrainings);
+      updatedAt: training.updatedAt,
+      teamName: team.name,
+      categoryName: trainingCategory.name,
+    })
+      .from(training)
+      .leftJoin(team, eq(training.teamId, team.id))
+      .leftJoin(trainingCategory, eq(training.categoryId, trainingCategory.id))
+      .where(and(...whereArr))
+      .orderBy(desc(training.date));
+    // Форматируем ответ
+    const formatted = rows.map(row => {
+      const dateObj = row.date;
+      const dateOnly = dateObj?.toISOString().split('T')[0];
+      const timeOnly = dateObj?.toISOString().split('T')[1].slice(0,5);
+      return {
+        id: row.id,
+        title: row.title,
+        teamId: row.teamId,
+        team: row.teamName,
+        date: row.date?.toISOString(),
+        dateOnly,
+        time: timeOnly,
+        categoryId: row.categoryId,
+        category: row.categoryName,
+        status: row.status || 'SCHEDULED',
+        type: row.type || 'TRAINING',
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt
+      };
+    });
+    return NextResponse.json(formatted);
   } catch (error: any) {
     console.error('Error fetching trainings:', error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to fetch trainings',
       details: error.message || 'Unknown error'
     }, { status: 500 });
@@ -146,67 +121,45 @@ export async function GET(request: NextRequest) {
  * Создание новой тренировки
  */
 export async function POST(request: NextRequest) {
+  let debug = {};
   try {
-    console.log('Начало обработки запроса на создание тренировки');
-    
-    // Получаем токен пользователя
     const token = await getTokenFromRequest(request);
-    
+    debug = { ...debug, token };
     if (!token) {
-      console.log('Ошибка аутентификации: пользователь не авторизован');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', debug }, { status: 401 });
     }
-    
     const role = token.role as string;
     const clubId = token.clubId as string;
     const userId = token.id as string;
-    
-    // Проверяем права (только админ, суперадмин или тренер)
     if (!allowedRoles.includes(role)) {
-      console.log('Ошибка доступа: у пользователя недостаточно прав');
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden', debug }, { status: 403 });
     }
-    
-    // Парсим тело запроса
     const data = await request.json();
-    console.log('Получены данные для создания тренировки:', data);
-    
-    // Проверка наличия необходимых полей
+    debug = { ...debug, incomingData: data };
     if (!data.title || !data.title.trim()) {
-      console.log('Отсутствует обязательное поле: title');
-      return NextResponse.json({ 
-        error: 'Missing required field: title' 
-      }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required field: title', debug }, { status: 400 });
     }
-    
     if (!data.teamId) {
-      console.log('Отсутствует обязательное поле: teamId');
-      return NextResponse.json({ 
-        error: 'Missing required field: teamId' 
-      }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required field: teamId', debug }, { status: 400 });
     }
-    
     if (!data.date) {
-      console.log('Отсутствует обязательное поле: date');
-      return NextResponse.json({ 
-        error: 'Missing required field: date' 
-      }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required field: date', debug }, { status: 400 });
     }
-    
+    if (!data.time) {
+      return NextResponse.json({ error: 'Missing required field: time', debug }, { status: 400 });
+    }
     if (!data.categoryId) {
-      console.log('Отсутствует обязательное поле: categoryId');
-      return NextResponse.json({ 
-        error: 'Missing required field: categoryId' 
-      }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required field: categoryId', debug }, { status: 400 });
     }
-    
-    // Создаем объект с данными для создания тренировки
+    // Объединяем дату и время в один timestamp (UTC)
+    // Формируем ISO-строку с Z (UTC)
+    const dateTimeString = `${data.date}T${data.time}:00Z`;
     const trainingData = {
+      id: uuidv4(),
       title: data.title.trim(),
       description: data.description || null,
       teamId: data.teamId,
-      date: new Date(data.date),
-      time: data.time,
+      date: new Date(dateTimeString), // всегда UTC
       location: data.location || null,
       notes: data.notes || null,
       categoryId: data.categoryId,
@@ -214,54 +167,49 @@ export async function POST(request: NextRequest) {
       createdById: userId,
       status: data.status || 'SCHEDULED',
       type: data.type || 'TRAINING',
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
-    
-    // Создаем тренировку
-    const training = await prisma.training.create({
-      data: trainingData,
-      include: {
-        team: true,
-        category: true,
-      }
-    });
-    
-    console.log('Тренировка успешно создана:', training.id);
-    
-    // Форматируем данные для ответа клиенту
+    debug = { ...debug, trainingData };
+    const [created] = await db.insert(training).values(trainingData).returning();
+    // Получаем team и category для ответа
+    const [teamRow] = await db.select({ name: team.name }).from(team).where(eq(team.id, created.teamId));
+    const [catRow] = await db.select({ name: trainingCategory.name }).from(trainingCategory).where(eq(trainingCategory.id, created.categoryId));
+    // Формируем ответ
+    const dateObj = created.date;
+    const dateOnly = dateObj.toISOString().split('T')[0];
+    const timeOnly = dateObj.toISOString().split('T')[1].slice(0,5);
     const formattedTraining = {
-      id: training.id,
-      title: training.title,
-      teamId: training.teamId,
-      team: training.team.name,
-      date: training.date.toISOString().split('T')[0],
-      time: training.time,
-      categoryId: training.categoryId,
-      category: training.category.name,
-      status: training.status || 'SCHEDULED',
-      type: training.type || 'TRAINING',
-      createdAt: training.createdAt,
-      updatedAt: training.updatedAt
+      id: created.id,
+      title: created.title,
+      teamId: created.teamId,
+      team: teamRow?.name || '',
+      date: created.date.toISOString(), // полная дата-время
+      dateOnly,
+      time: timeOnly,
+      categoryId: created.categoryId,
+      category: catRow?.name || '',
+      status: created.status || 'SCHEDULED',
+      type: created.type || 'TRAINING',
+      createdAt: created.createdAt,
+      updatedAt: created.updatedAt
     };
-    
     return NextResponse.json(formattedTraining);
   } catch (error: any) {
-    console.error('Необработанная ошибка при создании тренировки:', error);
-    
-    return NextResponse.json({ 
-      error: 'Failed to create training', 
-      details: error.message || 'Unknown error' 
+    return NextResponse.json({
+      error: 'Failed to create training',
+      details: error.message || 'Unknown error',
+      stack: error.stack || null,
+      debug
     }, { status: 500 });
   }
 }
 
 // Вспомогательная функция для получения названия команды
-async function fetchTeamName(teamId: string): Promise<string> {
+async function fetchTeamName(teamIdValue: string): Promise<string> {
   try {
-    const team = await prisma.team.findUnique({
-      where: { id: teamId },
-      select: { name: true }
-    });
-    return team?.name || 'Неизвестная команда';
+    const teamRow = await db.select({ name: team.name }).from(team).where(eq(team.id, teamIdValue));
+    return teamRow[0]?.name || 'Неизвестная команда';
   } catch (error) {
     console.error('Ошибка при получении имени команды:', error);
     return 'Неизвестная команда';
@@ -269,15 +217,111 @@ async function fetchTeamName(teamId: string): Promise<string> {
 }
 
 // Вспомогательная функция для получения названия категории
-async function fetchCategoryName(categoryId: string): Promise<string> {
+async function fetchCategoryName(categoryIdValue: string): Promise<string> {
   try {
-    const category = await prisma.trainingCategory.findUnique({
-      where: { id: categoryId },
-      select: { name: true }
-    });
-    return category?.name || 'Неизвестная категория';
+    const catRow = await db.select({ name: trainingCategory.name }).from(trainingCategory).where(eq(trainingCategory.id, categoryIdValue));
+    return catRow[0]?.name || 'Неизвестная категория';
   } catch (error) {
     console.error('Ошибка при получении имени категории:', error);
     return 'Неизвестная категория';
+  }
+}
+
+/**
+ * PUT /api/trainings
+ * Редактирование тренировки
+ */
+export async function PUT(request: NextRequest) {
+  let debug = {};
+  try {
+    const token = await getTokenFromRequest(request);
+    debug = { ...debug, token };
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized', debug }, { status: 401 });
+    }
+    const role = token.role as string;
+    const clubId = token.clubId as string;
+    const userId = token.id as string;
+    if (!allowedRoles.includes(role)) {
+      return NextResponse.json({ error: 'Forbidden', debug }, { status: 403 });
+    }
+    const data = await request.json();
+    debug = { ...debug, incomingData: data };
+    if (!data.id) {
+      return NextResponse.json({ error: 'Missing required field: id', debug }, { status: 400 });
+    }
+    if (!data.title || !data.title.trim()) {
+      return NextResponse.json({ error: 'Missing required field: title', debug }, { status: 400 });
+    }
+    if (!data.teamId) {
+      return NextResponse.json({ error: 'Missing required field: teamId', debug }, { status: 400 });
+    }
+    if (!data.date) {
+      return NextResponse.json({ error: 'Missing required field: date', debug }, { status: 400 });
+    }
+    if (!data.categoryId) {
+      return NextResponse.json({ error: 'Missing required field: categoryId', debug }, { status: 400 });
+    }
+    // Объединяем дату и время в один timestamp
+    const dateTimeString = `${data.date}T${data.time}:00`;
+    const trainingData = {
+      id: data.id,
+      title: data.title.trim(),
+      description: data.description || null,
+      teamId: data.teamId,
+      date: new Date(dateTimeString), // теперь и дата, и время
+      location: data.location || null,
+      notes: data.notes || null,
+      categoryId: data.categoryId,
+      clubId: clubId,
+      createdById: userId,
+      status: data.status || 'SCHEDULED',
+      type: data.type || 'TRAINING',
+      updatedAt: new Date(),
+    };
+    if ('date' in data && 'time' in data && data.date && data.time) {
+      // Формируем ISO-строку с Z (UTC)
+      const dateTimeString = `${data.date}T${data.time}:00Z`;
+      trainingData.date = new Date(dateTimeString); // всегда UTC
+    } else if ('date' in data && data.date) {
+      trainingData.date = new Date(data.date);
+    }
+    debug = { ...debug, trainingData };
+    const [updated] = await db.update(training)
+      .set(trainingData)
+      .where(eq(training.id, data.id))
+      .returning();
+    // Получаем team и category для ответа
+    const [teamRow] = await db.select({ name: team.name }).from(team).where(eq(team.id, updated.teamId));
+    const [catRow] = await db.select({ name: trainingCategory.name }).from(trainingCategory).where(eq(trainingCategory.id, updated.categoryId));
+    // Форматируем данные для ответа клиенту
+    const dateObj = updated.date;
+    const dateOnly = dateObj?.toISOString().split('T')[0];
+    const timeOnly = dateObj?.toISOString().split('T')[1].slice(0,5);
+    const formattedTraining = {
+      id: updated.id,
+      title: updated.title,
+      description: updated.description,
+      teamId: updated.teamId,
+      team: teamRow?.name || '',
+      date: updated.date?.toISOString(),
+      dateOnly,
+      time: timeOnly,
+      location: updated.location,
+      notes: updated.notes,
+      categoryId: updated.categoryId,
+      category: catRow?.name || '',
+      status: updated.status || 'SCHEDULED',
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt
+    };
+    return NextResponse.json(formattedTraining);
+  } catch (error: any) {
+    return NextResponse.json({
+      error: 'Failed to update training',
+      details: error.message || 'Unknown error',
+      stack: error.stack || null,
+      debug
+    }, { status: 500 });
   }
 } 

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
+import { db } from '@/lib/db';
+import { player, team, playerDocument } from '@/db/schema';
+import { eq, and, asc } from 'drizzle-orm';
+import { getServiceSupabase, deletePlayerFile } from '@/lib/supabase';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-
 
 // Функция для чтения токена из заголовка Authorization
 async function getTokenFromRequest(request: NextRequest) {
@@ -74,49 +76,31 @@ export async function GET(
     console.log(`GET /player: Fetching player ${playerId} from team ${teamId} in club ${clubId}`);
     
     // Проверяем, что команда принадлежит клубу пользователя
-    const team = await prisma.team.findFirst({
-      where: {
-        id: teamId,
-        clubId: clubId,
-      },
-    });
-    
-    if (!team) {
+    const [foundTeam]: any = await db.select().from(team)
+      .where(and(eq(team.id, teamId), eq(team.clubId, clubId)))
+      .limit(1);
+    if (!foundTeam) {
       console.log(`GET /player: Team ${teamId} not found or not in club ${clubId}`);
       return NextResponse.json({ error: 'Team not found or access denied' }, { status: 404 });
     }
     
     // Получаем данные игрока
-    const player = await prisma.player.findUnique({
-      where: {
-        id: playerId,
-      },
-    });
-    
-    if (!player || player.teamId !== teamId) {
+    const [foundPlayer]: any = await db.select().from(player)
+      .where(eq(player.id, playerId))
+      .limit(1);
+    if (!foundPlayer || foundPlayer.teamId !== teamId) {
       console.log(`GET /player: Player ${playerId} not found or not in team ${teamId}`);
       return NextResponse.json({ error: 'Player not found or not in this team' }, { status: 404 });
     }
     
     // Получаем список всех команд клуба (для выпадающего списка смены команды)
-    const teams = await prisma.team.findMany({
-      where: {
-        clubId: clubId,
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    });
+    const teams = await db.select({ id: team.id, name: team.name })
+      .from(team)
+      .where(eq(team.clubId, clubId))
+      .orderBy(asc(team.name));
     
     console.log(`GET /player: Successfully fetched player ${playerId}`);
-    return NextResponse.json({ 
-      player: player, 
-      teams: teams 
-    });
+    return NextResponse.json({ player: foundPlayer, teams });
   } catch (error: any) {
     console.error('Error fetching player:', error);
     return NextResponse.json({ 
@@ -150,25 +134,18 @@ export async function PUT(
     console.log(`PUT /player: Updating player ${playerId} in team ${teamId} for club ${clubId}`);
     
     // Сначала проверяем, что команда принадлежит клубу пользователя
-    const team = await prisma.team.findFirst({
-      where: {
-        id: teamId,
-        clubId: clubId,
-      },
-    });
-    
-    if (!team) {
+    const [foundTeam]: any = await db.select().from(team)
+      .where(and(eq(team.id, teamId), eq(team.clubId, clubId)))
+      .limit(1);
+    if (!foundTeam) {
       console.log(`PUT /player: Team ${teamId} not found or not in club ${clubId}`);
       return NextResponse.json({ error: 'Team not found or access denied' }, { status: 404 });
     }
     
     // Проверяем наличие игрока
-    const existingPlayer = await prisma.player.findUnique({
-      where: {
-        id: playerId,
-      },
-    });
-    
+    const [existingPlayer]: any = await db.select().from(player)
+      .where(eq(player.id, playerId))
+      .limit(1);
     if (!existingPlayer || existingPlayer.teamId !== teamId) {
       console.log(`PUT /player: Player ${playerId} not found or not in team ${teamId}`);
       return NextResponse.json({ error: 'Player not found or not in this team' }, { status: 404 });
@@ -182,18 +159,13 @@ export async function PUT(
     let newTeamId = teamId;
     if (data.teamId && data.teamId !== teamId) {
       // Проверяем, что новая команда существует и принадлежит тому же клубу
-      const newTeam = await prisma.team.findFirst({
-        where: {
-          id: data.teamId,
-          clubId: clubId,
-        },
-      });
-      
+      const [newTeam]: any = await db.select().from(team)
+        .where(and(eq(team.id, data.teamId), eq(team.clubId, clubId)))
+        .limit(1);
       if (!newTeam) {
         console.log(`PUT /player: New team ${data.teamId} not found or not in club ${clubId}`);
         return NextResponse.json({ error: 'New team not found or access denied' }, { status: 400 });
       }
-      
       newTeamId = data.teamId;
     }
     
@@ -214,12 +186,9 @@ export async function PUT(
     };
     
     // Обновляем игрока
-    const updatedPlayer = await prisma.player.update({
-      where: {
-        id: playerId,
-      },
-      data: updateData,
-    });
+    const updatedPlayer = await db.update(player)
+      .set(updateData)
+      .where(eq(player.id, playerId));
     
     console.log(`PUT /player: Successfully updated player ${playerId}`);
     
@@ -257,25 +226,18 @@ export async function PATCH(
     console.log(`PATCH /player: Updating status for player ${playerId} in team ${teamId} for club ${clubId}`);
     
     // Проверяем, что команда принадлежит клубу пользователя
-    const team = await prisma.team.findFirst({
-      where: {
-        id: teamId,
-        clubId: clubId,
-      },
-    });
-    
-    if (!team) {
+    const [foundTeam]: any = await db.select().from(team)
+      .where(and(eq(team.id, teamId), eq(team.clubId, clubId)))
+      .limit(1);
+    if (!foundTeam) {
       console.log(`PATCH /player: Team ${teamId} not found or not in club ${clubId}`);
       return NextResponse.json({ error: 'Team not found or access denied' }, { status: 404 });
     }
     
     // Проверяем наличие игрока
-    const existingPlayer = await prisma.player.findUnique({
-      where: {
-        id: playerId,
-      },
-    });
-    
+    const [existingPlayer]: any = await db.select().from(player)
+      .where(eq(player.id, playerId))
+      .limit(1);
     if (!existingPlayer || existingPlayer.teamId !== teamId) {
       console.log(`PATCH /player: Player ${playerId} not found or not in team ${teamId}`);
       return NextResponse.json({ error: 'Player not found or not in this team' }, { status: 404 });
@@ -298,12 +260,9 @@ export async function PATCH(
     }
     
     // Обновляем игрока
-    const updatedPlayer = await prisma.player.update({
-      where: {
-        id: playerId,
-      },
-      data: updateData,
-    });
+    const updatedPlayer = await db.update(player)
+      .set(updateData)
+      .where(eq(player.id, playerId));
     
     console.log(`PATCH /player: Successfully updated status for player ${playerId}`);
     
@@ -312,6 +271,86 @@ export async function PATCH(
     console.error('Error updating player status:', error);
     return NextResponse.json({ 
       error: 'Failed to update player status',
+      details: error.message || 'Unknown error'
+    }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/teams/[id]/players/[playerId]
+ * Удаление игрока
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string, playerId: string } }
+) {
+  try {
+    // Получаем токен пользователя
+    const token = await getTokenFromRequest(request);
+    if (!token) {
+      console.log('DELETE /player: Unauthorized access attempt');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const clubId = token.clubId as string;
+    const teamId = params.id;
+    const playerId = params.playerId;
+    console.log(`DELETE /player: Deleting player ${playerId} from team ${teamId} in club ${clubId}`);
+    // Проверяем, что команда принадлежит клубу пользователя
+    const [foundTeam]: any = await db.select().from(team)
+      .where(and(eq(team.id, teamId), eq(team.clubId, clubId)))
+      .limit(1);
+    if (!foundTeam) {
+      console.log(`DELETE /player: Team ${teamId} not found or not in club ${clubId}`);
+      return NextResponse.json({ error: 'Team not found or access denied' }, { status: 404 });
+    }
+    // Проверяем наличие игрока
+    const [existingPlayer]: any = await db.select().from(player)
+      .where(eq(player.id, playerId))
+      .limit(1);
+    if (!existingPlayer || existingPlayer.teamId !== teamId) {
+      console.log(`DELETE /player: Player ${playerId} not found or not in team ${teamId}`);
+      return NextResponse.json({ error: 'Player not found or not in this team' }, { status: 404 });
+    }
+    // 1. Удаляем все документы игрока и их файлы
+    const docs = await db.select().from(playerDocument).where(eq(playerDocument.playerId, playerId));
+    for (const doc of docs) {
+      if (doc.url) {
+        try { await deletePlayerFile(doc.url); } catch (e) { console.error('Ошибка удаления файла документа:', doc.url, e); }
+      }
+    }
+    await db.delete(playerDocument).where(eq(playerDocument.playerId, playerId));
+    // 2. Удаляем аватар игрока из Supabase Storage
+    if (existingPlayer.imageUrl) {
+      try {
+        const url = new URL(existingPlayer.imageUrl);
+        const path = decodeURIComponent(url.pathname.replace('/storage/v1/object/public/club-media/', ''));
+        await deletePlayerFile(path);
+      } catch (e) { console.error('Ошибка удаления аватара:', e); }
+    }
+    // 3. Удаляем все файлы из папки игрока в Supabase Storage (аватары, документы)
+    try {
+      const supabase = getServiceSupabase();
+      const { data: list, error: listError } = await supabase.storage.from('club-media').list(`clubs/${teamId}/players/${playerId}`);
+      if (!listError && list?.length) {
+        for (const folder of list) {
+          if (folder.name) {
+            const { data: files } = await supabase.storage.from('club-media').list(`clubs/${teamId}/players/${playerId}/${folder.name}`);
+            if (files?.length) {
+              await supabase.storage.from('club-media').remove(files.map(f => `clubs/${teamId}/players/${playerId}/${folder.name}/${f.name}`));
+            }
+          }
+        }
+      }
+    } catch (e) { console.error('Ошибка каскадного удаления файлов игрока:', e); }
+    // Удаляем игрока
+    const deletedPlayer = await db.delete(player)
+      .where(eq(player.id, playerId));
+    console.log(`DELETE /player: Successfully deleted player ${playerId}`);
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Error deleting player:', error);
+    return NextResponse.json({ 
+      error: 'Failed to delete player',
       details: error.message || 'Unknown error'
     }, { status: 500 });
   }

@@ -25,12 +25,10 @@
 
 ```typescript
 // Правильно - с фильтрацией по clubId
-const teams = await prisma.team.findMany({
-  where: { clubId: currentClubId }
-});
+const teams = await db.select().from(team).where(eq(team.clubId, currentClubId));
 
 // Неправильно - без фильтрации
-const teams = await prisma.team.findMany(); // Никогда не делайте так!
+const teams = await db.select().from(team); // Никогда не делайте так!
 ```
 
 ### 3. Маршрутизация и middleware
@@ -63,7 +61,7 @@ export function middleware(request: NextRequest) {
 ```typescript
 // При входе через поддомен
 if (subdomain) {
-  const club = await getClubBySubdomain(subdomain);
+  const [club] = await db.select().from(club).where(eq(club.id, session.user.clubId));
   
   if (!club) {
     return NextResponse.json({ error: 'Club not found' }, { status: 404 });
@@ -119,15 +117,14 @@ CREATE POLICY team_tenant_isolation ON "Team"
    );
    ```
 
-### 3. Интеграция с Prisma
+### 3. Интеграция с Drizzle
 
-Prisma используется поверх Supabase для типобезопасной работы с данными:
+Drizzle используется поверх Supabase для типобезопасной работы с данными:
 
 ```typescript
+// Drizzle с фильтрацией для мультитенантности
 // Prisma с фильтрацией для мультитенантности
-const teams = await prisma.team.findMany({
-  where: { clubId: currentClubId }
-});
+const teams = await db.select().from(team).where(eq(team.clubId, currentClubId));
 ```
 
 ### 4. Контекст клуба в Supabase
@@ -203,10 +200,7 @@ export async function GET(request: NextRequest) {
   const clubId = session.user.clubId;
   
   // Извлечение данных с фильтрацией по clubId
-  const data = await prisma.entity.findMany({
-    where: { clubId },
-    // ...
-  });
+  const data = await db.select().from(entity).where(eq(entity.clubId, clubId));
   
   return NextResponse.json(data);
 }
@@ -229,14 +223,9 @@ export async function POST(request: NextRequest) {
   const data = await request.json();
   
   // Создание записи с привязкой к клубу
-  const result = await prisma.entity.create({
-    data: {
-      ...data,
-      clubId, // Всегда добавляйте clubId
-    },
-  });
+  await db.insert(entity).values({ ...data, clubId });
   
-  return NextResponse.json(result);
+  return NextResponse.json(data);
 }
 ```
 
@@ -249,13 +238,11 @@ export async function POST(request: NextRequest) {
 ```typescript
 // Для супер-администраторов можно не ограничивать выборку по clubId
 if (session.user.role === 'SUPER_ADMIN') {
-  const allClubs = await prisma.club.findMany();
+  const allClubs = await db.select().from(club);
   return NextResponse.json(allClubs);
 } else {
   // Для обычных пользователей - только свой клуб
-  const club = await prisma.club.findUnique({
-    where: { id: session.user.clubId },
-  });
+  const [club] = await db.select().from(club).where(eq(club.id, session.user.clubId));
   return NextResponse.json([club]);
 }
 ```
@@ -266,7 +253,7 @@ if (session.user.role === 'SUPER_ADMIN') {
 
 ```typescript
 // Данные, не связанные с конкретным клубом
-const commonData = await prisma.commonEntity.findMany();
+const commonData = await db.select().from(commonEntity);
 ```
 
 #### 3. Управление на уровне БД

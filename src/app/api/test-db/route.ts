@@ -1,20 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { user } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-
-
 export async function GET(request: NextRequest) {
   try {
-    const users = await prisma.user.findMany({
-      take: 5
-    });
-    
+    const users = await db.select({ id: user.id, email: user.email, role: user.role })
+      .from(user)
+      .limit(5);
     return NextResponse.json({ 
       success: true, 
       message: 'База данных работает',
-      users: users.map(u => ({ id: u.id, email: u.email, role: u.role })) 
+      users
     });
   } catch (error) {
     console.error('Ошибка при подключении к БД:', error);

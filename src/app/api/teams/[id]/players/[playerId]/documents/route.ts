@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
 import { uploadPlayerFile, deletePlayerFile } from '@/lib/supabase';
 import { getServiceSupabase } from '@/lib/supabase';
 import { transliterate } from '@/lib/transliterate';
+import { db } from '@/lib/db';
+import { player, team, playerDocument } from '@/db/schema';
+import { eq, and, desc } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -80,43 +83,26 @@ export async function GET(
     console.log(`GET /player/documents: Fetching documents for player ${playerId} from team ${teamId} in club ${clubId}`);
     
     // Проверяем, что команда принадлежит клубу пользователя
-    const team = await prisma.team.findFirst({
-      where: {
-        id: teamId,
-        clubId: clubId,
-      },
-    });
-    
-    if (!team) {
+    const [foundTeam]: any = await db.select().from(team)
+      .where(and(eq(team.id, teamId), eq(team.clubId, clubId)))
+      .limit(1);
+    if (!foundTeam) {
       console.log(`GET /player/documents: Team ${teamId} not found or not in club ${clubId}`);
       return NextResponse.json({ error: 'Team not found or access denied' }, { status: 404 });
     }
-    
     // Проверяем, что игрок принадлежит указанной команде
-    const player = await prisma.player.findUnique({
-      where: {
-        id: playerId,
-      },
-    });
-    
-    if (!player || player.teamId !== teamId) {
+    const [foundPlayer]: any = await db.select().from(player)
+      .where(eq(player.id, playerId))
+      .limit(1);
+    if (!foundPlayer || foundPlayer.teamId !== teamId) {
       console.log(`GET /player/documents: Player ${playerId} not found or not in team ${teamId}`);
       return NextResponse.json({ error: 'Player not found or not in this team' }, { status: 404 });
     }
-    
     // Получаем документы игрока
-    const documents = await prisma.playerDocument.findMany({
-      where: {
-        playerId: playerId,
-        clubId: clubId
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
-    
+    const documents = await db.select().from(playerDocument)
+      .where(and(eq(playerDocument.playerId, playerId), eq(playerDocument.clubId, clubId)))
+      .orderBy(desc(playerDocument.createdAt));
     console.log(`GET /player/documents: Found ${documents.length} documents for player ${playerId}`);
-    
     return NextResponse.json(documents);
   } catch (error: any) {
     console.error('Error fetching player documents:', error);
@@ -152,26 +138,18 @@ export async function POST(
     console.log(`POST /player/documents: Uploading document for player ${playerId} in team ${teamId}`);
     
     // Проверяем, что команда принадлежит клубу пользователя
-    const team = await prisma.team.findFirst({
-      where: {
-        id: teamId,
-        clubId: clubId,
-      },
-    });
-    
-    if (!team) {
+    const [foundTeam]: any = await db.select().from(team)
+      .where(and(eq(team.id, teamId), eq(team.clubId, clubId)))
+      .limit(1);
+    if (!foundTeam) {
       console.log(`POST /player/documents: Team ${teamId} not found or not in club ${clubId}`);
       return NextResponse.json({ error: 'Team not found or access denied' }, { status: 404 });
     }
-    
     // Проверяем, что игрок принадлежит указанной команде
-    const player = await prisma.player.findUnique({
-      where: {
-        id: playerId,
-      },
-    });
-    
-    if (!player || player.teamId !== teamId) {
+    const [foundPlayer]: any = await db.select().from(player)
+      .where(eq(player.id, playerId))
+      .limit(1);
+    if (!foundPlayer || foundPlayer.teamId !== teamId) {
       console.log(`POST /player/documents: Player ${playerId} not found or not in team ${teamId}`);
       return NextResponse.json({ error: 'Player not found or not in this team' }, { status: 404 });
     }
@@ -245,7 +223,7 @@ export async function POST(
       // Транслитерируем имя файла для избежания проблем с кириллицей
       const originalName = file.name.replace(/\s+/g, '_');
       const safeFileName = `${timestamp}-${transliterate(originalName)}`;
-      const filePath = `clubs/${clubId}/players/${playerId}/documents/${safeFileName}`;
+      const filePath = `clubs/${clubId}/teams/${teamId}/players/${playerId}/documents/${safeFileName}`;
       
       console.log(`Загрузка документа по пути: ${filePath}`);
       
@@ -318,18 +296,19 @@ export async function POST(
       console.log(`Документ успешно загружен, публичный URL: ${publicUrl}`);
       
       // Создаем запись о документе в базе данных
-      const document = await prisma.playerDocument.create({
-        data: {
-          name: file.name,
-          type: type as any, // DocumentType enum
-          url: filePath,
-          publicUrl: publicUrl,
-          size: file.size,
-          playerId: playerId,
-          clubId: clubId,
-          uploadedById: userId
-        }
-      });
+      const [document]: any = await db.insert(playerDocument).values({
+        id: uuidv4(),
+        name: file.name,
+        type: type as any, // DocumentType enum
+        url: filePath,
+        publicUrl: publicUrl,
+        size: file.size,
+        playerId: playerId,
+        clubId: clubId,
+        uploadedById: userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }).returning();
       
       console.log(`POST /player/documents: Document uploaded successfully with ID ${document.id}`);
       
@@ -381,37 +360,27 @@ export async function DELETE(
     console.log(`DELETE /player/documents: Deleting document ${documentId} for player ${playerId}`);
     
     // Проверяем, что команда принадлежит клубу пользователя
-    const team = await prisma.team.findFirst({
-      where: {
-        id: teamId,
-        clubId: clubId,
-      },
-    });
-    
-    if (!team) {
+    const [foundTeam]: any = await db.select().from(team)
+      .where(and(eq(team.id, teamId), eq(team.clubId, clubId)))
+      .limit(1);
+    if (!foundTeam) {
       console.log(`DELETE /player/documents: Team ${teamId} not found or not in club ${clubId}`);
       return NextResponse.json({ error: 'Team not found or access denied' }, { status: 404 });
     }
     
     // Проверяем, что игрок принадлежит указанной команде
-    const player = await prisma.player.findUnique({
-      where: {
-        id: playerId,
-      },
-    });
-    
-    if (!player || player.teamId !== teamId) {
+    const [foundPlayer]: any = await db.select().from(player)
+      .where(eq(player.id, playerId))
+      .limit(1);
+    if (!foundPlayer || foundPlayer.teamId !== teamId) {
       console.log(`DELETE /player/documents: Player ${playerId} not found or not in team ${teamId}`);
       return NextResponse.json({ error: 'Player not found or not in this team' }, { status: 404 });
     }
     
     // Получаем документ из базы данных
-    const document = await prisma.playerDocument.findUnique({
-      where: {
-        id: documentId,
-      },
-    });
-    
+    const [document]: any = await db.select().from(playerDocument)
+      .where(eq(playerDocument.id, documentId))
+      .limit(1);
     if (!document || document.playerId !== playerId || document.clubId !== clubId) {
       console.log(`DELETE /player/documents: Document ${documentId} not found or access denied`);
       return NextResponse.json({ error: 'Document not found or access denied' }, { status: 404 });
@@ -429,11 +398,8 @@ export async function DELETE(
     }
     
     // Удаляем запись о документе из базы данных
-    await prisma.playerDocument.delete({
-      where: {
-        id: documentId,
-      },
-    });
+    await db.delete(playerDocument)
+      .where(eq(playerDocument.id, documentId));
     
     console.log(`DELETE /player/documents: Document ${documentId} deleted successfully`);
     

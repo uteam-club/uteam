@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
+import { db } from '@/lib/db';
+import { trainingCategory } from '@/db/schema';
+import { eq, asc } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -53,14 +56,7 @@ export async function GET(request: NextRequest) {
     
     // Получаем категории тренировок клуба
     console.log('Fetching categories for club:', clubId);
-    const categories = await prisma.trainingCategory.findMany({
-      where: {
-        clubId,
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    });
+    const categories = await db.select().from(trainingCategory).where(eq(trainingCategory.clubId, clubId)).orderBy(asc(trainingCategory.name));
     console.log('Found categories:', categories.length);
     
     return NextResponse.json(categories);
@@ -115,16 +111,18 @@ export async function POST(request: NextRequest) {
     const categoryData = {
       name: data.name.trim(),
       clubId,
+      id: uuidv4(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
     
     // Создаем категорию
-    const category = await prisma.trainingCategory.create({
-      data: categoryData,
-    });
+    const categoryArr = await db.insert(trainingCategory).values(categoryData).returning({ id: trainingCategory.id });
+    const category = categoryArr[0];
     
-    console.log('Категория тренировок успешно создана:', category.id);
+    console.log('Категория тренировок успешно создана:', category?.id);
     
-    return NextResponse.json(category);
+    return NextResponse.json(category, { status: 201 });
   } catch (error: any) {
     console.error('Необработанная ошибка при создании категории тренировок:', error);
     

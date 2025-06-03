@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { club } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -13,8 +15,8 @@ export async function GET(req: NextRequest) {
   if (!clubId) {
     return NextResponse.json({ error: 'No clubId' }, { status: 400 });
   }
-  const club = await prisma.club.findUnique({ where: { id: clubId } });
-  return NextResponse.json({ time: club?.broadcastTime || '08:00' });
+  const [clubRow] = await db.select().from(club).where(eq(club.id, clubId));
+  return NextResponse.json({ time: clubRow?.broadcastTime || '08:00' });
 }
 
 // POST: сохранить время рассылки для клуба
@@ -32,7 +34,7 @@ export async function POST(req: NextRequest) {
     if (!time || typeof time !== 'string') {
       return NextResponse.json({ error: 'Invalid time value', time }, { status: 400 });
     }
-    const updated = await prisma.club.update({ where: { id: clubId }, data: { broadcastTime: time } });
+    const [updated] = await db.update(club).set({ broadcastTime: time }).where(eq(club.id, clubId)).returning();
     return NextResponse.json({ message: 'Время рассылки сохранено!', updated });
   } catch (e: any) {
     return NextResponse.json({ error: e.message, stack: e.stack }, { status: 500 });

@@ -48,6 +48,7 @@ interface Training {
   isCompleted?: boolean;
   status?: string;
   type: string;
+  dateOnly: string;
 }
 
 export default function TrainingsPage() {
@@ -182,20 +183,14 @@ export default function TrainingsPage() {
       
       // Фильтр по дате начала
       if (startDate) {
-        const trainingDate = new Date(training.date);
-        const filterStartDate = new Date(startDate);
-        if (trainingDate < filterStartDate) {
+        if (training.dateOnly < startDate) {
           return false;
         }
       }
       
       // Фильтр по дате окончания
       if (endDate) {
-        const trainingDate = new Date(training.date);
-        const filterEndDate = new Date(endDate);
-        // Добавляем один день к дате окончания, чтобы включить весь день
-        filterEndDate.setDate(filterEndDate.getDate() + 1);
-        if (trainingDate >= filterEndDate) {
+        if (training.dateOnly > endDate) {
           return false;
         }
       }
@@ -255,8 +250,8 @@ export default function TrainingsPage() {
       const trainingData = {
         title: newTraining.title,
         teamId: newTraining.teamId,
-        date: newTraining.date,
-        time: newTraining.time,
+        date: newTraining.date, // YYYY-MM-DD
+        time: newTraining.time, // HH:mm
         categoryId: newTraining.categoryId,
         type: newTraining.type
       };
@@ -544,8 +539,9 @@ export default function TrainingsPage() {
                           {new Date(training.date).toLocaleDateString('ru-RU', {
                             day: 'numeric',
                             month: 'long',
-                            year: 'numeric'
-                          })}, {training.time}
+                            year: 'numeric',
+                            timeZone: 'Europe/Moscow',
+                          })}, {new Date(training.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })}
                         </span>
                       </div>
                       

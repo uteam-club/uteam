@@ -3,6 +3,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { useState, useEffect } from 'react';
+import { formatDateTime } from '@/lib/utils';
 
 function TelegramBotSettings() {
   const [loading, setLoading] = useState(false);
@@ -89,6 +90,28 @@ function TelegramBotSettings() {
 }
 
 export function SurveyTabs() {
+  const [responses, setResponses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchResponses() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/surveys/morning');
+        if (!res.ok) throw new Error('Ошибка при загрузке ответов');
+        const data = await res.json();
+        setResponses(data);
+      } catch (e: any) {
+        setError(e.message || 'Ошибка при загрузке ответов');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchResponses();
+  }, []);
+
   return (
     <Tabs defaultValue="settings" className="w-full">
       <TabsList className="grid w-full grid-cols-2">
@@ -107,7 +130,36 @@ export function SurveyTabs() {
       <TabsContent value="analysis">
         <Card className="p-6 bg-vista-dark/50 border-vista-secondary/50">
           <h2 className="text-2xl font-bold mb-4 text-vista-light">Анализ ответов</h2>
-          {/* Здесь будет компонент анализа */}
+          {loading ? (
+            <div className="text-vista-light/70">Загрузка...</div>
+          ) : error ? (
+            <div className="text-red-500">{error}</div>
+          ) : responses.length === 0 ? (
+            <div className="text-vista-light/70">Нет ответов</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm text-vista-light border border-vista-secondary/30 rounded-md">
+                <thead>
+                  <tr className="bg-vista-dark/70">
+                    <th className="px-3 py-2 border-b border-vista-secondary/30 text-left">Игрок</th>
+                    <th className="px-3 py-2 border-b border-vista-secondary/30 text-left">Дата и время отправки</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {responses.map((resp) => (
+                    <tr key={resp.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10">
+                      <td className="px-3 py-2">
+                        {resp.player?.lastName || ''} {resp.player?.firstName || ''}
+                      </td>
+                      <td className="px-3 py-2">
+                        {resp.createdAt ? formatDateTime(resp.createdAt) : ''}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Card>
       </TabsContent>
     </Tabs>

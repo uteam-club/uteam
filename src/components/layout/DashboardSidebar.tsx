@@ -3,7 +3,7 @@
 import { memo } from "react";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useClub } from '@/context/club-context';
+import { useClub } from '@/providers/club-provider';
 import { 
   HomeIcon, 
   UsersIcon, 

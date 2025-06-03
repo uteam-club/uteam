@@ -6,7 +6,7 @@
 
 - Next.js 14.2.2
 - TypeScript
-- Prisma
+- Drizzle ORM
 - NextAuth.js
 - Supabase
 - Tailwind CSS
@@ -39,4 +39,3 @@ npm run build
 - `/src/components` - React компоненты
 - `/src/lib` - Вспомогательные функции и утилиты
 - `/src/services` - Сервисы для работы с данными
-- `/prisma` - Схема базы данных и миграции

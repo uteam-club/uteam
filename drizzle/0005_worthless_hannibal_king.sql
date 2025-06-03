@@ -1,0 +1,1 @@
+ALTER TABLE "Training" DROP COLUMN IF EXISTS "time";

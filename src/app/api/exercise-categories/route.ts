@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
+import { db } from '@/lib/db';
+import { exerciseCategory } from '@/db/schema';
+import { eq, asc } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -70,14 +73,9 @@ export async function GET(req: NextRequest) {
     console.log('Получение категорий для клуба:', clubId);
     
     // Формируем запрос на получение категорий упражнений для данного клуба
-    const categories = await prisma.exerciseCategory.findMany({
-      where: {
-        clubId,
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    });
+    const categories = await db.select().from(exerciseCategory)
+      .where(eq(exerciseCategory.clubId, clubId))
+      .orderBy(asc(exerciseCategory.name));
     
     console.log(`Найдено ${categories.length} категорий`);
     
@@ -136,12 +134,13 @@ export async function POST(request: NextRequest) {
     const categoryData = {
       name: data.name.trim(),
       clubId,
+      id: uuidv4(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
     
     // Создаем категорию
-    const category = await prisma.exerciseCategory.create({
-      data: categoryData,
-    });
+    const [category] = await db.insert(exerciseCategory).values(categoryData).returning();
     
     console.log('Категория упражнений успешно создана:', category.id);
     

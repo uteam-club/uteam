@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { user } from '@/db/schema';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-
 
 export async function GET(request: NextRequest) {
   try {
     console.log('Test API called');
-    
-    // Проверка соединения с базой данных
+    // Проверка соединения с базой данных через Drizzle
     try {
-      const users = await prisma.user.count();
-      console.log('Database connection successful. Users count:', users);
+      const users = await db.select({ id: user.id }).from(user);
+      console.log('Database connection successful. Users count:', users.length);
     } catch (dbError) {
       console.error('Database connection failed:', dbError);
       return NextResponse.json({ 
@@ -22,7 +20,6 @@ export async function GET(request: NextRequest) {
         error: dbError instanceof Error ? dbError.message : String(dbError)
       }, { status: 500 });
     }
-    
     // Проверка токена
     let tokenInfo = null;
     try {
@@ -38,7 +35,6 @@ export async function GET(request: NextRequest) {
       console.error('Token error:', tokenError);
       tokenInfo = { error: tokenError instanceof Error ? tokenError.message : String(tokenError) };
     }
-    
     return NextResponse.json({
       status: 'ok',
       time: new Date().toISOString(),

@@ -1,9 +1,11 @@
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
-import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { createApiResponse, dynamicConfig } from '../../config';
+import { db } from '@/lib/db';
+import { exercise, user, exerciseCategory, exerciseTag, mediaItem, exerciseTagToExercise } from '@/db/schema';
+import { eq, and, inArray, ilike, desc, sql } from 'drizzle-orm';
 
 // Экспортируем конфигурацию для Next.js
 export const dynamic = 'force-dynamic';
@@ -63,110 +65,98 @@ export async function GET(request: NextRequest) {
       sortOrder
     });
 
-    // Формируем базовый запрос с фильтрами
-    const where: any = {
-      clubId,
-    };
-
-    // Если есть поисковый запрос, ищем по заголовку или описанию
+    // Формируем where-условия для Drizzle
+    const whereArr = [eq(exercise.clubId, clubId)];
     if (validatedParams.search) {
-      where.OR = [
-        {
-          title: {
-            contains: validatedParams.search,
-            mode: 'insensitive'
-          }
-        },
-        {
-          description: {
-            contains: validatedParams.search,
-            mode: 'insensitive'
-          }
-        }
-      ];
+      whereArr.push(ilike(exercise.title, `%${validatedParams.search}%`));
     }
-
-    // Фильтр по автору
     if (validatedParams.authorId) {
-      where.authorId = validatedParams.authorId;
+      whereArr.push(eq(exercise.authorId, validatedParams.authorId));
     }
-
-    // Фильтр по категории
     if (validatedParams.categoryId) {
-      where.categoryId = validatedParams.categoryId;
+      whereArr.push(eq(exercise.categoryId, validatedParams.categoryId));
     }
-
-    // Фильтр по тегам (если указаны)
+    // Фильтрация по тегам через join-таблицу
+    let exerciseIdsByTags: string[] = [];
     if (validatedParams.tags && validatedParams.tags.length > 0) {
-      where.tags = {
-        some: {
-          id: {
-            in: validatedParams.tags
-          }
-        }
-      };
+      const tagLinks = await db.select().from(exerciseTagToExercise).where(inArray(exerciseTagToExercise.exerciseTagId, validatedParams.tags));
+      exerciseIdsByTags = tagLinks.map(t => t.exerciseId);
+      if (exerciseIdsByTags.length > 0) {
+        whereArr.push(inArray(exercise.id, exerciseIdsByTags));
+      } else {
+        // Нет совпадений по тегам — сразу возвращаем пустой результат
+        return createApiResponse({ exercises: [], pagination: { page: validatedParams.page, limit: validatedParams.limit, totalItems: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false }, filters: validatedParams, sorting: { sortBy: validatedParams.sortBy, sortOrder: validatedParams.sortOrder } }, 200);
+      }
     }
-
-    // Вычисляем пропускаемые элементы для пагинации
+    // ---
+    // Получаем total через raw count(*)
+    const totalCountRes = await db.execute(sql`SELECT count(*)::int as count FROM "Exercise" WHERE ${sql.join(whereArr, sql` AND `)}`);
+    const totalCount = (totalCountRes as any).rows?.[0]?.count || 0;
+    // ---
+    // Пагинация
     const skip = (validatedParams.page - 1) * validatedParams.limit;
-    
-    // Настраиваем сортировку
-    const orderBy: any = {
-      [validatedParams.sortBy]: validatedParams.sortOrder
-    };
-    
-    // Для оптимизации выполняем оба запроса параллельно
-    const [totalCount, exercises] = await Promise.all([
-      // Получаем общее количество записей для пагинации (оптимизированный запрос)
-      prisma.exercise.count({ where }),
-      
-      // Выполняем запрос к базе данных с фильтрами и пагинацией
-      prisma.exercise.findMany({
-        where,
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true
-            }
-          },
-          category: {
-            select: {
-              id: true,
-              name: true
-            }
-          },
-          tags: {
-            select: {
-              id: true,
-              name: true,
-              exerciseCategoryId: true
-            }
-          },
-          // Ограничиваем возвращаемые медиа элементы для оптимизации
-          mediaItems: {
-            take: 1, // Берем только первое изображение для карточек
-            select: {
-              id: true,
-              name: true,
-              type: true,
-              url: true,
-              publicUrl: true
-            }
-          }
-        },
-        orderBy,
-        skip,
-        take: validatedParams.limit
-      })
-    ]);
+    // ---
+    // Получаем упражнения с join
+    let orderField;
+    switch (validatedParams.sortBy) {
+      case 'title':
+        orderField = exercise.title;
+        break;
+      case 'createdAt':
+        orderField = exercise.createdAt;
+        break;
+      case 'updatedAt':
+        orderField = exercise.updatedAt;
+        break;
+      default:
+        orderField = exercise.createdAt;
+    }
+    const exercisesRaw = await db.select().from(exercise)
+      .leftJoin(user, eq(exercise.authorId, user.id))
+      .leftJoin(exerciseCategory, eq(exercise.categoryId, exerciseCategory.id))
+      .where(and(...whereArr))
+      .orderBy(sortOrder === 'desc' ? desc(orderField) : orderField)
+      .limit(validatedParams.limit)
+      .offset(skip);
 
-    // Расчет данных для пагинации
+    // Получаем все id упражнений на этой странице
+    const exerciseIds = exercisesRaw.map(row => row.Exercise.id);
+    // Получаем связи упражнение-тег
+    const tagLinks = exerciseIds.length > 0 ? await db.select().from(exerciseTagToExercise).where(inArray(exerciseTagToExercise.exerciseId, exerciseIds)) : [];
+    const tagIdsAll = tagLinks.map(l => l.exerciseTagId);
+    // Получаем теги
+    const tagsList = tagIdsAll.length > 0 ? await db.select().from(exerciseTag).where(inArray(exerciseTag.id, tagIdsAll)) : [];
+    // Маппинг тегов по упражнению
+    const tagsByExercise: Record<string, any[]> = {};
+    tagLinks.forEach(link => {
+      if (!tagsByExercise[link.exerciseId]) tagsByExercise[link.exerciseId] = [];
+      const tag = tagsList.find(t => t.id === link.exerciseTagId);
+      if (tag) tagsByExercise[link.exerciseId].push(tag);
+    });
+    // Получаем mediaItems для упражнений
+    const mediaItems = exerciseIds.length > 0 ? await db.select().from(mediaItem).where(inArray(mediaItem.exerciseId, exerciseIds)) : [];
+    const mediaByExercise: Record<string, any[]> = {};
+    mediaItems.forEach(m => {
+      if (!m.exerciseId) return;
+      if (!mediaByExercise[m.exerciseId]) mediaByExercise[m.exerciseId] = [];
+      mediaByExercise[m.exerciseId].push(m);
+    });
+    // Маппинг в нужную структуру
+    const exercises = exercisesRaw.map(row => {
+      const ex = row.Exercise;
+      return {
+        ...ex,
+        author: row.User ? { id: row.User.id, name: row.User.name || 'Неизвестно' } : { id: null, name: 'Неизвестно' },
+        category: row.ExerciseCategory ? { id: row.ExerciseCategory.id, name: row.ExerciseCategory.name } : null,
+        tags: tagsByExercise[ex.id] || [],
+        mediaItems: mediaByExercise[ex.id] || [],
+      };
+    });
+    // ---
+    // Формируем ответ
     const totalPages = Math.ceil(totalCount / validatedParams.limit);
     const hasNextPage = validatedParams.page < totalPages;
     const hasPreviousPage = validatedParams.page > 1;
-
-    // Подготавливаем ответ
     const response = {
       exercises,
       pagination: {

@@ -101,6 +101,7 @@ export default function TrainingPage() {
   // Состояния для диалога выбора упражнений
   const [isExerciseDialogOpen, setIsExerciseDialogOpen] = useState(false);
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [modalExercises, setModalExercises] = useState<Exercise[]>([]);
   const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -118,99 +119,10 @@ export default function TrainingPage() {
   const [tags, setTags] = useState<ExerciseTag[]>([]);
   const [authors, setAuthors] = useState<Author[]>([]);
   const [isLoadingExercises, setIsLoadingExercises] = useState(false);
-  
-  // Состояние для хранения добавленных к тренировке упражнений
-  const [trainingExercises, setTrainingExercises] = useState<Exercise[]>([]);
+  const [exercisesError, setExercisesError] = useState<string | null>(null);
   
   // Состояние для управления модальным окном посещаемости
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
-
-  // Загрузка упражнений тренировки
-  const loadTrainingExercises = async () => {
-    try {
-      // Сначала пробуем загрузить из localStorage (временное решение)
-      const savedExercises = localStorage.getItem(`training_exercises_${trainingId}`);
-      if (savedExercises) {
-        const parsedExercises = JSON.parse(savedExercises);
-        console.log('Загружены упражнения из localStorage:', parsedExercises);
-        setTrainingExercises(parsedExercises);
-        return true;
-      }
-      
-      // Затем пробуем API
-      const response = await fetch(`/api/trainings/${trainingId}/exercises`);
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          // Преобразуем данные в нужный формат, если необходимо
-          const formattedExercises = data.map(ex => ({
-            id: ex.id,
-            title: ex.title,
-            description: ex.description,
-            authorId: ex.authorId,
-            author: {
-              id: ex.authorId,
-              name: ex.authorName || 'Неизвестный автор'
-            },
-            categoryId: ex.categoryId,
-            category: {
-              id: ex.categoryId,
-              name: ex.categoryName || 'Без категории'
-            },
-            tags: Array.isArray(ex.tags) ? ex.tags : [],
-            mediaItems: Array.isArray(ex.mediaItems) ? ex.mediaItems : [],
-            position: ex.position,
-            trainingExerciseId: ex.trainingExerciseId,
-            notes: ex.notes
-          }));
-          
-          console.log('Загружены упражнения из API:', formattedExercises);
-          setTrainingExercises(formattedExercises);
-          // Сохраняем в localStorage для последующего использования
-          localStorage.setItem(`training_exercises_${trainingId}`, JSON.stringify(formattedExercises));
-          return true;
-        }
-      } else {
-        const errorData = await response.json();
-        console.error('Ошибка загрузки упражнений:', errorData);
-      }
-      return false;
-    } catch (error) {
-      console.error('Ошибка при загрузке упражнений тренировки:', error);
-      return false;
-    }
-  };
-
-  // Обновление порядка упражнений на сервере
-  // ВРЕМЕННО: закомментировано для локального режима
-  /*
-  const updateExercisesOrder = async (exercises: Exercise[]) => {
-    try {
-      const response = await fetch(`/api/trainings/${trainingId}/exercises`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          exercises: exercises.map((ex, index) => ({
-            trainingExerciseId: ex.trainingExerciseId,
-            position: index + 1,
-            notes: ex.notes
-          }))
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Не удалось обновить порядок упражнений');
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Ошибка при обновлении порядка упражнений:', error);
-      return false;
-    }
-  };
-  */
 
   useEffect(() => {
     async function fetchTraining() {
@@ -239,11 +151,6 @@ export default function TrainingPage() {
             setIsCompleted(parsedData.isCompleted);
           }
         }
-        
-        // Загрузка упражнений тренировки
-        await loadTrainingExercises();
-        
-        // Примечание: больше не используем демо-данные, только localStorage
       } catch (err: any) {
         console.error('Ошибка при загрузке тренировки:', err);
         setError(err.message || 'Произошла ошибка при загрузке тренировки');
@@ -260,6 +167,7 @@ export default function TrainingPage() {
   // Загрузка упражнений для диалога
   const loadExercises = async () => {
     setIsLoadingExercises(true);
+    setExercisesError(null);
     try {
       // Загрузка упражнений
       const response = await fetch('/api/exercises', {
@@ -270,20 +178,16 @@ export default function TrainingPage() {
       });
       if (!response.ok) throw new Error('Не удалось загрузить упражнения');
       const data = await response.json();
-      
-      // Логирование информации об изображениях для отладки
-      console.log('Loaded exercises:', data);
-      if (data && data.length > 0) {
-        data.forEach((ex: Exercise, index: number) => {
-          console.log(`Exercise ${index} (${ex.title}):`, 
-            ex.mediaItems ? 
-            `имеет ${ex.mediaItems.length} медиа, первый URL: ${ex.mediaItems[0]?.url || 'нет URL'}` : 
-            'нет медиа');
-        });
-      }
-      
-      setExercises(data);
-      setFilteredExercises(data);
+      if (!Array.isArray(data)) throw new Error('Некорректный ответ API');
+      // Защита: фильтруем невалидные элементы и подставляем дефолтные category/author
+      const safeData = data.filter(Boolean).map(ex => ({
+        ...ex,
+        category: ex && ex.category && typeof ex.category === 'object' ? ex.category : { id: '', name: 'Без категории' },
+        author: ex && ex.author && typeof ex.author === 'object' ? ex.author : { id: '', name: 'Неизвестно' },
+      }));
+      console.log('Упражнения из API (safe):', safeData);
+      setModalExercises(safeData);
+      setFilteredExercises(safeData);
       
       // Загрузка категорий
       const catResponse = await fetch('/api/exercise-categories', {
@@ -314,33 +218,14 @@ export default function TrainingPage() {
       
       // Формирование списка авторов из упражнений
       const uniqueAuthors = Array.from(
-        new Map(data.map((ex: Exercise) => [ex.author.id, ex.author])).values()
+        new Map(safeData.map((ex: Exercise) => [ex.author.id, ex.author])).values()
       );
       setAuthors(uniqueAuthors as Author[]);
-    } catch (error) {
-      console.error('Ошибка при загрузке данных:', error);
-      // Если API еще не готово, используем демо-данные
-      const demoExercises = generateDemoExercises();
-      setExercises(demoExercises);
-      setFilteredExercises(demoExercises);
-      
-      // Извлечение категорий, тегов и авторов из демо-данных
-      const uniqueCategories = Array.from(
-        new Map(demoExercises.map(ex => [ex.category.id, ex.category])).values()
-      );
-      setCategories(uniqueCategories as ExerciseCategory[]);
-      
-      const uniqueTags = Array.from(
-        new Map(
-          demoExercises.flatMap(ex => ex.tags.map(tag => [tag.id, tag]))
-        ).values()
-      );
-      setTags(uniqueTags as ExerciseTag[]);
-      
-      const uniqueAuthors = Array.from(
-        new Map(demoExercises.map(ex => [ex.author.id, ex.author])).values()
-      );
-      setAuthors(uniqueAuthors as Author[]);
+    } catch (error: any) {
+      console.error('Ошибка при загрузке упражнений:', error);
+      setExercises([]);
+      setFilteredExercises([]);
+      setExercisesError(error.message || 'Ошибка при загрузке упражнений');
     } finally {
       setIsLoadingExercises(false);
     }
@@ -379,7 +264,7 @@ export default function TrainingPage() {
   
   // Фильтрация упражнений
   useEffect(() => {
-    let filtered = exercises;
+    let filtered = modalExercises;
     
     // Фильтр по поисковому запросу
     if (searchQuery) {
@@ -406,7 +291,7 @@ export default function TrainingPage() {
     }
     
     setFilteredExercises(filtered);
-  }, [exercises, searchQuery, selectedCategory, selectedAuthor, selectedTags]);
+  }, [modalExercises, searchQuery, selectedCategory, selectedAuthor, selectedTags]);
 
   // Фильтрация тегов на основе выбранной категории
   useEffect(() => {
@@ -451,58 +336,20 @@ export default function TrainingPage() {
   
   // Добавление выбранных упражнений к тренировке
   const handleAddSelectedExercises = async () => {
-    // Найдем выбранные упражнения из общего списка
-    const exercisesToAdd = exercises.filter(ex => selectedExercises.includes(ex.id));
-    
+    const exercisesToAdd = modalExercises.filter(ex => selectedExercises.includes(ex.id));
     try {
       setLoading(true);
-      
-      // ВРЕМЕННО: добавляем упражнения только локально для проверки интерфейса
-      // Назначаем позиции и id для записей связи
-      const exercisesWithPosition = exercisesToAdd.map((ex, index) => ({
-        ...ex,
-        position: (trainingExercises.length > 0 ? Math.max(...trainingExercises.map(e => e.position || 0)) : 0) + index + 1,
-        trainingExerciseId: `temp-${Date.now()}-${index}`, // Временный ID
-      }));
-      
-      // Добавляем новые упражнения к существующим
-      setTrainingExercises(prev => {
-        const updated = [...prev, ...exercisesWithPosition];
-        // Сохраняем в localStorage
-        localStorage.setItem(`training_exercises_${trainingId}`, JSON.stringify(updated));
-        return updated;
-      });
-      
-      // В боевом режиме раскомментировать код ниже:
-      /*
+      const exerciseIds = exercisesToAdd.map(ex => ex.id);
       const response = await fetch(`/api/trainings/${trainingId}/exercises`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          exerciseIds: selectedExercises
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exerciseIds }),
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Ошибка API:', errorData);
-        throw new Error(`Не удалось добавить упражнения: ${errorData.error || response.statusText}`);
-      }
-      
-      // Обновляем список упражнений тренировки из сервера
-      const success = await loadTrainingExercises();
-      
-      if (!success) {
-        // Если не удалось загрузить с сервера, добавим локально
-        setTrainingExercises(prev => [...prev, ...exercisesToAdd]);
-      }
-      */
-      
-      console.log(`Добавлено упражнений: ${exercisesToAdd.length}`);
-      
-      // Закрываем диалог и сбрасываем выбор
+      if (!response.ok) throw new Error('Ошибка при добавлении упражнений');
+      // После добавления — повторно загружаем упражнения тренировки
+      const getResp = await fetch(`/api/trainings/${trainingId}/exercises`);
+      const getData = await getResp.json();
+      setExercises(Array.isArray(getData) ? getData : []);
       setIsExerciseDialogOpen(false);
       setSelectedExercises([]);
     } catch (error) {
@@ -583,41 +430,10 @@ export default function TrainingPage() {
       };
       
       localStorage.setItem(`training_data_${trainingId}`, JSON.stringify(trainingData));
-      localStorage.setItem(`training_exercises_${trainingId}`, JSON.stringify(trainingExercises));
+      localStorage.setItem(`training_exercises_${trainingId}`, JSON.stringify(exercises));
       
       console.log("Сохраняем тренировку:", trainingData);
-      console.log("Сохраняем упражнения:", trainingExercises);
-      
-      // В боевом режиме раскомментировать код ниже:
-      /*
-      // Сохраняем информацию о тренировке
-      const response = await fetch(`/api/trainings/${trainingId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: training.title,
-          description: training.description,
-          date: training.date,
-          time: training.time,
-          location: training.location,
-          notes: training.notes,
-          teamId: training.teamId,
-          categoryId: training.categoryId,
-          isCompleted: isCompleted
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Не удалось сохранить данные тренировки');
-      }
-      
-      // Если есть упражнения, обновляем их порядок
-      if (trainingExercises.length > 0) {
-        await updateExercisesOrder(trainingExercises);
-      }
-      */
+      console.log("Сохраняем упражнения:", exercises);
       
       alert('Тренировка успешно сохранена');
     } catch (error) {
@@ -629,16 +445,44 @@ export default function TrainingPage() {
   };
 
   // Модифицируем обработчик удаления упражнения для обновления localStorage
-  const handleDeleteExercise = (exerciseId: string) => {
-    setTrainingExercises(prev => {
-      const updated = prev.filter(ex => ex.id !== exerciseId);
-      localStorage.setItem(`training_exercises_${trainingId}`, JSON.stringify(updated));
-      return updated;
-    });
+  const handleDeleteExercise = (trainingExerciseId: string) => {
+    setLoading(true);
+    fetch(`/api/trainings/${trainingId}/exercises`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trainingExerciseId }),
+    })
+      .then(res => res.json())
+      .then(() => fetch(`/api/trainings/${trainingId}/exercises`))
+      .then(res => res.json())
+      .then(data => setExercises(Array.isArray(data) ? data : []))
+      .catch(err => {
+        console.error('Ошибка при удалении упражнения:', err);
+        alert('Не удалось удалить упражнение. Пожалуйста, попробуйте снова.');
+      })
+      .finally(() => setLoading(false));
   };
   
-  const handleDelete = () => {
-    alert('Функция удаления тренировки будет реализована в будущем');
+  const handleDelete = async () => {
+    if (!window.confirm('Вы уверены, что хотите удалить эту тренировку? Это действие необратимо.')) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/trainings/${trainingId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Ошибка при удалении тренировки');
+      }
+      // После успешного удаления — редирект на список тренировок
+      router.push('/dashboard/coaching/trainings');
+    } catch (error) {
+      console.error('Ошибка при удалении тренировки:', error);
+      alert('Не удалось удалить тренировку. Пожалуйста, попробуйте снова.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Обновление компонентов при изменении состояния фильтров
@@ -656,6 +500,52 @@ export default function TrainingPage() {
     }
   }, [selectedCategory, selectedAuthor, selectedTags]);
 
+  // useEffect для загрузки упражнений тренировки при открытии страницы
+  useEffect(() => {
+    async function fetchTrainingExercises() {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/trainings/${trainingId}/exercises`);
+        if (!response.ok) throw new Error('Не удалось загрузить упражнения тренировки');
+        const data = await response.json();
+        setExercises(Array.isArray(data) ? data : []);
+      } catch (err) {
+        setExercises([]);
+        console.error('Ошибка при загрузке упражнений тренировки:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (session?.user) {
+      fetchTrainingExercises();
+    }
+  }, [trainingId, session]);
+
+  // Функция для отправки нового порядка на сервер
+  const updateExerciseOrder = async (newExercises: Exercise[]) => {
+    const positions = newExercises.map((ex, idx) => ({
+      trainingExerciseId: ex.trainingExerciseId,
+      position: idx + 1,
+    }));
+    try {
+      setLoading(true);
+      await fetch(`/api/trainings/${trainingId}/exercises`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ positions }),
+      });
+      // После обновления — повторно загружаем упражнения тренировки
+      const getResp = await fetch(`/api/trainings/${trainingId}/exercises`);
+      const getData = await getResp.json();
+      setExercises(Array.isArray(getData) ? getData : []);
+    } catch (err) {
+      console.error('Ошибка при обновлении порядка упражнений:', err);
+      alert('Не удалось обновить порядок упражнений. Пожалуйста, попробуйте снова.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
@@ -671,7 +561,7 @@ export default function TrainingPage() {
         <Button 
           variant="outline" 
           onClick={() => router.back()}
-          className="bg-vista-dark/70 shadow-sm border-vista-secondary/50 shadow-md text-vista-light"
+          className="bg-vista-dark/70 shadow-sm border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 shadow-sm"
         >
           <ArrowLeft className="mr-2 h-4 w-4" /> Вернуться назад
         </Button>
@@ -770,7 +660,7 @@ export default function TrainingPage() {
                 <Tag className="h-5 w-5 mr-3 text-vista-primary" />
                 <div>
                   <div className="text-vista-light/70 text-xs mb-1">Категория</div>
-                  <div className="text-vista-light">{trainingData.category}</div>
+                  <div className="text-vista-light">{trainingData.category || { id: '', name: 'Без категории' }.name}</div>
                 </div>
               </div>
               
@@ -779,7 +669,7 @@ export default function TrainingPage() {
                 <Users className="h-5 w-5 mr-3 text-vista-primary" />
                 <div>
                   <div className="text-vista-light/70 text-xs mb-1">Команда</div>
-                  <div className="text-vista-light">{trainingData.team}</div>
+                  <div className="text-vista-light">{trainingData.team || 'Неизвестно'}</div>
                 </div>
               </div>
               
@@ -789,7 +679,9 @@ export default function TrainingPage() {
                 <div>
                   <div className="text-vista-light/70 text-xs mb-1">Дата</div>
                   <div className="text-vista-light">
-                    {new Date(trainingData.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {new Date(trainingData.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' })}
+                    {', '}
+                    {new Date(trainingData.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })}
                   </div>
                 </div>
               </div>
@@ -799,7 +691,9 @@ export default function TrainingPage() {
                 <Clock className="h-5 w-5 mr-3 text-vista-primary" />
                 <div>
                   <div className="text-vista-light/70 text-xs mb-1">Время</div>
-                  <div className="text-vista-light">{trainingData.time}</div>
+                  <div className="text-vista-light">
+                    {trainingData.date ? new Date(trainingData.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' }) : 'Неизвестно'}
+                  </div>
                 </div>
               </div>
               
@@ -809,7 +703,7 @@ export default function TrainingPage() {
                   <MapPin className="h-5 w-5 mr-3 text-vista-primary" />
                   <div>
                     <div className="text-vista-light/70 text-xs mb-1">Место проведения</div>
-                    <div className="text-vista-light">{trainingData.location}</div>
+                    <div className="text-vista-light">{trainingData.location || 'Неизвестно'}</div>
                   </div>
                 </div>
               )}
@@ -824,7 +718,7 @@ export default function TrainingPage() {
                       <FileText className="h-5 w-5 mr-2 text-vista-primary" />
                       <h3 className="text-vista-light font-medium">Описание</h3>
                     </div>
-                    <p className="text-vista-light/90">{trainingData.description}</p>
+                    <p className="text-vista-light/90">{trainingData.description || 'Без описания'}</p>
                   </div>
                 )}
                 
@@ -834,7 +728,7 @@ export default function TrainingPage() {
                       <FileText className="h-5 w-5 mr-2 text-vista-primary" />
                       <h3 className="text-vista-light font-medium">Примечания</h3>
                     </div>
-                    <p className="text-vista-light/90 whitespace-pre-line">{trainingData.notes}</p>
+                    <p className="text-vista-light/90 whitespace-pre-line">{trainingData.notes || 'Без примечаний'}</p>
                   </div>
                 )}
               </div>
@@ -847,9 +741,9 @@ export default function TrainingPage() {
           <div>
             <h3 className="text-vista-light text-lg mb-4">Упражнения</h3>
             
-            {trainingExercises.length > 0 ? (
+            {exercises.length > 0 ? (
               <div className="space-y-4">
-                {trainingExercises.map((exercise, index) => (
+                {exercises.map((exercise, index) => (
                   <div 
                     key={exercise.id} 
                     className="flex flex-col sm:flex-row rounded-md border overflow-hidden bg-vista-dark/50 border-vista-secondary/50 shadow-md"
@@ -918,68 +812,23 @@ export default function TrainingPage() {
                             onClick={(e) => {
                               e.stopPropagation();
                               // ВРЕМЕННО: удаление только из локального состояния
-                              handleDeleteExercise(exercise.id);
-                              
-                              // В боевом режиме раскомментировать код ниже:
-                              /*
-                              try {
-                                // Удаление упражнения через API
-                                const response = await fetch(`/api/trainings/${trainingId}/exercises?exerciseId=${exercise.id}`, {
-                                  method: 'DELETE'
-                                });
-                                
-                                if (response.ok) {
-                                  // После успешного удаления на сервере, обновляем локальный список
-                                  handleDeleteExercise(exercise.id);
-                                } else {
-                                  throw new Error('Не удалось удалить упражнение');
-                                }
-                              } catch (error) {
-                                console.error('Ошибка при удалении упражнения:', error);
-                                alert('Не удалось удалить упражнение. Пожалуйста, попробуйте снова.');
-                              }
-                              */
+                              handleDeleteExercise(exercise.trainingExerciseId || '');
                             }}
                           >
                             <Trash className="h-[18px] w-[18px]" />
                           </button>
                       
                       {/* Кнопки перемещения вверх/вниз */}
-                      {trainingExercises.length > 1 && (
+                      {exercises.length > 1 && (
                         <>
                           <button 
                             className={`bg-vista-dark/70 shadow-sm hover:bg-vista-secondary/20 rounded-md p-2 text-vista-light ${index === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (index > 0) {
-                                // ВРЕМЕННО: перемещение только в локальном состоянии
-                                const newExercises = [...trainingExercises];
+                                const newExercises = [...exercises];
                                 [newExercises[index], newExercises[index - 1]] = [newExercises[index - 1], newExercises[index]];
-                                
-                                // Обновляем позиции
-                                newExercises[index].position = index;
-                                newExercises[index - 1].position = index - 1;
-                                
-                                setTrainingExercises(newExercises);
-                                
-                                // Синхронизируем с localStorage
-                                localStorage.setItem(`training_exercises_${trainingId}`, JSON.stringify(newExercises));
-                                
-                                // В боевом режиме раскомментировать код ниже:
-                                /*
-                                try {
-                                  // Обновляем локально для быстрой обратной связи
-                                  const newExercises = [...trainingExercises];
-                                  [newExercises[index], newExercises[index - 1]] = [newExercises[index - 1], newExercises[index]];
-                                  setTrainingExercises(newExercises);
-                                  
-                                  // Отправляем обновленный порядок на сервер
-                                  await updateExercisesOrder(newExercises);
-                                } catch (error) {
-                                  console.error('Ошибка при перемещении упражнения:', error);
-                                  await loadTrainingExercises(); // Перезагружаем исходный порядок в случае ошибки
-                                }
-                                */
+                                updateExerciseOrder(newExercises);
                               }
                             }}
                             disabled={index === 0}
@@ -988,41 +837,16 @@ export default function TrainingPage() {
                           </button>
                           
                           <button 
-                            className={`bg-vista-dark/70 shadow-sm hover:bg-vista-secondary/20 rounded-md p-2 text-vista-light ${index === trainingExercises.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`bg-vista-dark/70 shadow-sm hover:bg-vista-secondary/20 rounded-md p-2 text-vista-light ${index === exercises.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (index < trainingExercises.length - 1) {
-                                // ВРЕМЕННО: перемещение только в локальном состоянии
-                                const newExercises = [...trainingExercises];
+                              if (index < exercises.length - 1) {
+                                const newExercises = [...exercises];
                                 [newExercises[index], newExercises[index + 1]] = [newExercises[index + 1], newExercises[index]];
-                                
-                                // Обновляем позиции
-                                newExercises[index].position = index;
-                                newExercises[index + 1].position = index + 1;
-                                
-                                setTrainingExercises(newExercises);
-                                
-                                // Синхронизируем с localStorage
-                                localStorage.setItem(`training_exercises_${trainingId}`, JSON.stringify(newExercises));
-                                
-                                // В боевом режиме раскомментировать код ниже:
-                                /*
-                                try {
-                                  // Обновляем локально для быстрой обратной связи
-                                  const newExercises = [...trainingExercises];
-                                  [newExercises[index], newExercises[index + 1]] = [newExercises[index + 1], newExercises[index]];
-                                  setTrainingExercises(newExercises);
-                                  
-                                  // Отправляем обновленный порядок на сервер
-                                  await updateExercisesOrder(newExercises);
-                                } catch (error) {
-                                  console.error('Ошибка при перемещении упражнения:', error);
-                                  await loadTrainingExercises(); // Перезагружаем исходный порядок в случае ошибки
-                                }
-                                */
+                                updateExerciseOrder(newExercises);
                               }
                             }}
-                            disabled={index === trainingExercises.length - 1}
+                            disabled={index === exercises.length - 1}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
                           </button>
@@ -1083,11 +907,13 @@ export default function TrainingPage() {
                   </SelectTrigger>
                   <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
                     <SelectItem value="all">Все авторы</SelectItem>
-                    {authors.map(author => (
-                      <SelectItem key={author.id} value={author.id}>
-                        {author.name}
-                      </SelectItem>
-                    ))}
+                    {authors
+                      .filter((a: Author) => a.id && a.id !== "")
+                      .map((author) => (
+                        <SelectItem key={author.id} value={author.id}>
+                          {author.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1103,11 +929,13 @@ export default function TrainingPage() {
                   </SelectTrigger>
                   <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
                     <SelectItem value="all">Все категории</SelectItem>
-                    {categories.map((c: Category) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
+                    {categories
+                      .filter((c: Category) => c.id && c.id !== "")
+                      .map((c: Category) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1230,6 +1058,10 @@ export default function TrainingPage() {
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-vista-primary"></div>
               </div>
+            ) : exercisesError ? (
+              <div className="text-center py-12 border border-dashed border-red-500/50 rounded-md">
+                <p className="text-red-400">{exercisesError}</p>
+              </div>
             ) : filteredExercises.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {filteredExercises
@@ -1306,7 +1138,7 @@ export default function TrainingPage() {
                       
                       <div className="mt-1 flex flex-wrap gap-1 justify-between">
                         <Badge className="bg-vista-primary/20 text-vista-primary text-xs h-5.5">
-                          {exercise.category.name}
+                          {exercise.category.name || { id: '', name: 'Без категории' }.name}
                         </Badge>
                         
                         {exercise.tags.slice(0, 2).map(tag => (

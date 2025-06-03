@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { player, team, playerDocument } from '@/db/schema';
+import { eq, inArray } from 'drizzle-orm';
 import { createApiResponse } from '../../config';
 
 // Экспортируем конфигурацию для Next.js
@@ -19,47 +21,50 @@ export async function GET(request: NextRequest) {
       return createApiResponse({ error: 'Unauthorized' }, 401);
     }
 
-    // Получаем всех игроков с их документами
-    const players = await prisma.player.findMany({
-      where: {
-        team: {
-          clubId: session.user.clubId
-        }
-      },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        birthCertificateNumber: true,
-        imageUrl: true,
-        team: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        documents: {
-          select: {
-            id: true,
-            name: true,
-            type: true,
-            publicUrl: true,
-            createdAt: true
-          }
-        }
-      }
-    });
+    // Получаем всех игроков клуба
+    const players = await db.select({
+      id: player.id,
+      firstName: player.firstName,
+      lastName: player.lastName,
+      birthCertificateNumber: player.birthCertificateNumber,
+      imageUrl: player.imageUrl,
+      teamId: player.teamId,
+    })
+      .from(player)
+      .leftJoin(team, eq(player.teamId, team.id))
+      .where(eq(team.clubId, session.user.clubId));
 
-    // Преобразуем документы в нужный формат
-    const formattedPlayers = players.map(player => ({
-      ...player,
-      documents: {
-        PASSPORT: player.documents.find(doc => doc.type === 'PASSPORT') || null,
-        BIRTH_CERTIFICATE: player.documents.find(doc => doc.type === 'BIRTH_CERTIFICATE') || null,
-        MEDICAL_INSURANCE: player.documents.find(doc => doc.type === 'MEDICAL_INSURANCE') || null,
-        OTHER: player.documents.find(doc => doc.type === 'OTHER') || null
-      }
-    }));
+    const playerIds = players.map(p => p.id);
+    if (playerIds.length === 0) return createApiResponse([]);
+
+    // Получаем все документы этих игроков
+    const documents = await db.select().from(playerDocument)
+      .where(inArray(playerDocument.playerId, playerIds));
+
+    // Группируем документы по playerId
+    const docsByPlayer: Record<string, any[]> = {};
+    for (const doc of documents) {
+      if (!docsByPlayer[doc.playerId]) docsByPlayer[doc.playerId] = [];
+      docsByPlayer[doc.playerId].push(doc);
+    }
+
+    // Собираем финальную структуру
+    const formattedPlayers = players.map(p => {
+      const docs = docsByPlayer[p.id] || [];
+      return {
+        ...p,
+        documents: {
+          PASSPORT: docs.find(doc => doc.type === 'PASSPORT') || null,
+          BIRTH_CERTIFICATE: docs.find(doc => doc.type === 'BIRTH_CERTIFICATE') || null,
+          MEDICAL_INSURANCE: docs.find(doc => doc.type === 'MEDICAL_INSURANCE') || null,
+          OTHER: docs.find(doc => doc.type === 'OTHER') || null,
+        },
+        team: {
+          id: p.teamId,
+          name: '', // имя команды можно подтянуть отдельным запросом, если нужно
+        },
+      };
+    });
 
     return createApiResponse(formattedPlayers);
   } catch (error) {

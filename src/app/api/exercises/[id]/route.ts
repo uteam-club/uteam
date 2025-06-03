@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
-import { prisma } from '@/lib/prisma';
 import { saveExerciseFile, getFileUrl, deleteExerciseFiles } from '@/lib/supabase-storage';
+import { db } from '@/lib/db';
+import { exercise, user, exerciseCategory, exerciseTag, mediaItem, exerciseTagToExercise } from '@/db/schema';
+import { eq, and, inArray, ilike } from 'drizzle-orm';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -14,75 +16,43 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log(`Начало обработки запроса на получение упражнения с ID: ${params.id}`);
-    
-    // Получаем данные сессии пользователя
     const session = await getServerSession(authOptions);
-    
-    // Проверяем аутентификацию
-    if (!session || !session.user) {
+    if (!session?.user) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
-    
-    // Получаем ID клуба из сессии пользователя
     const clubId = session.user.clubId;
-    
-    // Проверяем наличие ID упражнения
     if (!params.id) {
       return NextResponse.json({ error: 'ID упражнения не указан' }, { status: 400 });
     }
-    
-    // Находим упражнение по ID и проверяем принадлежность к клубу
-    const exercise = await prisma.exercise.findFirst({
-      where: {
-        id: params.id,
-        clubId,
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        tags: {
-          select: {
-            id: true,
-            name: true,
-            exerciseCategoryId: true,
-          },
-        },
-        mediaItems: {
-          select: {
-            id: true,
-            name: true,
-            type: true,
-            url: true,
-            publicUrl: true,
-          },
-        },
-      },
-    });
-    
-    // Если упражнение не найдено, возвращаем ошибку
-    if (!exercise) {
+    // Получаем упражнение
+    const exerciseRows = await db.select().from(exercise)
+      .where(and(eq(exercise.id, params.id), eq(exercise.clubId, clubId)));
+    if (!exerciseRows.length) {
       return NextResponse.json({ error: 'Упражнение не найдено' }, { status: 404 });
     }
-    
-    // Возвращаем найденное упражнение
-    return NextResponse.json(exercise);
+    const ex = exerciseRows[0];
+    // Получаем автора
+    const author = await db.select().from(user).where(eq(user.id, ex.authorId));
+    // Получаем категорию
+    const category = await db.select().from(exerciseCategory).where(eq(exerciseCategory.id, ex.categoryId));
+    // Получаем теги через join-таблицу
+    const tagLinks = await db.select().from(exerciseTagToExercise).where(eq(exerciseTagToExercise.exerciseId, ex.id));
+    const tagIds = tagLinks.map(t => t.exerciseTagId);
+    let tags: any[] = [];
+    if (tagIds.length) {
+      tags = await db.select().from(exerciseTag).where(inArray(exerciseTag.id, tagIds));
+    }
+    // Получаем mediaItems
+    const mediaItems = await db.select().from(mediaItem).where(eq(mediaItem.exerciseId, ex.id));
+    return NextResponse.json({
+      ...ex,
+      authorName: author[0]?.name || null,
+      categoryName: category[0]?.name || null,
+      tags,
+      mediaItems,
+    });
   } catch (error) {
-    console.error(`Ошибка при получении упражнения:`, error);
-    return NextResponse.json(
-      { error: 'Ошибка при получении упражнения' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Ошибка при получении упражнения' }, { status: 500 });
   }
 }
 
@@ -92,52 +62,26 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log(`Начало обработки запроса на обновление упражнения с ID: ${params.id}`);
-    
-    // Получаем данные сессии пользователя
     const session = await getServerSession(authOptions);
-    
-    // Проверяем аутентификацию
-    if (!session || !session.user) {
-      console.log('Ошибка: пользователь не авторизован');
+    if (!session?.user) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
-    
-    // Получаем ID клуба и роль пользователя из сессии
     const clubId = session.user.clubId;
     const userId = session.user.id;
     const role = session.user.role;
-    
-    // Проверяем наличие ID упражнения
     if (!params.id) {
       return NextResponse.json({ error: 'ID упражнения не указан' }, { status: 400 });
     }
-    
-    // Находим существующее упражнение
-    const existingExercise = await prisma.exercise.findFirst({
-      where: {
-        id: params.id,
-        clubId,
-      },
-    });
-    
-    // Если упражнение не найдено, возвращаем ошибку
-    if (!existingExercise) {
+    // Проверяем существование упражнения
+    const exerciseRows = await db.select().from(exercise).where(and(eq(exercise.id, params.id), eq(exercise.clubId, clubId)));
+    if (!exerciseRows.length) {
       return NextResponse.json({ error: 'Упражнение не найдено' }, { status: 404 });
     }
-    
-    // Проверяем, является ли пользователь автором упражнения или администратором
-    if (existingExercise.authorId !== userId && !['ADMIN', 'SUPERADMIN'].includes(role)) {
-      return NextResponse.json(
-        { error: 'У вас нет прав на редактирование этого упражнения' },
-        { status: 403 }
-      );
+    const ex = exerciseRows[0];
+    if (ex.authorId !== userId && !['ADMIN', 'SUPERADMIN'].includes(role)) {
+      return NextResponse.json({ error: 'Нет прав на редактирование' }, { status: 403 });
     }
-    
-    // Получаем данные формы
     const formData = await req.formData();
-    
-    // Извлекаем все необходимые данные из formData
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
     const categoryId = formData.get('categoryId') as string;
@@ -145,154 +89,76 @@ export async function PUT(
     const widthStr = formData.get('width') as string | null;
     const tagIdsArray = formData.getAll('tags') as string[];
     const file = formData.get('file') as File | null;
-    
-    // Проверяем обязательные поля
     if (!title || !description || !categoryId) {
-      console.log('Ошибка: отсутствуют обязательные поля');
-      return NextResponse.json(
-        { error: 'Отсутствуют обязательные поля' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Отсутствуют обязательные поля' }, { status: 400 });
     }
-    
-    // Проверяем существование категории и принадлежность к клубу
-    const category = await prisma.exerciseCategory.findFirst({
-      where: {
-        id: categoryId,
-        clubId,
-      },
-    });
-    
-    if (!category) {
-      console.log('Ошибка: категория не найдена');
-      return NextResponse.json(
-        { error: 'Категория не найдена' },
-        { status: 400 }
-      );
+    // Проверяем существование категории
+    const categoryRows = await db.select().from(exerciseCategory).where(and(eq(exerciseCategory.id, categoryId), eq(exerciseCategory.clubId, clubId)));
+    if (!categoryRows.length) {
+      return NextResponse.json({ error: 'Категория не найдена' }, { status: 400 });
     }
-    
     // Проверяем существование тегов
     if (tagIdsArray.length > 0) {
-      const tags = await prisma.exerciseTag.findMany({
-        where: {
-          id: { in: tagIdsArray },
-          clubId,
-        },
-      });
-      
+      const tags = await db.select().from(exerciseTag).where(and(inArray(exerciseTag.id, tagIdsArray), eq(exerciseTag.clubId, clubId)));
       if (tags.length !== tagIdsArray.length) {
-        console.log('Ошибка: некоторые теги не найдены');
-        return NextResponse.json(
-          { error: 'Некоторые теги не найдены' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Некоторые теги не найдены' }, { status: 400 });
       }
     }
-    
-    // Преобразуем строковые значения длины и ширины в числа (если указаны)
     const length = lengthStr ? parseFloat(lengthStr) : null;
     const width = widthStr ? parseFloat(widthStr) : null;
-    
-    console.log('Обновление упражнения в базе данных');
-    
-    // Транзакция для обновления упражнения и связанных данных
-    const updatedExercise = await prisma.$transaction(async (tx) => {
-      // 1. Обновляем теги (удаляем все существующие и добавляем новые)
-      await tx.exercise.update({
-        where: { id: params.id },
-        data: {
-          tags: {
-            set: [] // Удаляем все существующие связи
-          }
-        }
-      });
-      
-      // 2. Обновляем данные упражнения
-      const exercise = await tx.exercise.update({
-        where: { id: params.id },
-        data: {
-          title,
-          description,
-          categoryId,
-          length,
-          width,
-          tags: {
-            connect: tagIdsArray.map(id => ({ id }))
-          }
-        },
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          category: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          tags: true,
-          mediaItems: true,
-        },
-      });
-      
-      return exercise;
-    });
-    
-    console.log(`Упражнение успешно обновлено с ID: ${updatedExercise.id}`);
-    
-    // Если есть файл, сохраняем его
-    if (file) {
-      try {
-        console.log('Загрузка файла для упражнения');
-        
-        // Определяем тип медиа файла
-        let mediaType = 'OTHER';
-        if (file.type.startsWith('image/')) {
-          mediaType = 'IMAGE';
-        } else if (file.type.startsWith('video/')) {
-          mediaType = 'VIDEO';
-        } else if (file.type.includes('pdf') || file.type.includes('document')) {
-          mediaType = 'DOCUMENT';
-        }
-        
-        // Сохраняем файл в Supabase Storage
-        const storagePath = await saveExerciseFile(clubId, params.id, file, file.name);
-        
-        // Получаем публичный URL для файла
-        const publicUrl = await getFileUrl(storagePath);
-        
-        // Создаем запись о медиафайле в базе данных
-        const mediaItem = await prisma.mediaItem.create({
-          data: {
-            name: file.name,
-            type: mediaType as any,
-            url: storagePath,
-            publicUrl: publicUrl,
-            size: file.size,
-            clubId,
-            exerciseId: params.id,
-            uploadedById: userId,
-          },
-        });
-        
-        console.log(`Медиафайл успешно сохранен с ID: ${mediaItem.id}`);
-      } catch (fileError) {
-        console.error('Ошибка при сохранении файла:', fileError);
-        // Продолжаем выполнение, даже если не удалось сохранить файл
+    // Транзакция
+    await db.transaction(async (tx) => {
+      // Удаляем старые связи тегов
+      await tx.delete(exerciseTagToExercise).where(eq(exerciseTagToExercise.exerciseId, params.id));
+      // Добавляем новые связи тегов
+      if (tagIdsArray.length > 0) {
+        await tx.insert(exerciseTagToExercise).values(tagIdsArray.map(tagId => ({ exerciseId: params.id, exerciseTagId: tagId })));
       }
+      // Обновляем упражнение
+      await tx.update(exercise).set({ title, description, categoryId, length, width }).where(eq(exercise.id, params.id));
+    });
+    // Если есть файл, сохраняем
+    if (file) {
+      const storagePath = `clubs/${clubId}/exercises/${params.id}/${file.name}`;
+      await saveExerciseFile(file, storagePath);
+      const publicUrl = getFileUrl(storagePath);
+      await db.insert(mediaItem).values({
+        name: file.name,
+        type: 'OTHER',
+        url: storagePath,
+        publicUrl,
+        size: file.size,
+        clubId,
+        exerciseId: params.id,
+        uploadedById: userId,
+      });
     }
-    
-    // Возвращаем обновленное упражнение
-    return NextResponse.json(updatedExercise);
+    // После обновления возвращаем полный объект упражнения
+    // Получаем упражнение
+    const updatedRows = await db.select().from(exercise).where(and(eq(exercise.id, params.id), eq(exercise.clubId, clubId)));
+    const updated = updatedRows[0];
+    // Получаем автора
+    const author = await db.select().from(user).where(eq(user.id, updated.authorId));
+    // Получаем категорию
+    const category = await db.select().from(exerciseCategory).where(eq(exerciseCategory.id, updated.categoryId));
+    // Получаем теги через join-таблицу
+    const tagLinks = await db.select().from(exerciseTagToExercise).where(eq(exerciseTagToExercise.exerciseId, updated.id));
+    const tagIds = tagLinks.map(t => t.exerciseTagId);
+    let tags: any[] = [];
+    if (tagIds.length) {
+      tags = await db.select().from(exerciseTag).where(inArray(exerciseTag.id, tagIds));
+    }
+    // Получаем mediaItems
+    const mediaItems = await db.select().from(mediaItem).where(eq(mediaItem.exerciseId, updated.id));
+    return NextResponse.json({
+      ...updated,
+      author: author[0] ? { id: author[0].id, name: author[0].name || 'Неизвестно' } : { id: null, name: 'Неизвестно' },
+      category: category[0] ? { id: category[0].id, name: category[0].name } : null,
+      tags,
+      mediaItems,
+    });
   } catch (error) {
-    console.error('Ошибка при обновлении упражнения:', error);
-    return NextResponse.json(
-      { error: 'Ошибка при обновлении упражнения' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Ошибка при обновлении упражнения' }, { status: 500 });
   }
 }
 
@@ -302,112 +168,40 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log(`Начало обработки запроса на удаление упражнения с ID: ${params.id}`);
-    
-    // Получаем данные сессии пользователя
     const session = await getServerSession(authOptions);
-    
-    // Проверяем аутентификацию
-    if (!session || !session.user) {
-      console.log('Ошибка: пользователь не авторизован');
+    if (!session?.user) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
-    
-    // Получаем ID клуба и роль пользователя из сессии
     const clubId = session.user.clubId;
     const userId = session.user.id;
     const role = session.user.role;
-    
-    // Проверяем наличие ID упражнения
     if (!params.id) {
       return NextResponse.json({ error: 'ID упражнения не указан' }, { status: 400 });
     }
-    
-    // Находим существующее упражнение вместе с медиафайлами
-    const existingExercise = await prisma.exercise.findFirst({
-      where: {
-        id: params.id,
-        clubId,
-      },
-      include: {
-        mediaItems: true,
-      },
-    });
-    
-    // Если упражнение не найдено, возвращаем ошибку
-    if (!existingExercise) {
+    // Получаем упражнение и mediaItems
+    const exerciseRows = await db.select().from(exercise).where(and(eq(exercise.id, params.id), eq(exercise.clubId, clubId)));
+    if (!exerciseRows.length) {
       return NextResponse.json({ error: 'Упражнение не найдено' }, { status: 404 });
     }
-    
-    // Проверяем, является ли пользователь автором упражнения или администратором
-    if (existingExercise.authorId !== userId && !['ADMIN', 'SUPER_ADMIN'].includes(role)) {
-      return NextResponse.json(
-        { error: 'У вас нет прав на удаление этого упражнения' },
-        { status: 403 }
-      );
+    const ex = exerciseRows[0];
+    if (ex.authorId !== userId && !['ADMIN', 'SUPERADMIN'].includes(role)) {
+      return NextResponse.json({ error: 'Нет прав на удаление' }, { status: 403 });
     }
-    
-    // ВАЖНО: сначала удаляем файлы из хранилища Supabase,
-    // а затем удаляем записи из базы данных
-
-    // Удаляем файлы из хранилища Supabase
-    console.log(`Удаляем файлы для упражнения ${params.id}`);
-    
-    // Если есть медиафайлы, сохраняем их ID для отслеживания
-    const mediaItemIds = existingExercise.mediaItems.map(item => item.id);
-    
-    // Удаляем файлы из хранилища
-    const storageResult = await deleteExerciseFiles(clubId, params.id);
-    console.log(`Результат удаления файлов: ${storageResult ? 'успешно' : 'с ошибками'}`);
-    
-    // Транзакция для удаления упражнения и связанных данных из базы данных
-    await prisma.$transaction(async (tx) => {
-      // 1. Удаляем связанные медиафайлы из базы данных
-      if (mediaItemIds.length > 0) {
-        console.log(`Удаляем ${mediaItemIds.length} записей о медиафайлах из базы данных`);
-        await tx.mediaItem.deleteMany({
-          where: {
-            id: {
-              in: mediaItemIds
-            }
-          },
-        });
+    const mediaItems = await db.select().from(mediaItem).where(eq(mediaItem.exerciseId, ex.id));
+    // Удаляем файлы из Supabase
+    if (mediaItems.length > 0) {
+      await deleteExerciseFiles(mediaItems.map(m => m.url));
+    }
+    // Транзакция удаления
+    await db.transaction(async (tx) => {
+      if (mediaItems.length > 0) {
+        await tx.delete(mediaItem).where(inArray(mediaItem.id, mediaItems.map(m => m.id)));
       }
-      
-      // 2. Удаляем связи с тегами
-      console.log(`Удаляем связи с тегами для упражнения ${params.id}`);
-      await tx.exercise.update({
-        where: {
-          id: params.id,
-        },
-        data: {
-          tags: {
-            set: [] // Удаляем все связи с тегами
-          }
-        }
-      });
-      
-      // 3. Удаляем само упражнение
-      console.log(`Удаляем упражнение ${params.id} из базы данных`);
-      await tx.exercise.delete({
-        where: {
-          id: params.id,
-        },
-      });
+      await tx.delete(exerciseTagToExercise).where(eq(exerciseTagToExercise.exerciseId, params.id));
+      await tx.delete(exercise).where(eq(exercise.id, params.id));
     });
-    
-    console.log(`Упражнение успешно удалено с ID: ${params.id}`);
-    
-    return NextResponse.json({ 
-      success: true,
-      message: 'Упражнение и все связанные файлы успешно удалены'
-    });
-    
+    return NextResponse.json({ success: true, message: 'Упражнение и все связанные файлы успешно удалены' });
   } catch (error) {
-    console.error(`Ошибка при удалении упражнения:`, error);
-    return NextResponse.json(
-      { error: 'Ошибка при удалении упражнения' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Ошибка при удалении упражнения' }, { status: 500 });
   }
 }

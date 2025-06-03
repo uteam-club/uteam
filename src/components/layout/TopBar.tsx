@@ -3,7 +3,7 @@
 import { useState, memo, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useClub } from '@/context/club-context';
+import { useClub } from '@/providers/club-provider';
 import { 
   ChevronDownIcon, 
   GlobeAltIcon,
@@ -199,16 +199,15 @@ function TopBar({ userName, userRole }: TopBarProps) {
         <div className="h-16 flex items-center justify-between">
           <div className="flex-shrink-0">
             <Link href="/dashboard">
-              <div className="flex items-center">
-                <img 
-                  src={club?.logoUrl || '/globe.svg'} 
-                  alt={club?.name || 'Логотип клуба'} 
-                  className="h-8 w-auto" 
-                />
-              </div>
+              {club && club.logoUrl && club.logoUrl !== 'null' && club.logoUrl !== 'undefined' && club.logoUrl.trim() !== '' ? (
+                <img src={club.logoUrl} alt={club?.name || 'Логотип клуба'} className="h-8 w-auto" />
+              ) : club?.subdomain === 'fdcvista' ? (
+                <img src="/vista.png" alt="FDC Vista" className="h-8 w-auto" />
+              ) : club?.subdomain === 'van' ? (
+                <img src="/van.png" alt="FC VAN" className="h-8 w-auto" />
+              ) : null}
             </Link>
           </div>
-          
           <div className="hidden md:flex h-full">
             {navItems.map((item, index) => {
               const itemIsActive = isActive(item);

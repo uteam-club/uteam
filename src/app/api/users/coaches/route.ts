@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { user, team, teamCoach } from '@/db/schema';
+import { eq, and, not, inArray, asc } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -42,75 +44,51 @@ export async function GET(request: NextRequest) {
     // Если указан teamId, получаем только тренеров, которые еще не прикреплены к этой команде
     if (teamId) {
       // Проверяем, принадлежит ли команда клубу пользователя
-      const team = await prisma.team.findUnique({
-        where: {
-          id: teamId,
-          clubId
-        }
-      });
-      
-      if (!team) {
+      const [foundTeam]: any = await db.select().from(team)
+        .where(and(eq(team.id, teamId), eq(team.clubId, clubId)))
+        .limit(1);
+      if (!foundTeam) {
         console.log(`GET /users/coaches: Team ${teamId} not found in club ${clubId}`);
         return NextResponse.json({ error: 'Team not found' }, { status: 404 });
       }
-      
       // Получаем ID тренеров, которые уже прикреплены к команде
-      const teamCoaches = await prisma.teamCoach.findMany({
-        where: {
-          teamId
-        },
-        select: {
-          userId: true
-        }
-      });
-      
+      const teamCoaches = await db.select({ userId: teamCoach.userId })
+        .from(teamCoach)
+        .where(eq(teamCoach.teamId, teamId));
       const attachedCoachIds = teamCoaches.map(coach => coach.userId);
-      
       // Получаем тренеров клуба, которые еще не прикреплены к этой команде
-      const coaches = await prisma.user.findMany({
-        where: {
-          clubId,
-          role: 'COACH',
-          id: {
-            notIn: attachedCoachIds.length > 0 ? attachedCoachIds : undefined
-          }
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          imageUrl: true,
-          role: true
-        },
-        orderBy: {
-          name: 'asc'
-        }
-      });
-      
+      const coaches = await db.select({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        imageUrl: user.imageUrl,
+        role: user.role
+      })
+        .from(user)
+        .where(and(
+          eq(user.clubId, clubId),
+          eq(user.role, 'COACH'),
+          attachedCoachIds.length > 0 ? not(inArray(user.id, attachedCoachIds)) : undefined
+        ))
+        .orderBy(asc(user.name));
       console.log(`GET /users/coaches: Found ${coaches.length} unattached coaches`);
-      
       return NextResponse.json(coaches);
     } else {
       // Получаем всех тренеров клуба
-      const coaches = await prisma.user.findMany({
-        where: {
-          clubId,
-          role: 'COACH'
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          imageUrl: true,
-          role: true
-        },
-        orderBy: {
-          name: 'asc'
-        }
-      });
-      
+      const coaches = await db.select({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        imageUrl: user.imageUrl,
+        role: user.role
+      })
+        .from(user)
+        .where(and(
+          eq(user.clubId, clubId),
+          eq(user.role, 'COACH')
+        ))
+        .orderBy(asc(user.name));
       console.log(`GET /users/coaches: Found ${coaches.length} coaches`);
-      
       return NextResponse.json(coaches);
     }
   } catch (error) {

@@ -1,34 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
+import {
+  training,
+  player,
+  playerAttendance,
+  team,
+} from '@/db/schema';
+import { eq, and, asc } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-
-
 // Функция для получения токена
 async function getTokenFromRequest(request: NextRequest) {
-  // Сначала пробуем стандартный способ NextAuth
   const token = await getToken({ req: request });
-  
   if (token) return token;
-  
-  // Если нет токена NextAuth, проверяем заголовок Authorization
   const authHeader = request.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) return null;
-  
   try {
-    // Извлекаем токен из заголовка
     const bearerToken = authHeader.replace('Bearer ', '');
-    
-    // Верифицируем JWT токен
     const decodedToken = jwt.verify(
-      bearerToken, 
+      bearerToken,
       process.env.NEXTAUTH_SECRET || 'fdcvista-default-secret-key-change-me'
     ) as any;
-    
-    // Возвращаем декодированный токен в том же формате, что и NextAuth
     return {
       id: decodedToken.id,
       email: decodedToken.email,
@@ -51,80 +47,63 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('GET /attendance: Получение данных посещаемости для тренировки:', params.id);
-    
-    // Получаем токен пользователя
     const token = await getTokenFromRequest(request);
-    
     if (!token) {
-      console.log('Ошибка аутентификации: пользователь не авторизован');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
     const clubId = token.clubId as string;
-    
-    // Получаем ID тренировки из параметров
     const trainingId = params.id;
-    
-    // Получаем информацию о тренировке
-    const training = await prisma.training.findUnique({
-      where: { id: trainingId },
-      include: { team: true }
-    });
-    
-    if (!training) {
-      console.log('Тренировка не найдена:', trainingId);
+    // Получаем тренировку
+    const [trainingRow] = await db
+      .select()
+      .from(training)
+      .where(eq(training.id, trainingId));
+    if (!trainingRow) {
       return NextResponse.json({ error: 'Training not found' }, { status: 404 });
     }
-    
-    // Проверяем, что тренировка принадлежит к тому же клубу
-    if (training.clubId !== clubId) {
-      console.log('Попытка доступа к тренировке из другого клуба');
+    if (trainingRow.clubId !== clubId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    
     // Получаем всех игроков команды
-    const players = await prisma.player.findMany({
-      where: { teamId: training.teamId },
-      orderBy: [
-        { lastName: 'asc' },
-        { firstName: 'asc' }
-      ]
-    });
-    
-    // Получаем данные посещаемости для этой тренировки
-    const attendance = await prisma.playerAttendance.findMany({
-      where: { trainingId },
-    });
-    
-    // Формируем полный список игроков с их статусами посещаемости
-    const result = players.map(player => {
-      const playerAttendance = attendance.find(a => a.playerId === player.id);
+    const players = await db
+      .select()
+      .from(player)
+      .where(eq(player.teamId, trainingRow.teamId))
+      .orderBy(asc(player.lastName), asc(player.firstName));
+    // Получаем посещаемость
+    const attendance = await db
+      .select()
+      .from(playerAttendance)
+      .where(eq(playerAttendance.trainingId, trainingId));
+    // Формируем результат
+    const result = players.map((p) => {
+      const playerAttendanceRow = attendance.find((a) => a.playerId === p.id);
       return {
-        id: player.id,
-        firstName: player.firstName,
-        lastName: player.lastName,
-        number: player.number || '',
-        positionInTeam: player.position || '',
-        imageUrl: player.imageUrl || null,
-        // Статус посещаемости (если есть) или TRAINED по умолчанию
-        attendance: playerAttendance 
+        id: p.id,
+        firstName: p.firstName,
+        lastName: p.lastName,
+        number: p.number || '',
+        positionInTeam: p.position || '',
+        imageUrl: p.imageUrl || null,
+        attendance: playerAttendanceRow
           ? {
-              id: playerAttendance.id,
-              status: playerAttendance.status,
-              comment: playerAttendance.comment || ''
+              id: playerAttendanceRow.id,
+              status: playerAttendanceRow.status,
+              comment: playerAttendanceRow.comment || '',
             }
-          : { status: 'TRAINED', comment: '' }
+          : { status: 'TRAINED', comment: '' },
       };
     });
-    
     return NextResponse.json(result);
   } catch (error: any) {
     console.error('Ошибка при получении данных посещаемости:', error);
-    return NextResponse.json({ 
-      error: 'Failed to fetch attendance data',
-      details: error.message || 'Unknown error'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to fetch attendance data',
+        details: error.message || 'Unknown error',
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -137,101 +116,85 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('POST /attendance: Сохранение данных посещаемости для тренировки:', params.id);
-    
-    // Получаем токен пользователя
     const token = await getTokenFromRequest(request);
-    
     if (!token) {
-      console.log('Ошибка аутентификации: пользователь не авторизован');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
     const clubId = token.clubId as string;
-    
-    // Получаем ID тренировки из параметров
     const trainingId = params.id;
-    
-    // Получаем информацию о тренировке
-    const training = await prisma.training.findUnique({
-      where: { id: trainingId },
-    });
-    
-    if (!training) {
-      console.log('Тренировка не найдена:', trainingId);
+    // Получаем тренировку
+    const [trainingRow] = await db
+      .select()
+      .from(training)
+      .where(eq(training.id, trainingId));
+    if (!trainingRow) {
       return NextResponse.json({ error: 'Training not found' }, { status: 404 });
     }
-    
-    // Проверяем, что тренировка принадлежит к тому же клубу
-    if (training.clubId !== clubId) {
-      console.log('Попытка доступа к тренировке из другого клуба');
+    if (trainingRow.clubId !== clubId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    
-    // Получаем данные о посещаемости из запроса
     const data = await request.json();
-    
     if (!Array.isArray(data)) {
-      console.log('Неверный формат данных');
       return NextResponse.json({ error: 'Invalid data format' }, { status: 400 });
     }
-    
-    // Массив для хранения результатов сохранения
     const results = [];
-    
-    // Обновляем данные посещаемости для каждого игрока
     for (const item of data) {
       if (!item.playerId || !item.status) {
-        console.log('Отсутствуют обязательные поля для игрока');
         continue;
       }
-      
       // Проверяем, существует ли уже запись о посещаемости
-      const existingAttendance = await prisma.playerAttendance.findUnique({
-        where: {
-          playerId_trainingId: {
-            playerId: item.playerId,
-            trainingId
-          }
-        }
-      });
-      
+      const [existingAttendance] = await db
+        .select()
+        .from(playerAttendance)
+        .where(
+          and(
+            eq(playerAttendance.playerId, item.playerId),
+            eq(playerAttendance.trainingId, trainingId)
+          )
+        );
       let result;
-      
       if (existingAttendance) {
         // Обновляем существующую запись
-        result = await prisma.playerAttendance.update({
-          where: { id: existingAttendance.id },
-          data: {
+        await db
+          .update(playerAttendance)
+          .set({
             status: item.status,
-            comment: item.comment || null
-          }
-        });
+            comment: item.comment || null,
+            updatedAt: new Date(),
+          })
+          .where(eq(playerAttendance.id, existingAttendance.id));
+        result = { ...existingAttendance, status: item.status, comment: item.comment || null };
       } else {
         // Создаем новую запись
-        result = await prisma.playerAttendance.create({
-          data: {
+        const [created] = await db
+          .insert(playerAttendance)
+          .values({
+            id: uuidv4(),
             playerId: item.playerId,
             trainingId,
             status: item.status,
-            comment: item.comment || null
-          }
-        });
+            comment: item.comment || null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .returning();
+        result = created;
       }
-      
       results.push(result);
     }
-    
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       message: 'Attendance data saved successfully',
-      results
+      results,
     });
   } catch (error: any) {
     console.error('Ошибка при сохранении данных посещаемости:', error);
-    return NextResponse.json({ 
-      error: 'Failed to save attendance data',
-      details: error.message || 'Unknown error'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to save attendance data',
+        details: error.message || 'Unknown error',
+      },
+      { status: 500 }
+    );
   }
 } 

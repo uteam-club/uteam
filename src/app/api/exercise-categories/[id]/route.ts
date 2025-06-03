@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
+import { db } from '@/lib/db';
+import { exerciseCategory } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -66,22 +68,17 @@ export async function GET(
     const clubId = token.clubId as string;
     
     const categoryId = params.id;
-    const category = await prisma.exerciseCategory.findUnique({
-      where: {
-        id: categoryId,
-      },
-    });
-    
-    if (!category) {
+    const [foundCategory]: any = await db.select().from(exerciseCategory).where(eq(exerciseCategory.id, categoryId)).limit(1);
+    if (!foundCategory) {
       return NextResponse.json({ error: 'Exercise category not found' }, { status: 404 });
     }
     
     // Проверяем, что категория принадлежит к тому же клубу
-    if (category.clubId !== clubId) {
+    if (foundCategory.clubId !== clubId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    return NextResponse.json(category);
+    return NextResponse.json(foundCategory);
   } catch (error: any) {
     console.error('Error fetching exercise category:', error);
     return NextResponse.json({ 
@@ -122,12 +119,7 @@ export async function PUT(
     const categoryId = params.id;
     
     // Получаем текущую категорию
-    const currentCategory = await prisma.exerciseCategory.findUnique({
-      where: {
-        id: categoryId,
-      },
-    });
-    
+    const [currentCategory]: any = await db.select().from(exerciseCategory).where(eq(exerciseCategory.id, categoryId)).limit(1);
     if (!currentCategory) {
       console.log('Категория не найдена:', categoryId);
       return NextResponse.json({ error: 'Exercise category not found' }, { status: 404 });
@@ -157,14 +149,8 @@ export async function PUT(
     };
     
     // Обновляем категорию
-    const updatedCategory = await prisma.exerciseCategory.update({
-      where: {
-        id: categoryId,
-      },
-      data: updateData,
-    });
-    
-    console.log('Категория упражнений успешно обновлена:', updatedCategory.id);
+    const [updatedCategory]: any = await db.update(exerciseCategory).set(updateData).where(eq(exerciseCategory.id, categoryId)).returning();
+    console.log('Категория упражнений успешно обновлена:', updatedCategory?.id);
     
     return NextResponse.json(updatedCategory);
   } catch (error: any) {
@@ -208,36 +194,24 @@ export async function DELETE(
     const categoryId = params.id;
     
     // Получаем текущую категорию
-    const currentCategory = await prisma.exerciseCategory.findUnique({
-      where: {
-        id: categoryId,
-      },
-    });
-    
-    if (!currentCategory) {
+    const [categoryToDelete]: any = await db.select().from(exerciseCategory).where(eq(exerciseCategory.id, categoryId)).limit(1);
+    if (!categoryToDelete) {
       console.log('Категория не найдена:', categoryId);
       return NextResponse.json({ error: 'Exercise category not found' }, { status: 404 });
     }
     
     // Проверяем, что категория принадлежит к тому же клубу
-    if (currentCategory.clubId !== clubId) {
+    if (categoryToDelete.clubId !== clubId) {
       console.log('Попытка удаления категории из другого клуба');
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
     // Удаляем категорию
-    await prisma.exerciseCategory.delete({
-      where: {
-        id: categoryId,
-      },
-    });
+    const [deletedCategory]: any = await db.delete(exerciseCategory).where(eq(exerciseCategory.id, categoryId)).returning();
     
     console.log('Категория упражнений успешно удалена:', categoryId);
     
-    return NextResponse.json({ 
-      success: true,
-      message: 'Exercise category deleted successfully' 
-    });
+    return NextResponse.json(deletedCategory);
   } catch (error: any) {
     console.error('Необработанная ошибка при удалении категории упражнений:', error);
     

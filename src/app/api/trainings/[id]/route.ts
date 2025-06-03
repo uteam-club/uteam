@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { training, team, trainingCategory } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-
 
 const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
@@ -67,48 +67,46 @@ export async function GET(
     
     const clubId = token.clubId as string;
     
-    // Получаем данные тренировки
-    const training = await prisma.training.findUnique({
-      where: {
-        id: trainingId,
-        clubId, // Важная часть мультитенантности - проверка принадлежности тренировки к клубу пользователя
-      },
-      include: {
-        team: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        category: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-      },
-    });
+    // Получаем тренировку с join
+    const [row] = await db.select({
+      id: training.id,
+      title: training.title,
+      description: training.description,
+      teamId: training.teamId,
+      date: training.date,
+      location: training.location,
+      notes: training.notes,
+      categoryId: training.categoryId,
+      status: training.status,
+      createdAt: training.createdAt,
+      updatedAt: training.updatedAt,
+      teamName: team.name,
+      categoryName: trainingCategory.name,
+    })
+      .from(training)
+      .leftJoin(team, eq(training.teamId, team.id))
+      .leftJoin(trainingCategory, eq(training.categoryId, trainingCategory.id))
+      .where(and(eq(training.id, trainingId), eq(training.clubId, clubId)));
     
-    if (!training) {
+    if (!row) {
       return NextResponse.json({ error: 'Training not found' }, { status: 404 });
     }
     
     // Форматируем данные для ответа клиенту
     const formattedTraining = {
-      id: training.id,
-      title: training.title,
-      description: training.description,
-      teamId: training.teamId,
-      team: training.team.name,
-      date: training.date.toISOString().split('T')[0],
-      time: training.time,
-      location: training.location,
-      notes: training.notes,
-      categoryId: training.categoryId,
-      category: training.category.name,
-      status: training.status || 'SCHEDULED',
-      createdAt: training.createdAt,
-      updatedAt: training.updatedAt
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      teamId: row.teamId,
+      team: row.teamName,
+      date: row.date?.toISOString(),
+      location: row.location,
+      notes: row.notes,
+      categoryId: row.categoryId,
+      category: row.categoryName,
+      status: row.status || 'SCHEDULED',
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt
     };
     
     return NextResponse.json(formattedTraining);
@@ -151,14 +149,9 @@ export async function PUT(
     }
     
     // Проверяем существование тренировки и принадлежность к клубу
-    const existingTraining = await prisma.training.findUnique({
-      where: {
-        id: trainingId,
-        clubId, // Важная часть мультитенантности - проверка принадлежности тренировки к клубу пользователя
-      },
-    });
+    const [existing] = await db.select().from(training).where(and(eq(training.id, trainingId), eq(training.clubId, clubId)));
     
-    if (!existingTraining) {
+    if (!existing) {
       console.log('Тренировка не найдена или принадлежит другому клубу');
       return NextResponse.json({ error: 'Training not found' }, { status: 404 });
     }
@@ -174,52 +167,38 @@ export async function PUT(
     if ('description' in data) trainingData.description = data.description;
     if ('teamId' in data) trainingData.teamId = data.teamId;
     if ('date' in data) trainingData.date = new Date(data.date);
-    if ('time' in data) trainingData.time = data.time;
     if ('location' in data) trainingData.location = data.location;
     if ('notes' in data) trainingData.notes = data.notes;
     if ('categoryId' in data) trainingData.categoryId = data.categoryId;
     if ('status' in data) trainingData.status = data.status;
     
     // Обновляем тренировку
-    const updatedTraining = await prisma.training.update({
-      where: {
-        id: trainingId,
-      },
-      data: trainingData,
-      include: {
-        team: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        category: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-      },
-    });
+    const [updated] = await db.update(training)
+      .set(trainingData)
+      .where(eq(training.id, trainingId))
+      .returning();
     
-    console.log('Тренировка успешно обновлена:', updatedTraining.id);
+    console.log('Тренировка успешно обновлена:', updated.id);
+    
+    // Получаем team и category для ответа
+    const [teamRow] = await db.select({ name: team.name }).from(team).where(eq(team.id, updated.teamId));
+    const [catRow] = await db.select({ name: trainingCategory.name }).from(trainingCategory).where(eq(trainingCategory.id, updated.categoryId));
     
     // Форматируем данные для ответа клиенту
     const formattedTraining = {
-      id: updatedTraining.id,
-      title: updatedTraining.title,
-      description: updatedTraining.description,
-      teamId: updatedTraining.teamId,
-      team: updatedTraining.team.name,
-      date: updatedTraining.date.toISOString().split('T')[0],
-      time: updatedTraining.time,
-      location: updatedTraining.location,
-      notes: updatedTraining.notes,
-      categoryId: updatedTraining.categoryId,
-      category: updatedTraining.category.name,
-      status: updatedTraining.status || 'SCHEDULED',
-      createdAt: updatedTraining.createdAt,
-      updatedAt: updatedTraining.updatedAt
+      id: updated.id,
+      title: updated.title,
+      description: updated.description,
+      teamId: updated.teamId,
+      team: teamRow?.name || '',
+      date: updated.date?.toISOString(),
+      location: updated.location,
+      notes: updated.notes,
+      categoryId: updated.categoryId,
+      category: catRow?.name || '',
+      status: updated.status || 'SCHEDULED',
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt
     };
     
     return NextResponse.json(formattedTraining);
@@ -263,24 +242,15 @@ export async function DELETE(
     }
     
     // Проверяем существование тренировки и принадлежность к клубу
-    const existingTraining = await prisma.training.findUnique({
-      where: {
-        id: trainingId,
-        clubId, // Важная часть мультитенантности - проверка принадлежности тренировки к клубу пользователя
-      },
-    });
+    const [existing] = await db.select().from(training).where(and(eq(training.id, trainingId), eq(training.clubId, clubId)));
     
-    if (!existingTraining) {
+    if (!existing) {
       console.log('Тренировка не найдена или принадлежит другому клубу');
       return NextResponse.json({ error: 'Training not found' }, { status: 404 });
     }
     
     // Удаляем тренировку
-    await prisma.training.delete({
-      where: {
-        id: trainingId,
-      },
-    });
+    await db.delete(training).where(eq(training.id, trainingId));
     
     console.log('Тренировка успешно удалена:', trainingId);
     

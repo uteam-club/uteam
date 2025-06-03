@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/auth-options';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { exerciseTag, exerciseCategory } from '@/db/schema';
+import { eq, asc, and } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -49,23 +52,29 @@ export async function GET(req: NextRequest) {
     }
     
     // Получаем список тегов упражнений для клуба пользователя
-    const exerciseTags = await prisma.exerciseTag.findMany({
-      where: { clubId },
-      include: {
-        exerciseCategory: {
-          select: {
-            name: true,
-          },
-        },
-      },
-      orderBy: { name: 'asc' },
-    });
+    const exerciseTags = await db.select({
+      id: exerciseTag.id,
+      name: exerciseTag.name,
+      clubId: exerciseTag.clubId,
+      exerciseCategoryId: exerciseTag.exerciseCategoryId,
+      exerciseCategoryName: exerciseCategory.name
+    })
+      .from(exerciseTag)
+      .leftJoin(exerciseCategory, eq(exerciseTag.exerciseCategoryId, exerciseCategory.id))
+      .where(eq(exerciseTag.clubId, clubId))
+      .orderBy(asc(exerciseTag.name));
     
     console.log(`Найдено ${exerciseTags.length} тегов для клуба ${clubId}`);
     
+    // Преобразуем к нужному виду:
+    const tagsWithCategoryObj = exerciseTags.map(tag => ({
+      ...tag,
+      exerciseCategory: tag.exerciseCategoryName ? { name: tag.exerciseCategoryName } : undefined,
+    }));
+    
     // Возвращаем список тегов
     return new NextResponse(
-      JSON.stringify(exerciseTags),
+      JSON.stringify(tagsWithCategoryObj),
       { 
         status: 200,
         headers: {
@@ -132,12 +141,8 @@ export async function POST(req: NextRequest) {
     }
     
     // Проверяем существование категории и принадлежность к клубу
-    const category = await prisma.exerciseCategory.findFirst({
-      where: {
-        id: data.exerciseCategoryId,
-        clubId,
-      },
-    });
+    const [category] = await db.select().from(exerciseCategory)
+      .where(and(eq(exerciseCategory.id, data.exerciseCategoryId), eq(exerciseCategory.clubId, clubId)));
     
     if (!category) {
       console.error('Ошибка: категория не найдена или принадлежит другому клубу');
@@ -148,18 +153,31 @@ export async function POST(req: NextRequest) {
     }
     
     // Создаем новый тег упражнений
-    const exerciseTag = await prisma.exerciseTag.create({
-      data: {
-        name: data.name,
-        clubId,
-        exerciseCategoryId: data.exerciseCategoryId,
-      },
+    const [createdTag] = await db.insert(exerciseTag).values({
+      name: data.name,
+      clubId,
+      exerciseCategoryId: data.exerciseCategoryId,
+      id: uuidv4(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+    
+    // Получаем тег с названием категории
+    const [tagWithCategory] = await db.select({
+      id: exerciseTag.id,
+      name: exerciseTag.name,
+      clubId: exerciseTag.clubId,
+      exerciseCategoryId: exerciseTag.exerciseCategoryId,
+      exerciseCategoryName: exerciseCategory.name,
+    })
+      .from(exerciseTag)
+      .leftJoin(exerciseCategory, eq(exerciseTag.exerciseCategoryId, exerciseCategory.id))
+      .where(eq(exerciseTag.id, createdTag.id));
+    
+    return NextResponse.json({
+      ...tagWithCategory,
+      exerciseCategory: tagWithCategory.exerciseCategoryName ? { name: tagWithCategory.exerciseCategoryName } : undefined,
     });
-    
-    console.log('Тег успешно создан:', exerciseTag);
-    
-    // Возвращаем созданный тег
-    return NextResponse.json(exerciseTag);
   } catch (error) {
     console.error('Ошибка при создании тега упражнений:', error);
     return NextResponse.json(

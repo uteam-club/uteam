@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { match, playerMatchStat, player } from '@/db/schema';
+import { eq, and, desc } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -30,32 +33,33 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const matchId = params.id;
 
     // Проверяем, существует ли матч и принадлежит ли он клубу пользователя
-    const match = await prisma.match.findFirst({
-      where: {
-        id: matchId,
-        clubId: session.user.clubId,
-      },
-      include: {
-        team: true,
-      },
-    });
+    const [matchRow] = await db.select().from(match).where(and(eq(match.id, matchId), eq(match.clubId, session.user.clubId)));
 
-    if (!match) {
+    if (!matchRow) {
       return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
     }
 
     // Получаем статистику игроков для этого матча
-    const playerStats = await prisma.playerMatchStat.findMany({
-      where: {
-        matchId,
-      },
-      include: {
-        player: true,
-      },
-      orderBy: {
-        isStarter: 'desc', // Сначала основной состав, потом запасные
-      },
-    });
+    const playerStats = await db.select({
+      id: playerMatchStat.id,
+      matchId: playerMatchStat.matchId,
+      playerId: playerMatchStat.playerId,
+      isStarter: playerMatchStat.isStarter,
+      minutesPlayed: playerMatchStat.minutesPlayed,
+      goals: playerMatchStat.goals,
+      assists: playerMatchStat.assists,
+      yellowCards: playerMatchStat.yellowCards,
+      redCards: playerMatchStat.redCards,
+      createdAt: playerMatchStat.createdAt,
+      updatedAt: playerMatchStat.updatedAt,
+      playerFirstName: player.firstName,
+      playerLastName: player.lastName,
+      playerIdRef: player.id
+    })
+      .from(playerMatchStat)
+      .leftJoin(player, eq(playerMatchStat.playerId, player.id))
+      .where(eq(playerMatchStat.matchId, matchId))
+      .orderBy(desc(playerMatchStat.isStarter));
 
     return NextResponse.json(playerStats);
   } catch (error) {
@@ -87,82 +91,79 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const { playerId, isStarter, minutesPlayed, goals, assists, yellowCards, redCards } = validationResult.data;
 
     // Проверяем, существует ли матч и принадлежит ли он клубу пользователя
-    const match = await prisma.match.findFirst({
-      where: {
-        id: matchId,
-        clubId: session.user.clubId,
-      },
-    });
+    const [matchRow] = await db.select().from(match).where(and(eq(match.id, matchId), eq(match.clubId, session.user.clubId)));
 
-    if (!match) {
-      return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
+    if (!matchRow) {
+      console.error('Матч не найден', { matchId, clubId: session.user.clubId });
+      return NextResponse.json({ error: 'Матч не найден', matchId, clubId: session.user.clubId }, { status: 404 });
     }
 
-    // Проверяем, существует ли игрок и принадлежит ли он команде этого матча
-    const player = await prisma.player.findFirst({
-      where: {
-        id: playerId,
-        teamId: match.teamId,
-      },
-    });
+    // Логируем попытку добавления игрока
+    console.log('POST /api/matches/[id]/players', { matchId, playerId, matchTeamId: matchRow.teamId });
 
-    if (!player) {
-      return NextResponse.json({ error: 'Игрок не найден или не принадлежит команде' }, { status: 404 });
+    // Проверяем, существует ли игрок и принадлежит ли он команде этого матча
+    const [playerRow] = await db.select().from(player).where(and(eq(player.id, playerId), eq(player.teamId, matchRow.teamId)));
+
+    if (!playerRow) {
+      console.error('Игрок не найден или не принадлежит команде', { playerId, matchTeamId: matchRow.teamId });
+      return NextResponse.json({ error: 'Игрок не найден или не принадлежит команде', playerId, matchTeamId: matchRow.teamId }, { status: 404 });
     }
 
     // Проверяем, есть ли уже статистика для этого игрока в этом матче
-    const existingPlayerStat = await prisma.playerMatchStat.findUnique({
-      where: {
-        matchId_playerId: {
-          matchId,
-          playerId,
-        },
-      },
-    });
+    const [existingPlayerStat] = await db.select().from(playerMatchStat).where(and(eq(playerMatchStat.matchId, matchId), eq(playerMatchStat.playerId, playerId)));
 
     let playerStat;
 
     if (existingPlayerStat) {
       // Обновляем существующую статистику
-      playerStat = await prisma.playerMatchStat.update({
-        where: {
-          id: existingPlayerStat.id,
-        },
-        data: {
-          isStarter,
-          minutesPlayed,
-          goals,
-          assists,
-          yellowCards,
-          redCards,
-        },
-        include: {
-          player: true,
-        },
-      });
+      [playerStat] = await db.update(playerMatchStat)
+        .set({ isStarter, minutesPlayed, goals, assists, yellowCards, redCards })
+        .where(eq(playerMatchStat.id, existingPlayerStat.id))
+        .returning();
     } else {
       // Создаем новую запись статистики
-      playerStat = await prisma.playerMatchStat.create({
-        data: {
-          matchId,
-          playerId,
-          isStarter,
-          minutesPlayed,
-          goals,
-          assists,
-          yellowCards,
-          redCards,
-        },
-        include: {
-          player: true,
-        },
-      });
+      const now = new Date();
+      [playerStat] = await db.insert(playerMatchStat).values({
+        id: uuidv4(),
+        matchId,
+        playerId,
+        isStarter,
+        minutesPlayed,
+        goals,
+        assists,
+        yellowCards,
+        redCards,
+        createdAt: now,
+        updatedAt: now,
+      }).returning();
     }
 
-    return NextResponse.json(playerStat, { status: existingPlayerStat ? 200 : 201 });
+    // Возвращаем с join на player
+    const [result] = await db.select({
+      id: playerMatchStat.id,
+      matchId: playerMatchStat.matchId,
+      playerId: playerMatchStat.playerId,
+      isStarter: playerMatchStat.isStarter,
+      minutesPlayed: playerMatchStat.minutesPlayed,
+      goals: playerMatchStat.goals,
+      assists: playerMatchStat.assists,
+      yellowCards: playerMatchStat.yellowCards,
+      redCards: playerMatchStat.redCards,
+      createdAt: playerMatchStat.createdAt,
+      updatedAt: playerMatchStat.updatedAt,
+      playerFirstName: player.firstName,
+      playerLastName: player.lastName,
+      playerIdRef: player.id
+    })
+      .from(playerMatchStat)
+      .leftJoin(player, eq(playerMatchStat.playerId, player.id))
+      .where(eq(playerMatchStat.id, playerStat.id));
+
+    return NextResponse.json(result, { status: existingPlayerStat ? 200 : 201 });
   } catch (error) {
     console.error('Ошибка при добавлении игрока в состав:', error);
-    return NextResponse.json({ error: 'Ошибка при добавлении игрока в состав' }, { status: 500 });
+    const err = error as Error;
+    return NextResponse.json({ error: 'Ошибка при добавлении игрока в состав', details: err.message, stack: err.stack }, { status: 500 });
   }
 }
 
@@ -183,26 +184,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     // Проверяем, существует ли матч и принадлежит ли он клубу пользователя
-    const match = await prisma.match.findFirst({
-      where: {
-        id: matchId,
-        clubId: session.user.clubId,
-      },
-    });
+    const [matchRow] = await db.select().from(match).where(and(eq(match.id, matchId), eq(match.clubId, session.user.clubId)));
 
-    if (!match) {
+    if (!matchRow) {
       return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
     }
 
     // Удаляем статистику игрока для этого матча
-    await prisma.playerMatchStat.delete({
-      where: {
-        matchId_playerId: {
-          matchId,
-          playerId,
-        },
-      },
-    });
+    await db.delete(playerMatchStat).where(and(eq(playerMatchStat.matchId, matchId), eq(playerMatchStat.playerId, playerId)));
 
     return NextResponse.json({ success: true });
   } catch (error) {

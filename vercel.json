@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npx prisma generate && npx prisma migrate deploy && next build",
+  "buildCommand": "next build",
   "installCommand": "npm install",
   "framework": "nextjs",
   "outputDirectory": ".next",

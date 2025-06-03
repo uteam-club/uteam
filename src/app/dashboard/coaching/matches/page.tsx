@@ -376,15 +376,15 @@ export default function MatchesPage() {
                           {formatMatchDate(match.date)} • {match.time}
                         </span>
                       </div>
-                      
-                      <div className="text-sm font-semibold text-vista-light/90 bg-vista-dark/80 px-2 py-1 rounded">
-                        {match.team.name}
-                      </div>
                     </div>
                     
                     <div className="flex items-center justify-between mt-2 bg-vista-dark/30 p-3 rounded">
                       <div className="w-5/12 text-left">
-                        <p className="font-semibold text-vista-light">{match.isHome ? match.team.name : match.opponentName}</p>
+                        <p className="font-semibold text-vista-light">{
+                          match.isHome
+                            ? (match.team?.name || teams.find(t => t.id === match.teamId)?.name || 'Неизвестно')
+                            : match.opponentName
+                        }</p>
                       </div>
                       
                       <div className={`w-2/12 flex justify-center items-center rounded-md py-1 px-3 ${getMatchResultClass(match)}`}>
@@ -394,7 +394,11 @@ export default function MatchesPage() {
                       </div>
                       
                       <div className="w-5/12 text-right">
-                        <p className="font-semibold text-vista-light">{match.isHome ? match.opponentName : match.team.name}</p>
+                        <p className="font-semibold text-vista-light">{
+                          match.isHome
+                            ? match.opponentName
+                            : (match.team?.name || teams.find(t => t.id === match.teamId)?.name || 'Неизвестно')
+                        }</p>
                       </div>
                     </div>
                   </div>

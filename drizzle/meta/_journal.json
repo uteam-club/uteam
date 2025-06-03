@@ -1,0 +1,48 @@
+{
+  "version": "5",
+  "dialect": "pg",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1748456816045,
+      "tag": "0000_messy_power_pack",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1748501298271,
+      "tag": "0001_bent_killer_shrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1748871201122,
+      "tag": "0002_peaceful_psylocke",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1748871343621,
+      "tag": "0003_gigantic_thunderbolt_ross",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1748934510207,
+      "tag": "0004_flimsy_midnight",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1748940686077,
+      "tag": "0005_worthless_hannibal_king",
+      "breakpoints": true
+    }
+  ]
+}

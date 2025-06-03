@@ -21,7 +21,7 @@ export type PlayerPosition = {
 };
 
 // Карта формаций с расположением игроков
-const formationPositions: Record<string, PlayerPosition[]> = {
+export const formationPositions: Record<string, PlayerPosition[]> = {
   // 11×11 формации
   '1-5-2-3': [
     { x: 50, y: 90, isGoalkeeper: true }, // Вратарь всегда на одной позиции

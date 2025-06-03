@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { team } from '@/db/schema';
+import { eq, asc, desc } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -84,15 +87,9 @@ export async function GET(request: NextRequest) {
     }
     
     // Получаем команды клуба
-    const teams = await prisma.team.findMany({
-      where: {
-        clubId,
-      },
-      orderBy: [
-        { order: 'asc' },  // Сначала сортируем по полю order
-        { name: 'asc' }    // Затем по имени (если order одинаковый)
-      ],
-    });
+    const teams = await db.select().from(team)
+      .where(eq(team.clubId, clubId))
+      .orderBy(asc(team.order), asc(team.name));
     
     return new NextResponse(
       JSON.stringify(teams),
@@ -158,16 +155,20 @@ export async function POST(request: NextRequest) {
     }
     
     // Создаем объект с данными для создания команды
-    const teamData: { name: string; clubId: string; order?: number } = {
+    // Генерируем id на сервере, чтобы избежать проблем с default в базе
+    const teamData: { id: string; name: string; clubId: string; order?: number; createdAt: Date; updatedAt: Date } = {
+      id: uuidv4(),
       name: data.name.trim(),
       clubId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
     
     // Находим максимальный порядок среди существующих команд
-    const maxOrderTeam = await prisma.team.findFirst({
-      where: { clubId },
-      orderBy: { order: 'desc' },
-    });
+    const [maxOrderTeam] = await db.select().from(team)
+      .where(eq(team.clubId, clubId))
+      .orderBy(desc(team.order))
+      .limit(1);
     
     // Устанавливаем порядок для новой команды
     if (maxOrderTeam) {
@@ -176,14 +177,14 @@ export async function POST(request: NextRequest) {
       teamData.order = 1;
     }
     
+    console.log('teamData перед вставкой:', teamData);
+    
     // Создаем команду
-    const team = await prisma.team.create({
-      data: teamData,
-    });
+    const [createdTeam] = await db.insert(team).values(teamData).returning();
     
-    console.log('Команда успешно создана:', team.id);
+    console.log('Команда успешно создана:', createdTeam.id);
     
-    return NextResponse.json(team);
+    return NextResponse.json(createdTeam);
   } catch (error: any) {
     console.error('Необработанная ошибка при создании команды:', error);
     

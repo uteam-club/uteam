@@ -110,7 +110,7 @@
    - Используйте хук `useClub()` для доступа к информации о текущем клубе
    - Пример:
      ```tsx
-     import { useClub } from '@/context/club-context';
+     import { useClub } from '@/providers/club-provider';
      
      function MyComponent() {
        const { club } = useClub();
@@ -174,7 +174,7 @@ export async function GET(request: NextRequest) {
    'use client';
    
    import { useSession } from 'next-auth/react';
-   import { useClub } from '@/context/club-context';
+   import { useClub } from '@/providers/club-provider';
    
    export default function MyPage() {
      const { data: session } = useSession();
@@ -241,4 +241,14 @@ export async function GET(request: NextRequest) {
 
 3. **Оптимизация интерфейса**
    - Используйте отложенную загрузку компонентов (React.lazy)
-   - Минимизируйте повторную отрисовку компонентов 
+   - Минимизируйте повторную отрисовку компонентов
+
+## Работа с Drizzle ORM
+
+- Для миграций используйте drizzle-kit:
+```bash
+npx drizzle-kit generate:pg
+npx drizzle-kit push:pg
+```
+- Схемы находятся в /src/db/schema
+- Для работы с БД используйте Drizzle ORM API 

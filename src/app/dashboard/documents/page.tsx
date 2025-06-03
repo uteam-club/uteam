@@ -135,25 +135,6 @@ export default function DocumentsPage() {
     }
   }, [selectedTeamId, fetchPlayerDocuments]);
 
-  // Обработка событий видимости страницы для восстановления данных при переключении вкладок
-  useEffect(() => {
-    function handleVisibilityChange() {
-      if (document.visibilityState === 'visible' && wasHidden) {
-        setWasHidden(false);
-        // Повторно загружаем данные, когда пользователь возвращается на вкладку
-        fetchPlayerDocuments();
-      } else if (document.visibilityState === 'hidden') {
-        setWasHidden(true);
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [fetchPlayerDocuments, wasHidden]);
-
   // Функция для фильтрации игроков по поисковому запросу
   useEffect(() => {
     if (searchQuery.trim() === '') {

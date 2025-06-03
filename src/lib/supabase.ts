@@ -70,7 +70,7 @@ export const setClubContext = async (clubId: string) => {
 };
 
 // Функция для загрузки файла в хранилище Supabase по структуре:
-// clubs/{clubId}/players/{playerId}/[avatars|documents]/filename
+// clubs/{clubId}/teams/{teamId}/players/{playerId}/[avatars|documents]/filename
 export async function uploadPlayerFile(
   file: File,
   clubId: string,
@@ -103,9 +103,9 @@ export async function uploadPlayerFile(
     const fileName = `${timestamp}-${file.name.replace(/\s+/g, '_')}`;
     
     // Формируем путь к файлу в хранилище по новой структуре
-    // clubs/{clubId}/players/{playerId}/{folderType}/{fileName}
+    // clubs/{clubId}/teams/{teamId}/players/{playerId}/{folderType}/{fileName}
     const folderType = fileType === 'avatar' ? 'avatars' : 'documents';
-    const filePath = `clubs/${clubId}/players/${playerId}/${folderType}/${fileName}`;
+    const filePath = `clubs/${clubId}/teams/${teamId}/players/${playerId}/${folderType}/${fileName}`;
     
     console.log(`Загрузка файла по пути: ${filePath}`);
 

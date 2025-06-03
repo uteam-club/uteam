@@ -1,46 +1,54 @@
-'use client';
+"use client";
 
-import { ReactNode, useEffect, useState } from 'react';
-import { ClubProvider } from '@/context/club-context';
-import { useSession } from 'next-auth/react';
-import { Club } from '@/generated/prisma/client';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-async function fetchClub(clubId: string): Promise<Club | null> {
-  try {
-    const response = await fetch(`/api/clubs/${clubId}`);
-    if (!response.ok) {
-      return null;
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Ошибка при получении данных клуба:', error);
-    return null;
-  }
+interface Club {
+  id: string;
+  name: string;
+  subdomain: string;
+  logoUrl?: string;
+  // Добавьте другие поля клуба по необходимости
 }
 
-export function ClubContextProvider({ children }: { children: ReactNode }) {
-  const { data: session } = useSession();
+interface ClubContextType {
+  club: Club | null;
+  setClub: (club: Club | null) => void;
+}
+
+const ClubContext = createContext<ClubContextType | undefined>(undefined);
+
+export const ClubContextProvider = ({ children }: { children: ReactNode }) => {
   const [club, setClub] = useState<Club | null>(null);
-  const [isMainDomain, setIsMainDomain] = useState(true);
 
   useEffect(() => {
-    // Получаем информацию о клубе из сессии пользователя
-    const clubId = session?.user?.clubId;
-    // @ts-ignore - игнорируем предупреждение о том, что clubId может не существовать
-    if (clubId) {
-      fetchClub(clubId).then(clubData => {
-        setClub(clubData);
-      });
-    }
-
-    // Проверяем, является ли текущий домен основным
-    const host = window.location.hostname;
-    setIsMainDomain(host === 'localhost' || host === 'fdcvista.localhost' || host === 'fdcvista.com');
-  }, [session]);
+    // Получаем subdomain из window.location.host
+    if (typeof window === 'undefined') return;
+    const host = window.location.host;
+    const hostParts = host.split('.');
+    // Для localhost и без поддомена не делаем запрос
+    if (host.includes('localhost') || hostParts.length < 3) return;
+    const subdomain = hostParts[0];
+    if (!subdomain) return;
+    // Запрашиваем клуб по subdomain
+    fetch(`/api/clubs/by-subdomain?subdomain=${subdomain}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.id) setClub(data);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
-    <ClubProvider club={club} isMainDomain={isMainDomain}>
+    <ClubContext.Provider value={{ club, setClub }}>
       {children}
-    </ClubProvider>
+    </ClubContext.Provider>
   );
-} 
+};
+
+export const useClub = () => {
+  const context = useContext(ClubContext);
+  if (!context) {
+    throw new Error("useClub must be used within a ClubContextProvider");
+  }
+  return context;
+}; 

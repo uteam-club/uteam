@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/dialog";
 import FootballField from '@/components/matches/FootballField';
 import { Player as FieldPlayer, type PlayerPosition as FieldPlayerPosition } from '@/components/matches/FootballField';
+import { formationPositions } from '@/components/matches/FootballField';
 
 interface Player {
   id: string;
@@ -151,6 +152,7 @@ interface TeamPlayer {
   number?: number;
   position?: string;
   imageUrl?: string;
+  teamId: string;
   squadStatus?: PlayerSquadStatus; // For tracking status in the modal
 }
 
@@ -194,45 +196,38 @@ export default function MatchDetailsPage() {
     if (match) {
       const format = match.gameFormat || '11×11';
       setSelectedFormat(format);
-      
       // Set appropriate formations based on format
       const formations = formatFormations[format as keyof typeof formatFormations] || formatFormations['11×11'];
       setAvailableFormations(formations);
-      
-      // Set formation if it exists in match data and is valid for the format
+      // Определяем актуальную formation
+      let actualFormation = formations[0];
       if (match.formation && formations.includes(match.formation)) {
-        setSelectedFormation(match.formation);
-      } else {
-        // Default to first formation in the list
-        setSelectedFormation(formations[0]);
+        actualFormation = match.formation;
       }
-
+      setSelectedFormation(actualFormation);
       // Set color if it exists in match data
       if (match.markerColor) {
         setSelectedColor(match.markerColor);
       }
-
-      // Set player positions if they exist in match data
+      // Set player positions строго по formation
       if (match.playerPositions && match.playerPositions.length > 0) {
-        setPlayerPositions(match.playerPositions);
+        const positions = typeof match.playerPositions === 'string'
+          ? JSON.parse(match.playerPositions)
+          : match.playerPositions;
+        setPlayerPositions(positions);
+      } else if (formationPositions[actualFormation]) {
+        setPlayerPositions(formationPositions[actualFormation]);
       }
-
       // Загружаем привязки игроков к позициям, если они существуют
       if (match.positionAssignments) {
-        // Преобразуем JSON в объект, если это строка
         const assignments = typeof match.positionAssignments === 'string'
           ? JSON.parse(match.positionAssignments)
           : match.positionAssignments;
-        
         setPositionAssignments(assignments);
-        
-        // Обновляем позиции игроков с именами и номерами
         if (match.playerPositions && match.playerPositions.length > 0 && match.playerStats && match.playerStats.length > 0) {
-          const updatedPositions = [...match.playerPositions];
-          
+          const updatedPositions = [...(typeof match.playerPositions === 'string' ? JSON.parse(match.playerPositions) : match.playerPositions)];
           Object.entries(assignments).forEach(([playerId, positionIndex]) => {
             const player = match.playerStats.find(stat => stat.player.id === playerId)?.player;
-            
             if (player && updatedPositions[positionIndex as number]) {
               updatedPositions[positionIndex as number] = {
                 ...updatedPositions[positionIndex as number],
@@ -242,12 +237,9 @@ export default function MatchDetailsPage() {
               };
             }
           });
-          
           setPlayerPositions(updatedPositions);
         }
       }
-
-      // Reset changes flag when loading match
       setHasChanges(false);
     }
   }, [match]);
@@ -321,13 +313,25 @@ export default function MatchDetailsPage() {
   };
 
   const handleFormationChange = (value: string) => {
-    console.log(`Изменение формации на: ${value}`);
     setSelectedFormation(value);
-    // При изменении формации сбрасываем позиции,
-    // чтобы компонент FootballField использовал дефолтные для новой формации
-    setPlayerPositions([]);
-    // Также сбрасываем все привязки игроков
-    setPositionAssignments({});
+    const defaultPositions = formationPositions[value] || [];
+    setPlayerPositions(defaultPositions);
+
+    // Автоматически распределяем игроков основы по новым позициям
+    if (match && match.playerStats) {
+      const starters = match.playerStats.filter(stat => stat.isStarter);
+      const newAssignments: Record<string, number> = {};
+      starters.forEach((stat, idx) => {
+        if (idx < defaultPositions.length) {
+          newAssignments[stat.player.id] = idx;
+        }
+      });
+      setPositionAssignments(newAssignments);
+    } else {
+      setPositionAssignments({});
+    }
+
+    setHasChanges(true);
   };
 
   const handleColorChange = (value: string) => {
@@ -434,14 +438,14 @@ export default function MatchDetailsPage() {
       });
 
       if (response.ok) {
-        // Update match object with new data while preserving the team reference
+        // Update match object with new data while preserving the team and playerStats reference
         const updatedData = await response.json();
         console.log('Получены обновленные данные матча:', Object.keys(updatedData));
-        
-        // Keep the existing team object when updating the match
         setMatch({
+          ...match,
           ...updatedData,
-          team: match.team
+          team: match.team,
+          playerStats: match.playerStats
         });
         setHasChanges(false);
         toast({
@@ -481,7 +485,7 @@ export default function MatchDetailsPage() {
 
   const formatMatchDate = (dateString: string) => {
     const date = new Date(dateString);
-    return format(date, 'd MMMM yyyy', { locale: ru });
+    return format(date, 'dd.MM.yyyy');
   };
 
   // Function to fetch all players from the team
@@ -722,6 +726,15 @@ export default function MatchDetailsPage() {
     console.log(`Найдено ${starters.length} игроков основы:`, starters.map(p => `${p.lastName} (${p.id})`));
     return starters;
   };
+
+  useEffect(() => {
+    if (teamPlayers.length && match) {
+      // Для отладки: выводим teamId каждого игрока и teamId матча
+      console.log('match.teamId:', match.teamId);
+      console.log('teamPlayers (full):', teamPlayers);
+      console.log('teamPlayers (id/teamId):', teamPlayers.map(p => ({ id: p.id, teamId: p.teamId })));
+    }
+  }, [teamPlayers, match]);
 
   if (loading) {
     return (

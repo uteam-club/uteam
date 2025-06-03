@@ -851,7 +851,7 @@ export default function ExercisesPage() {
                 
                 {selectedAuthor && (
                   <Badge variant="secondary" className="bg-vista-secondary/20 text-vista-light">
-                    Автор: {usersData.find((u: User) => u.id === selectedAuthor)?.name}
+                    Автор: {usersData.find((u: User) => u.id === selectedAuthor)?.name || 'Неизвестно'}
                     <button onClick={() => setSelectedAuthor(null)} className="ml-1">
                       <X className="h-3 w-3" />
                     </button>
@@ -972,12 +972,12 @@ export default function ExercisesPage() {
                       
                       <div className="mt-2">
                         <span className="inline-block px-2 py-1 text-xs rounded-md bg-vista-primary/20 text-vista-primary">
-                          {exercise.category.name}
+                          {exercise.category?.name || 'Без категории'}
                         </span>
                       </div>
                       
                       <div className="mt-2 text-xs text-vista-light/70">
-                        Автор: {exercise.author.name}
+                        Автор: {exercise.author?.name || 'Неизвестно'}
                       </div>
                       
                       <div className="mt-2 flex flex-wrap gap-1">
@@ -1363,7 +1363,7 @@ export default function ExercisesPage() {
                     {/* Информация об упражнении */}
                     <div className="flex flex-wrap gap-2 mb-4">
                       <span className="px-3 py-1 rounded-full bg-vista-primary/20 text-vista-primary text-sm">
-                        {previewExercise.category.name}
+                        {previewExercise.category?.name || 'Без категории'}
                       </span>
                       
                       {previewExercise.tags.map((tag: Tag) => (
@@ -1403,7 +1403,7 @@ export default function ExercisesPage() {
                       
                       <div>
                         <h4 className="text-sm font-medium text-vista-light/70 mb-1">Автор:</h4>
-                        <p className="text-vista-light">{previewExercise.author.name}</p>
+                        <p className="text-vista-light">{previewExercise.author?.name || 'Неизвестно'}</p>
                       </div>
                     </div>
                   </>

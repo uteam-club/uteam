@@ -62,6 +62,13 @@ const STATUS_MAPPING: Record<string, string> = {
   'SCHEDULED': 'scheduled'
 };
 
+// Функция для отображения типа матча на русском
+const competitionTypeLabels: Record<string, string> = {
+  FRIENDLY: 'товарищеский',
+  LEAGUE: 'лига',
+  CUP: 'кубок',
+};
+
 export default function CalendarPage() {
   const { data: session } = useSession();
   const router = useRouter();
@@ -247,9 +254,9 @@ export default function CalendarPage() {
             date: match.date,
             time: match.time,
             teamId: match.teamId,
-            teamName: match.team.name,
+            teamName: match.teamName || '',
             type: 'MATCH',
-            status: 'scheduled', // Можно добавить логику определения статуса матча
+            status: 'scheduled',
             competitionType: match.competitionType,
             isHome: match.isHome,
             opponentName: match.opponentName,
@@ -345,11 +352,17 @@ export default function CalendarPage() {
 
   // Функция для получения тренировок на конкретный день
   const getTrainingsForDay = (day: Date) => {
-    return trainings.filter(training => {
-      // Преобразуем строку даты в объект Date
-      const trainingDate = parseISO(training.date);
-      return isSameDay(trainingDate, day);
-    });
+    return trainings
+      .filter(training => {
+        // Преобразуем строку даты в объект Date
+        const trainingDate = parseISO(training.date);
+        return isSameDay(trainingDate, day);
+      })
+      .sort((a, b) => {
+        // Сортируем по времени (строка 'HH:mm')
+        if (!a.time || !b.time) return 0;
+        return a.time.localeCompare(b.time);
+      });
   };
 
   // Функция для нормализации статуса тренировки
@@ -516,6 +529,22 @@ export default function CalendarPage() {
       case 'TRAINING':
       default:
         return 'bg-blue-500/20 border-blue-500/50 shadow-sm';
+    }
+  };
+
+  // Функция для определения результата матча и возврата соответствующего класса
+  const getMatchResultClass = (training: TrainingEvent) => {
+    if (typeof training.teamGoals !== 'number' || typeof training.opponentGoals !== 'number') {
+      return 'bg-vista-dark/30'; // Default background if no score
+    }
+    const teamGoals = training.isHome ? training.teamGoals : training.opponentGoals;
+    const opponentGoals = training.isHome ? training.opponentGoals : training.teamGoals;
+    if (teamGoals > opponentGoals) {
+      return 'bg-green-500/30'; // Победа
+    } else if (teamGoals < opponentGoals) {
+      return 'bg-red-500/30'; // Поражение
+    } else {
+      return 'bg-amber-500/30'; // Ничья
     }
   };
 
@@ -691,71 +720,69 @@ export default function CalendarPage() {
                           scheduled: ''
                         };
                         
+                        if (training.type === 'MATCH') {
+                          return (
+                            <div
+                              key={training.id}
+                              className={`text-xs p-2 rounded-lg border flex flex-col relative cursor-pointer min-h-[110px] ${getTrainingStyles(training)} ${statusClasses[status as keyof typeof statusClasses]} hover:bg-vista-secondary/10 transition-colors hover:shadow-md`}
+                              onClick={() => navigateToEvent(training)}
+                              style={{ marginBottom: 2 }}
+                            >
+                              {/* Верхняя строка: "Матч" и иконка типа */}
+                              <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center font-medium text-xs text-vista-light">
+                                  {getMatchTypeIcon(training)}
+                                  <span className="ml-1">Матч</span>
+                                  {training.type === 'MATCH' && training.competitionType && (
+                                    <span className="ml-1 text-vista-light/50 text-[10px]">(
+                                      {competitionTypeLabels[training.competitionType] || training.competitionType.toLowerCase()}
+                                    )</span>
+                                  )}
+                                </div>
+                              </div>
+                              {/* Вторая строка: команды и счет */}
+                              <div className="text-vista-light/90 text-xs font-medium mb-1">
+                                <div className="flex items-center w-full">
+                                  <span className="truncate flex-1">{training.isHome ? training.teamName : training.opponentName}</span>
+                                  <span className={`ml-2 px-2 py-0.5 rounded font-semibold text-xs w-7 min-w-[28px] text-center flex items-center justify-center ${getMatchResultClass(training)}`}>{training.teamGoals ?? '-'}</span>
+                                </div>
+                                <div className="flex items-center w-full mt-0.5">
+                                  <span className="truncate flex-1">{training.isHome ? training.opponentName : training.teamName}</span>
+                                  <span className={`ml-2 px-2 py-0.5 rounded font-semibold text-xs w-7 min-w-[28px] text-center flex items-center justify-center ${getMatchResultClass(training)}`}>{training.opponentGoals ?? '-'}</span>
+                                </div>
+                              </div>
+                              {/* Третья строка: дата и время */}
+                              <div className="flex items-center justify-center text-vista-light/70 text-xs mt-1">
+                                <Clock className="h-3 w-3 mr-1 opacity-70" />
+                                <span>{training.date ? new Date(training.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Moscow' }) : ''}</span>
+                                <span className="mx-1">·</span>
+                                <span>{training.time}</span>
+                              </div>
+                            </div>
+                          );
+                        }
                         return (
-                          <div 
-                            key={training.id} 
-                            className={`
-                              text-xs p-1.5 rounded-md border flex flex-col relative cursor-pointer
-                              ${getTrainingStyles(training)}
-                              ${statusClasses[status as keyof typeof statusClasses]}
-                              hover:bg-vista-secondary/10 transition-colors hover:shadow-md
-                            `}
+                          <div
+                            key={training.id}
+                            className={`text-xs p-1.5 rounded-md border flex flex-col relative cursor-pointer ${getTrainingStyles(training)} ${statusClasses[status as keyof typeof statusClasses]} hover:bg-vista-secondary/10 transition-colors hover:shadow-md`}
                             onClick={() => navigateToEvent(training)}
                           >
-                            {/* Верхняя строка: название мероприятия и статус/время */}
                             <div className="flex items-center justify-between mb-1.5">
-                              {/* Название мероприятия (слева) */}
                               <div className="font-medium">
                                 <div className="flex items-center">
                                   {getTrainingTypeIcon(training)}
                                   <span>{getTrainingTypeDisplay(training)}</span>
                                 </div>
                               </div>
-                              
-                              {/* Время для матчей, иконка статуса для остальных */}
-                              {training.type === 'MATCH' ? (
-                                <div className="flex items-center text-vista-light/80">
-                                  <Clock className="h-3 w-3 mr-1 opacity-70" />
-                                  {training.time}
-                                </div>
-                              ) : (
-                              <div className="flex-shrink-0">
-                                {getStatusIcon(status)}
-                              </div>
-                              )}
+                              <div className="flex-shrink-0">{getStatusIcon(status)}</div>
                             </div>
-                            
-                            {/* Содержимое карточки в зависимости от типа события */}
-                            {training.type === 'MATCH' ? (
-                              <div className="space-y-1">
-                                {/* Команды и счет */}
-                                <div className="flex items-center justify-between text-vista-light/90">
-                                  <div className="flex-1 truncate text-left">
-                                    {training.isHome ? training.teamName : training.opponentName}
-                                  </div>
-                                  <div className="flex items-center justify-center px-2">
-                                    <span className="font-semibold">{training.teamGoals}</span>
-                                    <span className="mx-1 text-vista-light/30">:</span>
-                                    <span className="font-semibold">{training.opponentGoals}</span>
-                                  </div>
-                                  <div className="flex-1 truncate text-right">
-                                    {training.isHome ? training.opponentName : training.teamName}
-                                  </div>
-                                </div>
-                              </div>
-                            ) : (
                             <div className="flex items-center justify-between">
-                              {/* Название команды (слева) */}
-                              <div className="text-vista-light/80 truncate max-w-[60%]">
-                                {training.teamName}
-                              </div>
-                              {/* Время начала (справа) */}
+                              <div className="text-vista-light/80 truncate max-w-[60%]">{training.teamName}</div>
                               <div className="flex items-center text-vista-light/90">
                                 <Clock className="h-3 w-3 mr-1 opacity-70" />
-                                {training.time}
+                                {training.date ? new Date(training.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' }) : ''}
                               </div>
                             </div>
-                            )}
                           </div>
                         );
                       })}

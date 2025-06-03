@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useClub } from '@/context/club-context';
+import { useClub } from '@/providers/club-provider';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, XMarkIcon, CheckIcon, TrashIcon, PencilIcon, ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
 
@@ -34,7 +34,8 @@ interface Team {
   id: string;
   name: string;
   clubId: string;
-  order: number; // Добавляем поле order
+  order: number;
+  description?: string; // Добавлено поле description
 }
 
 // Определяем типы для категорий тренировок
@@ -442,7 +443,12 @@ export default function AdminPage() {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Ошибка при создании команды');
+        // Показываем details, если есть
+        let errorMsg = data.error || 'Ошибка при создании команды';
+        if (data.details) {
+          errorMsg += `: ${data.details}`;
+        }
+        throw new Error(errorMsg);
       }
       
       // Обновляем список команд

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { team } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
+import { getServiceSupabase } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -66,22 +69,18 @@ export async function GET(
     const clubId = token.clubId as string;
     
     const teamId = params.id;
-    const team = await prisma.team.findUnique({
-      where: {
-        id: teamId,
-      },
-    });
+    const [foundTeam]: any = await db.select().from(team).where(eq(team.id, teamId)).limit(1);
     
-    if (!team) {
+    if (!foundTeam) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 });
     }
     
     // Проверяем, что команда принадлежит к тому же клубу
-    if (team.clubId !== clubId) {
+    if (foundTeam.clubId !== clubId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    return NextResponse.json(team);
+    return NextResponse.json(foundTeam);
   } catch (error: any) {
     console.error('Error fetching team:', error);
     return NextResponse.json({ 
@@ -122,11 +121,7 @@ export async function PUT(
     const teamId = params.id;
     
     // Получаем текущую команду
-    const currentTeam = await prisma.team.findUnique({
-      where: {
-        id: teamId,
-      },
-    });
+    const [currentTeam]: any = await db.select().from(team).where(eq(team.id, teamId)).limit(1);
     
     if (!currentTeam) {
       console.log('Команда не найдена:', teamId);
@@ -162,17 +157,29 @@ export async function PUT(
       updateData.order = data.order;
     }
     
+    if (typeof data.description === 'string') {
+      updateData.description = data.description.trim();
+    } else if (data.description === null) {
+      updateData.description = null;
+    }
+    
     // Обновляем команду
-    const team = await prisma.team.update({
-      where: {
-        id: teamId,
-      },
-      data: updateData,
-    });
+    const [updatedTeam]: any = await db.update(team).set(updateData).where(eq(team.id, teamId)).returning();
     
-    console.log('Команда успешно обновлена:', team.id);
+    if (!updatedTeam) {
+      console.log('Команда не найдена:', teamId);
+      return NextResponse.json({ error: 'Team not found' }, { status: 404 });
+    }
     
-    return NextResponse.json(team);
+    // Проверяем, что команда принадлежит к тому же клубу
+    if (updatedTeam.clubId !== clubId) {
+      console.log('Попытка редактирования команды из другого клуба');
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    
+    console.log('Команда успешно обновлена:', updatedTeam.id);
+    
+    return NextResponse.json(updatedTeam);
   } catch (error: any) {
     console.error('Необработанная ошибка при обновлении команды:', error);
     
@@ -214,29 +221,40 @@ export async function DELETE(
     const teamId = params.id;
     
     // Получаем текущую команду
-    const currentTeam = await prisma.team.findUnique({
-      where: {
-        id: teamId,
-      },
-    });
+    const [teamToDelete]: any = await db.select().from(team).where(eq(team.id, teamId)).limit(1);
     
-    if (!currentTeam) {
+    if (!teamToDelete) {
       console.log('Команда не найдена:', teamId);
       return NextResponse.json({ error: 'Team not found' }, { status: 404 });
     }
     
     // Проверяем, что команда принадлежит к тому же клубу
-    if (currentTeam.clubId !== clubId) {
+    if (teamToDelete.clubId !== clubId) {
       console.log('Попытка удаления команды из другого клуба');
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
+    // Удаляем все файлы команды из Supabase Storage
+    try {
+      const supabase = getServiceSupabase();
+      const { data: list, error: listError } = await supabase.storage.from('club-media').list(`clubs/${teamToDelete.clubId}/players`);
+      if (!listError && list?.length) {
+        for (const folder of list) {
+          if (folder.name) {
+            // Удаляем только папки игроков, относящихся к этой команде
+            // (player.teamId === teamToDelete.id)
+            // Здесь можно реализовать дополнительную фильтрацию, если потребуется
+            const { data: files } = await supabase.storage.from('club-media').list(`clubs/${teamToDelete.clubId}/players/${folder.name}`);
+            if (files?.length) {
+              await supabase.storage.from('club-media').remove(files.map(f => `clubs/${teamToDelete.clubId}/players/${folder.name}/${f.name}`));
+            }
+          }
+        }
+      }
+    } catch (e) { console.error('Ошибка каскадного удаления файлов команды:', e); }
+    
     // Удаляем команду
-    await prisma.team.delete({
-      where: {
-        id: teamId,
-      },
-    });
+    const [deletedTeam]: any = await db.delete(team).where(eq(team.id, teamId)).returning();
     
     console.log('Команда успешно удалена:', teamId);
     

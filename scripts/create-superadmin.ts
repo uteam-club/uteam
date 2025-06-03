@@ -1,5 +1,5 @@
 /**
- * Скрипт для создания клуба и суперадмина
+ * Скрипт для создания клуба и суперадмина (Drizzle ORM)
  * 
  * Запуск: 
  * npx tsx scripts/create-superadmin.ts --db-url="postgresql://user:password@host:port/database"
@@ -9,9 +9,11 @@
  */
 
 import * as dotenv from 'dotenv';
-import { PrismaClient } from '../src/generated/prisma';
-import * as bcrypt from 'bcrypt';
-import { uuidv4 } from '../src/lib/uuid-wrapper';
+import { db } from '../src/lib/db';
+import { club, user } from '../src/db/schema';
+import { eq } from 'drizzle-orm';
+import * as bcrypt from 'bcryptjs';
+import { v4 as uuidv4 } from 'uuid';
 
 // Загружаем переменные окружения
 dotenv.config();
@@ -36,15 +38,6 @@ if (!databaseUrl) {
 console.log('Используем следующий URL для подключения к базе данных:');
 console.log(databaseUrl.replace(/\/\/(.+?):(.+?)@/, '//***:***@')); // Скрываем учетные данные в логах
 
-// Создаем экземпляр Prisma Client с указанным URL
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: databaseUrl,
-    },
-  },
-});
-
 // Настройки для создания
 const CLUB_NAME = 'FDC Vista';
 const CLUB_SUBDOMAIN = 'fdcvista';
@@ -58,13 +51,11 @@ async function main() {
   try {
     // Проверяем соединение с базой данных
     console.log('Проверяем соединение с базой данных...');
-    await prisma.$connect();
+    // Drizzle ORM управляет соединением автоматически
     console.log('✅ Соединение с базой данных установлено!');
     
     // Проверяем, есть ли уже клуб с таким поддоменом
-    const existingClub = await prisma.club.findUnique({
-      where: { subdomain: CLUB_SUBDOMAIN }
-    });
+    const [existingClub] = await db.select().from(club).where(eq(club.subdomain, CLUB_SUBDOMAIN));
     
     let clubId;
     
@@ -75,21 +66,20 @@ async function main() {
       // Создаем новый клуб
       console.log(`Создаем новый клуб '${CLUB_NAME}'...`);
       
-      const newClub = await prisma.club.create({
-        data: {
-          name: CLUB_NAME,
-          subdomain: CLUB_SUBDOMAIN,
-        }
-      });
+      const [newClub] = await db.insert(club).values({
+        name: CLUB_NAME,
+        subdomain: CLUB_SUBDOMAIN,
+        id: uuidv4(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }).returning();
       
       clubId = newClub.id;
       console.log(`✅ Клуб успешно создан с ID: ${clubId}`);
     }
     
     // Проверяем, есть ли уже пользователь с такой почтой
-    const existingUser = await prisma.user.findUnique({
-      where: { email: ADMIN_EMAIL }
-    });
+    const [existingUser] = await db.select().from(user).where(eq(user.email, ADMIN_EMAIL));
     
     if (existingUser) {
       console.log(`Пользователь с почтой '${ADMIN_EMAIL}' уже существует, ID: ${existingUser.id}`);
@@ -97,10 +87,10 @@ async function main() {
       
       // Если пользователь существует, но не SUPER_ADMIN, обновляем его роль
       if (existingUser.role !== 'SUPER_ADMIN') {
-        const updatedUser = await prisma.user.update({
-          where: { id: existingUser.id },
-          data: { role: 'SUPER_ADMIN' }
-        });
+        const [updatedUser] = await db.update(user)
+          .set({ role: 'SUPER_ADMIN' })
+          .where(eq(user.id, existingUser.id))
+          .returning();
         
         console.log(`✅ Роль пользователя обновлена до SUPER_ADMIN`);
       }
@@ -111,15 +101,16 @@ async function main() {
       // Создаем суперадмина
       console.log(`Создаем суперадмина с почтой '${ADMIN_EMAIL}'...`);
       
-      const newUser = await prisma.user.create({
-        data: {
-          email: ADMIN_EMAIL,
-          name: ADMIN_NAME,
-          password: hashedPassword,
-          role: 'SUPER_ADMIN',
-          clubId: clubId
-        }
-      });
+      const [newUser] = await db.insert(user).values({
+        email: ADMIN_EMAIL,
+        name: ADMIN_NAME,
+        password: hashedPassword,
+        role: 'SUPER_ADMIN',
+        clubId: clubId,
+        id: uuidv4(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }).returning();
       
       console.log(`✅ Суперадмин успешно создан с ID: ${newUser.id}`);
       console.log(`Данные для входа:`);
@@ -132,7 +123,7 @@ async function main() {
     console.error('❌ Ошибка при создании клуба или суперадмина:', error);
     process.exit(1);
   } finally {
-    await prisma.$disconnect();
+    // Drizzle ORM управляет соединением автоматически
   }
 }
 

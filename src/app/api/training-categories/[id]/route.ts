@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
+import { db } from '@/lib/db';
+import { trainingCategory } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -63,22 +65,18 @@ export async function GET(
     const clubId = token.clubId as string;
     
     const categoryId = params.id;
-    const category = await prisma.trainingCategory.findUnique({
-      where: {
-        id: categoryId,
-      },
-    });
+    const category = await db.select().from(trainingCategory).where(eq(trainingCategory.id, categoryId));
     
-    if (!category) {
+    if (!category || category.length === 0) {
       return NextResponse.json({ error: 'Training category not found' }, { status: 404 });
     }
     
     // Проверяем, что категория принадлежит к тому же клубу
-    if (category.clubId !== clubId) {
+    if (category[0].clubId !== clubId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    return NextResponse.json(category);
+    return NextResponse.json(category[0]);
   } catch (error: any) {
     console.error('Error fetching training category:', error);
     return NextResponse.json({ 
@@ -119,19 +117,15 @@ export async function PUT(
     const categoryId = params.id;
     
     // Получаем текущую категорию
-    const currentCategory = await prisma.trainingCategory.findUnique({
-      where: {
-        id: categoryId,
-      },
-    });
+    const currentCategory = await db.select().from(trainingCategory).where(eq(trainingCategory.id, categoryId));
     
-    if (!currentCategory) {
+    if (!currentCategory || currentCategory.length === 0) {
       console.log('Категория не найдена:', categoryId);
       return NextResponse.json({ error: 'Training category not found' }, { status: 404 });
     }
     
     // Проверяем, что категория принадлежит к тому же клубу
-    if (currentCategory.clubId !== clubId) {
+    if (currentCategory[0].clubId !== clubId) {
       console.log('Попытка редактирования категории из другого клуба');
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -154,16 +148,11 @@ export async function PUT(
     };
     
     // Обновляем категорию
-    const updatedCategory = await prisma.trainingCategory.update({
-      where: {
-        id: categoryId,
-      },
-      data: updateData,
-    });
+    const updatedCategory = await db.update(trainingCategory).set(updateData).where(eq(trainingCategory.id, categoryId)).returning();
     
-    console.log('Категория тренировок успешно обновлена:', updatedCategory.id);
+    console.log('Категория тренировок успешно обновлена:', updatedCategory[0]?.id);
     
-    return NextResponse.json(updatedCategory);
+    return NextResponse.json(updatedCategory[0]);
   } catch (error: any) {
     console.error('Необработанная ошибка при обновлении категории тренировок:', error);
     
@@ -205,31 +194,23 @@ export async function DELETE(
     const categoryId = params.id;
     
     // Получаем текущую категорию
-    const currentCategory = await prisma.trainingCategory.findUnique({
-      where: {
-        id: categoryId,
-      },
-    });
+    const currentCategory = await db.select().from(trainingCategory).where(eq(trainingCategory.id, categoryId));
     
-    if (!currentCategory) {
+    if (!currentCategory || currentCategory.length === 0) {
       console.log('Категория не найдена:', categoryId);
       return NextResponse.json({ error: 'Training category not found' }, { status: 404 });
     }
     
     // Проверяем, что категория принадлежит к тому же клубу
-    if (currentCategory.clubId !== clubId) {
+    if (currentCategory[0].clubId !== clubId) {
       console.log('Попытка удаления категории из другого клуба');
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
     // Удаляем категорию
-    await prisma.trainingCategory.delete({
-      where: {
-        id: categoryId,
-      },
-    });
+    const deletedCategory = await db.delete(trainingCategory).where(eq(trainingCategory.id, categoryId));
     
-    console.log('Категория тренировок успешно удалена:', categoryId);
+    console.log('Категория тренировок успешно удалена');
     
     return NextResponse.json({ 
       success: true,
