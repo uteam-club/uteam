@@ -43,6 +43,20 @@
       "when": 1748940686077,
       "tag": "0005_worthless_hannibal_king",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1749655991939,
+      "tag": "0006_whole_mach_iv",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1749656878999,
+      "tag": "0007_slippery_onslaught",
+      "breakpoints": true
     }
   ]
 }

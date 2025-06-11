@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS "Team" (
 	"createdAt" timestamp with time zone DEFAULT now() NOT NULL,
 	"updatedAt" timestamp with time zone DEFAULT now() NOT NULL,
 	"clubId" uuid NOT NULL,
-	"order" integer DEFAULT 999 NOT NULL
+	"order" integer DEFAULT 999 NOT NULL,
+	"timezone" varchar(64) DEFAULT 'Europe/Moscow' NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "Event" (

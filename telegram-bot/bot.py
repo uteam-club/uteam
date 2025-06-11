@@ -4,11 +4,15 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 import aiohttp
 from dotenv import load_dotenv
 import ssl
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from datetime import datetime, timedelta
+import pytz
 
 load_dotenv()
 
 API_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 BIND_API_URL = os.getenv('BIND_API_URL')
+API_BASE_URL = os.getenv('API_BASE_URL', 'https://api.uteam.club')
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
@@ -79,5 +83,57 @@ async def pin_handler(message: types.Message):
                 await message.answer("Ошибка сервера. Попробуйте позже.")
     user_states.pop(message.from_user.id, None)
 
+async def send_survey_broadcast():
+    """
+    Проверяет расписание рассылок и отправляет сообщения игрокам, если наступило время.
+    Время сравнивается по таймзоне каждой команды.
+    """
+    try:
+        # Получаем все включенные расписания
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{API_BASE_URL}/api/survey/schedules") as resp:
+                if resp.status != 200:
+                    print("[Scheduler] Не удалось получить расписания рассылок")
+                    return
+                schedules = await resp.json()
+        for sched in schedules:
+            if not sched.get('enabled'):
+                continue
+            tz = sched.get('timezone') or 'Europe/Moscow'
+            try:
+                now = datetime.now(pytz.timezone(tz))
+            except Exception:
+                now = datetime.utcnow() + timedelta(hours=3)  # fallback
+            now_str = now.strftime('%H:%M')
+            if sched.get('sendTime') == now_str:
+                # Получаем игроков команды
+                team_id = sched.get('teamId')
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(f"{API_BASE_URL}/api/team/{team_id}/players") as resp:
+                        if resp.status != 200:
+                            continue
+                        players = await resp.json()
+                # Отправляем сообщения
+                for player in players:
+                    telegram_id = player.get('telegramId')
+                    club_id = player.get('clubId')
+                    if not telegram_id or not club_id:
+                        continue
+                    link = f"https://fdcvista.uteam.club/survey?tenantId={club_id}"
+                    text = f"Доброе утро! Пожалуйста, пройди утренний опросник: {link}\n\nВход по твоему 6-значному пинкоду."
+                    try:
+                        await bot.send_message(telegram_id, text)
+                    except Exception as e:
+                        print(f"[Scheduler] Ошибка отправки {telegram_id}: {e}")
+        print(f"[Scheduler] Проверка рассылок завершена")
+    except Exception as e:
+        print(f"[Scheduler] Ошибка планировщика: {e}")
+
+def setup_scheduler():
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(send_survey_broadcast, 'interval', minutes=1)
+    scheduler.start()
+
 if __name__ == '__main__':
+    setup_scheduler()
     executor.start_polling(dp, skip_updates=True) 

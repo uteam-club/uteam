@@ -270,4 +270,19 @@ export async function DELETE(
       details: error.message || 'Unknown error' 
     }, { status: 500 });
   }
+}
+
+// PATCH /api/teams/[id]
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const data = await request.json();
+    const { timezone } = data;
+    if (!timezone) {
+      return new Response(JSON.stringify({ error: 'No timezone provided' }), { status: 400 });
+    }
+    const [updated] = await db.update(team).set({ timezone }).where(eq(team.id, params.id)).returning();
+    return new Response(JSON.stringify({ team: updated }), { status: 200 });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: 'Failed to update timezone' }), { status: 500 });
+  }
 } 

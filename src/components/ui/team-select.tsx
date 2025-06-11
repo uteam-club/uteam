@@ -43,6 +43,7 @@ export function TeamSelect({
 
   // Получаем команду по ID
   const getTeamById = (id: string) => {
+    if (!Array.isArray(teams)) return undefined;
     return teams.find((team) => team.id === id);
   };
 
@@ -80,7 +81,7 @@ export function TeamSelect({
           <CommandList className="bg-vista-dark text-vista-light max-h-[200px]">
             <CommandEmpty className="text-vista-light/70">Команда не найдена</CommandEmpty>
             <CommandGroup>
-              {teams.map((team) => (
+              {Array.isArray(teams) && teams.map((team) => (
                 <CommandItem
                   key={team.id}
                   value={`${team.name} ${team.id}`}

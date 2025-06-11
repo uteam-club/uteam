@@ -1,7 +1,7 @@
 import { pgTable, uuid, varchar, text, timestamp, integer } from 'drizzle-orm/pg-core';
 
 export const player = pgTable('Player', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: varchar('id', { length: 255 }).primaryKey(),
   firstName: varchar('firstName', { length: 255 }).notNull(),
   lastName: varchar('lastName', { length: 255 }).notNull(),
   middleName: varchar('middleName', { length: 255 }),
@@ -19,5 +19,5 @@ export const player = pgTable('Player', {
   language: varchar('language', { length: 10 }),
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow().notNull(),
-  teamId: uuid('teamId').notNull(),
+  teamId: varchar('teamId', { length: 255 }).notNull(),
 }); 
