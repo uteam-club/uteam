@@ -16,6 +16,7 @@ export const player = pgTable('Player', {
   birthCertificateNumber: varchar('birthCertificateNumber', { length: 255 }),
   pinCode: varchar('pinCode', { length: 255 }).notNull(),
   telegramId: varchar('telegramId', { length: 255 }).unique(),
+  language: varchar('language', { length: 10 }),
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow().notNull(),
   teamId: uuid('teamId').notNull(),

@@ -25,8 +25,9 @@ export const ClubContextProvider = ({ children }: { children: ReactNode }) => {
     if (typeof window === 'undefined') return;
     const host = window.location.host;
     const hostParts = host.split('.');
-    // Для localhost и без поддомена не делаем запрос
-    if (host.includes('localhost') || hostParts.length < 3) return;
+    const isLocalhost = host.includes('localhost');
+    const hasSubdomain = isLocalhost ? hostParts.length >= 2 : hostParts.length >= 3;
+    if (!hasSubdomain) return;
     const subdomain = hostParts[0];
     if (!subdomain) return;
     // Запрашиваем клуб по subdomain

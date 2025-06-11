@@ -46,6 +46,7 @@ interface Player {
   birthCertificateNumber?: string | null;
   pinCode: string;
   teamId: string;
+  telegramId?: string | null;
 }
 
 interface Team {
@@ -548,6 +549,23 @@ export default function PlayerProfilePage() {
                   />
                   <p className="text-xs text-vista-light/70 mt-1">
                     Уникальный код для авторизации игрока в системе
+                  </p>
+                </div>
+
+                {/* Telegram ID */}
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="telegramId" className="text-vista-light">
+                    Telegram ID
+                  </Label>
+                  <Input
+                    id="telegramId"
+                    value={player.telegramId || ''}
+                    className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light"
+                    disabled={true}
+                    readOnly
+                  />
+                  <p className="text-xs text-vista-light/70 mt-1">
+                    Telegram ID появляется после привязки через бота @UTEAM_infoBot
                   </p>
                 </div>
 

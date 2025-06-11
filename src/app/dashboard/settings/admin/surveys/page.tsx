@@ -4,16 +4,29 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRouter } from 'next/navigation';
 import { useClub } from '@/providers/club-provider';
+import { toast } from '@/components/ui/use-toast';
+import { useState } from 'react';
 
 export default function SurveysPage() {
   const router = useRouter();
   const { club } = useClub();
+  const [loading, setLoading] = useState(false);
 
-  const handleOpenSurvey = (surveyId: string) => {
+  const handleOpenSurvey = async () => {
+    console.log('Клик по кнопке Открыть', club?.id);
     if (!club?.id) return;
-    
-    // Открываем опросник в новом окне
-    window.open(`/dashboard/survey/${surveyId}?tenantId=${club.id}`, '_blank');
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/survey/active-id?tenantId=${club.id}`);
+      if (!res.ok) throw new Error('Не найден активный опросник');
+      const data = await res.json();
+      if (!data.surveyId) throw new Error('Нет surveyId');
+      window.location.href = `/dashboard/survey/${data.surveyId}?tenantId=${club.id}`;
+    } catch (e: any) {
+      toast({ title: 'Ошибка', description: e.message || 'Не удалось открыть опросник', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -34,15 +47,25 @@ export default function SurveysPage() {
                   Опросник для ежедневного мониторинга состояния игроков
                 </p>
               </div>
-              <Button
-                onClick={() => handleOpenSurvey('morning')}
-                className="bg-vista-primary hover:bg-vista-primary/90"
+              {/* Временная ссылка для ручного теста перехода */}
+              <a
+                href={`/dashboard/survey/4965979b-0185-4e87-983e-95efa0b5a3b5?tenantId=4ce0dab3-9421-4669-9cd8-cc63ed9d9d63`}
+                className="ml-4 underline text-vista-primary"
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                Открыть
-              </Button>
+                Открыть (тестовая ссылка)
+              </a>
             </div>
           </div>
         </Card>
+        <button
+          onClick={handleOpenSurvey}
+          className="bg-vista-primary hover:bg-vista-primary/90 px-4 py-2 rounded text-white font-semibold"
+          disabled={loading}
+        >
+          {loading ? 'Открываю...' : 'Открыть'}
+        </button>
       </div>
     </div>
   );
