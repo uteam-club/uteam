@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
-import { saveExerciseFile, getFileUrl, deleteExerciseFiles } from '@/lib/supabase-storage';
+import { uploadFile, getFileUrl } from '@/lib/yandex-storage';
 import { db } from '@/lib/db';
 import { exercise, user, exerciseCategory, exerciseTag, mediaItem, exerciseTagToExercise } from '@/db/schema';
 import { eq, and, inArray, ilike } from 'drizzle-orm';
@@ -120,13 +120,15 @@ export async function PUT(
     // Если есть файл, сохраняем
     if (file) {
       const storagePath = `clubs/${clubId}/exercises/${params.id}/${file.name}`;
-      await saveExerciseFile(file, storagePath);
-      const publicUrl = getFileUrl(storagePath);
+      // Преобразуем File в Buffer
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      await uploadFile(buffer, storagePath, file.type);
       await db.insert(mediaItem).values({
         name: file.name,
         type: 'OTHER',
         url: storagePath,
-        publicUrl,
+        publicUrl: getFileUrl(storagePath),
         size: file.size,
         clubId,
         exerciseId: params.id,
@@ -188,10 +190,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Нет прав на удаление' }, { status: 403 });
     }
     const mediaItems = await db.select().from(mediaItem).where(eq(mediaItem.exerciseId, ex.id));
-    // Удаляем файлы из Supabase
-    if (mediaItems.length > 0) {
-      await deleteExerciseFiles(mediaItems.map(m => m.url));
-    }
     // Транзакция удаления
     await db.transaction(async (tx) => {
       if (mediaItems.length > 0) {

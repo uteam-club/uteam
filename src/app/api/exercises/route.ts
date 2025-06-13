@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/auth-options';
-import { saveExerciseFile, getFileUrl } from '@/lib/supabase-storage';
+import { uploadFile, getFileUrl } from '@/lib/yandex-storage';
 import { db } from '@/lib/db';
 import { exercise, user, exerciseCategory, exerciseTag, mediaItem, exerciseTagToExercise } from '@/db/schema';
 import { eq, and, inArray, desc, ilike } from 'drizzle-orm';
@@ -165,7 +165,10 @@ export async function POST(req: NextRequest) {
       else if (file.type.startsWith('video/')) mediaType = 'VIDEO';
       else if (file.type.includes('pdf') || file.type.includes('document')) mediaType = 'DOCUMENT';
       const storagePath = `clubs/${session.user.clubId}/exercises/${createdExercise.id}/${file.name}`;
-      await saveExerciseFile(file, storagePath);
+      // Преобразуем File в Buffer
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      await uploadFile(buffer, storagePath, file.type);
       const publicUrl = getFileUrl(storagePath);
       [createdMediaItem] = await db.insert(mediaItem).values({
         id: uuidv4(),

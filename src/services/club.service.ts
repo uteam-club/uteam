@@ -3,6 +3,17 @@ import { club } from '@/db/schema';
 import { eq, asc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { getServiceSupabase } from '@/lib/supabase';
+import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
+
+const s3 = new S3Client({
+  region: process.env.YANDEX_STORAGE_REGION,
+  endpoint: "https://storage.yandexcloud.net",
+  credentials: {
+    accessKeyId: process.env.YANDEX_STORAGE_ACCESS_KEY!,
+    secretAccessKey: process.env.YANDEX_STORAGE_SECRET_KEY!,
+  },
+});
+const BUCKET = process.env.YANDEX_STORAGE_BUCKET!;
 
 export async function getClubBySubdomain(subdomain: string) {
   if (!subdomain) return null;
@@ -68,23 +79,24 @@ export async function updateClub(
   }
 }
 
-export async function deleteClub(id: string) {
-  try {
-    // Каскадное удаление всех файлов клуба из Supabase Storage
-    try {
-      const supabase = getServiceSupabase();
-      const { data: list, error: listError } = await supabase.storage.from('club-media').list(`clubs/${id}`);
-      if (!listError && list?.length) {
-        for (const folder of list) {
-          if (folder.name) {
-            const { data: files } = await supabase.storage.from('club-media').list(`clubs/${id}/${folder.name}`);
-            if (files?.length) {
-              await supabase.storage.from('club-media').remove(files.map(f => `clubs/${id}/${folder.name}/${f.name}`));
+// Каскадное удаление всех файлов клуба из Яндекс Object Storage
+async function deleteAllClubFiles(clubId: string) {
+  const prefix = `clubs/${clubId}`;
+  const listCommand = new ListObjectsV2Command({ Bucket: BUCKET, Prefix: prefix });
+  const list = await s3.send(listCommand);
+  if (list.Contents) {
+    for (const file of list.Contents) {
+      if (file.Key) {
+        await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: file.Key }));
             }
           }
         }
       }
-    } catch (e) { console.error('Ошибка каскадного удаления файлов клуба:', e); }
+
+export async function deleteClub(id: string) {
+  try {
+    // Каскадное удаление всех файлов клуба из Яндекс Object Storage
+    await deleteAllClubFiles(id);
     await db.delete(club).where(eq(club.id, id));
     return true;
   } catch (error) {

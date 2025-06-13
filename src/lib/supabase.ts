@@ -14,9 +14,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export const checkSupabaseConnection = async () => {
   try {
     // Проверяем подключение, используя listBuckets вместо запроса к несуществующей таблице
-    const { data, error } = await supabase.storage.listBuckets();
+    // const { data, error } = await supabase.storage.listBuckets();
     
-    if (error) throw error;
+    // Управление бакетами и файлами теперь через Яндекс Object Storage, этот код больше не нужен.
+    
     return true;
   } catch (error) {
     console.error('Ошибка подключения к Supabase:', error);
@@ -178,39 +179,34 @@ async function initializeStorageBucket() {
     const adminSupabase = getServiceSupabase();
     
     // Проверяем существование бакета
-    const { data: buckets, error } = await adminSupabase.storage.listBuckets();
-    
-    if (error) {
-      console.error('Ошибка при получении списка бакетов:', error);
-      throw error;
-    }
+    // const { data: buckets, error } = await adminSupabase.storage.listBuckets();
     
     // Если бакет не существует, создаем его
-    if (!buckets.find(bucket => bucket.name === 'club-media')) {
-      const { error: createError } = await adminSupabase.storage.createBucket('club-media', {
-        public: true,
-        fileSizeLimit: 10485760, // 10 МБ
-      });
-      
-      if (createError) {
-        console.error('Ошибка при создании бакета:', createError);
-        throw createError;
-      }
-      
-      console.log('Бакет club-media успешно создан в Supabase');
-    } else {
-      console.log('Бакет club-media уже существует');
-      
-      // Обновляем настройки бакета, делаем его публичным
-      try {
-        await adminSupabase.storage.updateBucket('club-media', {
-          public: true
-        });
-        console.log('Настройки бакета обновлены');
-      } catch (updateError) {
-        console.error('Ошибка при обновлении настроек бакета:', updateError);
-      }
-    }
+    // if (!buckets.find(bucket => bucket.name === 'club-media')) {
+    //   const { error: createError } = await adminSupabase.storage.createBucket('club-media', {
+    //     public: true,
+    //     fileSizeLimit: 10485760, // 10 МБ
+    //   });
+    //   
+    //   if (createError) {
+    //     console.error('Ошибка при создании бакета:', createError);
+    //     throw createError;
+    //   }
+    //   
+    //   console.log('Бакет club-media успешно создан в Supabase');
+    // } else {
+    //   console.log('Бакет club-media уже существует');
+    //   
+    //   // Обновляем настройки бакета, делаем его публичным
+    //   try {
+    //     await adminSupabase.storage.updateBucket('club-media', {
+    //       public: true
+    //     });
+    //     console.log('Настройки бакета обновлены');
+    //   } catch (updateError) {
+    //     console.error('Ошибка при обновлении настроек бакета:', updateError);
+    //   }
+    // }
     
     return true;
   } catch (error) {

@@ -3,6 +3,6 @@
   "out": "./drizzle",
   "dialect": "postgresql",
   "dbCredentials": {
-    "connectionString": "postgresql://postgres:Mell567234!@db.eprnjqohtlxxqufvofbr.supabase.co:5432/postgres"
+    "connectionString": "postgresql://postgres:Mell567234!@158.160.80.155:5432/postgres"
   }
 } 

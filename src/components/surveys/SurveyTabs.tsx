@@ -126,10 +126,10 @@ function TelegramBotSettings() {
         </div>
         <div className="flex flex-row items-center gap-2">
           <label className="text-vista-light/90 font-semibold whitespace-nowrap">Время рассылки:</label>
-          <input
-            type="time"
-            value={broadcastTime}
-            onChange={e => setBroadcastTime(e.target.value)}
+        <input
+          type="time"
+          value={broadcastTime}
+          onChange={e => setBroadcastTime(e.target.value)}
             className="px-2 py-1 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light focus:ring-2 focus:ring-vista-accent"
             disabled={loading}
           />
