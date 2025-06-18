@@ -1,0 +1,124 @@
+import { NextResponse } from 'next/server';
+import { db } from '@/lib/db';
+import { match, team, playerMatchStat, player } from '@/db/schema';
+import { eq, and, desc } from 'drizzle-orm';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export async function GET(request, { params }) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user) {
+            return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
+        }
+        const matchId = params.id;
+        // Получаем детали матча с join
+        const [row] = await db.select({
+            id: match.id,
+            competitionType: match.competitionType,
+            date: match.date,
+            time: match.time,
+            isHome: match.isHome,
+            teamId: match.teamId,
+            opponentName: match.opponentName,
+            teamGoals: match.teamGoals,
+            opponentGoals: match.opponentGoals,
+            createdAt: match.createdAt,
+            updatedAt: match.updatedAt,
+            clubId: match.clubId,
+            formation: match.formation,
+            gameFormat: match.gameFormat,
+            markerColor: match.markerColor,
+            notes: match.notes,
+            playerPositions: match.playerPositions,
+            positionAssignments: match.positionAssignments,
+            teamName: team.name
+        })
+            .from(match)
+            .leftJoin(team, eq(match.teamId, team.id))
+            .where(and(eq(match.id, matchId), eq(match.clubId, session.user.clubId)));
+        if (!row) {
+            return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
+        }
+        // Получаем playerStats с join на player
+        const stats = await db.select({
+            id: playerMatchStat.id,
+            matchId: playerMatchStat.matchId,
+            playerId: playerMatchStat.playerId,
+            isStarter: playerMatchStat.isStarter,
+            minutesPlayed: playerMatchStat.minutesPlayed,
+            goals: playerMatchStat.goals,
+            assists: playerMatchStat.assists,
+            yellowCards: playerMatchStat.yellowCards,
+            redCards: playerMatchStat.redCards,
+            createdAt: playerMatchStat.createdAt,
+            updatedAt: playerMatchStat.updatedAt,
+            player: player
+        })
+            .from(playerMatchStat)
+            .leftJoin(player, eq(playerMatchStat.playerId, player.id))
+            .where(eq(playerMatchStat.matchId, matchId))
+            .orderBy(desc(playerMatchStat.isStarter));
+        return NextResponse.json(Object.assign(Object.assign({}, row), { playerStats: stats }));
+    }
+    catch (error) {
+        console.error('Ошибка при получении деталей матча:', error);
+        return NextResponse.json({ error: 'Ошибка при получении деталей матча' }, { status: 500 });
+    }
+}
+export async function PATCH(request, { params }) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user) {
+            return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
+        }
+        const matchId = params.id;
+        const body = await request.json();
+        // Проверяем, существует ли матч и принадлежит ли он клубу пользователя
+        const [existing] = await db.select().from(match).where(and(eq(match.id, matchId), eq(match.clubId, session.user.clubId)));
+        if (!existing) {
+            return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
+        }
+        // Подготавливаем данные для обновления
+        const updateData = {};
+        if ('date' in body)
+            updateData.date = new Date(body.date);
+        if ('time' in body)
+            updateData.time = body.time;
+        if ('competitionType' in body)
+            updateData.competitionType = body.competitionType;
+        if ('isHome' in body)
+            updateData.isHome = body.isHome;
+        if ('teamGoals' in body)
+            updateData.teamGoals = body.teamGoals;
+        if ('opponentGoals' in body)
+            updateData.opponentGoals = body.opponentGoals;
+        if ('opponentName' in body)
+            updateData.opponentName = body.opponentName;
+        if ('gameFormat' in body)
+            updateData.gameFormat = body.gameFormat;
+        if ('formation' in body)
+            updateData.formation = body.formation;
+        if ('markerColor' in body)
+            updateData.markerColor = body.markerColor;
+        if ('notes' in body)
+            updateData.notes = body.notes;
+        if ('playerPositions' in body)
+            updateData.playerPositions = JSON.stringify(body.playerPositions);
+        if ('positionAssignments' in body)
+            updateData.positionAssignments = JSON.stringify(body.positionAssignments);
+        const [updated] = await db.update(match)
+            .set(updateData)
+            .where(eq(match.id, matchId))
+            .returning();
+        return NextResponse.json(updated);
+    }
+    catch (error) {
+        console.error('Ошибка при обновлении матча:', error);
+        return NextResponse.json({
+            error: 'Ошибка при обновлении матча',
+            details: error.message
+        }, { status: 500 });
+    }
+}
