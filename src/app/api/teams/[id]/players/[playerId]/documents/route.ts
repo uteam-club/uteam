@@ -1,0 +1,92 @@
+import { NextRequest } from "next/server";
+import { db } from '@/lib/db';
+import { playerDocument } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import { uploadFile, deleteFile, getFileUrl } from '@/lib/yandex-storage';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
+import { uuidv4 } from '@/lib/uuid-wrapper';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(req: NextRequest, { params }: { params: { id: string, playerId: string } }) {
+  const { playerId } = params;
+  if (!playerId) {
+    return new Response(JSON.stringify({ error: 'playerId is required' }), { status: 400 });
+  }
+  try {
+    const documents = await db.select().from(playerDocument).where(eq(playerDocument.playerId, playerId));
+    return new Response(JSON.stringify(documents), { status: 200 });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: 'Failed to fetch documents', details: String(e) }), { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest, { params }: { params: { id: string, playerId: string } }) {
+  try {
+    const teamId = params.id;
+    const playerId = params.playerId;
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
+    const clubId = session.user.clubId;
+    const uploadedById = session.user.id;
+    const formData = await req.formData();
+    const file = formData.get('file') as File | null;
+    const type = formData.get('type') as string | null;
+    const name = formData.get('name') as string | null || (file ? file.name : '');
+    if (!file || !type) {
+      return new Response(JSON.stringify({ error: 'No file or type provided' }), { status: 400 });
+    }
+    const ext = file.name.split('.').pop() || 'dat';
+    const fileName = `${Date.now()}-${name}`;
+    const key = `${clubId}/${teamId}/${playerId}/documents/${fileName}`;
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const url = await uploadFile(buffer, key, file.type);
+    const publicUrl = getFileUrl(key);
+    const size = file.size;
+    const now = new Date();
+    const id = uuidv4();
+    const [doc] = await db.insert(playerDocument).values({
+      id,
+      name,
+      type,
+      url: key,
+      publicUrl,
+      size,
+      createdAt: now,
+      updatedAt: now,
+      playerId,
+      clubId,
+      uploadedById,
+    }).returning();
+    return new Response(JSON.stringify(doc), { status: 201 });
+  } catch (error) {
+    console.error('Document upload error:', error);
+    return new Response(JSON.stringify({ error: 'Internal Server Error', details: String(error) }), { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string, playerId: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  }
+  const { playerId } = params;
+  const { documentId } = await req.json();
+  if (!documentId) {
+    return new Response(JSON.stringify({ error: 'No documentId provided' }), { status: 400 });
+  }
+  // Получаем документ
+  const [doc] = await db.select().from(playerDocument).where(eq(playerDocument.id, documentId));
+  if (!doc) {
+    return new Response(JSON.stringify({ error: 'Document not found' }), { status: 404 });
+  }
+  // Удаляем файл из Object Storage
+  await deleteFile(doc.url);
+  // Удаляем запись из БД
+  await db.delete(playerDocument).where(eq(playerDocument.id, documentId));
+  return new Response(JSON.stringify({ success: true }), { status: 200 });
+} 

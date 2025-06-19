@@ -15,16 +15,19 @@ export const authOptions: NextAuthOptions = {
         const password = credentials?.password || '';
         
         if (!email || !password) {
+          console.error('Authorize error: missing email or password', { email, password });
           return null;
         }
 
         const user = await getUserByEmail(email);
         if (!user) {
+          console.error('Authorize error: user not found', { email });
           return null;
         }
 
         const isValid = await verifyPassword(user, password);
         if (!isValid) {
+          console.error('Authorize error: invalid password', { email });
           return null;
         }
 

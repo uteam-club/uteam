@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { 
@@ -161,6 +161,7 @@ export default function MatchDetailsPage() {
   const { data: session } = useSession();
   const params = useParams();
   const matchId = params.id as string;
+  const router = useRouter();
   
   const [match, setMatch] = useState<MatchDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -184,6 +185,9 @@ export default function MatchDetailsPage() {
   const [isEditingStats, setIsEditingStats] = useState(false);
   const [editedStats, setEditedStats] = useState<Record<string, Record<string, number>>>({});
   const [savingStats, setSavingStats] = useState(false);
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (matchId) {
@@ -736,6 +740,26 @@ export default function MatchDetailsPage() {
     }
   }, [teamPlayers, match]);
 
+  const handleDeleteMatch = async () => {
+    if (!match) return;
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/matches/${match.id}`, { method: 'DELETE' });
+      if (response.ok) {
+        toast({ title: 'Матч удалён', description: 'Матч и все связанные данные успешно удалены.' });
+        router.push('/dashboard/coaching/matches');
+      } else {
+        const errorData = await response.json();
+        toast({ title: 'Ошибка', description: errorData.error || 'Не удалось удалить матч', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Произошла ошибка при удалении матча', variant: 'destructive' });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -1028,6 +1052,12 @@ export default function MatchDetailsPage() {
                       >
                         <BarChart2 className="w-4 h-4 mr-2" />
                         {isEditingStats ? 'Сохранить' : 'Редактировать'}
+                      </Button>
+                      <Button 
+                        className="w-full h-[33px] bg-red-600 hover:bg-red-700 text-white flex items-center justify-center mt-2"
+                        onClick={() => setIsDeleteDialogOpen(true)}
+                      >
+                        Удалить матч
                       </Button>
                     </div>
                   </div>
@@ -1339,6 +1369,22 @@ export default function MatchDetailsPage() {
               onClick={saveSquadSelection}
             >
               {savingSquad ? 'Сохранение...' : 'Сохранить состав'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Кнопка удаления матча и диалог подтверждения */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="bg-vista-dark border-vista-secondary/50 text-vista-light">
+          <DialogHeader>
+            <DialogTitle>Удалить матч?</DialogTitle>
+            <DialogDescription>Вы уверены, что хотите удалить этот матч? Все связанные данные (статистика, состав, формации и т.д.) будут удалены безвозвратно.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeleting}>Отмена</Button>
+            <Button className="bg-red-600 hover:bg-red-700" onClick={handleDeleteMatch} disabled={isDeleting}>
+              {isDeleting ? 'Удаление...' : 'Удалить матч'}
             </Button>
           </DialogFooter>
         </DialogContent>

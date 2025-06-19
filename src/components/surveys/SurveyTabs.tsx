@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { useState, useEffect } from 'react';
 import { formatDateTime } from '@/lib/utils';
 import { TeamSelect } from '@/components/ui/team-select';
+import { useToast } from '@/components/ui/use-toast';
 
 function TelegramBotSettings() {
   const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
@@ -165,27 +166,51 @@ function TelegramBotSettings() {
 }
 
 export function SurveyTabs() {
+  const [teams, setTeams] = useState<any[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState<string>('');
+  const [date, setDate] = useState<string>('');
+  const [players, setPlayers] = useState<any[]>([]);
   const [responses, setResponses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const [resending, setResending] = useState<string | null>(null);
 
+  // Загрузка команд
   useEffect(() => {
-    async function fetchResponses() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch('/api/surveys/morning');
-        if (!res.ok) throw new Error('Ошибка при загрузке ответов');
-        const data = await res.json();
-        setResponses(data);
-      } catch (e: any) {
-        setError(e.message || 'Ошибка при загрузке ответов');
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchResponses();
+    fetch('/api/teams')
+      .then(res => res.json())
+      .then(data => {
+        setTeams(data);
+        if (data.length > 0) setSelectedTeam(data[0].id);
+      });
   }, []);
+
+  // Загрузка игроков выбранной команды
+  useEffect(() => {
+    if (!selectedTeam) return;
+    fetch(`/api/teams/${selectedTeam}/players`)
+      .then(res => res.json())
+      .then(setPlayers);
+  }, [selectedTeam]);
+
+  // Загрузка ответов на опросник по команде и дате
+  useEffect(() => {
+    if (!selectedTeam) return;
+    setLoading(true);
+    setError(null);
+    const params = new URLSearchParams({ teamId: selectedTeam });
+    if (date) params.append('startDate', date);
+    if (date) params.append('endDate', date);
+    fetch(`/api/surveys/morning?${params.toString()}`)
+      .then(res => res.json())
+      .then(setResponses)
+      .catch(e => setError(e.message || 'Ошибка при загрузке ответов'))
+      .finally(() => setLoading(false));
+  }, [selectedTeam, date]);
+
+  // Сопоставление: playerId -> response
+  const responseByPlayerId = Object.fromEntries(responses.map(r => [r.playerId, r]));
 
   return (
     <Tabs defaultValue="settings" className="w-full">
@@ -204,32 +229,69 @@ export function SurveyTabs() {
       <TabsContent value="analysis">
         <Card className="p-6 bg-vista-dark/50 border-vista-secondary/50">
           <h2 className="text-2xl font-bold mb-4 text-vista-light">Анализ ответов</h2>
+          <div className="flex flex-wrap gap-4 mb-4 items-end">
+            <div className="min-w-[220px]">
+              <TeamSelect teams={teams} value={selectedTeam} onChange={setSelectedTeam} />
+            </div>
+            <div>
+              <label className="block text-vista-light/80 mb-1">Дата</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} className="px-2 py-1 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light" />
+            </div>
+          </div>
           {loading ? (
             <div className="text-vista-light/70">Загрузка...</div>
           ) : error ? (
             <div className="text-red-500">{error}</div>
-          ) : responses.length === 0 ? (
-            <div className="text-vista-light/70">Нет ответов</div>
+          ) : players.length === 0 ? (
+            <div className="text-vista-light/70">Нет игроков в команде</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm text-vista-light border border-vista-secondary/30 rounded-md">
                 <thead>
                   <tr className="bg-vista-dark/70">
                     <th className="px-3 py-2 border-b border-vista-secondary/30 text-left">Игрок</th>
-                    <th className="px-3 py-2 border-b border-vista-secondary/30 text-left">Дата и время отправки</th>
+                    <th className="px-3 py-2 border-b border-vista-secondary/30 text-left">Статус</th>
+                    <th className="px-3 py-2 border-b border-vista-secondary/30 text-left">Время прохождения</th>
+                    <th className="px-3 py-2 border-b border-vista-secondary/30 text-left">Действия</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {responses.map((resp) => (
-                    <tr key={resp.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10">
-                      <td className="px-3 py-2">
-                        {resp.player?.lastName || ''} {resp.player?.firstName || ''}
-                      </td>
-                      <td className="px-3 py-2">
-                        {resp.createdAt ? formatDateTime(resp.createdAt) : ''}
-                      </td>
-                    </tr>
-                  ))}
+                  {players.map(player => {
+                    const resp = responseByPlayerId[player.id];
+                    return (
+                      <tr key={player.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10">
+                        <td className="px-3 py-2">{player.lastName} {player.firstName}</td>
+                        <td className="px-3 py-2">{resp ? <span className="text-green-400">Прошёл</span> : <span className="text-red-400">Не прошёл</span>}</td>
+                        <td className="px-3 py-2">{resp ? formatDateTime(resp.createdAt) : '-'}</td>
+                        <td className="px-3 py-2">
+                          {!resp && <button
+                            className="px-3 py-1 rounded bg-vista-accent text-white hover:bg-vista-accent/90 disabled:opacity-60"
+                            disabled={!!resending}
+                            onClick={async () => {
+                              setResending(player.id);
+                              try {
+                                const res = await fetch('/api/surveys/morning', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ playerId: player.id, teamId: selectedTeam, date }),
+                                });
+                                const data = await res.json();
+                                if (res.ok && data.success) {
+                                  toast({ title: 'Опрос отправлен', description: `Игроку ${player.lastName} ${player.firstName} отправлен опрос повторно.` });
+                                } else {
+                                  toast({ title: 'Ошибка', description: data.error || 'Не удалось отправить опрос', variant: 'destructive' });
+                                }
+                              } catch (e) {
+                                toast({ title: 'Ошибка', description: String(e), variant: 'destructive' });
+                              } finally {
+                                setResending(null);
+                              }
+                            }}
+                          >{resending === player.id ? 'Отправка...' : 'Отправить повторно'}</button>}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

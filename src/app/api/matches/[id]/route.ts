@@ -108,4 +108,28 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       details: (error as Error).message
     }, { status: 500 });
   }
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
+    }
+    const matchId = params.id;
+    // Проверяем, существует ли матч и принадлежит ли он клубу пользователя
+    const [existing] = await db.select().from(match).where(and(eq(match.id, matchId), eq(match.clubId, session.user.clubId)));
+    if (!existing) {
+      return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
+    }
+    // Каскадное удаление: сначала удаляем playerMatchStat
+    await db.delete(playerMatchStat).where(eq(playerMatchStat.matchId, matchId));
+    // TODO: добавить удаление других связанных сущностей, если появятся
+    // Удаляем сам матч
+    await db.delete(match).where(eq(match.id, matchId));
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Ошибка при удалении матча:', error);
+    return NextResponse.json({ error: 'Ошибка при удалении матча', details: (error as Error).message }, { status: 500 });
+  }
 } 

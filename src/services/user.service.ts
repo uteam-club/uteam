@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { user } from '@/db/schema';
+import { user, club } from '@/db/schema';
 import { eq, asc } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
@@ -134,5 +134,16 @@ export async function deleteUser(id: string) {
   } catch (error) {
     console.error('Error deleting user:', error);
     return false;
+  }
+}
+
+export async function getClubBySubdomain(subdomain: string) {
+  if (!subdomain) return null;
+  try {
+    const [result] = await db.select().from(club).where(eq(club.subdomain, subdomain));
+    return result ?? null;
+  } catch (error) {
+    console.error('Error fetching club by subdomain:', error);
+    return null;
   }
 } 

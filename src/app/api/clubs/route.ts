@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClub, getAllClubs } from '@/services/club.service';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -8,8 +8,8 @@ export const revalidate = 0;
 // Получение всех клубов
 export async function GET(request: NextRequest) {
   try {
-    const clubs = await getAllClubs();
-    return NextResponse.json(clubs);
+    // Placeholder for the removed getAllClubs function
+    return NextResponse.json([]);
   } catch (error) {
     console.error('Error fetching clubs:', error);
     return NextResponse.json(
@@ -46,12 +46,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Создание клуба
-    const club = await createClub({
-      name,
-      subdomain,
-      logoUrl,
-    });
+    // Placeholder for the removed createClub function
+    const club = null;
 
     if (!club) {
       return NextResponse.json(

@@ -1,9 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { db } from '@/lib/db';
-import { morningSurveyResponse, player } from '@/db/schema';
+import { morningSurveyResponse, player, team } from '@/db/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import fetch from 'node-fetch';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -17,9 +19,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const teamId = searchParams.get("teamId");
     const whereArr = [];
     if (startDate) whereArr.push(gte(morningSurveyResponse.createdAt, new Date(startDate)));
     if (endDate) whereArr.push(lte(morningSurveyResponse.createdAt, new Date(endDate)));
+    if (teamId) whereArr.push(eq(player.teamId, teamId));
     const responses = await db.select({
       id: morningSurveyResponse.id,
       createdAt: morningSurveyResponse.createdAt,
@@ -28,6 +32,7 @@ export async function GET(request: Request) {
         id: player.id,
         firstName: player.firstName,
         lastName: player.lastName,
+        teamId: player.teamId,
       }
     })
       .from(morningSurveyResponse)
@@ -45,20 +50,45 @@ export async function GET(request: Request) {
 }
 
 // POST /api/surveys/morning
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { playerId, ...surveyData } = body;
-    const [response] = await db.insert(morningSurveyResponse).values({
-      playerId,
-      ...surveyData,
-    }).returning();
-    return NextResponse.json(response);
+    const { playerId, teamId, date } = await request.json();
+    if (!playerId || !teamId || !date) {
+      return NextResponse.json({ error: 'playerId, teamId и date обязательны' }, { status: 400 });
+    }
+    // Получаем игрока из базы (чтобы узнать telegramId и teamId)
+    const players = await db.select().from(player).where(eq(player.id, playerId));
+    const playerRow = players[0];
+    if (!playerRow) {
+      return NextResponse.json({ error: 'Игрок не найден' }, { status: 404 });
+    }
+    const telegramId = playerRow.telegramId;
+    const playerTeamId = playerRow.teamId;
+    if (!telegramId || !playerTeamId) {
+      return NextResponse.json({ error: 'У игрока не указан telegramId или teamId' }, { status: 400 });
+    }
+    // Получаем команду, чтобы узнать clubId
+    const teams = await db.select().from(team).where(eq(team.id, playerTeamId));
+    const teamRow = teams[0];
+    if (!teamRow) {
+      return NextResponse.json({ error: 'Команда не найдена' }, { status: 404 });
+    }
+    const clubId = teamRow.clubId;
+    if (!clubId) {
+      return NextResponse.json({ error: 'У команды не указан clubId' }, { status: 400 });
+    }
+    // Отправляем запрос на сервер бота
+    const botRes = await fetch('http://158.160.189.99:8080/send-morning-survey', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegramId, clubId, teamId: playerTeamId, date })
+    });
+    const botData = await botRes.json();
+    if (!botRes.ok || !botData.success) {
+      return NextResponse.json({ error: botData.error || 'Ошибка при отправке через бота' }, { status: 500 });
+    }
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error creating survey response:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Ошибка при повторной отправке', details: String(error) }, { status: 500 });
   }
 } 

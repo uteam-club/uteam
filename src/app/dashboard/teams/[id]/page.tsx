@@ -148,15 +148,14 @@ export default function TeamPage() {
     async function fetchPlayersData() {
       try {
         setIsLoadingPlayers(true);
-        
         const response = await fetch(`/api/teams/${teamId}/players`);
-        
         if (!response.ok) {
           console.error('Ошибка при загрузке списка игроков:', response.status);
           return;
         }
-        
-        const data = await response.json();
+        let data = await response.json();
+        // Фильтруем только валидные объекты Player
+        data = Array.isArray(data) ? data.filter(p => p && typeof p === 'object' && p.id && p.firstName && p.lastName) : [];
         setPlayers(data);
       } catch (error) {
         console.error('Ошибка при загрузке списка игроков:', error);
@@ -256,7 +255,7 @@ export default function TeamPage() {
       const createdPlayer = await response.json();
       
       // Добавляем созданного игрока в список
-      setPlayers(prev => [...prev, createdPlayer.player]);
+      safeSetPlayers(prev => [...prev, createdPlayer.player]);
       
       // Закрываем модальное окно и сбрасываем форму
       setIsAddPlayerDialogOpen(false);
@@ -264,6 +263,9 @@ export default function TeamPage() {
         firstName: '',
         lastName: ''
       });
+      
+      // Редирект на страницу профиля нового игрока
+      router.push(`/dashboard/teams/${teamId}/players/${createdPlayer.player.id}`);
       
     } catch (error: any) {
       console.error('Ошибка при создании игрока:', error);
@@ -325,7 +327,7 @@ export default function TeamPage() {
       }
 
       // Обновляем список игроков
-      setPlayers(prev => prev.filter(player => !selectedPlayerIds.includes(player.id)));
+      safeSetPlayers(prev => prev.filter(player => !selectedPlayerIds.includes(player.id)));
 
       // Закрываем модальное окно
       setIsDeletePlayersDialogOpen(false);
@@ -369,7 +371,7 @@ export default function TeamPage() {
       console.log('Update successful:', result);
       
       // Обновляем список игроков
-      setPlayers(prev => prev.map(player => 
+      safeSetPlayers(prev => prev.map(player => 
         player.id === selectedPlayer.id ? { ...player, status } : player
       ));
       
@@ -524,6 +526,17 @@ export default function TeamPage() {
     }
   };
 
+  // Все setPlayers([...prev, ...]) и setPlayers(prev => ...) — фильтруем undefined/null
+  const safeSetPlayers = (updater: (prev: Player[]) => Player[]) => {
+    setPlayers(prev => {
+      const next = updater(prev);
+      return next.filter(p => p && typeof p === 'object' && p.id && p.firstName && p.lastName);
+    });
+  };
+
+  // Перед рендером списка игроков:
+  const sortedPlayers = [...players].sort((a, b) => a.lastName.localeCompare(b.lastName, 'ru'));
+
   return (
     <div className="space-y-6">
       {/* Шапка страницы с кнопкой возврата и названием команды */}
@@ -618,7 +631,7 @@ export default function TeamPage() {
                   >
                     <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
                     <span className="text-green-300 text-xs whitespace-nowrap">
-                      Готов: {players.filter(p => p.status === 'ready' || !p.status).length}
+                      Готов: {(players || []).filter(p => p && (p.status === 'ready' || !p.status)).length}
                     </span>
                   </div>
                   
@@ -628,7 +641,7 @@ export default function TeamPage() {
                   >
                     <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
                     <span className="text-blue-300 text-xs whitespace-nowrap">
-                      Реабилитация: {players.filter(p => p.status === 'rehabilitation').length}
+                      Реабилитация: {(players || []).filter(p => p && p.status === 'rehabilitation').length}
                     </span>
                   </div>
                   
@@ -638,7 +651,7 @@ export default function TeamPage() {
                   >
                     <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
                     <span className="text-yellow-300 text-xs whitespace-nowrap">
-                      Болеет: {players.filter(p => p.status === 'sick').length}
+                      Болеет: {(players || []).filter(p => p && p.status === 'sick').length}
                     </span>
                   </div>
                   
@@ -648,7 +661,7 @@ export default function TeamPage() {
                   >
                     <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
                     <span className="text-purple-300 text-xs whitespace-nowrap">
-                      Учеба: {players.filter(p => p.status === 'study').length}
+                      Учеба: {(players || []).filter(p => p && p.status === 'study').length}
                     </span>
                   </div>
                   
@@ -658,7 +671,7 @@ export default function TeamPage() {
                   >
                     <div className="w-2 h-2 bg-gray-500 rounded-full mr-2"></div>
                     <span className="text-gray-300 text-xs whitespace-nowrap">
-                      Другое: {players.filter(p => p.status === 'other').length}
+                      Другое: {(players || []).filter(p => p && p.status === 'other').length}
                     </span>
                   </div>
                 </div>
@@ -677,7 +690,7 @@ export default function TeamPage() {
                     </div>
                   ) : players.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
-                      {players.map(player => (
+                      {sortedPlayers.map(player => (
                         <div 
                           key={player.id} 
                           className="bg-gray-50/30 rounded-md overflow-hidden cursor-pointer group relative transition-all duration-200 hover:ring-1 hover:ring-vista-primary hover:ring-offset-0 hover:ring-offset-gray-800/20 shadow-md"
@@ -1082,50 +1095,48 @@ export default function TeamPage() {
           </DialogHeader>
           
           <div className="py-4 max-h-[350px] overflow-y-auto">
-            {players.filter(player => 
+            {players.filter(p => 
               selectedStatus === 'ready' 
-                ? player.status === 'ready' || !player.status 
-                : player.status === selectedStatus
+                ? p && (p.status === 'ready' || !p.status) 
+                : p && p.status === selectedStatus
             ).length > 0 ? (
               <div className="space-y-2">
-                {players
-                  .filter(player => 
-                    selectedStatus === 'ready' 
-                      ? player.status === 'ready' || !player.status 
-                      : player.status === selectedStatus
-                  )
-                  .map(player => (
-                    <div 
-                      key={player.id} 
-                      className="flex items-center p-2 rounded-md hover:bg-vista-dark/70 cursor-pointer"
-                      onClick={() => router.push(`/dashboard/teams/${teamId}/players/${player.id}`)}
-                    >
-                      <div className="flex items-center w-full">
-                        {player.imageUrl ? (
-                          <div className="w-10 h-10 rounded-full overflow-hidden mr-3 relative bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
-                            <img 
-                              src={player.imageUrl} 
-                              alt={`${player.firstName} ${player.lastName}`} 
-                              className="w-full h-full object-cover" 
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-10 h-10 rounded-full mr-3 flex items-center justify-center bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
-                            <UserIcon className="w-5 h-5 text-slate-300" />
-                          </div>
-                        )}
-                        <div className="flex-1">
-                          <p className="text-vista-light font-medium">{player.lastName} {player.firstName}</p>
-                          {player.position && <p className="text-xs text-vista-light/70">{player.position}</p>}
+                {(players || []).filter(p => 
+                  selectedStatus === 'ready' 
+                    ? p && (p.status === 'ready' || !p.status) 
+                    : p && p.status === selectedStatus
+                ).map(player => (
+                  <div 
+                    key={player.id} 
+                    className="flex items-center p-2 rounded-md hover:bg-vista-dark/70 cursor-pointer"
+                    onClick={() => router.push(`/dashboard/teams/${teamId}/players/${player.id}`)}
+                  >
+                    <div className="flex items-center w-full">
+                      {player.imageUrl ? (
+                        <div className="w-10 h-10 rounded-full overflow-hidden mr-3 relative bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
+                          <img 
+                            src={player.imageUrl} 
+                            alt={`${player.firstName} ${player.lastName}`} 
+                            className="w-full h-full object-cover" 
+                          />
                         </div>
-                        {player.number && (
-                          <div className="ml-auto bg-vista-primary/20 rounded-full w-7 h-7 flex items-center justify-center">
-                            <span className="text-xs font-medium text-vista-primary">{player.number}</span>
-                          </div>
-                        )}
+                      ) : (
+                        <div className="w-10 h-10 rounded-full mr-3 flex items-center justify-center bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
+                          <UserIcon className="w-5 h-5 text-slate-300" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <p className="text-vista-light font-medium">{player.lastName} {player.firstName}</p>
+                        {player.position && <p className="text-xs text-vista-light/70">{player.position}</p>}
                       </div>
+                      {player.number && (
+                        <div className="ml-auto bg-vista-primary/20 rounded-full w-7 h-7 flex items-center justify-center">
+                          <span className="text-xs font-medium text-vista-primary">{player.number}</span>
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="text-center py-4">

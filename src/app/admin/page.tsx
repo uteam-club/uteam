@@ -1,9 +1,6 @@
 import Link from 'next/link';
-import { getAllClubs } from '@/services/club.service';
 
 export default async function AdminPage() {
-  const clubs = await getAllClubs();
-
   return (
     <main className="flex min-h-screen flex-col items-center p-8">
       <div className="z-10 max-w-5xl w-full">
@@ -39,63 +36,7 @@ export default async function AdminPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {clubs.length > 0 ? (
-                clubs.map((club) => (
-                  <tr key={club.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {club.logoUrl ? (
-                          <img 
-                            src={club.logoUrl} 
-                            alt={club.name} 
-                            className="w-10 h-10 rounded-full mr-3"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mr-3">
-                            <span className="text-lg font-semibold text-gray-500">
-                              {club.name.charAt(0)}
-                            </span>
-                          </div>
-                        )}
-                        <span className="font-medium">{club.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <a 
-                        href={`https://${club.subdomain}.uteam.club`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {club.subdomain}.uteam.club
-                      </a>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(club.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link
-                        href={`/admin/clubs/${club.id}`}
-                        className="text-blue-600 hover:text-blue-900 mr-4"
-                      >
-                        Просмотр
-                      </Link>
-                      <Link
-                        href={`/admin/clubs/${club.id}/edit`}
-                        className="text-gray-600 hover:text-gray-900"
-                      >
-                        Редактировать
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} className="px-6 py-4 whitespace-nowrap text-center text-gray-500">
-                    Клубы не найдены. <Link href="/admin/clubs/new" className="text-blue-600 hover:underline">Создайте первый клуб</Link>.
-                  </td>
-                </tr>
-              )}
+              {/* ... existing code ... */}
             </tbody>
           </table>
         </div>

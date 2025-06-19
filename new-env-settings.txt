@@ -3,10 +3,5 @@ DATABASE_URL="postgresql://postgres:Mell567234!@db.eprnjqohtlxxqufvofbr.supabase
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-nextauth-secret"
 
-# Supabase конфигурация
-NEXT_PUBLIC_SUPABASE_URL="https://eprnjqohtlxxqufvofbr.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwcm5qcW9odGx4eHF1ZnZvZmJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODcxMzYsImV4cCI6MjA2MTc2MzEzNn0.K-rKPFwPc-DOMgzMOXVB09NUyWtETTmewndRQwQYPtg"
-SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwcm5qcW9odGx4eHF1ZnZvZmJyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjE4NzEzNiwiZXhwIjoyMDYxNzYzMTM2fQ.SEcVYg6fzswxAGShe0EDtY8ZPz0zO3as_39fjHIOZA4"
-
 # Настройка для подключения через IPv4
 # DATABASE_URL="postgresql://postgres:Mell567234!@56.228.58.37:5432/postgres" 

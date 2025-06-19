@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClub } from '@/services/club.service';
-import { createSuperAdmin } from '@/services/user.service';
+import { createSuperAdmin, getClubBySubdomain } from '@/services/user.service';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -24,14 +23,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Все поля обязательны для заполнения' }, { status: 400 });
     }
 
-    // Создаем клуб
-    const club = await createClub({
-      name: clubName,
-      subdomain: clubSubdomain
-    });
-
+    // Получаем клуб по поддомену
+    const club = await getClubBySubdomain(clubSubdomain);
     if (!club) {
-      return NextResponse.json({ error: 'Ошибка при создании клуба' }, { status: 500 });
+      return NextResponse.json({ error: 'Клуб с таким поддоменом не найден' }, { status: 404 });
     }
 
     // Создаем суперадмина

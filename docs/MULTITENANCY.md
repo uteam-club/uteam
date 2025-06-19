@@ -73,29 +73,12 @@ if (subdomain) {
 }
 ```
 
-## Настройка мультитенантности в Supabase
+## Хранение файлов и мультитенантность в Яндекс Облаке
 
-UTeam использует Supabase в качестве провайдера PostgreSQL базы данных и хранилища файлов, что требует дополнительной настройки для корректной работы мультитенантности.
+UTeam использует Yandex Object Storage для хранения файлов (медиа, документов, аватаров и т.д.). Для обеспечения мультитенантности:
 
-### 1. Row-Level Security (RLS)
-
-Для обеспечения изоляции данных на уровне базы данных Supabase предоставляет механизм Row-Level Security (RLS). Политики RLS настроены для всех таблиц:
-
-```sql
--- Пример политики RLS для таблицы Team
-CREATE POLICY team_tenant_isolation ON "Team"
-  USING (
-    clubId = current_setting('app.current_club_id', true)::uuid
-    OR 
-    (SELECT role FROM "User" WHERE id = auth.uid()) = 'SUPER_ADMIN'
-  );
-```
-
-### 2. Хранение файлов с учетом тенантов
-
-Файлы в Supabase Storage организованы по принципу мультитенантности:
-
-1. **Структура хранилища**:
+1. **Структура хранения**:
+   - Все файлы каждого клуба хранятся в отдельной папке с именем clubId:
    ```
    bucket/
    ├── club1-uuid/
@@ -105,63 +88,15 @@ CREATE POLICY team_tenant_isolation ON "Team"
    │   ├── file3.jpg
    │   └── file4.pdf
    ```
-
 2. **Загрузка файлов**:
+   - При загрузке файла путь всегда строится с учетом clubId:
    ```typescript
-   // Правильный способ загрузки файлов
-   const { url, error } = await uploadFile(
-     'media', 
-     `${filename}`, 
-     file, 
-     clubId
-   );
+   const filePath = `${clubId}/${filename}`;
+   await yandexStorage.upload('media', filePath, file);
    ```
-
-### 3. Интеграция с Drizzle
-
-Drizzle используется поверх Supabase для типобезопасной работы с данными:
-
-```typescript
-// Drizzle с фильтрацией для мультитенантности
-// Prisma с фильтрацией для мультитенантности
-const teams = await db.select().from(team).where(eq(team.clubId, currentClubId));
-```
-
-### 4. Контекст клуба в Supabase
-
-Для правильной работы RLS необходимо устанавливать контекст клуба:
-
-```typescript
-// Установка контекста клуба для RLS
-await supabase.rpc('set_current_club_id', { club_id: clubId });
-
-// Запрос с учетом контекста
-const { data, error } = await supabase
-  .from('Team')
-  .select('*');
-```
-
-### 5. Организация хранилища в Supabase
-
-Для каждого клуба создается отдельный "раздел" в хранилище:
-
-1. **Создание бакетов**:
-   - `media` - для медиафайлов всех клубов
-   - `documents` - для документов
-   - `avatars` - для аватаров пользователей
-
-2. **Политики доступа к хранилищу**:
-   ```sql
-   -- Пример политики для бакета media
-   CREATE POLICY "Tenant isolation for media"
-   ON storage.objects FOR SELECT
-   USING (
-     bucket_id = 'media' AND
-     (storage.foldername(name))[1] = (
-       SELECT clubId::text FROM "User" WHERE id = auth.uid()
-     )
-   );
-   ```
+3. **Доступ и безопасность**:
+   - Доступ к файлам осуществляется только для пользователей, принадлежащих к соответствующему clubId.
+   - Проверка clubId реализована на уровне приложения.
 
 ## Правила и рекомендации для поддержания мультитенантности
 

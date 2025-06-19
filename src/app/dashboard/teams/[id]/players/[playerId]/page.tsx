@@ -111,18 +111,18 @@ export default function PlayerProfilePage() {
         
         // Инициализируем форму данными игрока
         setFormData({
-          firstName: data.player.firstName || '',
-          lastName: data.player.lastName || '',
-          middleName: data.player.middleName || '',
-          number: data.player.number?.toString() || '',
-          position: data.player.position || '',
-          strongFoot: data.player.strongFoot || '',
+          firstName: data.player.firstName ?? '',
+          lastName: data.player.lastName ?? '',
+          middleName: data.player.middleName ?? '',
+          number: data.player.number != null ? data.player.number.toString() : '',
+          position: data.player.position ?? '',
+          strongFoot: data.player.strongFoot ?? '',
           dateOfBirth: data.player.dateOfBirth ? new Date(data.player.dateOfBirth).toISOString().split('T')[0] : '',
           academyJoinDate: data.player.academyJoinDate ? new Date(data.player.academyJoinDate).toISOString().split('T')[0] : '',
-          nationality: data.player.nationality || '',
-          imageUrl: data.player.imageUrl || '',
-          teamId: data.player.teamId,
-          birthCertificateNumber: data.player.birthCertificateNumber || '',
+          nationality: data.player.nationality ?? '',
+          imageUrl: data.player.imageUrl ?? '',
+          teamId: data.player.teamId ?? '',
+          birthCertificateNumber: data.player.birthCertificateNumber ?? '',
         });
 
         // Загрузка документов игрока
@@ -217,7 +217,7 @@ export default function PlayerProfilePage() {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value ?? ''
     }));
   };
 
@@ -225,7 +225,7 @@ export default function PlayerProfilePage() {
   const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value ?? ''
     }));
   };
 
@@ -348,16 +348,18 @@ export default function PlayerProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ImageUpload 
-                value={formData.imageUrl} 
-                onChange={handleImageChange} 
-                disabled={isSaving}
-                avatarMode={true}
-                clubId={session?.user?.clubId}
-                teamId={teamId}
-                entityId={playerId}
-                entityType="player"
-              />
+              {playerId && session?.user?.clubId && teamId ? (
+                <ImageUpload
+                  imageUrl={formData.imageUrl}
+                  onChange={handleImageChange}
+                  disabled={isSaving}
+                  clubId={session.user.clubId}
+                  teamId={teamId}
+                  playerId={playerId}
+                />
+              ) : (
+                <div className="text-red-500 text-sm">playerId, teamId или clubId не определены</div>
+              )}
             </CardContent>
           </Card>
 
@@ -379,7 +381,7 @@ export default function PlayerProfilePage() {
                   <Input
                     id="lastName"
                     name="lastName"
-                    value={formData.lastName}
+                    value={formData.lastName ?? ""}
                     onChange={handleInputChange}
                     className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light"
                     placeholder="Введите фамилию"
@@ -394,7 +396,7 @@ export default function PlayerProfilePage() {
                   <Input
                     id="firstName"
                     name="firstName"
-                    value={formData.firstName}
+                    value={formData.firstName ?? ""}
                     onChange={handleInputChange}
                     className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light"
                     placeholder="Введите имя"
@@ -409,7 +411,7 @@ export default function PlayerProfilePage() {
                   <Input
                     id="middleName"
                     name="middleName"
-                    value={formData.middleName}
+                    value={formData.middleName ?? ""}
                     onChange={handleInputChange}
                     className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light"
                     placeholder="Введите отчество"
@@ -426,7 +428,7 @@ export default function PlayerProfilePage() {
                     id="number"
                     name="number"
                     type="number"
-                    value={formData.number}
+                    value={formData.number ?? ""}
                     onChange={handleInputChange}
                     className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light"
                     placeholder="Укажите номер"
@@ -499,7 +501,7 @@ export default function PlayerProfilePage() {
                     id="dateOfBirth"
                     name="dateOfBirth"
                     type="date"
-                    value={formData.dateOfBirth}
+                    value={formData.dateOfBirth ?? ""}
                     onChange={handleInputChange}
                     className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light"
                     disabled={isSaving}
@@ -515,7 +517,7 @@ export default function PlayerProfilePage() {
                     id="academyJoinDate"
                     name="academyJoinDate"
                     type="date"
-                    value={formData.academyJoinDate}
+                    value={formData.academyJoinDate ?? ""}
                     onChange={handleInputChange}
                     className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light"
                     disabled={isSaving}
@@ -577,7 +579,7 @@ export default function PlayerProfilePage() {
                   <Input
                     id="birthCertificateNumber"
                     name="birthCertificateNumber"
-                    value={formData.birthCertificateNumber}
+                    value={formData.birthCertificateNumber ?? ""}
                     onChange={handleInputChange}
                     className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light"
                     placeholder="Введите номер свидетельства о рождении"

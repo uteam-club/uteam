@@ -8,7 +8,6 @@
 - TypeScript
 - Drizzle ORM
 - NextAuth.js
-- Supabase
 - Tailwind CSS
 
 ## Основные функции

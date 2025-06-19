@@ -101,7 +101,7 @@ export default function MatchesPage() {
   };
 
   const filteredMatches = useMemo(() => {
-    return matches.filter(match => {
+    const filtered = matches.filter(match => {
       // Фильтр по поисковому запросу
       if (searchValue && 
           !match.team.name.toLowerCase().includes(searchValue.toLowerCase()) && 
@@ -136,6 +136,8 @@ export default function MatchesPage() {
       
       return true;
     });
+    // Сортировка по дате (новые в начале)
+    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [matches, searchValue, selectedTeam, startDate, endDate]);
 
   const formatMatchDate = (dateString: string) => {
@@ -158,16 +160,16 @@ export default function MatchesPage() {
 
   // Функция для определения результата матча и возврата соответствующего класса
   const getMatchResultClass = (match: Match) => {
-    const teamGoals = match.isHome ? match.teamGoals : match.opponentGoals;
-    const opponentGoals = match.isHome ? match.opponentGoals : match.teamGoals;
-    
-    if (teamGoals > opponentGoals) {
-      return "bg-green-500/30"; // Победа - более мягкий зеленый
-    } else if (teamGoals < opponentGoals) {
-      return "bg-red-500/30"; // Поражение - более мягкий красный
+    const left = match.isHome ? match.teamGoals : match.opponentGoals;
+    const right = match.isHome ? match.opponentGoals : match.teamGoals;
+    if (match.isHome) {
+      if (left > right) return "bg-green-500/30"; // Победа дома
+      if (left < right) return "bg-red-500/30";   // Поражение дома
     } else {
-      return "bg-amber-500/30"; // Ничья - более мягкий желтый
+      if (right > left) return "bg-green-500/30"; // Победа в гостях
+      if (right < left) return "bg-red-500/30";   // Поражение в гостях
     }
+    return "bg-amber-500/30"; // Ничья
   };
 
   return (

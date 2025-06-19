@@ -1,8 +1,15 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
+console.log('YANDEX_STORAGE_BUCKET', process.env.YANDEX_STORAGE_BUCKET);
+console.log('YANDEX_STORAGE_REGION', process.env.YANDEX_STORAGE_REGION);
+console.log('YANDEX_STORAGE_ENDPOINT', process.env.YANDEX_STORAGE_ENDPOINT);
+console.log('YANDEX_STORAGE_ACCESS_KEY', process.env.YANDEX_STORAGE_ACCESS_KEY);
+console.log('YANDEX_STORAGE_SECRET_KEY', process.env.YANDEX_STORAGE_SECRET_KEY);
+
 const s3 = new S3Client({
   region: process.env.YANDEX_STORAGE_REGION,
   endpoint: "https://storage.yandexcloud.net",
+  forcePathStyle: true,
   credentials: {
     accessKeyId: process.env.YANDEX_STORAGE_ACCESS_KEY!,
     secretAccessKey: process.env.YANDEX_STORAGE_SECRET_KEY!,
@@ -17,8 +24,7 @@ export async function uploadFile(buffer: Buffer, key: string, contentType: strin
     Bucket: BUCKET,
     Key: key,
     Body: buffer,
-    ContentType: contentType,
-    ACL: "public-read",
+    ContentType: contentType
   });
   await s3.send(command);
   return `https://storage.yandexcloud.net/${BUCKET}/${key}`;

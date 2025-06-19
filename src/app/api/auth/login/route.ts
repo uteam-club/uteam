@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByEmail, verifyPassword } from '@/services/user.service';
-import { getClubBySubdomain } from '@/services/club.service';
+import { getUserByEmail, verifyPassword, getClubBySubdomain } from '@/services/user.service';
 import { getSubdomain } from '@/lib/utils';
 import { sign } from 'jsonwebtoken';
 import { cookies } from 'next/headers';
