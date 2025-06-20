@@ -1,5 +1,6 @@
 export const MUSCLE_NAMES = {
   front: {
+    'muscle-2': 'Голова',
     'muscle-3': 'Правый квадрицепс',
     'muscle-4': 'Правый привод',
     'muscle-5': 'Правая стопа',

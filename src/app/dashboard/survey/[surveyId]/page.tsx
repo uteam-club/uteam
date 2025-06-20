@@ -256,11 +256,12 @@ export default function SurveyPage() {
                     
                     // Если область не выбрана и есть уровень боли, добавляем её
                     if (painLevel) {
+                      const name = muscleName || (area === 'muscle-2' ? 'Голова' : '');
                       return {
                         ...prev,
                         painAreas: {
                           ...prev.painAreas,
-                          [view]: [...currentAreas, { id: area, name: muscleName, painLevel }]
+                          [view]: [...currentAreas, { id: area, name, painLevel }]
                         }
                       };
                     }
@@ -276,17 +277,27 @@ export default function SurveyPage() {
                   <ul className="space-y-2">
                     {[...formData.painAreas.front, ...formData.painAreas.back].map(area => (
                       <li key={area.id} className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${
-                          area.painLevel 
-                            ? PAIN_LEVEL_COLORS[area.painLevel as keyof typeof PAIN_LEVEL_COLORS]
-                            : 'bg-gray-400'
-                        }`} />
-                        <span className="text-vista-light">{area.name}</span>
+                        <div className={`w-2 h-2 rounded-full ${area.painLevel ? PAIN_LEVEL_COLORS[area.painLevel as keyof typeof PAIN_LEVEL_COLORS] : 'bg-gray-400'}`} />
+                        <span className="text-vista-light">{area.name || (area.id === 'muscle-2' ? 'Голова' : 'Без названия')}</span>
                         {area.painLevel && (
-                          <span className="text-sm text-vista-light/70">
-                            (Уровень боли: {area.painLevel})
-                          </span>
+                          <span className="text-sm text-vista-light/70">(Уровень боли: {area.painLevel})</span>
                         )}
+                        <button
+                          type="button"
+                          className="ml-2 px-2 py-0.5 rounded bg-red-700 text-white text-xs hover:bg-red-800 transition"
+                          onClick={() => setFormData(prev => {
+                            const isFront = prev.painAreas.front.some(a => a.id === area.id);
+                            return {
+                              ...prev,
+                              painAreas: {
+                                ...prev.painAreas,
+                                front: isFront ? prev.painAreas.front.filter(a => a.id !== area.id) : prev.painAreas.front,
+                                back: !isFront ? prev.painAreas.back.filter(a => a.id !== area.id) : prev.painAreas.back
+                              }
+                            };
+                          })}
+                          title="Удалить зону"
+                        >✕</button>
                       </li>
                     ))}
                   </ul>

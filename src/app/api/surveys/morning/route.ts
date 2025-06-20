@@ -24,6 +24,7 @@ export async function GET(request: Request) {
     if (startDate) whereArr.push(gte(morningSurveyResponse.createdAt, new Date(startDate)));
     if (endDate) whereArr.push(lte(morningSurveyResponse.createdAt, new Date(endDate)));
     if (teamId) whereArr.push(eq(player.teamId, teamId));
+    // Выбираем все нужные поля для отчёта
     const responses = await db.select({
       id: morningSurveyResponse.id,
       createdAt: morningSurveyResponse.createdAt,
@@ -33,13 +34,24 @@ export async function GET(request: Request) {
         firstName: player.firstName,
         lastName: player.lastName,
         teamId: player.teamId,
-      }
+      },
+      sleepDuration: morningSurveyResponse.sleepDuration,
+      sleepQuality: morningSurveyResponse.sleepQuality,
+      recovery: morningSurveyResponse.recovery,
+      mood: morningSurveyResponse.mood,
+      muscleCondition: morningSurveyResponse.muscleCondition,
     })
       .from(morningSurveyResponse)
       .leftJoin(player, eq(morningSurveyResponse.playerId, player.id))
       .where(whereArr.length ? and(...whereArr) : undefined)
       .orderBy(desc(morningSurveyResponse.createdAt));
-    return NextResponse.json(responses);
+    // Для каждого ответа подгружаем painAreas
+    const responseWithPain = await Promise.all(responses.map(async (resp) => {
+      const painAreas = await db.select().from(require('@/db/schema').painArea)
+        .where(eq(require('@/db/schema').painArea.surveyId, resp.id));
+      return { ...resp, painAreas };
+    }));
+    return NextResponse.json(responseWithPain);
   } catch (error) {
     console.error("Error fetching survey responses:", error);
     return NextResponse.json(

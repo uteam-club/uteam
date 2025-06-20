@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { useState, useEffect } from 'react';
 import { formatDateTime } from '@/lib/utils';
+import { format } from 'date-fns';
 import { TeamSelect } from '@/components/ui/team-select';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -168,7 +169,8 @@ function TelegramBotSettings() {
 export function SurveyTabs() {
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<string>('');
-  const [date, setDate] = useState<string>('');
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const [date, setDate] = useState<string>(todayStr);
   const [players, setPlayers] = useState<any[]>([]);
   const [responses, setResponses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -200,8 +202,15 @@ export function SurveyTabs() {
     setLoading(true);
     setError(null);
     const params = new URLSearchParams({ teamId: selectedTeam });
-    if (date) params.append('startDate', date);
-    if (date) params.append('endDate', date);
+    if (date) {
+      // Формируем диапазон на весь день
+      const start = new Date(date);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(date);
+      end.setHours(23, 59, 59, 999);
+      params.append('startDate', start.toISOString());
+      params.append('endDate', end.toISOString());
+    }
     fetch(`/api/surveys/morning?${params.toString()}`)
       .then(res => res.json())
       .then(setResponses)
@@ -211,6 +220,20 @@ export function SurveyTabs() {
 
   // Сопоставление: playerId -> response
   const responseByPlayerId = Object.fromEntries(responses.map(r => [r.playerId, r]));
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const selectedDate = new Date(date);
+  selectedDate.setHours(0,0,0,0);
+  let filteredPlayers: any[] = [];
+  if (selectedDate <= today) {
+    filteredPlayers = players.filter(player => {
+      if (!player.createdAt) return false;
+      const created = new Date(player.createdAt);
+      created.setHours(0,0,0,0);
+      return created <= selectedDate;
+    });
+  }
 
   return (
     <Tabs defaultValue="settings" className="w-full">
@@ -248,24 +271,51 @@ export function SurveyTabs() {
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm text-vista-light border border-vista-secondary/30 rounded-md">
                 <thead>
-                  <tr className="bg-vista-dark/70">
-                    <th className="px-3 py-2 border-b border-vista-secondary/30 text-left">Игрок</th>
-                    <th className="px-3 py-2 border-b border-vista-secondary/30 text-left">Статус</th>
-                    <th className="px-3 py-2 border-b border-vista-secondary/30 text-left">Время прохождения</th>
-                    <th className="px-3 py-2 border-b border-vista-secondary/30 text-left">Действия</th>
+                  <tr className="bg-vista-dark/70 text-xs">
+                    <th className="px-3 py-2 border-b border-vista-secondary/30 text-left whitespace-nowrap">Игрок</th>
+                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Сон (ч)</th>
+                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Качество</th>
+                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Восст.</th>
+                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Настр.</th>
+                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Мышцы</th>
+                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap min-w-[180px]">Боль</th>
+                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Статус</th>
+                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Время</th>
+                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Действия</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {players.map(player => {
+                  {filteredPlayers.map(player => {
                     const resp = responseByPlayerId[player.id];
                     return (
                       <tr key={player.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10">
-                        <td className="px-3 py-2">{player.lastName} {player.firstName}</td>
-                        <td className="px-3 py-2">{resp ? <span className="text-green-400">Прошёл</span> : <span className="text-red-400">Не прошёл</span>}</td>
-                        <td className="px-3 py-2">{resp ? formatDateTime(resp.createdAt) : '-'}</td>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 whitespace-nowrap">{player.lastName} {player.firstName}</td>
+                        {/* Плитки оценок */}
+                        {["sleepDuration","sleepQuality","recovery","mood","muscleCondition"].map((key, idx) => (
+                          <td key={key} className={`px-2 py-2 text-center align-middle`}>
+                            {resp ? (
+                              <span className={`inline-block rounded-lg shadow border border-vista-secondary/30 text-xl font-semibold w-16 h-10 flex items-center justify-center ${resp[key] < (key==="sleepDuration"?7:3)?'bg-red-900/40':resp[key]<(key==="sleepDuration"?8:4)?'bg-yellow-900/40':'bg-green-900/30'}`}>{resp[key]}</span>
+                            ) : ''}
+                          </td>
+                        ))}
+                        {/* Болевые зоны */}
+                        <td className="px-2 py-2 min-w-[180px] max-w-[220px] overflow-x-auto">
+                          {resp && resp.painAreas && resp.painAreas.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {resp.painAreas.map((area: any, idx: number) => (
+                                <span key={idx} className="inline-flex items-center rounded-full border border-vista-secondary/30 bg-vista-dark/40 px-2 py-0.5 text-xs font-medium whitespace-nowrap gap-1">
+                                  <span className={`inline-block w-2 h-2 rounded-full ${area.painLevel >= 7 ? 'bg-red-500' : area.painLevel >= 4 ? 'bg-yellow-400' : 'bg-green-400'}`}></span>
+                                  {area.areaName} <span className="opacity-60">({area.painLevel})</span>
+                                </span>
+                              ))}
+                            </div>
+                          ) : ''}
+                        </td>
+                        <td className="px-2 py-2 text-center align-middle">{resp ? <span className="text-green-400">Прошёл</span> : <span className="text-red-400">Не прошёл</span>}</td>
+                        <td className="px-2 py-2 text-center align-middle">{resp ? formatDateTime(resp.createdAt) : '-'}</td>
+                        <td className="px-2 py-2 text-center align-middle">
                           {!resp && <button
-                            className="px-3 py-1 rounded bg-vista-accent text-white hover:bg-vista-accent/90 disabled:opacity-60"
+                            className="px-3 py-1 rounded bg-vista-accent text-white hover:bg-vista-accent/90 disabled:opacity-60 shadow border border-vista-secondary/30"
                             disabled={!!resending}
                             onClick={async () => {
                               setResending(player.id);
@@ -292,6 +342,19 @@ export function SurveyTabs() {
                       </tr>
                     );
                   })}
+                  {/* Средние значения */}
+                  <tr className="bg-vista-dark/80 font-bold">
+                    <td className="px-3 py-2 text-center">Среднее</td>
+                    {["sleepDuration","sleepQuality","recovery","mood","muscleCondition"].map((key, idx) => (
+                      <td key={key} className="px-2 py-2 text-center align-middle">
+                        {(filteredPlayers.filter(p => responseByPlayerId[p.id]).length > 0 ? (filteredPlayers.reduce((acc, p) => acc + (responseByPlayerId[p.id]?.[key] || 0), 0) / filteredPlayers.filter(p => responseByPlayerId[p.id]).length).toFixed(2) : '')}
+                      </td>
+                    ))}
+                    <td className="px-2 py-2"></td>
+                    <td className="px-2 py-2"></td>
+                    <td className="px-2 py-2"></td>
+                    <td className="px-2 py-2"></td>
+                  </tr>
                 </tbody>
               </table>
             </div>

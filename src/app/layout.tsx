@@ -13,13 +13,13 @@ export const metadata: Metadata = {
     icon: [
       {
         media: '(prefers-color-scheme: light)',
-        url: '/light.svg',
-        href: '/light.svg',
+        url: '/dark.svg',
+        href: '/dark.svg',
       },
       {
         media: '(prefers-color-scheme: dark)',
-        url: '/dark.svg',
-        href: '/dark.svg',
+        url: '/light.svg',
+        href: '/light.svg',
       },
     ],
   },
@@ -35,6 +35,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru" suppressHydrationWarning>
+      <head>
+        {/* Favicon для светлой и тёмной темы */}
+        <link rel="icon" href="/dark.svg" media="(prefers-color-scheme: light)" />
+        <link rel="icon" href="/light.svg" media="(prefers-color-scheme: dark)" />
+        {/* Fallback для старых браузеров */}
+        <link rel="icon" href="/dark.svg" />
+      </head>
       <body className={inter.className}>
         <NextAuthProvider>
           {children}

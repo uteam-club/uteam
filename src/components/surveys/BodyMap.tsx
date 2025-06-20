@@ -45,7 +45,7 @@ const SVG_LEVEL_COLORS = {
 } as const;
 
 // Номера элементов, которые не должны быть интерактивными
-const NON_INTERACTIVE_ELEMENTS = [1, 2];
+const NON_INTERACTIVE_ELEMENTS = [1];
 
 function BodyMapComponent({ view, selectedAreas, painLevels = {}, onAreaSelect }: BodyMapProps) {
   const [svgContent, setSvgContent] = useState<string>('');
@@ -89,7 +89,7 @@ function BodyMapComponent({ view, selectedAreas, painLevels = {}, onAreaSelect }
 
     // Находим все интерактивные области
     const paths = Array.from(svgElement.querySelectorAll('path')).filter(path => 
-      path.id && path.id.startsWith('_') && !path.classList.contains('cls-3') && !path.classList.contains('cls-2')
+      path.id && path.id.startsWith('_') && !path.classList.contains('cls-2')
     );
     
     paths.forEach((path, index) => {
@@ -120,7 +120,7 @@ function BodyMapComponent({ view, selectedAreas, painLevels = {}, onAreaSelect }
     const target = e.target as SVGElement;
     if (target.tagName.toLowerCase() === 'path' && target.id && !target.classList.contains('non-interactive')) {
       const muscleName = MUSCLE_NAMES[view][target.id as keyof typeof MUSCLE_NAMES[typeof view]] || '';
-      
+      console.log('Клик по зоне:', target.id, muscleName);
       // Если область уже выбрана, удаляем её
       if (selectedAreas.includes(target.id)) {
         onAreaSelect(target.id, muscleName);

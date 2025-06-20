@@ -344,15 +344,39 @@ export default function SurveyPage() {
                   <h3 className="font-medium mb-2">Выбранные области (всего):</h3>
                   <ul className="list-disc list-inside">
                     {formData.painAreas.front.map(area => (
-                      <li key={area.id + '-front'} className="flex items-center">
+                      <li key={area.id + '-front'} className="flex items-center gap-2">
                         <span className="mr-2">•</span>
                         <span>{area.name || 'Без названия'} — <span className="font-bold text-vista-accent">{area.painLevel}/10</span> <span className="text-xs text-vista-light/60">(спереди)</span></span>
+                        <button
+                          type="button"
+                          className="ml-2 px-2 py-0.5 rounded bg-red-700 text-white text-xs hover:bg-red-800 transition"
+                          onClick={() => setFormData(prev => ({
+                            ...prev,
+                            painAreas: {
+                              ...prev.painAreas,
+                              front: prev.painAreas.front.filter(a => a.id !== area.id)
+                            }
+                          }))}
+                          title="Удалить зону"
+                        >✕</button>
                       </li>
                     ))}
                     {formData.painAreas.back.map(area => (
-                      <li key={area.id + '-back'} className="flex items-center">
+                      <li key={area.id + '-back'} className="flex items-center gap-2">
                         <span className="mr-2">•</span>
                         <span>{area.name || 'Без названия'} — <span className="font-bold text-vista-accent">{area.painLevel}/10</span> <span className="text-xs text-vista-light/60">(сзади)</span></span>
+                        <button
+                          type="button"
+                          className="ml-2 px-2 py-0.5 rounded bg-red-700 text-white text-xs hover:bg-red-800 transition"
+                          onClick={() => setFormData(prev => ({
+                            ...prev,
+                            painAreas: {
+                              ...prev.painAreas,
+                              back: prev.painAreas.back.filter(a => a.id !== area.id)
+                            }
+                          }))}
+                          title="Удалить зону"
+                        >✕</button>
                       </li>
                     ))}
                   </ul>
