@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { player, playerDocument, playerMatchStat, playerAttendance } from "@/db/schema";
+import { player, playerDocument, playerMatchStat, playerAttendance, morningSurveyResponse, team } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { deleteFile as deleteYandexFile } from "@/lib/yandex-storage";
 
@@ -9,7 +9,34 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!teamId) {
     return new Response(JSON.stringify({ error: "No teamId" }), { status: 400 });
   }
-  const players = await db.select().from(player).where(eq(player.teamId, teamId));
+  // Получаем игроков с clubId через join и alias
+  const players = await db
+    .select({
+      id: player.id,
+      firstName: player.firstName,
+      lastName: player.lastName,
+      middleName: player.middleName,
+      number: player.number,
+      position: player.position,
+      strongFoot: player.strongFoot,
+      dateOfBirth: player.dateOfBirth,
+      academyJoinDate: player.academyJoinDate,
+      nationality: player.nationality,
+      imageUrl: player.imageUrl,
+      status: player.status,
+      birthCertificateNumber: player.birthCertificateNumber,
+      pinCode: player.pinCode,
+      telegramId: player.telegramId,
+      language: player.language,
+      createdAt: player.createdAt,
+      updatedAt: player.updatedAt,
+      teamId: player.teamId,
+      clubId: team.clubId // alias
+    })
+    .from(player)
+    .leftJoin(team, eq(player.teamId, team.id))
+    .where(eq(player.teamId, teamId));
+
   return new Response(JSON.stringify(players), { status: 200 });
 }
 
@@ -86,6 +113,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       }
     }
     // Каскадное удаление связанных записей
+    await db.delete(morningSurveyResponse).where(
+      playerIds.length === 1 ? eq(morningSurveyResponse.playerId, playerIds[0]) : inArray(morningSurveyResponse.playerId, playerIds)
+    );
     await db.delete(playerDocument).where(
       playerIds.length === 1 ? eq(playerDocument.playerId, playerIds[0]) : inArray(playerDocument.playerId, playerIds)
     );
