@@ -135,7 +135,11 @@ export default function AdminPage() {
   
   // Проверяем права доступа при загрузке страницы
   useEffect(() => {
-    if (session?.user?.role !== 'ADMIN' && session?.user?.role !== 'SUPER_ADMIN') {
+    if (
+      session?.user?.role !== 'ADMIN' &&
+      session?.user?.role !== 'SUPER_ADMIN' &&
+      session?.user?.role !== 'COACH'
+    ) {
       router.push('/dashboard');
     }
   }, [session, router]);
@@ -152,7 +156,7 @@ export default function AdminPage() {
   }, [session]);
 
   // Если нет сессии или роль не подходит, показываем заглушку загрузки
-  if (!session || (session.user?.role !== 'ADMIN' && session.user?.role !== 'SUPER_ADMIN')) {
+  if (!session || (session.user?.role !== 'ADMIN' && session.user?.role !== 'SUPER_ADMIN' && session.user?.role !== 'COACH')) {
     return <div className="p-8 flex justify-center"><p className="text-vista-light/50">Загрузка...</p></div>;
   }
 
