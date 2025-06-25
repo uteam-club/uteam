@@ -105,24 +105,32 @@ async def send_survey_broadcast():
             except Exception:
                 now = datetime.utcnow() + timedelta(hours=3)  # fallback
             now_str = now.strftime('%H:%M')
+            print(f"[DEBUG] Проверка: sendTime={sched.get('sendTime')}, now_str={now_str}, timezone={tz}")
             if sched.get('sendTime') == now_str:
-                # Получаем игроков команды
+                # Получаем игроков команды (исправленный путь!)
                 team_id = sched.get('teamId')
                 async with aiohttp.ClientSession() as session:
-                    async with session.get(f"{API_BASE_URL}/api/team/{team_id}/players") as resp:
+                    async with session.get(f"{API_BASE_URL}/api/teams/{team_id}/players") as resp:
                         if resp.status != 200:
+                            print(f"[DEBUG] Не удалось получить игроков для team_id={team_id}")
                             continue
-                        players = await resp.json()
+                        players = await resp.json(content_type=None)
+                print(f"[DEBUG] Получено игроков для рассылки: {len(players)}")
+                print(f"[DEBUG] Получено игроков: {players}")
+                for player in players:
+                    print(f"[DEBUG] Игрок: id={player.get('id')}, telegramId={player.get('telegramId')}")
                 # Отправляем сообщения
                 for player in players:
                     telegram_id = player.get('telegramId')
                     club_id = player.get('clubId')
                     if not telegram_id or not club_id:
+                        print(f"[DEBUG] Пропущен игрок без telegramId или clubId: {player}")
                         continue
                     link = f"https://fdcvista.uteam.club/survey?tenantId={club_id}"
                     text = f"Доброе утро! Пожалуйста, пройди утренний опросник: {link}\n\nВход по твоему 6-значному пинкоду."
                     try:
                         await bot.send_message(telegram_id, text)
+                        print(f"[DEBUG] Сообщение отправлено: telegramId={telegram_id}")
                     except Exception as e:
                         print(f"[Scheduler] Ошибка отправки {telegram_id}: {e}")
         print(f"[Scheduler] Проверка рассылок завершена")
@@ -134,6 +142,39 @@ def setup_scheduler():
     scheduler.add_job(send_survey_broadcast, 'interval', minutes=1)
     scheduler.start()
 
+# --- HTTP endpoint для ручной отправки опроса ---
+from aiohttp import web
+import asyncio
+
+async def handle_send_morning_survey(request):
+    data = await request.json()
+    telegram_id = data.get('telegramId')
+    club_id = data.get('clubId')
+    team_id = data.get('teamId')
+    date = data.get('date')
+    # TODO: можно добавить проверку секретного токена
+    if not telegram_id or not club_id:
+        return web.json_response({'error': 'telegramId и clubId обязательны'}, status=400)
+    link = f"https://fdcvista.uteam.club/survey?tenantId={club_id}"
+    text = f"Доброе утро! Пожалуйста, пройди утренний опросник: {link}\n\nВход по твоему 6-значному пинкоду."
+    try:
+        await bot.send_message(telegram_id, text)
+        return web.json_response({'success': True})
+    except Exception as e:
+        return web.json_response({'error': str(e)}, status=500)
+
+app = web.Application()
+app.router.add_post('/send-morning-survey', handle_send_morning_survey)
+
+def run_web_app():
+    loop = asyncio.get_event_loop()
+    runner = web.AppRunner(app)
+    loop.run_until_complete(runner.setup())
+    site = web.TCPSite(runner, '0.0.0.0', 8080)
+    loop.run_until_complete(site.start())
+    print('HTTP server started on port 8080')
+
 if __name__ == '__main__':
     setup_scheduler()
-    executor.start_polling(dp, skip_updates=True) 
+    run_web_app()
+    executor.start_polling(dp, skip_updates=True)
