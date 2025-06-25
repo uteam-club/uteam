@@ -61,8 +61,12 @@ interface Player {
     PASSPORT: Document | null;
     BIRTH_CERTIFICATE: Document | null;
     MEDICAL_INSURANCE: Document | null;
+    VISA: Document | null;
     OTHER: Document | null;
   };
+  passportData: string;
+  insuranceNumber: string;
+  visaExpiryDate: string;
 }
 
 export default function DocumentsPage() {
@@ -307,10 +311,10 @@ export default function DocumentsPage() {
               <TableHeader>
                 <TableRow className="bg-vista-dark/70 hover:bg-vista-dark/70 border-b border-vista-secondary/50 shadow-md">
                   <TableHead className="text-vista-light/80 font-medium w-[250px] min-w-[250px] sticky left-0 bg-vista-dark/70 shadow-sm">Игрок</TableHead>
-                  <TableHead className="text-vista-light/80 font-medium">Номер свидетельства о рождении</TableHead>
-                  <TableHead className="text-vista-light/80 font-medium">Паспорт</TableHead>
-                  <TableHead className="text-vista-light/80 font-medium">Свидетельство о рождении</TableHead>
-                  <TableHead className="text-vista-light/80 font-medium">Медицинская страховка</TableHead>
+                  <TableHead className="text-vista-light/80 font-medium w-[180px] min-w-[180px] text-center">Паспорт</TableHead>
+                  <TableHead className="text-vista-light/80 font-medium w-[180px] min-w-[180px] text-center">Свидетельство о рождении</TableHead>
+                  <TableHead className="text-vista-light/80 font-medium w-[180px] min-w-[180px] text-center">Медицинская страховка</TableHead>
+                  <TableHead className="text-vista-light/80 font-medium w-[180px] min-w-[180px] text-center">Виза</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -352,17 +356,69 @@ export default function DocumentsPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-vista-light/80">
-                        {player.birthCertificateNumber || '—'}
+                      <TableCell className="text-vista-light/80 w-[180px] min-w-[180px] text-center">
+                        {player.passportData ? (
+                          player.documents.PASSPORT && player.documents.PASSPORT.publicUrl ? (
+                            <a
+                              href={player.documents.PASSPORT.publicUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="bg-vista-primary/10 text-vista-primary rounded px-2 py-1 cursor-pointer transition hover:bg-vista-primary/20 hover:text-vista-primary/80"
+                            >
+                              {player.passportData}
+                            </a>
+                          ) : (
+                            <span>{player.passportData}</span>
+                          )
+                        ) : '—'}
                       </TableCell>
-                      <TableCell className="text-vista-light/80">
-                        {renderDocumentIcon(player.documents.PASSPORT)}
+                      <TableCell className="text-vista-light/80 w-[180px] min-w-[180px] text-center">
+                        {player.birthCertificateNumber ? (
+                          player.documents.BIRTH_CERTIFICATE && player.documents.BIRTH_CERTIFICATE.publicUrl ? (
+                            <a
+                              href={player.documents.BIRTH_CERTIFICATE.publicUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="bg-vista-primary/10 text-vista-primary rounded px-2 py-1 cursor-pointer transition hover:bg-vista-primary/20 hover:text-vista-primary/80"
+                            >
+                              {player.birthCertificateNumber}
+                            </a>
+                          ) : (
+                            <span>{player.birthCertificateNumber}</span>
+                          )
+                        ) : '—'}
                       </TableCell>
-                      <TableCell className="text-vista-light/80">
-                        {renderDocumentIcon(player.documents.BIRTH_CERTIFICATE)}
+                      <TableCell className="text-vista-light/80 w-[180px] min-w-[180px] text-center">
+                        {player.insuranceNumber ? (
+                          player.documents.MEDICAL_INSURANCE && player.documents.MEDICAL_INSURANCE.publicUrl ? (
+                            <a
+                              href={player.documents.MEDICAL_INSURANCE.publicUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="bg-vista-primary/10 text-vista-primary rounded px-2 py-1 cursor-pointer transition hover:bg-vista-primary/20 hover:text-vista-primary/80"
+                            >
+                              {player.insuranceNumber}
+                            </a>
+                          ) : (
+                            <span>{player.insuranceNumber}</span>
+                          )
+                        ) : '—'}
                       </TableCell>
-                      <TableCell className="text-vista-light/80">
-                        {renderDocumentIcon(player.documents.MEDICAL_INSURANCE)}
+                      <TableCell className="text-vista-light/80 w-[180px] min-w-[180px] text-center">
+                        {player.visaExpiryDate ? (
+                          player.documents.VISA && player.documents.VISA.publicUrl ? (
+                            <a
+                              href={player.documents.VISA.publicUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="bg-vista-primary/10 text-vista-primary rounded px-2 py-1 cursor-pointer transition hover:bg-vista-primary/20 hover:text-vista-primary/80"
+                            >
+                              {new Date(player.visaExpiryDate).toLocaleDateString()}
+                            </a>
+                          ) : (
+                            <span>{new Date(player.visaExpiryDate).toLocaleDateString()}</span>
+                          )
+                        ) : '—'}
                       </TableCell>
                     </TableRow>
                   ))

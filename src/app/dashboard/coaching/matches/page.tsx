@@ -33,6 +33,7 @@ interface Match {
     id: string;
     name: string;
   };
+  status: string;
 }
 
 interface Team {
@@ -389,10 +390,16 @@ export default function MatchesPage() {
                         }</p>
                       </div>
                       
-                      <div className={`w-2/12 flex justify-center items-center rounded-md py-1 px-3 ${getMatchResultClass(match)}`}>
-                        <span className="text-xl font-bold text-vista-light">{match.isHome ? match.teamGoals : match.opponentGoals}</span>
-                        <span className="text-vista-light/30 mx-1">:</span>
-                        <span className="text-xl font-bold text-vista-light">{match.isHome ? match.opponentGoals : match.teamGoals}</span>
+                      <div className={`w-2/12 flex justify-center items-center rounded-md py-1 px-3 ${match.status === 'FINISHED' ? getMatchResultClass(match) : 'bg-gray-500/30'}`}>
+                        {match.status === 'FINISHED' ? (
+                          <>
+                            <span className="text-xl font-bold text-vista-light">{match.isHome ? match.teamGoals : match.opponentGoals}</span>
+                            <span className="text-vista-light/30 mx-1">:</span>
+                            <span className="text-xl font-bold text-vista-light">{match.isHome ? match.opponentGoals : match.teamGoals}</span>
+                          </>
+                        ) : (
+                          <span className="text-xl font-bold text-vista-light">-<span className="text-vista-light/30 mx-1">:</span>-</span>
+                        )}
                       </div>
                       
                       <div className="w-5/12 text-right">

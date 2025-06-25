@@ -57,6 +57,34 @@
       "when": 1749656878999,
       "tag": "0007_slippery_onslaught",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1750444882069,
+      "tag": "0008_clean_solo",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1750445358339,
+      "tag": "0009_yellow_omega_sentinel",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1750532600095,
+      "tag": "0010_soft_energizer",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1750534246677,
+      "tag": "0011_dazzling_tempest",
+      "breakpoints": true
     }
   ]
 }

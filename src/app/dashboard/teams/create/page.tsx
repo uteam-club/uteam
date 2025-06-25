@@ -91,7 +91,7 @@ export default function CreateTeamPage() {
       </div>
 
       {/* Форма создания команды */}
-      <Card className="bg-vista-dark/30 border-vista-secondary/30">
+      <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
         <CardHeader>
           <CardTitle className="text-vista-light">Информация о команде</CardTitle>
         </CardHeader>

@@ -36,7 +36,7 @@ export default function SurveysPage() {
       </div>
 
       <div className="grid gap-6">
-        <Card className="p-6 bg-vista-dark/50 border-vista-secondary/50">
+        <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
           <h2 className="text-xl font-semibold mb-4 text-vista-light">Доступные опросники</h2>
           
           <div className="space-y-4">

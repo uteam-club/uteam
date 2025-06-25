@@ -7,7 +7,7 @@ import { FileIcon, PlusIcon, TrashIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DocumentUploadProps {
-  onUpload: (file: File) => Promise<void>;
+  onUpload: (file: File, type: string) => Promise<void>;
   onDelete?: () => Promise<void>;
   documentType: string;
   documentName?: string;
@@ -15,6 +15,8 @@ interface DocumentUploadProps {
   isUploaded?: boolean;
   disabled?: boolean;
   className?: string;
+  buttonLabel?: string;
+  buttonWidth?: string;
 }
 
 export default function DocumentUpload({
@@ -25,7 +27,9 @@ export default function DocumentUpload({
   documentId,
   isUploaded = false,
   disabled = false,
-  className
+  className,
+  buttonLabel,
+  buttonWidth = '120px',
 }: DocumentUploadProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -39,9 +43,7 @@ export default function DocumentUpload({
     try {
       setIsLoading(true);
       setError(null);
-      
-      await onUpload(file);
-      
+      await onUpload(file, documentType);
     } catch (error: any) {
       console.error('Ошибка при загрузке документа:', error);
       setError(error.message || 'Не удалось загрузить документ');
@@ -76,58 +78,48 @@ export default function DocumentUpload({
 
   return (
     <div className={cn("space-y-2", className)}>
-      <div 
-        className={cn(
-          "flex items-center p-3 bg-vista-dark/30 border rounded-md",
-          isUploaded 
-            ? "border-green-500/30 bg-green-500/10" 
-            : "border-vista-secondary/30 hover:border-vista-secondary/50",
-          disabled ? "opacity-50 cursor-not-allowed" : ""
-        )}
-      >
-        <div className="flex-1 mr-2">
-          <div className="flex items-center">
-            <FileIcon className="h-4 w-4 text-vista-light/60 mr-2" />
-            <span className="text-vista-light/90 text-sm">
-              {isUploaded ? (documentName || 'Документ загружен') : documentType}
-            </span>
-          </div>
+      {isUploaded ? (
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={disabled || isLoading || isDeleting}
+          className={cn(
+            "w-full h-10 flex items-center justify-center gap-2 border rounded-md transition-colors",
+            "border-green-500/30 bg-green-500/10 hover:bg-green-500/20 active:bg-green-500/30",
+            (disabled || isLoading || isDeleting) ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+          )}
+        >
+          <TrashIcon className="h-4 w-4 text-red-500" />
+          <span className="text-xs text-red-500 font-medium">
+            {isDeleting ? 'Удаление...' : 'Удалить'}
+          </span>
+        </button>
+      ) : (
+        <div
+          className={cn(
+            "flex items-center h-10 px-3 bg-vista-dark/30 border border-vista-secondary/30 rounded-md cursor-pointer select-none transition-colors",
+            "border-vista-secondary/30 hover:border-vista-secondary/50 hover:bg-vista-secondary/10",
+            disabled ? "opacity-50 cursor-not-allowed" : ""
+          )}
+          style={{ minWidth: buttonWidth, maxWidth: buttonWidth }}
+          onClick={disabled || isLoading || isDeleting ? undefined : triggerFileInput}
+          tabIndex={0}
+          role="button"
+          onKeyDown={e => {
+            if ((e.key === 'Enter' || e.key === ' ') && !(disabled || isLoading || isDeleting)) {
+              triggerFileInput();
+            }
+          }}
+        >
+          <FileIcon className="h-4 w-4 text-vista-light/60 mr-1 flex-shrink-0" />
+          <span className="text-vista-light/90 text-xs truncate">
+            {isLoading ? 'Загрузка...' : buttonLabel || 'Загрузить'}
+          </span>
           {error && (
-            <p className="text-xs text-red-500 mt-1">{error}</p>
+            <p className="text-xs text-red-500 mt-1 ml-2">{error}</p>
           )}
         </div>
-        
-        <div className="flex gap-2">
-          {isUploaded && onDelete && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleDelete}
-              disabled={disabled || isLoading || isDeleting}
-              className="h-8 text-xs text-red-400 hover:text-red-500 hover:bg-red-500/10"
-            >
-              {isDeleting ? 'Удаление...' : 'Удалить'}
-              {!isDeleting && <TrashIcon className="ml-1 h-4 w-4" />}
-            </Button>
-          )}
-          
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={triggerFileInput}
-            disabled={disabled || isLoading || isDeleting}
-            className={cn(
-              "h-8 text-xs",
-              isUploaded ? "text-green-400 hover:text-green-500 hover:bg-green-500/10" : ""
-            )}
-          >
-            {isLoading ? 'Загрузка...' : isUploaded ? 'Обновить' : 'Загрузить'}
-            {!isLoading && <PlusIcon className="ml-1 h-4 w-4" />}
-          </Button>
-        </div>
-      </div>
+      )}
       <input
         type="file"
         ref={fileInputRef}

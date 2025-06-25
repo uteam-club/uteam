@@ -225,8 +225,10 @@ interface FootballFieldProps {
   onPositionsChange?: (positions: PlayerPosition[]) => void;
   savedPositions?: PlayerPosition[];
   players?: Player[]; // Список всех игроков основы
-  onPlayerAssigned?: (positionIndex: number, playerId: string | null) => void; // Обработчик привязки игрока
+  onPlayerAssigned?: (positionIndex: number, playerId?: string | null) => void; // Обработчик привязки игрока
   matchId?: string;
+  selectedPosition?: number | null;
+  mode?: 'profile' | 'match'; // Новый проп
 }
 
 const FootballField: React.FC<FootballFieldProps> = ({
@@ -236,7 +238,9 @@ const FootballField: React.FC<FootballFieldProps> = ({
   savedPositions,
   players = [], // По умолчанию пустой массив
   onPlayerAssigned,
-  matchId
+  matchId,
+  selectedPosition,
+  mode = 'match', // По умолчанию 'match'
 }) => {
   const [positions, setPositions] = useState<PlayerPosition[]>([]);
   const [selectedPositionIndex, setSelectedPositionIndex] = useState<number | null>(null);
@@ -297,8 +301,13 @@ const FootballField: React.FC<FootballFieldProps> = ({
 
   // Обработчик клика на позицию
   const handlePositionClick = (index: number) => {
-    console.log(`Клик по позиции ${index}, текущие данные:`, positions[index]);
-    setSelectedPositionIndex(selectedPositionIndex === index ? null : index);
+    if (selectedPosition === index) return; // Блокируем повторный клик
+    if (mode === 'profile') {
+      // В режиме профиля просто вызываем onPlayerAssigned
+      if (onPlayerAssigned) onPlayerAssigned(index);
+      return;
+    }
+    setSelectedPositionIndex(index);
   };
 
   // Обработчик выбора игрока
@@ -414,51 +423,53 @@ const FootballField: React.FC<FootballFieldProps> = ({
   };
 
   return (
-    <div className="relative">
+    <div className="relative w-full h-full">
       <img 
         src="/pitch.png" 
         alt="Футбольное поле" 
-        className="w-full h-auto"
+        className="w-full h-full object-contain"
       />
       
       {positions.map((position, index) => (
         <div key={index} className="absolute" style={{ left: `${position.x}%`, top: `${position.y}%` }}>
-          {/* Кружок игрока */}
+          {/* Кружок игрока с подписью */}
           <div
             className={cn(
               "rounded-full border border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 cursor-pointer flex items-center justify-center",
-              selectedPositionIndex === index ? "ring-2 ring-blue-500" : ""
+              // В режиме profile выделяем выбранную позицию обводкой
+              mode === 'profile' && selectedPosition === index ? "ring-2 ring-cyan-500" : "",
+              // В режиме match выделяем выбранную позицию обводкой (если нужно)
+              mode === 'match' && selectedPositionIndex === index ? "ring-2 ring-cyan-500" : ""
             )}
             style={{
-              width: '34px',
-              height: '34px',
-              backgroundColor: position.isGoalkeeper ? getGoalkeeperColor(colorValue) : colorValue,
+              width: '28px',
+              height: '28px',
+              backgroundColor:
+                mode === 'match'
+                  ? colorValue // В режиме матча все кружки выбранного цвета
+                  : (selectedPosition === index ? colorValue : '#374151'), // В профиле только выбранная позиция — цветная, остальные — тёмно-серые
               boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+              position: 'relative',
             }}
             onClick={() => handlePositionClick(index)}
           >
-            {/* Номер игрока внутри кружка */}
-            {position.playerNumber && (
-              <span className="text-xs font-bold text-white">
-                {position.playerNumber}
-              </span>
+            {/* Только номер игрока внутри кружка */}
+            {hasPlayerAssigned(position) && (
+              <span className="text-white text-xs font-bold leading-none">{position.playerNumber}</span>
+            )}
+            {/* Инициалы под кружком на полупрозрачном фоне */}
+            {hasPlayerAssigned(position) && position.playerName && (
+              <div
+                className="absolute left-1/2 top-full mt-1 px-2 py-0.5 bg-black/50 rounded text-white text-[11px] font-medium select-none pointer-events-none whitespace-nowrap flex items-center justify-center"
+                style={{ transform: 'translateX(-50%)', minWidth: '28px', textAlign: 'center', lineHeight: '1.2' }}
+              >
+                {position.playerName}
+              </div>
             )}
           </div>
 
-          {/* Имя игрока под кружком */}
-          {position.playerName && (
-            <div
-              className="absolute text-xs text-white bg-black bg-opacity-50 px-1 rounded transform -translate-x-1/2 whitespace-nowrap z-10"
-              style={{
-                top: '20px',
-              }}
-            >
-              {position.playerName}
-            </div>
-          )}
-
-          {/* Выпадающий список */}
-          {selectedPositionIndex === index && (
+          {/* Выпадающий список только в режиме match */}
+          {mode === 'match' && selectedPositionIndex === index && (
             <div
               ref={dropdownRef}
               className="absolute z-20 bg-slate-800 border border-slate-600/30 rounded shadow-lg p-2 transform -translate-x-1/2"

@@ -35,7 +35,8 @@ interface Team {
   name: string;
   clubId: string;
   order: number;
-  description?: string; // Добавлено поле description
+  description?: string;
+  teamType: 'academy' | 'contract'; // новое поле
 }
 
 // Определяем типы для категорий тренировок
@@ -101,9 +102,9 @@ export default function AdminPage() {
   const [isAddTeamModalOpen, setIsAddTeamModalOpen] = useState(false);
   const [isEditTeamModalOpen, setIsEditTeamModalOpen] = useState(false);
   const [isDeleteTeamModalOpen, setIsDeleteTeamModalOpen] = useState(false);
-  const [newTeam, setNewTeam] = useState({ name: '' });
+  const [newTeam, setNewTeam] = useState({ name: '', teamType: 'academy' });
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
-  const [editedTeam, setEditedTeam] = useState({ name: '' });
+  const [editedTeam, setEditedTeam] = useState({ name: '', teamType: 'academy' });
   
   // Состояния для работы с категориями тренировок
   const [trainingCategories, setTrainingCategories] = useState<TrainingCategory[]>([]);
@@ -407,13 +408,13 @@ export default function AdminPage() {
   };
 
   // Обработчик изменения полей формы при добавлении команды
-  const handleTeamInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTeamInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setNewTeam(prev => ({ ...prev, [name]: value }));
   };
   
   // Обработчик изменения полей формы при редактировании команды
-  const handleEditTeamInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditTeamInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setEditedTeam(prev => ({ ...prev, [name]: value }));
   };
@@ -458,7 +459,7 @@ export default function AdminPage() {
       setIsAddTeamModalOpen(false);
       
       // Сбрасываем форму
-      setNewTeam({ name: '' });
+      setNewTeam({ name: '', teamType: 'academy' });
     } catch (error: any) {
       console.error('Ошибка при создании команды:', error);
       setError(error.message || 'Не удалось создать команду');
@@ -470,7 +471,7 @@ export default function AdminPage() {
   // Функция для открытия модального окна редактирования команды
   const handleEditTeamClick = (team: Team) => {
     setSelectedTeam(team);
-    setEditedTeam({ name: team.name });
+    setEditedTeam({ name: team.name, teamType: team.teamType });
     setIsEditTeamModalOpen(true);
   };
   
@@ -1089,7 +1090,7 @@ export default function AdminPage() {
         </TabsList>
         
         <TabsContent value="users" className="mt-6">
-          <Card className="bg-vista-dark/30 border-vista-secondary/30">
+          <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-vista-light">Управление пользователями</CardTitle>
               <Button 
@@ -1476,7 +1477,7 @@ export default function AdminPage() {
         </TabsContent>
         
         <TabsContent value="teams" className="mt-6">
-          <Card className="bg-vista-dark/30 border-vista-secondary/30">
+          <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-vista-light">Управление командами</CardTitle>
               <Button 
@@ -1597,6 +1598,21 @@ export default function AdminPage() {
                     />
                   </div>
                   
+                  <div>
+                    <label className="block text-sm font-medium text-vista-light/80 mb-1">
+                      Тип команды
+                    </label>
+                    <select
+                      name="teamType"
+                      value={newTeam.teamType}
+                      onChange={handleTeamInputChange}
+                      className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
+                    >
+                      <option value="academy">Академия</option>
+                      <option value="contract">Контракт</option>
+                    </select>
+                  </div>
+                  
                   <div className="flex justify-end space-x-3 mt-6">
                     <Button
                       variant="outline"
@@ -1652,6 +1668,21 @@ export default function AdminPage() {
                       className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
                       placeholder="Название команды"
                     />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-vista-light/80 mb-1">
+                      Тип команды
+                    </label>
+                    <select
+                      name="teamType"
+                      value={editedTeam.teamType}
+                      onChange={handleEditTeamInputChange}
+                      className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
+                    >
+                      <option value="academy">Академия</option>
+                      <option value="contract">Контракт</option>
+                    </select>
                   </div>
                   
                   <div className="flex justify-end space-x-3 mt-6">
@@ -1729,7 +1760,7 @@ export default function AdminPage() {
         </TabsContent>
 
         <TabsContent value="training-categories" className="mt-6">
-          <Card className="bg-vista-dark/30 border-vista-secondary/30">
+          <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-vista-light">Категории тренировок</CardTitle>
               <Button 
@@ -1964,7 +1995,7 @@ export default function AdminPage() {
         </TabsContent>
 
         <TabsContent value="exercise-categories" className="mt-6">
-          <Card className="bg-vista-dark/30 border-vista-secondary/30">
+          <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-vista-light">Категории упражнений</CardTitle>
               <Button 
@@ -2199,7 +2230,7 @@ export default function AdminPage() {
         </TabsContent>
 
         <TabsContent value="exercise-tags" className="mt-6">
-          <Card className="bg-vista-dark/30 border-vista-secondary/30">
+          <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-vista-light">Теги упражнений</CardTitle>
               <Button 

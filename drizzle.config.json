@@ -1,8 +1,8 @@
 {
   "schema": "./src/db/schema/index.ts",
   "out": "./drizzle",
-  "dialect": "postgresql",
+  "driver": "pg",
   "dbCredentials": {
-    "connectionString": "postgresql://postgres:Mell567234!@158.160.80.155:5432/postgres"
+    "connectionString": "postgresql://uteam-admin:Mell567234!@rc1d-40uv9fbi8p02b5c0.mdb.yandexcloud.net:6432/uteam?sslmode=verify-full&sslrootcert=./yandex_root.crt"
   }
 } 

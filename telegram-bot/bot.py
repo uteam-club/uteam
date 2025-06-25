@@ -177,4 +177,8 @@ def run_web_app():
 if __name__ == '__main__':
     setup_scheduler()
     run_web_app()
+<<<<<<< HEAD
     executor.start_polling(dp, skip_updates=True)
+=======
+    executor.start_polling(dp, skip_updates=True)
+>>>>>>> 2a3b27b10969d26dcfe0721a54ee3620544521d2

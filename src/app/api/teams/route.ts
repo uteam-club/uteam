@@ -156,12 +156,13 @@ export async function POST(request: NextRequest) {
     
     // Создаем объект с данными для создания команды
     // Генерируем id на сервере, чтобы избежать проблем с default в базе
-    const teamData: { id: string; name: string; clubId: string; order?: number; createdAt: Date; updatedAt: Date } = {
+    const teamData: { id: string; name: string; clubId: string; order?: number; createdAt: Date; updatedAt: Date; teamType: 'academy' | 'contract' } = {
       id: uuidv4(),
       name: data.name.trim(),
       clubId,
       createdAt: new Date(),
       updatedAt: new Date(),
+      teamType: data.teamType === 'contract' ? 'contract' : 'academy',
     };
     
     // Находим максимальный порядок среди существующих команд

@@ -1,82 +1,48 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
 
-/**
- * Объединение классов с помощью clsx и tailwind-merge
- */
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs))
 }
 
-/**
- * Получение поддомена из хоста
- */
-export function getSubdomain(host: string): string {
-  // Убираем localhost из проверки - на localhost будем просто возвращать параметр из URL
-  if (host.includes('localhost')) {
-    return '';
-  }
-  
-  const hostParts = host.split('.');
-  
-  // Проверяем, что у нас есть хотя бы 3 части (поддомен.домен.зона)
-  if (hostParts.length >= 3) {
-    return hostParts[0];
-  }
-  
-  return '';
-}
-
-/**
- * Проверка, является ли хост основным доменом (без поддомена)
- */
 export function isMainDomain(host: string): boolean {
-  // Для localhost всегда считаем как основной домен
-  if (host.includes('localhost')) {
-    return true;
-  }
-  
-  // Основной домен - это домен вида example.com, без поддоменов
-  const hostParts = host.split('.');
-  
-  // Если есть поддомен, то частей будет минимум 3 (поддомен.домен.зона)
-  return hostParts.length < 3;
+  // Пример: для 'club.site.com' вернёт false, для 'site.com' или 'localhost' — true
+  if (!host) return false;
+  // localhost и 127.0.0.1 считаем основным доменом
+  if (host === 'localhost' || host === '127.0.0.1') return true;
+  // Если host содержит ровно один точку — это основной домен (site.com)
+  // Если больше одной точки — это поддомен (club.site.com)
+  return host.split('.').length <= 2;
 }
 
-/**
- * Форматирование даты
- */
-export function formatDate(date: Date | string): string {
-  return new Date(date).toLocaleDateString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+export function formatResult(value: string) {
+  if (!value) return '—';
+  if (value.includes('.')) return value.replace(/\.0+$/, '').replace(/(\.\d*?[1-9])0+$/, '$1');
+  return value;
 }
 
-/**
- * Форматирование времени
- */
-export function formatTime(date: Date | string): string {
-  return new Date(date).toLocaleTimeString('ru-RU', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Europe/Moscow',
-  });
-}
-
-/**
- * Форматирование даты с временем
- */
+// Заглушка для formatDateTime
 export function formatDateTime(date: Date | string): string {
-  return `${formatDate(date)} ${formatTime(date)}`;
+  // Простейшее форматирование даты
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleString('ru-RU');
 }
 
-/**
- * Генерация случайного шестизначного пароля
- */
-export function generateRandomPassword(): string {
-  // Генерируем случайное шестизначное число
-  const randomNumber = Math.floor(100000 + Math.random() * 900000);
-  return randomNumber.toString();
-} 
+// Заглушка для getSubdomain
+export function getSubdomain(host: string): string | null {
+  // Простейшее определение поддомена
+  if (!host) return null;
+  const parts = host.split('.');
+  if (parts.length < 3) return null;
+  return parts[0];
+}
+
+// Заглушка для generateRandomPassword
+export function generateRandomPassword(length: number = 10): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
