@@ -39,11 +39,11 @@ console.log('Используем следующий URL для подключе
 console.log(databaseUrl.replace(/\/\/(.+?):(.+?)@/, '//***:***@')); // Скрываем учетные данные в логах
 
 // Настройки для создания
-const CLUB_NAME = 'FDC Vista';
-const CLUB_SUBDOMAIN = 'fdcvista';
-const ADMIN_EMAIL = 'admin@fdcvista.com';
+const CLUB_NAME = 'FC Alashkert';
+const CLUB_SUBDOMAIN = 'alashkert';
+const ADMIN_EMAIL = 'admin@alashkert.uteam.club';
 const ADMIN_PASSWORD = 'admin123!';
-const ADMIN_NAME = 'Администратор';
+const ADMIN_NAME = 'Администратор Alashkert';
 
 async function main() {
   console.log('Начинаем создание клуба и суперадмина...');
