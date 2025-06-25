@@ -57,4 +57,30 @@ export const MUSCLE_NAMES = {
     'muscle-24': 'Нижняя часть спины',
     'muscle-25': 'Шея'
   }
-} as const; 
+} as const;
+
+// Популярные типы фитнес-тестов
+export const FITNESS_TEST_TYPES = [
+  { value: 'anthropometry', label: 'Антропометрия' },
+  { value: 'speed', label: 'Скорость' },
+  { value: 'strength', label: 'Сила' },
+  { value: 'endurance', label: 'Выносливость' },
+  { value: 'agility', label: 'Ловкость' },
+  { value: 'flexibility', label: 'Гибкость' },
+  { value: 'other', label: 'Другое' },
+];
+
+// Популярные единицы измерения с расшифровками
+export const FITNESS_TEST_UNITS = [
+  { value: 'kg', label: 'кг', description: 'килограмм' },
+  { value: 'cm', label: 'см', description: 'сантиметр' },
+  { value: 'm', label: 'м', description: 'метр' },
+  { value: 's', label: 'сек', description: 'секунда' },
+  { value: 'min', label: 'мин', description: 'минута' },
+  { value: 'ms', label: 'мс', description: 'миллисекунда' },
+  { value: 'm_s', label: 'м/с', description: 'метр в секунду' },
+  { value: 'km_h', label: 'км/ч', description: 'километр в час' },
+  { value: 'reps', label: 'повторений', description: 'повторений' },
+  { value: 'points', label: 'баллы', description: 'баллы' },
+  { value: 'deg', label: '°', description: 'градусы' },
+]; 

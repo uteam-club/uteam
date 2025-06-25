@@ -18,9 +18,10 @@ interface AddMatchModalProps {
   isOpen: boolean;
   onClose: () => void;
   onMatchAdded: () => void;
+  initialDate?: Date | null;
 }
 
-export function AddMatchModal({ isOpen, onClose, onMatchAdded }: AddMatchModalProps) {
+export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: AddMatchModalProps) {
   const { toast } = useToast();
   const { data: session } = useSession();
 
@@ -30,20 +31,22 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded }: AddMatchModalPr
 
   // Состояние формы
   const [competitionType, setCompetitionType] = useState('FRIENDLY');
-  const [matchDate, setMatchDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [matchDate, setMatchDate] = useState(initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
   const [matchTime, setMatchTime] = useState('12:00');
   const [isHome, setIsHome] = useState(true);
   const [teamId, setTeamId] = useState('');
   const [opponentName, setOpponentName] = useState('');
   const [teamGoals, setTeamGoals] = useState(0);
   const [opponentGoals, setOpponentGoals] = useState(0);
+  const [matchStatus, setMatchStatus] = useState<'SCHEDULED' | 'FINISHED'>('SCHEDULED');
 
   // Загрузка списка команд
   useEffect(() => {
     if (isOpen) {
       fetchTeams();
+      setMatchDate(initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
     }
-  }, [isOpen]);
+  }, [isOpen, initialDate]);
 
   const fetchTeams = async () => {
     try {
@@ -95,8 +98,9 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded }: AddMatchModalPr
           isHome,
           teamId,
           opponentName,
-          teamGoals: Number(teamGoals),
-          opponentGoals: Number(opponentGoals),
+          status: matchStatus,
+          teamGoals: matchStatus === 'FINISHED' ? Number(teamGoals) : null,
+          opponentGoals: matchStatus === 'FINISHED' ? Number(opponentGoals) : null,
         }),
       });
 
@@ -137,11 +141,12 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded }: AddMatchModalPr
     setOpponentName('');
     setTeamGoals(0);
     setOpponentGoals(0);
+    setMatchStatus('SCHEDULED');
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-vista-dark border-vista-secondary/50 text-vista-light">
+      <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-hidden backdrop-blur-xl">
         <DialogHeader>
           <DialogTitle className="text-vista-light text-xl">Добавить матч</DialogTitle>
         </DialogHeader>
@@ -149,7 +154,7 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded }: AddMatchModalPr
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Тип соревнований */}
           <div className="space-y-2">
-            <Label htmlFor="competitionType" className="text-vista-light">Тип соревнований</Label>
+            <Label htmlFor="competitionType" className="text-vista-light/40 font-normal">Тип соревнований</Label>
             <Select 
               value={competitionType} 
               onValueChange={setCompetitionType}
@@ -168,7 +173,7 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded }: AddMatchModalPr
           {/* Дата и время матча */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="matchDate" className="text-vista-light">Дата матча</Label>
+              <Label htmlFor="matchDate" className="text-vista-light/40 font-normal">Дата матча</Label>
               <Input
                 id="matchDate"
                 type="date"
@@ -178,7 +183,7 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded }: AddMatchModalPr
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="matchTime" className="text-vista-light">Время матча</Label>
+              <Label htmlFor="matchTime" className="text-vista-light/40 font-normal">Время матча</Label>
               <Input
                 id="matchTime"
                 type="time"
@@ -189,25 +194,44 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded }: AddMatchModalPr
             </div>
           </div>
           
-          {/* Статус матча */}
-          <div className="flex items-center justify-between">
-            <Label htmlFor="matchStatus" className="text-vista-light">Статус матча</Label>
-            <div className="flex items-center space-x-2">
-              <span className={!isHome ? "text-vista-light" : "text-vista-light/50"}>Выездной</span>
-              <Switch 
-                id="matchStatus" 
-                checked={isHome}
-                onCheckedChange={setIsHome}
-              />
-              <span className={isHome ? "text-vista-light" : "text-vista-light/50"}>Домашний</span>
+          {/* Статус матча (запланирован/завершён) */}
+          <div className="space-y-2">
+            <Label htmlFor="matchStatus" className="text-vista-light/40 font-normal">Статус матча</Label>
+            <Select
+              value={matchStatus}
+              onValueChange={v => setMatchStatus(v as 'SCHEDULED' | 'FINISHED')}
+            >
+              <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30">
+                <SelectValue placeholder="Выберите статус матча" />
+              </SelectTrigger>
+              <SelectContent className="bg-vista-dark border-vista-secondary/30">
+                <SelectItem value="SCHEDULED" className="text-vista-light">Запланирован</SelectItem>
+                <SelectItem value="FINISHED" className="text-vista-light">Завершён</SelectItem>
+              </SelectContent>
+            </Select>
             </div>
+          
+          {/* Тип матча (домашний/выездной) */}
+          <div className="space-y-2">
+            <Label htmlFor="isHome" className="text-vista-light/40 font-normal">Тип матча</Label>
+            <Select
+              value={isHome ? 'HOME' : 'AWAY'}
+              onValueChange={v => setIsHome(v === 'HOME')}
+            >
+              <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30">
+                <SelectValue placeholder="Выберите тип матча" />
+              </SelectTrigger>
+              <SelectContent className="bg-vista-dark border-vista-secondary/30">
+                <SelectItem value="HOME" className="text-vista-light">Домашний</SelectItem>
+                <SelectItem value="AWAY" className="text-vista-light">Выездной</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           {/* Выбор команды и счет */}
-          <div className="space-y-2">
-            <div className="flex items-center space-x-4">
-              <div className="flex-grow">
-                <Label htmlFor="teamId" className="text-vista-light">Наша команда</Label>
+          <div className="flex gap-4">
+            <div className="flex-1 flex flex-col space-y-2">
+              <Label htmlFor="teamId" className="text-vista-light/40 font-normal mb-2">Наша команда</Label>
                 <Select 
                   value={teamId} 
                   onValueChange={setTeamId}
@@ -225,8 +249,8 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded }: AddMatchModalPr
                   </SelectContent>
                 </Select>
               </div>
-              <div className="w-20">
-                <Label htmlFor="teamGoals" className="text-vista-light">Голы</Label>
+            <div className="w-20 flex flex-col space-y-2">
+              <Label htmlFor="teamGoals" className="text-vista-light/40 font-normal mb-2">Голы</Label>
                 <Input
                   id="teamGoals"
                   type="number"
@@ -234,16 +258,15 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded }: AddMatchModalPr
                   value={teamGoals}
                   onChange={(e) => setTeamGoals(parseInt(e.target.value))}
                   className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
+                disabled={matchStatus !== 'FINISHED'}
                 />
-              </div>
             </div>
           </div>
           
           {/* Команда соперника и счет */}
-          <div className="space-y-2">
-            <div className="flex items-center space-x-4">
-              <div className="flex-grow">
-                <Label htmlFor="opponentName" className="text-vista-light">Команда соперника</Label>
+          <div className="flex gap-4">
+            <div className="flex-1 flex flex-col space-y-2">
+              <Label htmlFor="opponentName" className="text-vista-light/40 font-normal mb-2">Команда соперника</Label>
                 <Input
                   id="opponentName"
                   value={opponentName}
@@ -252,8 +275,8 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded }: AddMatchModalPr
                   className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
                 />
               </div>
-              <div className="w-20">
-                <Label htmlFor="opponentGoals" className="text-vista-light">Голы</Label>
+            <div className="w-20 flex flex-col space-y-2">
+              <Label htmlFor="opponentGoals" className="text-vista-light/40 font-normal mb-2">Голы</Label>
                 <Input
                   id="opponentGoals"
                   type="number"
@@ -261,8 +284,8 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded }: AddMatchModalPr
                   value={opponentGoals}
                   onChange={(e) => setOpponentGoals(parseInt(e.target.value))}
                   className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
+                disabled={matchStatus !== 'FINISHED'}
                 />
-              </div>
             </div>
           </div>
           

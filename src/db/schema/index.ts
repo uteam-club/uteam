@@ -23,4 +23,6 @@ export * from './muscleArea';
 export * from './survey';
 export * from './exerciseTagToExercise';
 export * from './surveySchedule';
+export * from './fitnessTest';
+export * from './fitnessTestResult';
 // Здесь будут экспортироваться схемы Drizzle для всех моделей 

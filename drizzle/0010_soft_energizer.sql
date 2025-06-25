@@ -1,0 +1,1 @@
+ALTER TABLE "Match" ADD COLUMN "status" varchar(20) DEFAULT 'SCHEDULED' NOT NULL;

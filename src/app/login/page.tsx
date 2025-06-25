@@ -11,15 +11,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [clubLogo, setClubLogo] = useState('/vista.png'); // По умолчанию FDC VISTA
+  const [clubLogo, setClubLogo] = useState('/light.svg'); // По умолчанию — общий логотип
 
   useEffect(() => {
     // Определение клуба по домену (hostname)
     const hostname = window.location.hostname;
-    if (hostname.includes('van')) {
-      setClubLogo('/van.png');
-    } else {
+    if (hostname.includes('alashkert')) {
+      setClubLogo('/alashkert.png');
+    } else if (hostname.includes('fdcvista')) {
       setClubLogo('/vista.png');
+    } else {
+      setClubLogo('/light.svg');
     }
   }, []);
 

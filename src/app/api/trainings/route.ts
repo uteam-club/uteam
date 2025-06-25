@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { training, team, trainingCategory } from '@/db/schema';
-import { eq, and, gte, lte, desc } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
@@ -53,57 +53,51 @@ export async function GET(request: NextRequest) {
     const teamId = searchParams.get('teamId');
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
-    // Формируем where через массив условий
-    const whereArr = [eq(training.clubId, clubId)];
+    // Формируем where через массив условий (raw SQL)
+    const whereArr = [sql`t."clubId" = ${clubId}::uuid`];
     if (teamId) {
-      whereArr.push(eq(training.teamId, teamId));
+      whereArr.push(sql`t."teamId" = ${teamId}::uuid`);
     }
     if (fromDate) {
-      whereArr.push(gte(training.date, new Date(fromDate)));
+      whereArr.push(sql`t."date" >= ${fromDate}`);
     }
     if (toDate) {
       const endDate = new Date(toDate);
       endDate.setHours(23, 59, 59, 999);
-      whereArr.push(lte(training.date, endDate));
+      whereArr.push(sql`t."date" <= ${endDate.toISOString()}`);
     }
-    // JOIN с team и trainingCategory
-    const rows = await db.select({
-      id: training.id,
-      title: training.title,
-      teamId: training.teamId,
-      date: training.date,
-      categoryId: training.categoryId,
-      status: training.status,
-      type: training.type,
-      createdAt: training.createdAt,
-      updatedAt: training.updatedAt,
-      teamName: team.name,
-      categoryName: trainingCategory.name,
-    })
-      .from(training)
-      .leftJoin(team, eq(training.teamId, team.id))
-      .leftJoin(trainingCategory, eq(training.categoryId, trainingCategory.id))
-      .where(and(...whereArr))
-      .orderBy(desc(training.date));
+    // Выполняем raw SQL запрос
+    const result = await db.execute(sql`
+      SELECT 
+        t."id", t."title", t."teamId", t."date", t."categoryId", t."status", t."type", t."createdAt", t."updatedAt",
+        tm."name" as "teamName",
+        c."name" as "categoryName"
+      FROM "Training" t
+      LEFT JOIN "Team" tm ON t."teamId" = tm."id"
+      LEFT JOIN "TrainingCategory" c ON t."categoryId" = c."id"
+      WHERE ${sql.join(whereArr, sql` AND `)}
+      ORDER BY t."date" DESC
+    `);
+    const rows = (result as any).rows || [];
     // Форматируем ответ
-    const formatted = rows.map(row => {
-      const dateObj = row.date;
-      const dateOnly = dateObj?.toISOString().split('T')[0];
-      const timeOnly = dateObj?.toISOString().split('T')[1].slice(0,5);
+    const formatted = rows.map((row: any) => {
+      const dateObj = row.date ? new Date(row.date) : null;
+      const dateOnly = dateObj ? dateObj.toISOString().split('T')[0] : null;
+      const timeOnly = dateObj ? dateObj.toISOString().split('T')[1].slice(0,5) : null;
       return {
         id: row.id,
         title: row.title,
-        teamId: row.teamId,
+        teamId: row.teamid,
         team: row.teamName,
-        date: row.date?.toISOString(),
+        date: row.date ? new Date(row.date).toISOString() : null,
         dateOnly,
         time: timeOnly,
-        categoryId: row.categoryId,
+        categoryId: row.categoryid,
         category: row.categoryName,
         status: row.status || 'SCHEDULED',
         type: row.type || 'TRAINING',
-        createdAt: row.createdAt,
-        updatedAt: row.updatedAt
+        createdAt: row.createdat,
+        updatedAt: row.updatedat
       };
     });
     return NextResponse.json(formatted);

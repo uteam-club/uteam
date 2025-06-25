@@ -18,6 +18,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from "@/components/ui/checkbox";
+import { AddPlayerModal } from '@/components/teams/AddPlayerModal';
+import { DeletePlayersModal } from '@/components/teams/DeletePlayersModal';
+import { PlayerStatusModal } from '@/components/teams/PlayerStatusModal';
+import { PlayersByStatusModal } from '@/components/teams/PlayersByStatusModal';
+import AddCoachModal from '@/components/teams/AddCoachModal';
+import DeleteCoachesModal from '@/components/teams/DeleteCoachesModal';
 
 interface Team {
   id: string;
@@ -542,16 +548,6 @@ export default function TeamPage() {
       {/* Шапка страницы с кнопкой возврата и названием команды */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleBackToList}
-            className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
-          >
-            <ChevronLeftIcon className="w-4 h-4 mr-2" />
-            Назад к списку
-          </Button>
-          
           <div className="bg-vista-dark/70 border border-vista-secondary/30 py-1 px-3 rounded-md text-vista-light h-9 flex items-center">
             <div>
               <h1 className="text-sm font-medium">
@@ -679,7 +675,7 @@ export default function TeamPage() {
             </div>
             
             <TabsContent value="squad">
-              <Card className="bg-vista-dark/50 border-vista-secondary/30">
+              <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-vista-light">Состав команды</CardTitle>
                 </CardHeader>
@@ -780,7 +776,7 @@ export default function TeamPage() {
             </TabsContent>
             
             <TabsContent value="staff">
-              <Card className="bg-vista-dark/50 border-vista-secondary/30">
+              <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-vista-light">Тренерский штаб</CardTitle>
                 </CardHeader>
@@ -846,491 +842,70 @@ export default function TeamPage() {
       ) : null}
       
       {/* Модальное окно добавления игрока */}
-      <Dialog open={isAddPlayerDialogOpen} onOpenChange={setIsAddPlayerDialogOpen}>
-        <DialogContent className="bg-vista-dark/95 border-vista-secondary/30 text-vista-light max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-vista-light text-xl">Добавление игрока</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmitPlayer}>
-            {formError && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-md text-red-500">
-                {formError}
-              </div>
-            )}
-            
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName" className="text-vista-light">
-                  Имя <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="firstName"
-                  name="firstName"
-                  value={newPlayer.firstName}
-                  onChange={handleInputChange}
-                  className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light"
-                  placeholder="Введите имя игрока"
-                  disabled={isSubmitting}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="lastName" className="text-vista-light">
-                  Фамилия <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="lastName"
-                  name="lastName"
-                  value={newPlayer.lastName}
-                  onChange={handleInputChange}
-                  className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light"
-                  placeholder="Введите фамилию игрока"
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsAddPlayerDialogOpen(false)}
-                disabled={isSubmitting}
-                className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
-              >
-                Отмена
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-vista-dark border-t-transparent rounded-full"></div>
-                    Сохранение...
-                  </>
-                ) : (
-                  'Сохранить'
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <AddPlayerModal
+        open={isAddPlayerDialogOpen}
+        onOpenChange={setIsAddPlayerDialogOpen}
+        firstName={newPlayer.firstName}
+        lastName={newPlayer.lastName}
+        isSubmitting={isSubmitting}
+        formError={formError}
+        onChange={handleInputChange}
+        onSubmit={handleSubmitPlayer}
+      />
 
       {/* Модальное окно удаления игроков */}
-      <Dialog open={isDeletePlayersDialogOpen} onOpenChange={setIsDeletePlayersDialogOpen}>
-        <DialogContent className="bg-vista-dark/95 border-vista-secondary/30 text-vista-light max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-vista-light text-xl">Удаление игроков</DialogTitle>
-            <DialogDescription className="text-vista-light/70">
-              Выберите игроков, которых нужно удалить из команды
-            </DialogDescription>
-          </DialogHeader>
-          
-          {deleteError && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-md text-red-500">
-              {deleteError}
-            </div>
-          )}
-
-          <div className="py-4 max-h-[300px] overflow-y-auto">
-            {players.length > 0 ? (
-              <div className="space-y-2">
-                {players.map(player => (
-                  <div key={player.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-vista-dark/70">
-                    <Checkbox 
-                      id={`player-${player.id}`} 
-                      checked={selectedPlayerIds.includes(player.id)}
-                      onCheckedChange={(checked) => handlePlayerSelectionChange(player.id, checked === true)}
-                      className="border-vista-secondary/50"
-                    />
-                    <Label htmlFor={`player-${player.id}`} className="cursor-pointer flex-1 flex items-center">
-                      <div className="flex items-center w-full">
-                        {player.imageUrl ? (
-                          <div className="w-10 h-10 rounded-full overflow-hidden mr-3 relative bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
-                            <img 
-                              src={player.imageUrl} 
-                              alt={`${player.firstName} ${player.lastName}`} 
-                              className="w-full h-full object-cover" 
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-10 h-10 rounded-full mr-3 flex items-center justify-center bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
-                            <UserIcon className="w-5 h-5 text-slate-300" />
-                          </div>
-                        )}
-                        <div className="flex-1">
-                          <p className="text-vista-light font-medium">{player.lastName} {player.firstName}</p>
-                          {player.position && <p className="text-xs text-vista-light/70">{player.position}</p>}
-                        </div>
-                        {player.number && (
-                          <div className="ml-auto bg-vista-primary/20 rounded-full w-6 h-6 flex items-center justify-center">
-                            <span className="text-xs font-medium text-vista-primary">{player.number}</span>
-                          </div>
-                        )}
-                      </div>
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-vista-light/70">В команде нет игроков</p>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsDeletePlayersDialogOpen(false)}
-              disabled={isDeleting}
-              className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
-            >
-              Отмена
-            </Button>
-            <Button
-              type="button"
-              onClick={handleDeletePlayers}
-              disabled={isDeleting || selectedPlayerIds.length === 0}
-              className="bg-red-500/80 hover:bg-red-500 text-white"
-            >
-              {isDeleting ? (
-                <>
-                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                  Удаление...
-                </>
-              ) : (
-                `Удалить ${selectedPlayerIds.length ? `(${selectedPlayerIds.length})` : ''}`
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeletePlayersModal
+        open={isDeletePlayersDialogOpen}
+        onOpenChange={setIsDeletePlayersDialogOpen}
+        players={players}
+        selectedPlayerIds={selectedPlayerIds}
+        isDeleting={isDeleting}
+        deleteError={deleteError}
+        onPlayerSelect={handlePlayerSelectionChange}
+        onDelete={handleDeletePlayers}
+      />
 
       {/* Модальное окно выбора статуса игрока */}
-      <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
-        <DialogContent className="bg-vista-dark/95 border-vista-secondary/30 text-vista-light max-w-xs">
-          <DialogHeader>
-            <DialogTitle className="text-vista-light text-xl">Изменение статуса</DialogTitle>
-            <DialogDescription className="text-vista-light/70">
-              {selectedPlayer ? `${selectedPlayer.firstName} ${selectedPlayer.lastName}` : 'Игрок'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {statusError && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-md text-red-500">
-              {statusError}
-            </div>
-          )}
-
-          <div className="py-4">
-            <div className="space-y-2">
-              <div 
-                className="flex items-center p-2 rounded-md bg-green-500/20 hover:bg-green-500/30 cursor-pointer"
-                onClick={() => handleUpdatePlayerStatus('ready')}
-              >
-                <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-                <span className="text-green-300">Готов</span>
-              </div>
-              
-              <div 
-                className="flex items-center p-2 rounded-md bg-blue-500/20 hover:bg-blue-500/30 cursor-pointer"
-                onClick={() => handleUpdatePlayerStatus('rehabilitation')}
-              >
-                <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
-                <span className="text-blue-300">Реабилитация</span>
-              </div>
-              
-              <div 
-                className="flex items-center p-2 rounded-md bg-yellow-500/20 hover:bg-yellow-500/30 cursor-pointer"
-                onClick={() => handleUpdatePlayerStatus('sick')}
-              >
-                <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
-                <span className="text-yellow-300">Болеет</span>
-              </div>
-              
-              <div 
-                className="flex items-center p-2 rounded-md bg-purple-500/20 hover:bg-purple-500/30 cursor-pointer"
-                onClick={() => handleUpdatePlayerStatus('study')}
-              >
-                <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
-                <span className="text-purple-300">Учеба</span>
-              </div>
-              
-              <div 
-                className="flex items-center p-2 rounded-md bg-gray-500/20 hover:bg-gray-500/30 cursor-pointer"
-                onClick={() => handleUpdatePlayerStatus('other')}
-              >
-                <div className="w-3 h-3 bg-gray-500 rounded-full mr-3"></div>
-                <span className="text-gray-300">Другое</span>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsStatusDialogOpen(false)}
-              disabled={isUpdatingStatus}
-              className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
-            >
-              Отмена
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PlayerStatusModal
+        open={isStatusDialogOpen}
+        onOpenChange={setIsStatusDialogOpen}
+        playerName={selectedPlayer ? `${selectedPlayer.firstName} ${selectedPlayer.lastName}` : 'Игрок'}
+        statusError={statusError}
+        onStatusSelect={handleUpdatePlayerStatus}
+      />
 
       {/* Модальное окно со списком игроков по статусу */}
-      <Dialog open={isStatusPlayersDialogOpen} onOpenChange={setIsStatusPlayersDialogOpen}>
-        <DialogContent className="bg-vista-dark/95 border-vista-secondary/30 text-vista-light max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-vista-light text-xl">
-              Игроки со статусом "{statusTitle}"
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="py-4 max-h-[350px] overflow-y-auto">
-            {players.filter(p => 
-              selectedStatus === 'ready' 
-                ? p && (p.status === 'ready' || !p.status) 
-                : p && p.status === selectedStatus
-            ).length > 0 ? (
-              <div className="space-y-2">
-                {(players || []).filter(p => 
-                  selectedStatus === 'ready' 
-                    ? p && (p.status === 'ready' || !p.status) 
-                    : p && p.status === selectedStatus
-                ).map(player => (
-                  <div 
-                    key={player.id} 
-                    className="flex items-center p-2 rounded-md hover:bg-vista-dark/70 cursor-pointer"
-                    onClick={() => router.push(`/dashboard/teams/${teamId}/players/${player.id}`)}
-                  >
-                    <div className="flex items-center w-full">
-                      {player.imageUrl ? (
-                        <div className="w-10 h-10 rounded-full overflow-hidden mr-3 relative bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
-                          <img 
-                            src={player.imageUrl} 
-                            alt={`${player.firstName} ${player.lastName}`} 
-                            className="w-full h-full object-cover" 
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-10 h-10 rounded-full mr-3 flex items-center justify-center bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
-                          <UserIcon className="w-5 h-5 text-slate-300" />
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <p className="text-vista-light font-medium">{player.lastName} {player.firstName}</p>
-                        {player.position && <p className="text-xs text-vista-light/70">{player.position}</p>}
-                      </div>
-                      {player.number && (
-                        <div className="ml-auto bg-vista-primary/20 rounded-full w-7 h-7 flex items-center justify-center">
-                          <span className="text-xs font-medium text-vista-primary">{player.number}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-vista-light/70">Нет игроков с таким статусом</p>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsStatusPlayersDialogOpen(false)}
-              className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
-            >
-              Закрыть
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PlayersByStatusModal
+        open={isStatusPlayersDialogOpen}
+        onOpenChange={setIsStatusPlayersDialogOpen}
+        players={players}
+        statusTitle={statusTitle}
+        selectedStatus={selectedStatus ?? null}
+      />
 
       {/* Модальное окно добавления тренера */}
-      <Dialog open={isAddCoachDialogOpen} onOpenChange={setIsAddCoachDialogOpen}>
-        <DialogContent className="bg-vista-dark/95 border-vista-secondary/30 text-vista-light max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-vista-light text-xl">Добавление тренера</DialogTitle>
-            <DialogDescription className="text-vista-light/70">
-              Выберите тренеров, которых хотите добавить в команду
-            </DialogDescription>
-          </DialogHeader>
-          
-          {addCoachError && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-md text-red-500">
-              {addCoachError}
-            </div>
-          )}
-
-          <div className="py-4 max-h-[300px] overflow-y-auto">
-            {availableCoaches.length > 0 ? (
-              <div className="space-y-2">
-                {availableCoaches.map(coach => (
-                  <div key={coach.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-vista-dark/70">
-                    <Checkbox 
-                      id={`coach-${coach.id}`} 
-                      checked={selectedCoachIds.includes(coach.id)}
-                      onCheckedChange={(checked) => handleCoachSelectionChange(coach.id, checked === true)}
-                      className="border-vista-secondary/50"
-                    />
-                    <Label htmlFor={`coach-${coach.id}`} className="cursor-pointer flex-1 flex items-center">
-                      <div className="flex items-center w-full">
-                        <div className="w-10 h-10 rounded-full overflow-hidden mr-3 relative bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
-                          {coach.imageUrl ? (
-                            <img 
-                              src={coach.imageUrl} 
-                              alt={coach.name || 'Тренер'} 
-                              className="w-full h-full object-cover" 
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full mr-3 flex items-center justify-center bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
-                              <UserIcon className="w-5 h-5 text-slate-300" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-vista-light font-medium">{coach.name || 'Не указано'}</p>
-                          <p className="text-xs text-vista-light/70">{coach.email}</p>
-                        </div>
-                      </div>
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-vista-light/70">Нет доступных тренеров для добавления</p>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsAddCoachDialogOpen(false)}
-              disabled={isAddingCoaches}
-              className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
-            >
-              Отмена
-            </Button>
-            <Button
-              type="button"
-              onClick={handleAddCoaches}
-              disabled={isAddingCoaches || selectedCoachIds.length === 0}
-              className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
-            >
-              {isAddingCoaches ? (
-                <>
-                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-vista-dark border-t-transparent rounded-full"></div>
-                  Добавление...
-                </>
-              ) : (
-                `Добавить ${selectedCoachIds.length ? `(${selectedCoachIds.length})` : ''}`
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddCoachModal
+        open={isAddCoachDialogOpen}
+        onOpenChange={setIsAddCoachDialogOpen}
+        availableCoaches={availableCoaches}
+        selectedCoachIds={selectedCoachIds}
+        onCoachSelect={handleCoachSelectionChange}
+        onAdd={handleAddCoaches}
+        isAdding={isAddingCoaches}
+        addCoachError={addCoachError}
+      />
 
       {/* Модальное окно удаления тренеров */}
-      <Dialog open={isDeleteCoachesDialogOpen} onOpenChange={setIsDeleteCoachesDialogOpen}>
-        <DialogContent className="bg-vista-dark/95 border-vista-secondary/30 text-vista-light max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-vista-light text-xl">Удаление тренеров</DialogTitle>
-            <DialogDescription className="text-vista-light/70">
-              Выберите тренеров, которых нужно удалить из команды
-            </DialogDescription>
-          </DialogHeader>
-          
-          {deleteCoachError && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-md text-red-500">
-              {deleteCoachError}
-            </div>
-          )}
-
-          <div className="py-4 max-h-[300px] overflow-y-auto">
-            {coaches.length > 0 ? (
-              <div className="space-y-2">
-                {coaches.map(coach => (
-                  <div key={coach.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-vista-dark/70">
-                    <Checkbox 
-                      id={`coach-delete-${coach.userId}`} 
-                      checked={selectedCoachIdsToDelete.includes(coach.userId)}
-                      onCheckedChange={(checked) => handleCoachSelectionToDeleteChange(coach.userId, checked === true)}
-                      className="border-vista-secondary/50"
-                    />
-                    <Label htmlFor={`coach-delete-${coach.userId}`} className="cursor-pointer flex-1 flex items-center">
-                      <div className="flex items-center w-full">
-                        <div className="w-10 h-10 rounded-full overflow-hidden mr-3 relative bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
-                          {coach.user.imageUrl ? (
-                            <img 
-                              src={coach.user.imageUrl} 
-                              alt={coach.user.name || 'Тренер'} 
-                              className="w-full h-full object-cover" 
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full mr-3 flex items-center justify-center bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
-                              <UserIcon className="w-5 h-5 text-slate-300" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-vista-light font-medium">{coach.user.name || 'Не указано'}</p>
-                          <p className="text-xs text-vista-light/70">{coach.user.email}</p>
-                        </div>
-                      </div>
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-vista-light/70">Нет тренеров для удаления</p>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsDeleteCoachesDialogOpen(false)}
-              disabled={isDeletingCoaches}
-              className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
-            >
-              Отмена
-            </Button>
-            <Button
-              type="button"
-              onClick={handleDeleteCoaches}
-              disabled={isDeletingCoaches || selectedCoachIdsToDelete.length === 0}
-              className="bg-red-500/80 hover:bg-red-500 text-white"
-            >
-              {isDeletingCoaches ? (
-                <>
-                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                  Удаление...
-                </>
-              ) : (
-                `Удалить ${selectedCoachIdsToDelete.length ? `(${selectedCoachIdsToDelete.length})` : ''}`
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteCoachesModal
+        open={isDeleteCoachesDialogOpen}
+        onOpenChange={setIsDeleteCoachesDialogOpen}
+        coaches={coaches}
+        selectedCoachIdsToDelete={selectedCoachIdsToDelete}
+        onCoachSelect={handleCoachSelectionToDeleteChange}
+        onDelete={handleDeleteCoaches}
+        isDeleting={isDeletingCoaches}
+        deleteCoachError={deleteCoachError}
+      />
     </div>
   );
 } 

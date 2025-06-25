@@ -1,15 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import { Check, ChevronDown, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 
-// Список стран с кодами
 const countries = [
   { name: 'Россия', code: 'RU' },
   { name: 'Албания', code: 'AL' },
@@ -79,7 +79,6 @@ const countries = [
   { name: 'Индия', code: 'IN' },
   { name: 'Пакистан', code: 'PK' },
   { name: 'Бангладеш', code: 'BD' },
-  // Добавленные страны
   { name: 'Кот-д\'Ивуар', code: 'CI' },
   { name: 'ЮАР', code: 'ZA' },
   { name: 'Гвинея', code: 'GN' },
@@ -126,8 +125,19 @@ const countries = [
   { name: 'Сингапур', code: 'SG' },
 ];
 
-// Сортируем страны по имени
 countries.sort((a, b) => a.name.localeCompare(b.name));
+
+function countryCodeToEmoji(code: string) {
+  // Для кода типа GB-ENG, GB-SCT и т.д. возвращаем 🇬🇧
+  if (code.startsWith('GB-')) return '🇬🇧';
+  // Для других кодов
+  return code
+    .replace(/-/g, '')
+    .toUpperCase()
+    .replace(/./g, char =>
+      String.fromCodePoint(127397 + char.charCodeAt(0))
+    );
+}
 
 interface CountrySelectProps {
   value: string;
@@ -141,108 +151,33 @@ export function CountrySelect({
   value,
   onChange,
   disabled,
-  placeholder = "Выберите страну",
+  placeholder = 'Выберите страну',
   className,
 }: CountrySelectProps) {
-  const [open, setOpen] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState('');
-
-  // Получаем страну по коду
-  const getCountryByCode = (code: string) => {
-    return countries.find((country) => country.code === code);
-  };
-
-  // Выбранная страна
-  const selectedCountry = getCountryByCode(value);
-  
-  // Фильтрация стран по поисковому запросу
-  const filteredCountries = React.useMemo(() => {
-    if (!searchQuery) return countries;
-    
-    return countries.filter(
-      country => country.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [searchQuery]);
-  
-  // Обработчик выбора страны
-  const handleSelectCountry = (countryCode: string) => {
-    onChange(countryCode);
-    setOpen(false);
-    setSearchQuery('');
-  };
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          role="combobox"
-          aria-expanded={open}
-          className={cn(
-            "flex h-10 w-full items-center justify-between rounded-md border border-vista-secondary/30 bg-vista-dark/70 px-3 py-2 text-sm text-vista-light ring-offset-vista-dark placeholder:text-vista-light/70 focus:outline-none focus:ring-2 focus:ring-vista-primary/70 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-            className
-          )}
-          disabled={disabled}
-        >
-          {selectedCountry ? (
-            <div className="flex items-center">
-              <img
-                src={`https://flagcdn.com/w20/${selectedCountry.code.toLowerCase()}.png`}
-                alt={selectedCountry.name}
-                className="mr-2 h-4 w-6 object-contain"
-              />
-              {selectedCountry.name}
-            </div>
-          ) : (
-            placeholder
-          )}
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0 bg-vista-dark border border-vista-secondary/50 shadow-xl rounded-md overflow-hidden">
-        <div className="w-full p-2 border-b border-vista-secondary/30 bg-vista-dark flex items-center">
-          <Search className="w-4 h-4 mr-2 text-vista-light/50" />
-          <input 
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Поиск страны..."
-            className="w-full bg-transparent border-none text-vista-light text-sm focus:outline-none placeholder:text-vista-light/50"
-          />
-        </div>
-        
-        <div className="max-h-[320px] overflow-y-auto py-1">
-          {filteredCountries.length > 0 ? (
-            <div className="p-1">
-              {filteredCountries.map((country) => (
-                <button
-                  key={country.code}
-                  type="button"
-                  onClick={() => handleSelectCountry(country.code)}
-                  className={cn(
-                    "w-full flex items-center text-vista-light py-2 px-3 rounded-md hover:bg-vista-secondary/30 text-left text-sm mb-1", 
-                    value === country.code && "bg-vista-primary/20 text-vista-primary"
-                  )}
-                >
-                  <img
-                    src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
-                    alt={country.name}
-                    className="mr-3 h-4 w-6 object-contain"
-                  />
-                  <span className="flex-1 truncate">{country.name}</span>
-                  {value === country.code && (
-                    <Check className="ml-auto h-4 w-4 text-vista-primary" />
-                  )}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="text-vista-light py-6 text-center text-sm">
-              Страна не найдена
-            </div>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
+    <Select value={value} onValueChange={onChange} disabled={disabled}>
+      <SelectTrigger
+        className={cn(
+          'w-full bg-vista-dark/70 border-vista-secondary/30 text-vista-light placeholder:text-vista-light/70',
+          className
+        )}
+      >
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent className="bg-vista-dark border-vista-secondary/30 max-h-72 overflow-y-auto" hideScrollButtons={true}>
+        {countries.map(country => (
+          <SelectItem
+            key={country.code}
+            value={country.code}
+            className="flex items-center gap-2 focus:bg-vista-secondary/40 hover:bg-vista-secondary/30 focus:text-vista-primary hover:text-vista-primary"
+          >
+            <span className="mr-2 text-lg">
+              {countryCodeToEmoji(country.code)}
+            </span>
+            {country.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

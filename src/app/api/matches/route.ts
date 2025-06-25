@@ -20,8 +20,9 @@ const matchSchema = z.object({
   isHome: z.boolean(),
   teamId: z.string().uuid(),
   opponentName: z.string().min(1, 'Введите название команды соперника'),
-  teamGoals: z.number().int().min(0).default(0),
-  opponentGoals: z.number().int().min(0).default(0),
+  status: z.enum(['SCHEDULED', 'FINISHED']).default('SCHEDULED'),
+  teamGoals: z.number().int().min(0).nullable().default(null),
+  opponentGoals: z.number().int().min(0).nullable().default(null),
 });
 
 // GET метод для получения матчей
@@ -72,7 +73,8 @@ export async function GET(request: NextRequest) {
       notes: match.notes,
       playerPositions: match.playerPositions,
       positionAssignments: match.positionAssignments,
-      teamName: team.name
+      teamName: team.name,
+      status: match.status
     })
       .from(match)
       .leftJoin(team, eq(match.teamId, team.id))
@@ -112,6 +114,7 @@ export async function POST(request: NextRequest) {
       isHome, 
       teamId, 
       opponentName, 
+      status,
       teamGoals, 
       opponentGoals 
     } = validationResult.data;
@@ -133,8 +136,9 @@ export async function POST(request: NextRequest) {
       isHome,
       teamId,
       opponentName,
-      teamGoals,
-      opponentGoals,
+      status,
+      teamGoals: status === 'FINISHED' ? teamGoals : null,
+      opponentGoals: status === 'FINISHED' ? opponentGoals : null,
       clubId: session.user.clubId,
       createdAt: now,
       updatedAt: now,

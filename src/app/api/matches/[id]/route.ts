@@ -34,7 +34,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       notes: match.notes,
       playerPositions: match.playerPositions,
       positionAssignments: match.positionAssignments,
-      teamName: team.name
+      team_id: team.id,
+      team_name: team.name,
+      status: match.status
     })
       .from(match)
       .leftJoin(team, eq(match.teamId, team.id))
@@ -61,7 +63,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       .leftJoin(player, eq(playerMatchStat.playerId, player.id))
       .where(eq(playerMatchStat.matchId, matchId))
       .orderBy(desc(playerMatchStat.isStarter));
-    return NextResponse.json({ ...row, playerStats: stats });
+    // Возвращаем team как объект
+    return NextResponse.json({
+      ...row,
+      team: row.team_id && row.team_name ? { id: row.team_id, name: row.team_name } : null,
+      playerStats: stats
+    });
   } catch (error) {
     console.error('Ошибка при получении деталей матча:', error);
     return NextResponse.json({ error: 'Ошибка при получении деталей матча' }, { status: 500 });
@@ -96,6 +103,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if ('notes' in body) updateData.notes = body.notes;
     if ('playerPositions' in body) updateData.playerPositions = JSON.stringify(body.playerPositions);
     if ('positionAssignments' in body) updateData.positionAssignments = JSON.stringify(body.positionAssignments);
+    if ('status' in body) updateData.status = body.status;
     const [updated] = await db.update(match)
       .set(updateData)
       .where(eq(match.id, matchId))

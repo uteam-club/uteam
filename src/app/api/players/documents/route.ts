@@ -29,6 +29,9 @@ export async function GET(request: NextRequest) {
       birthCertificateNumber: player.birthCertificateNumber,
       imageUrl: player.imageUrl,
       teamId: player.teamId,
+      passportData: player.passportData,
+      insuranceNumber: player.insuranceNumber,
+      visaExpiryDate: player.visaExpiryDate,
     })
       .from(player)
       .leftJoin(team, eq(player.teamId, team.id))
@@ -57,6 +60,7 @@ export async function GET(request: NextRequest) {
           PASSPORT: docs.find(doc => doc.type === 'PASSPORT') || null,
           BIRTH_CERTIFICATE: docs.find(doc => doc.type === 'BIRTH_CERTIFICATE') || null,
           MEDICAL_INSURANCE: docs.find(doc => doc.type === 'MEDICAL_INSURANCE') || null,
+          VISA: docs.find(doc => doc.type === 'VISA') || null,
           OTHER: docs.find(doc => doc.type === 'OTHER') || null,
         },
         team: {

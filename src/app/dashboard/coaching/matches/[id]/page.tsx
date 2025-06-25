@@ -20,7 +20,8 @@ import {
   CheckCircle2,
   CircleAlert,
   CircleDashed,
-  Medal
+  Medal,
+  ChevronLeftIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -48,6 +49,14 @@ import {
 import FootballField from '@/components/matches/FootballField';
 import { Player as FieldPlayer, type PlayerPosition as FieldPlayerPosition } from '@/components/matches/FootballField';
 import { formationPositions } from '@/components/matches/FootballField';
+import SquadSelectionModal from '@/components/matches/SquadSelectionModal';
+import DeleteMatchModal from '@/components/matches/DeleteMatchModal';
+import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
+import { TeamSelect } from '@/components/ui/team-select';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 interface Player {
   id: string;
@@ -93,6 +102,7 @@ interface MatchDetails {
   playerPositions?: PlayerPosition[];
   playerStats: PlayerStat[];
   positionAssignments?: Record<string, number>;
+  status?: string;
 }
 
 const competitionTypeLabels = {
@@ -189,6 +199,28 @@ export default function MatchDetailsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Add new state for status
+  const [selectedStatus, setSelectedStatus] = useState<string>('SCHEDULED');
+
+  const statusColorClass = selectedStatus === 'FINISHED'
+    ? 'bg-green-600 border-green-500 text-white'
+    : 'bg-blue-600 border-blue-500 text-white';
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    competitionType: 'FRIENDLY',
+    date: '',
+    time: '',
+    isHome: true,
+    teamId: '',
+    opponentName: '',
+    teamGoals: 0,
+    opponentGoals: 0,
+    status: 'SCHEDULED',
+  });
+  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
+  const [savingEdit, setSavingEdit] = useState(false);
+
   useEffect(() => {
     if (matchId) {
       fetchMatchDetails();
@@ -244,6 +276,7 @@ export default function MatchDetailsPage() {
           setPlayerPositions(updatedPositions);
         }
       }
+      setSelectedStatus(match.status || 'SCHEDULED');
       setHasChanges(false);
     }
   }, [match]);
@@ -350,7 +383,8 @@ export default function MatchDetailsPage() {
   };
 
   // Обработчик для привязки игрока к позиции
-  const handlePlayerAssigned = (positionIndex: number, playerId: string | null) => {
+  const handlePlayerAssigned = (positionIndex: number, playerId?: string | null) => {
+    if (typeof positionIndex !== 'number' || isNaN(positionIndex) || positionIndex === undefined) return;
     console.log(`Вызван обработчик привязки: позиция=${positionIndex}, игрок=${playerId || 'null'}`);
     setHasChanges(true);
     
@@ -362,13 +396,12 @@ export default function MatchDetailsPage() {
       // Находим ключ (ID игрока) для удаления
       const playerToRemove = Object.entries(updatedAssignments)
         .find(([id, pos]) => pos === positionIndex);
-        
       if (playerToRemove) {
         console.log(`Удаление игрока ${playerToRemove[0]} с позиции ${positionIndex}`);
         delete updatedAssignments[playerToRemove[0]];
       }
-    } else {
-      // Обновляем привязку
+    } else if (playerId !== undefined) {
+      // Обновляем привязку только если playerId определён
       console.log(`Привязка игрока ${playerId} к позиции ${positionIndex}`);
       updatedAssignments[playerId] = positionIndex;
     }
@@ -437,20 +470,12 @@ export default function MatchDetailsPage() {
           teamGoals: match.teamGoals,
           opponentGoals: match.opponentGoals,
           opponentName: match.opponentName,
-          notes: match.notes
+          status: match.status
         }),
       });
 
       if (response.ok) {
-        // Update match object with new data while preserving the team and playerStats reference
-        const updatedData = await response.json();
-        console.log('Получены обновленные данные матча:', Object.keys(updatedData));
-        setMatch({
-          ...match,
-          ...updatedData,
-          team: match.team,
-          playerStats: match.playerStats
-        });
+        await fetchMatchDetails();
         setHasChanges(false);
         toast({
           title: 'Сохранено',
@@ -760,6 +785,83 @@ export default function MatchDetailsPage() {
     }
   };
 
+  // Function to handle status change
+  const handleStatusChange = async (value: string) => {
+    setSelectedStatus(value);
+    if (!match) return;
+    try {
+      const response = await fetch(`/api/matches/${matchId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: value })
+      });
+      if (response.ok) {
+        const updated = await response.json();
+        setMatch((prev) => prev ? { ...prev, status: updated.status } : prev);
+        toast({ title: 'Статус обновлен', description: value === 'SCHEDULED' ? 'Матч запланирован' : 'Матч завершен' });
+      } else {
+        toast({ title: 'Ошибка', description: 'Не удалось обновить статус', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Ошибка при обновлении статуса', variant: 'destructive' });
+    }
+  };
+
+  useEffect(() => {
+    if (match) {
+      setEditForm({
+        competitionType: match.competitionType,
+        date: match.date ? match.date.slice(0, 10) : '',
+        time: match.time || '',
+        isHome: match.isHome,
+        teamId: match.teamId,
+        opponentName: match.opponentName,
+        teamGoals: match.teamGoals ?? 0,
+        opponentGoals: match.opponentGoals ?? 0,
+        status: match.status || 'SCHEDULED',
+      });
+    }
+  }, [match]);
+
+  const fetchTeams = async () => {
+    try {
+      const res = await fetch('/api/teams');
+      if (res.ok) {
+        const data = await res.json();
+        setTeams(data);
+      }
+    } catch {}
+  };
+
+  useEffect(() => { if (editModalOpen) fetchTeams(); }, [editModalOpen]);
+
+  const handleEditFormChange = (field: string, value: any) => {
+    setEditForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditSave = async () => {
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/matches/${matchId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      if (res.ok) {
+        await fetchMatchDetails();
+        setEditModalOpen(false);
+        toast({ title: 'Данные матча обновлены' });
+      } else {
+        const err = await res.json();
+        toast({ title: 'Ошибка', description: err.error || 'Не удалось обновить данные', variant: 'destructive' });
+      }
+    } catch (e) {
+      toast({ title: 'Ошибка', description: 'Ошибка при обновлении данных', variant: 'destructive' });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -778,6 +880,36 @@ export default function MatchDetailsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Шапка страницы с кнопкой возврата */}
+      <div className="flex items-center space-x-4 mb-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.push('/dashboard/coaching/matches')}
+          className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
+        >
+          <ChevronLeftIcon className="w-4 h-4 mr-2" />
+          Назад к матчам
+        </Button>
+        <Button
+          size="sm"
+          className="bg-vista-primary/90 hover:bg-vista-primary text-vista-dark h-8"
+          onClick={() => setEditModalOpen(true)}
+        >
+          Редактировать данные
+        </Button>
+        {hasChanges && (
+          <Button 
+            size="sm" 
+            className="bg-vista-primary/90 hover:bg-vista-primary h-8"
+            onClick={saveChanges}
+            disabled={isSaving}
+          >
+            <Save className="w-4 h-4 mr-1" />
+            {isSaving ? 'Сохранение...' : 'Сохранить'}
+          </Button>
+        )}
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Левая колонка */}
         <div className="space-y-6">
@@ -842,9 +974,15 @@ export default function MatchDetailsPage() {
                 </div>
                 
                 <div className="flex items-center px-8 py-4 rounded-lg bg-vista-dark-lighter mx-4">
-                  <span className="text-3xl font-bold text-vista-light">{match.isHome ? match.teamGoals : match.opponentGoals}</span>
-                  <span className="text-vista-light/30 mx-2">:</span>
-                  <span className="text-3xl font-bold text-vista-light">{match.isHome ? match.opponentGoals : match.teamGoals}</span>
+                  {match.status === 'FINISHED' ? (
+                    <>
+                      <span className="text-3xl font-bold text-vista-light">{match.isHome ? match.teamGoals : match.opponentGoals}</span>
+                      <span className="text-vista-light/30 mx-2">:</span>
+                      <span className="text-3xl font-bold text-vista-light">{match.isHome ? match.opponentGoals : match.teamGoals}</span>
+                    </>
+                  ) : (
+                    <span className="text-3xl font-bold text-vista-light">-<span className="text-vista-light/30 mx-2">:</span>-</span>
+                  )}
                 </div>
                 
                 <div className="text-center flex-1">
@@ -923,28 +1061,6 @@ export default function MatchDetailsPage() {
 
                 {/* Детали (1/3 ширины) */}
                 <div className="space-y-4">
-                  {/* Заголовок переносим сюда */}
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-semibold text-vista-light flex items-center">
-                      {hasChanges ? (
-                        <Button 
-                          size="sm" 
-                          className="bg-vista-primary/90 hover:bg-vista-primary h-8"
-                          onClick={saveChanges}
-                          disabled={isSaving}
-                        >
-                          <Save className="w-4 h-4 mr-1" />
-                          {isSaving ? 'Сохранение...' : 'Сохранить'}
-                        </Button>
-                      ) : (
-                        <>
-                          <Info className="w-5 h-5 mr-2" />
-                          Детали матча
-                        </>
-                      )}
-                    </h3>
-                  </div>
-                  
                   {/* Формат игры - выпадающий список */}
                   <div>
                     <div className="text-vista-light/60 text-sm mb-1">Формат игры</div>
@@ -1054,7 +1170,7 @@ export default function MatchDetailsPage() {
                         {isEditingStats ? 'Сохранить' : 'Редактировать'}
                       </Button>
                       <Button 
-                        className="w-full h-[33px] bg-red-600 hover:bg-red-700 text-white flex items-center justify-center mt-2"
+                        className="w-full h-[33px] bg-red-400/80 hover:bg-red-500/60 text-white flex items-center justify-center mt-2 transition-colors"
                         onClick={() => setIsDeleteDialogOpen(true)}
                       >
                         Удалить матч
@@ -1212,181 +1328,156 @@ export default function MatchDetailsPage() {
       </Card>
 
       {/* Add Squad Selection Modal */}
-      <Dialog open={squadModalOpen} onOpenChange={setSquadModalOpen}>
-        <DialogContent className="bg-vista-dark border-vista-secondary/50 text-vista-light max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-vista-light text-xl">Состав на матч</DialogTitle>
-            <DialogDescription className="text-vista-light/70">
-              Выберите статус для каждого игрока: основной состав, замена или резерв
-            </DialogDescription>
-          </DialogHeader>
-          
-          {/* Summary panel */}
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <Card className="bg-vista-dark-lighter border-vista-secondary/30">
-              <CardContent className="p-4 flex flex-col items-center">
-                <div className="text-sm text-vista-light/60 mb-1">Основной состав</div>
-                <div className="flex items-center">
-                  <CheckCircle2 className="w-4 h-4 text-green-500 mr-2" />
-                  <span className="text-xl font-bold text-vista-light">
-                    {Object.values(squadPlayers).filter(status => status === PlayerSquadStatus.STARTER).length}
-                  </span>
-                  <span className="text-vista-light/60 ml-1">/11</span>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-vista-dark-lighter border-vista-secondary/30">
-              <CardContent className="p-4 flex flex-col items-center">
-                <div className="text-sm text-vista-light/60 mb-1">Замена</div>
-                <div className="flex items-center">
-                  <CircleAlert className="w-4 h-4 text-yellow-500 mr-2" />
-                  <span className="text-xl font-bold text-vista-light">
-                    {Object.values(squadPlayers).filter(status => status === PlayerSquadStatus.SUBSTITUTE).length}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-vista-dark-lighter border-vista-secondary/30">
-              <CardContent className="p-4 flex flex-col items-center">
-                <div className="text-sm text-vista-light/60 mb-1">Резерв</div>
-                <div className="flex items-center">
-                  <CircleDashed className="w-4 h-4 text-vista-light/50 mr-2" />
-                  <span className="text-xl font-bold text-vista-light">
-                    {Object.values(squadPlayers).filter(status => status === PlayerSquadStatus.RESERVE).length}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          {/* Players list */}
-          <div className="space-y-4">
-            {isLoadingPlayers ? (
-              <div className="text-center py-8 text-vista-light/60">
-                Загрузка списка игроков...
-              </div>
-            ) : teamPlayers.length === 0 ? (
-              <div className="text-center py-8 text-vista-light/60">
-                В команде нет игроков
-              </div>
-            ) : (
-              teamPlayers.map((player) => (
-                <Card key={player.id} className="bg-vista-dark-lighter border-vista-secondary/30">
-                  <CardContent className="p-4">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 mr-3">
-                        {player.imageUrl ? (
-                          <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
-                            <img
-                              src={player.imageUrl}
-                              alt={`${player.firstName} ${player.lastName}`}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)] flex items-center justify-center">
-                            <User className="w-5 h-5 text-slate-300" />
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex-1">
-                        <div className="text-vista-light flex items-center">
-                          {player.number && (
-                            <span className="text-xs px-1.5 py-0.5 bg-vista-primary/20 text-vista-primary rounded mr-2">
-                              #{player.number}
-                            </span>
-                          )}
-                          {player.firstName} {player.lastName}
-                        </div>
-                        {player.position && (
-                          <div className="text-xs text-vista-light/60">
-                            {player.position}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className={`border-green-500 ${
-                            squadPlayers[player.id] === PlayerSquadStatus.STARTER 
-                              ? 'bg-green-500/30 text-green-300 font-medium border-2' 
-                              : 'bg-transparent text-green-500/20 hover:text-green-500/60 hover:bg-green-500/5 border-green-500/20'
-                          }`}
-                          onClick={() => handlePlayerStatusChange(player.id, PlayerSquadStatus.STARTER)}
-                        >
-                          Основа
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className={`border-yellow-500 ${
-                            squadPlayers[player.id] === PlayerSquadStatus.SUBSTITUTE 
-                              ? 'bg-yellow-500/30 text-yellow-300 font-medium border-2' 
-                              : 'bg-transparent text-yellow-500/20 hover:text-yellow-500/60 hover:bg-yellow-500/5 border-yellow-500/20'
-                          }`}
-                          onClick={() => handlePlayerStatusChange(player.id, PlayerSquadStatus.SUBSTITUTE)}
-                        >
-                          Замена
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className={`border-vista-light/30 ${
-                            squadPlayers[player.id] === PlayerSquadStatus.RESERVE 
-                              ? 'bg-vista-light/20 text-vista-light font-medium border-2' 
-                              : 'bg-transparent text-vista-light/20 hover:text-vista-light/40 hover:bg-vista-light/5 border-vista-light/10'
-                          }`}
-                          onClick={() => handlePlayerStatusChange(player.id, PlayerSquadStatus.RESERVE)}
-                        >
-                          Резерв
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              className="border-vista-secondary/50 text-vista-light"
-              onClick={() => setSquadModalOpen(false)}
-            >
-              Отмена
-            </Button>
-            <Button 
-              className="bg-vista-primary/90 hover:bg-vista-primary text-vista-light"
-              disabled={savingSquad}
-              onClick={saveSquadSelection}
-            >
-              {savingSquad ? 'Сохранение...' : 'Сохранить состав'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SquadSelectionModal
+        open={squadModalOpen}
+        onOpenChange={setSquadModalOpen}
+        teamPlayers={teamPlayers}
+        squadPlayers={squadPlayers}
+        isLoadingPlayers={isLoadingPlayers}
+        handlePlayerStatusChange={handlePlayerStatusChange}
+        savingSquad={savingSquad}
+        onSave={saveSquadSelection}
+        onCancel={() => setSquadModalOpen(false)}
+      />
 
       {/* Кнопка удаления матча и диалог подтверждения */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="bg-vista-dark border-vista-secondary/50 text-vista-light">
+      <DeleteMatchModal
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        isDeleting={isDeleting}
+        onDelete={handleDeleteMatch}
+        onCancel={() => setIsDeleteDialogOpen(false)}
+      />
+
+      {/* Модалка редактирования данных матча */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-hidden backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle>Удалить матч?</DialogTitle>
-            <DialogDescription>Вы уверены, что хотите удалить этот матч? Все связанные данные (статистика, состав, формации и т.д.) будут удалены безвозвратно.</DialogDescription>
+            <DialogTitle className="text-vista-light text-xl">Редактировать данные матча</DialogTitle>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeleting}>Отмена</Button>
-            <Button className="bg-red-600 hover:bg-red-700" onClick={handleDeleteMatch} disabled={isDeleting}>
-              {isDeleting ? 'Удаление...' : 'Удалить матч'}
-            </Button>
-          </DialogFooter>
+          <form onSubmit={e => { e.preventDefault(); handleEditSave(); }} className="space-y-4">
+            {/* Тип соревнований */}
+            <div className="space-y-2">
+              <Label htmlFor="competitionType" className="text-vista-light/40 font-normal">Тип соревнований</Label>
+              <Select value={editForm.competitionType} onValueChange={v => handleEditFormChange('competitionType', v)}>
+                <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30">
+                  <SelectValue placeholder="Выберите тип соревнований" />
+                </SelectTrigger>
+                <SelectContent className="bg-vista-dark border-vista-secondary/30">
+                  <SelectItem value="FRIENDLY" className="text-vista-light">Товарищеский</SelectItem>
+                  <SelectItem value="LEAGUE" className="text-vista-light">Лига</SelectItem>
+                  <SelectItem value="CUP" className="text-vista-light">Кубок</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Дата и время матча */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="matchDate" className="text-vista-light/40 font-normal">Дата матча</Label>
+                <Input
+                  id="matchDate"
+                  type="date"
+                  value={editForm.date}
+                  onChange={e => handleEditFormChange('date', e.target.value)}
+                  className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="matchTime" className="text-vista-light/40 font-normal">Время матча</Label>
+                <Input
+                  id="matchTime"
+                  type="time"
+                  value={editForm.time}
+                  onChange={e => handleEditFormChange('time', e.target.value)}
+                  className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
+                />
+              </div>
+            </div>
+            {/* Статус матча */}
+            <div className="space-y-2">
+              <Label htmlFor="matchStatus" className="text-vista-light/40 font-normal">Статус матча</Label>
+              <Select
+                value={editForm.status || (selectedStatus as string) || 'SCHEDULED'}
+                onValueChange={v => { handleEditFormChange('status', v); setSelectedStatus(v); }}
+              >
+                <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30">
+                  <SelectValue placeholder="Выберите статус матча" />
+                </SelectTrigger>
+                <SelectContent className="bg-vista-dark border-vista-secondary/30">
+                  <SelectItem value="SCHEDULED" className="text-vista-light">Запланирован</SelectItem>
+                  <SelectItem value="FINISHED" className="text-vista-light">Завершён</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Тип матча (домашний/выездной) */}
+            <div className="space-y-2">
+              <Label htmlFor="isHome" className="text-vista-light/40 font-normal">Тип матча</Label>
+              <Select
+                value={editForm.isHome ? 'HOME' : 'AWAY'}
+                onValueChange={v => handleEditFormChange('isHome', v === 'HOME')}
+              >
+                <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30">
+                  <SelectValue placeholder="Выберите тип матча" />
+                </SelectTrigger>
+                <SelectContent className="bg-vista-dark border-vista-secondary/30">
+                  <SelectItem value="HOME" className="text-vista-light">Домашний</SelectItem>
+                  <SelectItem value="AWAY" className="text-vista-light">Выездной</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Наша команда и голы */}
+            <div className="flex gap-4">
+              <div className="flex-1 flex flex-col space-y-2">
+                <Label htmlFor="teamId" className="text-vista-light/40 font-normal mb-2">Наша команда</Label>
+                <TeamSelect teams={teams} value={editForm.teamId} onChange={v => handleEditFormChange('teamId', v)} />
+              </div>
+              <div className="w-20 flex flex-col space-y-2">
+                <Label htmlFor="teamGoals" className="text-vista-light/40 font-normal mb-2">Голы</Label>
+                <Input
+                  id="teamGoals"
+                  type="number"
+                  min="0"
+                  value={editForm.teamGoals}
+                  onChange={e => handleEditFormChange('teamGoals', Number(e.target.value))}
+                  className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
+                  disabled={editForm.status !== 'FINISHED' && selectedStatus !== 'FINISHED'}
+                />
+              </div>
+            </div>
+            {/* Команда соперника и голы */}
+            <div className="flex gap-4">
+              <div className="flex-1 flex flex-col space-y-2">
+                <Label htmlFor="opponentName" className="text-vista-light/40 font-normal mb-2">Команда соперника</Label>
+                <Input
+                  id="opponentName"
+                  value={editForm.opponentName}
+                  onChange={e => handleEditFormChange('opponentName', e.target.value)}
+                  placeholder="Введите название команды соперника"
+                  className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
+                />
+              </div>
+              <div className="w-20 flex flex-col space-y-2">
+                <Label htmlFor="opponentGoals" className="text-vista-light/40 font-normal mb-2">Голы</Label>
+                <Input
+                  id="opponentGoals"
+                  type="number"
+                  min="0"
+                  value={editForm.opponentGoals}
+                  onChange={e => handleEditFormChange('opponentGoals', Number(e.target.value))}
+                  className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
+                  disabled={editForm.status !== 'FINISHED' && selectedStatus !== 'FINISHED'}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditModalOpen(false)} className="border-vista-secondary/30">
+                Отмена
+              </Button>
+              <Button type="submit" disabled={savingEdit} className="bg-vista-primary hover:bg-vista-primary/90">
+                {savingEdit ? 'Сохранение...' : 'Сохранить'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

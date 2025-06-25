@@ -50,19 +50,18 @@ export default function ImageUpload({ teamId, playerId, clubId, imageUrl, onChan
     <div className="space-y-2">
       <div className={cn(
         'relative',
-        'mx-auto w-32 h-32 rounded-full'
+        'w-full h-full'
       )}>
         {imageUrl ? (
           <div className={cn(
-            'relative w-full h-full overflow-hidden',
-            'rounded-full'
+            'relative w-full h-full overflow-hidden'
           )}>
             <img
               src={imageUrl}
               alt="avatar"
               className={cn(
-                'w-full h-full object-cover',
-                'rounded-full z-10 relative'
+                'w-full h-full min-w-full min-h-full max-w-none object-cover object-bottom',
+                'z-10 relative'
               )}
               style={{ background: 'transparent' }}
               onError={(e) => {
@@ -73,41 +72,14 @@ export default function ImageUpload({ teamId, playerId, clubId, imageUrl, onChan
                 // No need to set error here, as we handle it in the handleDelete function
               }}
             />
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-center gap-2 z-20">
-              <div className="flex flex-col items-center gap-1">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  onClick={() => !disabled && inputRef.current?.click()}
-                  className="h-8 w-8 rounded-full bg-white/50 hover:bg-white/70"
-                  disabled={disabled}
-                >
-                  <CameraIcon className="h-4 w-4 text-white" />
-                </Button>
-                <span className="text-xs text-white">Заменить</span>
-              </div>
-              <div className="flex flex-col items-center gap-1">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  onClick={handleDelete}
-                  className="h-8 w-8 rounded-full bg-red-500/80 hover:bg-red-500"
-                  disabled={disabled}
-                >
-                  <TrashIcon className="h-4 w-4 text-white" />
-                </Button>
-                <span className="text-xs text-white">Удалить</span>
-              </div>
-            </div>
+            <div className="absolute inset-0 z-20"></div>
           </div>
         ) : (
           <div
             className={cn(
               'flex flex-col items-center justify-center border-2 border-dashed',
               'text-vista-light/60 hover:text-vista-light/80 transition-colors cursor-pointer',
-              'rounded-full border-vista-primary/40 hover:border-vista-primary',
+              'border-vista-primary/40 hover:border-vista-primary',
               'w-full h-full bg-vista-dark/30',
               disabled ? 'opacity-50 cursor-not-allowed' : ''
             )}

@@ -10,7 +10,7 @@
   .custom-scrollbar {
     /* Firefox */
     scrollbar-width: thin;
-    scrollbar-color: rgba(128, 128, 128, 0.5) transparent;
+    scrollbar-color: var(--vista-primary) var(--vista-dark);
   }
 
   /* WebKit (Chrome, Safari, Edge) */
@@ -20,17 +20,40 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
+    background: rgba(24, 32, 38, 0.7); /* bg-vista-dark/70 */
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(128, 128, 128, 0.5);
+    background-color: #5acce5; /* var(--vista-primary) */
     border-radius: 6px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(128, 128, 128, 0.7);
+    background-color: #3fc1d3; /* чуть темнее бирюзового */
   }
+
+  .custom-scrollbar::-webkit-scrollbar-button {
+    display: none;
+    height: 0;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+}
+
+/* Убираем белую обводку с textarea и input в модалках */
+input, textarea {
+  outline: none;
+  border-color: #33424a; /* border-vista-secondary/30 */
+}
+input:focus, textarea:focus {
+  border-color: #5acce5; /* border-vista-primary */
+  box-shadow: none;
 }
 
 :root {
@@ -167,4 +190,21 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+[data-radix-scroll-up-button],
+[data-radix-scroll-down-button] {
+  display: none !important;
+}
+
+/* Скрываем скроллбар на всей странице */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+  width: 0 !important;
+  background: transparent !important;
+}
+html, body {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }

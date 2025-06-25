@@ -163,7 +163,6 @@ function TopBar({ userName, userRole }: TopBarProps) {
       ]
     },
     { key: 'calendar', label: 'КАЛЕНДАРЬ', href: '/dashboard/calendar' },
-    { key: 'scouting', label: 'СКАУТСКАЯ', href: '/dashboard/scouting' },
     { 
       key: 'analytics', 
       label: 'АНАЛИТИКА', 
@@ -173,6 +172,7 @@ function TopBar({ userName, userRole }: TopBarProps) {
         { key: 'gps', label: 'GPS-трекинг', href: '/dashboard/analytics/gps' },
         { key: 'attendance', label: 'Посещаемость', href: '/dashboard/analytics/attendance' },
         { key: 'morning-survey', label: 'Утренний опросник', href: '/dashboard/analytics/morning-survey' },
+        { key: 'fitness-tests', label: 'Фитнес тесты', href: '/dashboard/analytics/fitness-tests' },
       ]
     },
     { 

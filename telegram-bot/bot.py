@@ -136,4 +136,5 @@ def setup_scheduler():
 
 if __name__ == '__main__':
     setup_scheduler()
-    executor.start_polling(dp, skip_updates=True) 
+    run_web_app()
+    executor.start_polling(dp, skip_updates=True)

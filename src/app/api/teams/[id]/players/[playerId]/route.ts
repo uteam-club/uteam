@@ -1,10 +1,11 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { player } from "@/db/schema";
+import { team } from "@/db/schema/team";
 import { eq, and } from "drizzle-orm";
 
 function toDateOrNull(val: any) {
-  if (val === null || val === undefined) return null;
+  if (val === null || val === undefined || val === '') return null;
   if (val instanceof Date && !isNaN(val.getTime())) return val;
   if (typeof val === 'string' || typeof val === 'number') {
     const d = new Date(val);
@@ -30,7 +31,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string, 
   if (!result.length) {
     return new Response(JSON.stringify({ error: "Игрок не найден" }), { status: 404 });
   }
-  return new Response(JSON.stringify({ player: result[0], teams: [] }), { status: 200 });
+  // Получаем название команды
+  const teamResult = await db.select().from(team).where(eq(team.id, result[0].teamId));
+  const teamName = teamResult.length ? teamResult[0].name : null;
+  return new Response(JSON.stringify({ player: result[0], teamName }), { status: 200 });
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string, playerId: string } }) {
@@ -43,7 +47,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string, 
     const body = await req.json();
     // Список разрешённых к обновлению полей
     const allowedFields = [
-      "firstName", "lastName", "middleName", "number", "position", "strongFoot", "dateOfBirth", "academyJoinDate", "nationality", "imageUrl", "status", "birthCertificateNumber", "pinCode", "telegramId", "language"
+      "firstName", "lastName", "middleName", "number", "position", "strongFoot", "dateOfBirth", "academyJoinDate", "nationality", "imageUrl", "status", "birthCertificateNumber", "pinCode", "telegramId", "language", "teamId",
+      "passportData", "insuranceNumber", "visaExpiryDate",
+      "format1", "formation1", "positionIndex1", "format2", "formation2", "positionIndex2"
     ];
     const updateData: Record<string, any> = {};
     for (const key of allowedFields) {
@@ -54,6 +60,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string, 
     // Преобразуем даты к типу Date, если они есть и это строка
     updateData.dateOfBirth = toDateOrNull(updateData.dateOfBirth);
     updateData.academyJoinDate = toDateOrNull(updateData.academyJoinDate);
+    updateData.visaExpiryDate = toDateOrNull(updateData.visaExpiryDate);
     updateData.number = toIntOrNull(updateData.number);
     updateData.updatedAt = new Date();
     const result = await db.update(player)

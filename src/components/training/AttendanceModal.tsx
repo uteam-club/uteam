@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { XMarkIcon, CheckIcon, UserIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 // Типы статусов посещаемости
 type AttendanceStatus = 'TRAINED' | 'REHAB' | 'SICK' | 'EDUCATION' | 'OTHER';
@@ -168,22 +169,11 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose}></div>
-      
-      <div className="relative max-h-[90vh] w-full max-w-2xl bg-vista-dark border border-vista-secondary/30 rounded-lg shadow-xl overflow-hidden flex flex-col">
-        {/* Заголовок модального окна */}
-        <div className="flex justify-between items-center p-4 border-b border-vista-secondary/30">
-          <h3 className="text-xl font-semibold text-vista-light">Посещаемость тренировки</h3>
-          <button 
-            onClick={onClose} 
-            className="text-vista-light/50 hover:text-vista-light transition-colors"
-          >
-            <XMarkIcon className="w-6 h-6" />
-          </button>
-        </div>
-        
-        {/* Содержимое модального окна */}
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-2xl overflow-hidden backdrop-blur-xl flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold text-vista-light">Посещаемость тренировки</DialogTitle>
+        </DialogHeader>
         <div className="flex-1 overflow-y-auto p-4">
           {loading ? (
             <div className="flex items-center justify-center h-40">
@@ -312,8 +302,7 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
           )}
         </div>
         
-        {/* Футер модального окна */}
-        <div className="p-4 border-t border-vista-secondary/30 flex justify-end">
+        <DialogFooter className="p-4 border-t border-vista-secondary/30 flex justify-end">
           <Button
             onClick={onClose}
             variant="outline"
@@ -328,8 +317,8 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
           >
             {saving ? 'Сохранение...' : 'Сохранить'}
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 } 

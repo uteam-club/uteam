@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { X, Search, Plus, Calendar, Filter, CalendarIcon, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTrainingCategories } from '@/hooks/useExerciseData';
+import { CreateTrainingModal } from '@/components/training/CreateTrainingModal';
 
 // Типы данных
 interface Team {
@@ -575,156 +576,14 @@ export default function TrainingsPage() {
       </Card>
       
       {/* Модальное окно создания тренировки */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="bg-vista-dark border-vista-secondary/50 text-vista-light max-w-md shadow-xl">
-          <DialogHeader>
-            <DialogTitle className="text-vista-light text-xl">Новая тренировка</DialogTitle>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            {/* Название тренировки */}
-            <div className="space-y-2">
-              <Label htmlFor="title" className="text-vista-light">Название тренировки</Label>
-              <Input
-                id="title"
-                value={newTraining.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
-                className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
-                placeholder="Введите название тренировки"
-              />
-              {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
-            </div>
-            
-            {/* Выбор команды */}
-            <div className="space-y-2">
-              <Label htmlFor="team" className="text-vista-light">Команда</Label>
-              <Select
-                value={newTraining.teamId}
-                onValueChange={(value) => handleInputChange('teamId', value)}
-                disabled={isLoadingTeams}
-              >
-                <SelectTrigger 
-                  id="team"
-                  className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
-                >
-                  <SelectValue placeholder={isLoadingTeams ? "Загрузка..." : "Выберите команду"} />
-                </SelectTrigger>
-                <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
-                  {teams.map(team => (
-                    <SelectItem key={team.id} value={team.id}>
-                      {team.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.teamId && <p className="text-red-500 text-sm">{errors.teamId}</p>}
-            </div>
-            
-            {/* Дата и время на одной строке */}
-            <div className="space-y-2">
-              <Label className="text-vista-light">Дата и время тренировки</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="relative">
-                  <Input
-                    id="modal-training-date"
-                    type="date"
-                    value={newTraining.date}
-                    onChange={(e) => handleInputChange('date', e.target.value)}
-                    className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
-                    onClick={(e) => {
-                      try {
-                        (e.target as HTMLInputElement).showPicker();
-                      } catch (error) {
-                        console.error('Failed to show date picker:', error);
-                      }
-                    }}
-                  />
-                  {errors.date && <p className="text-red-500 text-sm">{errors.date}</p>}
-                </div>
-                <div className="relative">
-                  <Input
-                    id="modal-training-time"
-                    type="time"
-                    value={newTraining.time}
-                    onChange={(e) => handleInputChange('time', e.target.value)}
-                    className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
-                    onClick={(e) => {
-                      try {
-                        (e.target as HTMLInputElement).showPicker();
-                      } catch (error) {
-                        console.error('Failed to show time picker:', error);
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-            
-            {/* Выбор категории */}
-            <div className="space-y-2">
-              <Label htmlFor="category" className="text-vista-light">Категория тренировки</Label>
-              <Select
-                value={newTraining.categoryId}
-                onValueChange={(value) => handleInputChange('categoryId', value)}
-                disabled={isLoadingCategories}
-              >
-                <SelectTrigger 
-                  id="category"
-                  className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
-                >
-                  <SelectValue placeholder={isLoadingCategories ? "Загрузка..." : "Выберите категорию"} />
-                </SelectTrigger>
-                <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
-                  {categories.map((category: Category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.categoryId && <p className="text-red-500 text-sm">{errors.categoryId}</p>}
-            </div>
-            
-            {/* Выбор типа тренировки */}
-            <div className="space-y-2">
-              <Label htmlFor="training-type" className="text-vista-light">Тип тренировки</Label>
-              <Select
-                value={newTraining.type}
-                onValueChange={(value) => handleInputChange('type', value)}
-              >
-                <SelectTrigger 
-                  id="training-type"
-                  className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
-                >
-                  <SelectValue placeholder="Выберите тип тренировки" />
-                </SelectTrigger>
-                <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
-                  <SelectItem value="TRAINING">Тренировка</SelectItem>
-                  <SelectItem value="GYM">Тренажерный зал</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setIsCreateDialogOpen(false)}
-              className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20"
-            >
-              Отмена
-            </Button>
-            <Button 
-              type="button" 
-              onClick={handleSubmit}
-              className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark shadow-sm"
-            >
-              Создать
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreateTrainingModal
+        isOpen={isCreateDialogOpen}
+        initialDate={null}
+        onClose={() => setIsCreateDialogOpen(false)}
+        onCreated={() => {
+          // Можно обновить список тренировок или показать toast
+        }}
+      />
     </div>
   );
 } 

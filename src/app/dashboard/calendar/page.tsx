@@ -28,8 +28,13 @@ import {
   addWeeks,
   subWeeks
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Users, Clock, Trophy, CheckCircle2, AlertCircle, CalendarClock, Dumbbell, Medal, Handshake } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users, Clock, Trophy, CheckCircle2, AlertCircle, CalendarClock, Dumbbell, Medal, Handshake, Plus } from 'lucide-react';
 import { toast } from "@/components/ui/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AddMatchModal } from '@/components/matches/AddMatchModal';
+import { CreateTrainingModal } from '@/components/training/CreateTrainingModal';
+import { AddEventTypeModal } from '@/components/calendar/AddEventTypeModal';
+// import TrainingsPage from '@/app/dashboard/coaching/trainings/page';
 
 interface Team {
   id: string;
@@ -83,6 +88,11 @@ export default function CalendarPage() {
   const [isLoadingTrainings, setIsLoadingTrainings] = useState(false);
   const [calendarView, setCalendarView] = useState<'month' | 'week'>('month');
   const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
+  const [addEventDay, setAddEventDay] = useState<Date | null>(null);
+  const [eventModalDate, setEventModalDate] = useState<Date | null>(null);
+  const [eventType, setEventType] = useState<'TRAINING' | 'MATCH' | null>(null);
+  const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
+  const [isTrainingModalOpen, setIsTrainingModalOpen] = useState(false);
 
   // Массив с днями недели на русском
   const weekDays = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
@@ -256,7 +266,7 @@ export default function CalendarPage() {
             teamId: match.teamId,
             teamName: match.teamName || '',
             type: 'MATCH',
-            status: 'scheduled',
+            status: match.status || 'scheduled',
             competitionType: match.competitionType,
             isHome: match.isHome,
             opponentName: match.opponentName,
@@ -694,20 +704,16 @@ export default function CalendarPage() {
                 const dayBlockHeight = '';
                 
                 return (
-                  <div 
-                    key={index}
-                    className={`
-                      ${dayBlockHeight} border border-vista-secondary/50 rounded-md p-2
-                      ${isCurrentMonth ? 'bg-vista-dark/70 shadow-sm' : 'bg-vista-dark/30 opacity-50'}
-                      ${isTodayDate ? 'ring-1 ring-vista-primary shadow-md' : ''}
-                    `}
-                  >
-                    <div className={`
-                      text-xs font-medium mb-1 px-0.5 py-0.5 rounded w-fit
-                      ${isTodayDate ? 'bg-vista-primary/20 text-vista-primary' : 'text-vista-light'}
-                    `}>
-                      {format(day, 'd')}
-                    </div>
+                  <div key={index} className={`relative border border-vista-secondary/50 rounded-md p-2 ${isCurrentMonth ? 'bg-vista-dark/70 shadow-sm' : 'bg-vista-dark/30 opacity-50'} ${isTodayDate ? 'ring-1 ring-vista-primary shadow-md' : ''}`}> 
+                    {/* Кнопка плюсика */}
+                    <button
+                      className="absolute top-2 right-2 z-10 p-1 rounded-full bg-vista-dark/80 text-vista-primary/60 hover:text-vista-primary hover:bg-vista-primary/20 shadow transition"
+                      onClick={() => setAddEventDay(day)}
+                      type="button"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                    <div className={`text-xs font-medium mb-1 px-0.5 py-0.5 rounded w-fit ${isTodayDate ? 'bg-vista-primary/20 text-vista-primary' : 'text-vista-light'}`}>{format(day, 'd')}</div>
                     <div className="space-y-1">
                       {dayTrainings.map((training) => {
                         const status = getTrainingStatus(training);
@@ -744,11 +750,11 @@ export default function CalendarPage() {
                               <div className="text-vista-light/90 text-xs font-medium mb-1">
                                 <div className="flex items-center w-full">
                                   <span className="truncate flex-1">{training.isHome ? training.teamName : training.opponentName}</span>
-                                  <span className={`ml-2 px-2 py-0.5 rounded font-semibold text-xs w-7 min-w-[28px] text-center flex items-center justify-center ${getMatchResultClass(training)}`}>{training.teamGoals ?? '-'}</span>
+                                  <span className={`ml-2 px-2 py-0.5 rounded font-semibold text-xs w-7 min-w-[28px] text-center flex items-center justify-center ${training.status === 'FINISHED' ? getMatchResultClass(training) : 'bg-gray-500/30'}`}>{training.status === 'FINISHED' ? (training.teamGoals ?? '-') : '-'}</span>
                                 </div>
                                 <div className="flex items-center w-full mt-0.5">
                                   <span className="truncate flex-1">{training.isHome ? training.opponentName : training.teamName}</span>
-                                  <span className={`ml-2 px-2 py-0.5 rounded font-semibold text-xs w-7 min-w-[28px] text-center flex items-center justify-center ${getMatchResultClass(training)}`}>{training.opponentGoals ?? '-'}</span>
+                                  <span className={`ml-2 px-2 py-0.5 rounded font-semibold text-xs w-7 min-w-[28px] text-center flex items-center justify-center ${training.status === 'FINISHED' ? getMatchResultClass(training) : 'bg-gray-500/30'}`}>{training.status === 'FINISHED' ? (training.opponentGoals ?? '-') : '-'}</span>
                                 </div>
                               </div>
                               {/* Третья строка: дата и время */}
@@ -794,6 +800,35 @@ export default function CalendarPage() {
           </div>
         </CardContent>
       </Card>
+      {/* Модалка выбора типа события */}
+      {addEventDay && (
+        <AddEventTypeModal
+          isOpen={!!addEventDay}
+          date={addEventDay}
+          onClose={() => setAddEventDay(null)}
+          onSelect={(type) => {
+            setEventModalDate(addEventDay);
+            if (type === 'TRAINING') {
+              setIsTrainingModalOpen(true);
+            } else if (type === 'MATCH') {
+              setIsMatchModalOpen(true);
+            }
+            setAddEventDay(null);
+          }}
+        />
+      )}
+      {isTrainingModalOpen && (
+        <CreateTrainingModal 
+          isOpen={isTrainingModalOpen} 
+          initialDate={eventModalDate} 
+          onClose={() => { setIsTrainingModalOpen(false); setEventModalDate(null); }} 
+          onCreated={() => { setIsTrainingModalOpen(false); setEventModalDate(null); fetchTrainings(); }}
+        />
+      )}
+      {/* Модалка создания матча */}
+      {isMatchModalOpen && (
+        <AddMatchModal isOpen={true} initialDate={eventModalDate} onClose={() => { setIsMatchModalOpen(false); setEventModalDate(null); }} onMatchAdded={() => { setIsMatchModalOpen(false); setEventModalDate(null); fetchTrainings(); }} />
+      )}
     </div>
   );
 } 
