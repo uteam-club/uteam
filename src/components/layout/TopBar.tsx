@@ -244,7 +244,7 @@ function TopBar({ userName, userRole }: TopBarProps) {
                         >
                           <div className="py-1">
                             {item.dropdownItems?.map((dropdownItem) => (
-                              (!dropdownItem.adminOnly || userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') && (
+                              (!dropdownItem.adminOnly || userRole === 'ADMIN' || userRole === 'SUPER_ADMIN' || userRole === 'COACH') && (
                                 <div 
                                   key={dropdownItem.key}
                                   className="relative"
