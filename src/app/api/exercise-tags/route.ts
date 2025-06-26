@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
     
-    if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN') {
+    if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'COACH') {
       console.error('Ошибка прав доступа:', { userRole: session.user.role });
       return NextResponse.json({ error: 'Нет прав доступа' }, { status: 403 });
     }

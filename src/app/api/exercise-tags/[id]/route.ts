@@ -29,7 +29,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
     
-    if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN') {
+    if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'COACH') {
       return NextResponse.json({ error: 'Нет прав доступа' }, { status: 403 });
     }
     
@@ -100,7 +100,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
     
-    if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN') {
+    if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'COACH') {
       return NextResponse.json({ error: 'Нет прав доступа' }, { status: 403 });
     }
     

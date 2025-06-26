@@ -9,7 +9,7 @@ export const revalidate = 0;
 
 
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
 // Функция для чтения токена из заголовка Authorization
 async function getTokenFromRequest(request: NextRequest) {
