@@ -1,10 +1,18 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from "@/lib/db";
 import { player } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { uploadFile, deleteFile, getFileUrl } from '@/lib/yandex-storage';
+import { getToken } from 'next-auth/jwt';
+
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
 export async function POST(req: NextRequest, { params }: { params: { id: string, playerId: string } }) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const teamId = params.id;
   const playerId = params.playerId;
   const clubId = req.nextUrl.searchParams.get('clubId');

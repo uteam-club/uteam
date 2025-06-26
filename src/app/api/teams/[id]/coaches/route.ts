@@ -4,10 +4,11 @@ import { user, team, teamCoach } from '@/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
 import * as z from 'zod';
+
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-
 
 // Схема для валидации данных при добавлении тренеров
 const addCoachesSchema = z.object({
@@ -24,7 +25,11 @@ const removeCoachesSchema = z.object({
  */
 async function getTokenFromRequest(req: NextRequest) {
   try {
-    return await getToken({ req });
+    const token = await getToken({ req });
+    if (!token || !allowedRoles.includes(token.role as string)) {
+      return null;
+    }
+    return token;
   } catch (error) {
     console.error('Error getting token:', error);
     return null;
@@ -39,15 +44,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const token = await getTokenFromRequest(request);
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
-    // Получаем токен пользователя
-    const token = await getTokenFromRequest(request);
-    
-    if (!token) {
-      console.log('GET /team/coaches: Unauthorized access attempt');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
     const clubId = token.clubId as string;
     const teamId = params.id;
     
@@ -99,15 +101,12 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const token = await getTokenFromRequest(request);
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
-    // Получаем токен пользователя
-    const token = await getTokenFromRequest(request);
-    
-    if (!token) {
-      console.log('POST /team/coaches: Unauthorized access attempt');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
     const clubId = token.clubId as string;
     const teamId = params.id;
     
@@ -184,6 +183,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const token = await getTokenFromRequest(request);
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     // Получаем токен пользователя
     const token = await getTokenFromRequest(request);

@@ -6,11 +6,15 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
 import crypto from 'crypto';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
+import { getToken } from 'next-auth/jwt';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-
+// Добавляю тип Token
+type Token = { clubId: string; [key: string]: any };
 
 // Схема валидации для создания матча
 const matchSchema = z.object({
@@ -25,35 +29,37 @@ const matchSchema = z.object({
   opponentGoals: z.number().int().min(0).nullable().default(null),
 });
 
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, token: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return token.clubId === club.id;
+}
+
 // GET метод для получения матчей
 export async function GET(request: NextRequest) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const hasAccess = await checkClubAccess(request, token);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
+  }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const teamId = searchParams.get('teamId');
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
-
-    // Базовые условия фильтрации
-    const whereArr = [eq(match.clubId, session.user.clubId)];
-
-    // Применяем фильтры, если они указаны
-    if (teamId) {
-      whereArr.push(eq(match.teamId, teamId));
-    }
-
-    if (fromDate) {
-      whereArr.push(gte(match.date, new Date(fromDate)));
-    }
-
-    if (toDate) {
-      const endDate = new Date(toDate); endDate.setHours(23,59,59,999); whereArr.push(lte(match.date, endDate));
-    }
-
+    const whereArr = [eq(match.clubId, token.clubId)];
+    if (teamId) whereArr.push(eq(match.teamId, teamId));
+    if (fromDate) whereArr.push(gte(match.date, new Date(fromDate)));
+    if (toDate) { const endDate = new Date(toDate); endDate.setHours(23,59,59,999); whereArr.push(lte(match.date, endDate)); }
     const rows = await db.select({
       id: match.id,
       competitionType: match.competitionType,
@@ -80,7 +86,6 @@ export async function GET(request: NextRequest) {
       .leftJoin(team, eq(match.teamId, team.id))
       .where(and(...whereArr))
       .orderBy(desc(match.date));
-
     return NextResponse.json(rows);
   } catch (error) {
     console.error('Ошибка при получении матчей:', error);
@@ -90,15 +95,16 @@ export async function GET(request: NextRequest) {
 
 // POST метод для создания нового матча
 export async function POST(request: NextRequest) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const hasAccess = await checkClubAccess(request, token);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
+  }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
-    }
-
     const body = await request.json();
-    
-    // Валидация данных
     const validationResult = matchSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
@@ -106,27 +112,11 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const { 
-      competitionType, 
-      date, 
-      time, 
-      isHome, 
-      teamId, 
-      opponentName, 
-      status,
-      teamGoals, 
-      opponentGoals 
-    } = validationResult.data;
-
-    // Проверка существования команды и её принадлежности к клубу пользователя
-    const [teamRow] = await db.select().from(team).where(and(eq(team.id, teamId), eq(team.clubId, session.user.clubId)));
-
+    const { competitionType, date, time, isHome, teamId, opponentName, status, teamGoals, opponentGoals } = validationResult.data;
+    const [teamRow] = await db.select().from(team).where(and(eq(team.id, teamId), eq(team.clubId, token.clubId)));
     if (!teamRow) {
       return NextResponse.json({ error: 'Команда не найдена' }, { status: 404 });
     }
-
-    // Создание нового матча
     const now = new Date();
     const [created] = await db.insert(match).values({
       id: crypto.randomUUID(),
@@ -139,11 +129,10 @@ export async function POST(request: NextRequest) {
       status,
       teamGoals: status === 'FINISHED' ? teamGoals : null,
       opponentGoals: status === 'FINISHED' ? opponentGoals : null,
-      clubId: session.user.clubId,
+      clubId: token.clubId,
       createdAt: now,
       updatedAt: now,
     }).returning();
-
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
     const err = error as any;

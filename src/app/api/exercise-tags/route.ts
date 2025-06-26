@@ -5,11 +5,43 @@ import { db } from '@/lib/db';
 import { exerciseTag, exerciseCategory } from '@/db/schema';
 import { eq, asc, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
+import { getToken } from 'next-auth/jwt';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+// Добавляю тип Token
+type Token = { clubId: string; [key: string]: any };
+
+// Функция для чтения токена из заголовка Authorization
+async function getTokenFromRequest(request: NextRequest) {
+  // ... existing code ...
+}
+
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, token: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return token.clubId === club.id;
+}
+
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
 // Обработчик GET-запроса для получения всех тегов упражнений
 export async function GET(req: NextRequest) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const hasAccess = await checkClubAccess(req, token);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
+  }
   try {
     console.log('Начало обработки GET-запроса для тегов упражнений');
     
@@ -101,6 +133,14 @@ export async function GET(req: NextRequest) {
 
 // Обработчик POST-запроса для создания нового тега упражнений
 export async function POST(req: NextRequest) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const hasAccess = await checkClubAccess(req, token);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
+  }
   try {
     console.log('Начало обработки POST-запроса для создания тега упражнений');
     

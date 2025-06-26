@@ -1,9 +1,16 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from "@/lib/db";
 import { team } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { getToken } from 'next-auth/jwt';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const teamId = params.id;
   if (!teamId) {
     return new Response(JSON.stringify({ error: "No teamId" }), { status: 400 });
@@ -15,12 +22,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return new Response(JSON.stringify(result[0]), { status: 200 });
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const teamId = params.id;
   if (!teamId) {
     return new Response(JSON.stringify({ error: "No teamId" }), { status: 400 });
   }
-  const body = await req.json();
+  const body = await request.json();
   const { timezone } = body;
   if (!timezone || typeof timezone !== 'string') {
     return new Response(JSON.stringify({ error: "No timezone provided" }), { status: 400 });

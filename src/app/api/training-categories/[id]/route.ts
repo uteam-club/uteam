@@ -4,6 +4,8 @@ import * as jwt from 'jsonwebtoken';
 import { db } from '@/lib/db';
 import { trainingCategory } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -46,6 +48,16 @@ async function getTokenFromRequest(request: NextRequest) {
   }
 }
 
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, token: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return token.clubId === club.id;
+}
+
 /**
  * GET /api/training-categories/[id]
  * Получение информации о конкретной категории тренировок
@@ -60,6 +72,11 @@ export async function GET(
     
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const hasAccess = await checkClubAccess(request, token);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
     }
     
     const clubId = token.clubId as string;

@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { db } from '@/lib/db';
 import { user } from '@/db/schema';
+
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     console.log('Test API called');
     // Проверка соединения с базой данных через Drizzle

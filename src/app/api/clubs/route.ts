@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
+
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -7,6 +10,10 @@ export const revalidate = 0;
 
 // Получение всех клубов
 export async function GET(request: NextRequest) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     // Placeholder for the removed getAllClubs function
     return NextResponse.json([]);
@@ -21,6 +28,10 @@ export async function GET(request: NextRequest) {
 
 // Создание нового клуба
 export async function POST(request: NextRequest) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const formData = await request.formData();
     const name = formData.get('name') as string;

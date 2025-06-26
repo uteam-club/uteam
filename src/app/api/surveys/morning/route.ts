@@ -5,12 +5,19 @@ import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import fetch from 'node-fetch';
+import { getToken } from 'next-auth/jwt';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
 // GET /api/surveys/morning
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
+  }
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -63,6 +70,10 @@ export async function GET(request: Request) {
 
 // POST /api/surveys/morning
 export async function POST(request: NextRequest) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
+  }
   try {
     const { playerId, teamId, date } = await request.json();
     if (!playerId || !teamId || !date) {

@@ -5,16 +5,43 @@ import { uploadFile, getFileUrl } from '@/lib/yandex-storage';
 import { db } from '@/lib/db';
 import { exercise, user, exerciseCategory, exerciseTag, mediaItem, exerciseTagToExercise } from '@/db/schema';
 import { eq, and, inArray, ilike } from 'drizzle-orm';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
+import { getToken } from 'next-auth/jwt';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
+// Функция для чтения токена из заголовка Authorization
+async function getTokenFromRequest(request: NextRequest) {
+  // ... existing code ...
+}
+
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, token: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return token.clubId === club.id;
+}
 
 // Обработчик GET-запроса для получения упражнения по ID
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const token = await getToken({ req: req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const hasAccess = await checkClubAccess(req, token);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
+  }
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -61,6 +88,10 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const token = await getToken({ req: req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -169,6 +200,10 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const token = await getToken({ req: req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {

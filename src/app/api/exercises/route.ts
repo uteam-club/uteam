@@ -6,17 +6,30 @@ import { db } from '@/lib/db';
 import { exercise, user, exerciseCategory, exerciseTag, mediaItem, exerciseTagToExercise } from '@/db/schema';
 import { eq, and, inArray, desc, ilike } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
+import { getToken } from 'next-auth/jwt';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+// Добавляю тип Token
+type Token = { clubId: string; [key: string]: any };
+
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
 // GET: получить все упражнения с фильтрацией и join по авторам, категориям, тегам, mediaItems
 export async function GET(req: NextRequest) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const hasAccess = await checkClubAccess(req, token);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
+  }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-    }
-    const clubId = session.user.clubId;
+    const clubId = token.clubId;
     const url = new URL(req.url);
     const searchQuery = url.searchParams.get('search') || '';
     const authorId = url.searchParams.get('authorId') || undefined;
@@ -97,6 +110,10 @@ export async function GET(req: NextRequest) {
 
 // POST: создать упражнение с тегами и mediaItem
 export async function POST(req: NextRequest) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   console.log('[DEBUG] POST /api/exercises called');
   try {
     const session = await getServerSession(authOptions);
@@ -196,4 +213,19 @@ export async function POST(req: NextRequest) {
     console.error('[ERROR] Ошибка при создании упражнения:', error, error?.stack);
     return NextResponse.json({ error: 'Ошибка при создании упражнения', details: error?.message, stack: error?.stack }, { status: 500 });
   }
+}
+
+// Функция для чтения токена из заголовка Authorization
+async function getTokenFromRequest(request: NextRequest) {
+  // ... existing code ...
+}
+
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, token: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return token.clubId === club.id;
 } 

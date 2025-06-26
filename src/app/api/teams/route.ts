@@ -5,10 +5,13 @@ import { eq, asc, desc } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-
+// Добавляю тип Token
+type Token = { clubId: string; [key: string]: any };
 
 const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
@@ -50,6 +53,16 @@ async function getTokenFromRequest(request: NextRequest) {
   }
 }
 
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, token: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return token.clubId === club.id;
+}
+
 /**
  * GET /api/teams
  * Получение списка команд клуба
@@ -57,18 +70,15 @@ async function getTokenFromRequest(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Получаем токен пользователя
-    const token = await getTokenFromRequest(request);
+    const token = (await getTokenFromRequest(request) as unknown) as Token | null;
     
-    if (!token) {
-      return new NextResponse(
-        JSON.stringify({ error: 'Unauthorized' }), 
-        { 
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        }
-      );
+    if (!token || typeof token.clubId !== 'string') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const hasAccess = await checkClubAccess(request, token);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
     }
     
     const role = token.role as string;
@@ -126,9 +136,9 @@ export async function POST(request: NextRequest) {
     console.log('Начало обработки запроса на создание команды');
     
     // Получаем токен пользователя
-    const token = await getTokenFromRequest(request);
+    const token = (await getTokenFromRequest(request) as unknown) as Token | null;
     
-    if (!token) {
+    if (!token || typeof token.clubId !== 'string') {
       console.log('Ошибка аутентификации: пользователь не авторизован');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

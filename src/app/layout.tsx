@@ -3,36 +3,49 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { NextAuthProvider } from '@/providers/auth-provider';
 import { Toaster } from '@/components/ui/toaster';
+import { headers } from 'next/headers';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
+import { ClubContextProvider } from '@/providers/club-provider';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
-export const metadata: Metadata = {
-  title: 'FDC Vista',
-  description: 'Football Development Club Vista',
-  icons: {
-    icon: [
-      {
-        media: '(prefers-color-scheme: light)',
-        url: '/dark.svg',
-        href: '/dark.svg',
-      },
-      {
-        media: '(prefers-color-scheme: dark)',
-        url: '/light.svg',
-        href: '/light.svg',
-      },
-    ],
-  },
-};
+export async function generateMetadata() {
+  const host = headers().get('host') || '';
+  const subdomain = getSubdomain(host);
+  const club = subdomain ? await getClubBySubdomain(subdomain) : null;
+  return {
+    title: club?.name || 'Uteam',
+    description: club?.name ? `Платформа для клуба ${club.name}` : 'Uteam платформа для клубов',
+    icons: {
+      icon: [
+        {
+          media: '(prefers-color-scheme: light)',
+          url: '/dark.svg',
+          href: '/dark.svg',
+        },
+        {
+          media: '(prefers-color-scheme: dark)',
+          url: '/light.svg',
+          href: '/light.svg',
+        },
+      ],
+    },
+  };
+}
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const host = headers().get('host') || '';
+  const subdomain = getSubdomain(host);
+  const club = subdomain ? await getClubBySubdomain(subdomain) : null;
+
   return (
     <html lang="ru" suppressHydrationWarning>
       <head>
@@ -44,7 +57,9 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <NextAuthProvider>
-          {children}
+          <ClubContextProvider initialClub={club}>
+            {children}
+          </ClubContextProvider>
           <Toaster />
         </NextAuthProvider>
       </body>

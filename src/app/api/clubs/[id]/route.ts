@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { club } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { getToken } from 'next-auth/jwt';
+
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -10,6 +14,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const [clubRow] = await db.select().from(club).where(eq(club.id, params.id));
     if (!clubRow) {
@@ -33,6 +41,10 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const id = params.id;
     const data = await request.json();
@@ -73,6 +85,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const id = params.id;
     // Проверяем, что клуб существует

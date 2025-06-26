@@ -1,8 +1,11 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { player } from "@/db/schema";
 import { team } from "@/db/schema/team";
 import { eq, and } from "drizzle-orm";
+import { getToken } from 'next-auth/jwt';
+
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
 function toDateOrNull(val: any) {
   if (val === null || val === undefined || val === '') return null;
@@ -22,6 +25,10 @@ function toIntOrNull(val: any) {
 }
 
 export async function GET(req: NextRequest, { params }: { params: { id: string, playerId: string } }) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const teamId = params.id;
   const playerId = params.playerId;
   if (!teamId || !playerId) {
@@ -38,6 +45,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string, 
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string, playerId: string } }) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const teamId = params.id;
     const playerId = params.playerId;
@@ -78,6 +89,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string, 
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string, playerId: string } }) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const teamId = params.id;
     const playerId = params.playerId;

@@ -1,12 +1,21 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { morningSurveyResponse, painArea, player } from '@/db/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { getToken } from 'next-auth/jwt';
+
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const body = await req.json();
     console.log('[SURVEY_RESPONSE_POST] body:', body);

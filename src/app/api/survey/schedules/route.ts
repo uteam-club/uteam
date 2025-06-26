@@ -4,8 +4,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { surveySchedule, team } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { getToken } from 'next-auth/jwt';
+
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
 export async function GET(req: NextRequest) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
+  }
   // Возвращает все расписания рассылок с таймзоной команды
   const schedules = await db
     .select({

@@ -1,10 +1,39 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { player, playerDocument, playerMatchStat, playerAttendance, morningSurveyResponse, team } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { deleteFile as deleteYandexFile } from "@/lib/yandex-storage";
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from '@/lib/auth-options';
+import { getToken } from 'next-auth/jwt';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, session: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return session.user.clubId === club.id;
+}
+
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const hasAccess = await checkClubAccess(request, session);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
+  }
   const teamId = params.id;
   if (!teamId) {
     return new Response(JSON.stringify({ error: "No teamId" }), { status: 400 });
@@ -45,6 +74,10 @@ function generateRandomPinCode(length = 6) {
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const teamId = params.id;
   if (!teamId) {
     return new Response(JSON.stringify({ error: "No teamId" }), { status: 400 });
@@ -83,6 +116,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const teamId = params.id;
   if (!teamId) {
     return new Response(JSON.stringify({ error: "No teamId" }), { status: 400 });

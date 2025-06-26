@@ -4,6 +4,7 @@ import { Telegraf } from 'telegraf';
 import { db } from '@/lib/db';
 import { player, team } from '@/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
+import { getToken } from 'next-auth/jwt';
 
 // Токен должен быть от @UTEAM_infoBot
 const botToken = process.env.TELEGRAM_BOT_TOKEN || '7555689553:AAFSDvBcAC_PU7o5vq3vVoGy5DS8R9q5aPU';
@@ -12,7 +13,13 @@ const bot = new Telegraf(botToken);
 const SURVEY_URL = 'https://fdcvista.uteam.club/survey';
 const TENANT_ID = process.env.TENANT_ID || '';
 
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
 export async function POST(req: NextRequest) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     // Выбираем игроков с telegramId и нужным clubId
     const players = await db.select({

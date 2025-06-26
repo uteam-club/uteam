@@ -4,14 +4,38 @@ import { match, team, playerMatchStat, player } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
+import { getToken } from 'next-auth/jwt';
+
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, token: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return token.clubId === club.id;
+}
+
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
       return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
+    }
+    const hasAccess = await checkClubAccess(request, session.user);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
     }
     const matchId = params.id;
     // Получаем детали матча с join
@@ -76,6 +100,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
@@ -119,6 +147,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {

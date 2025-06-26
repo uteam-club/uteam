@@ -5,10 +5,15 @@ import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
+// Добавляю тип Token
+type Token = { clubId: string; [key: string]: any };
 
 // Функция для чтения токена из заголовка Authorization
 async function getTokenFromRequest(request: NextRequest) {
@@ -38,76 +43,82 @@ async function getTokenFromRequest(request: NextRequest) {
   }
 }
 
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, token: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return token.clubId === club.id;
+}
+
 /**
  * GET /api/trainings
  * Получение списка тренировок клуба
  */
 export async function GET(request: NextRequest) {
-  try {
-    const token = await getTokenFromRequest(request);
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const clubId = token.clubId as string;
-    const searchParams = request.nextUrl.searchParams;
-    const teamId = searchParams.get('teamId');
-    const fromDate = searchParams.get('fromDate');
-    const toDate = searchParams.get('toDate');
-    // Формируем where через массив условий (raw SQL)
-    const whereArr = [sql`t."clubId" = ${clubId}::uuid`];
-    if (teamId) {
-      whereArr.push(sql`t."teamId" = ${teamId}::uuid`);
-    }
-    if (fromDate) {
-      whereArr.push(sql`t."date" >= ${fromDate}`);
-    }
-    if (toDate) {
-      const endDate = new Date(toDate);
-      endDate.setHours(23, 59, 59, 999);
-      whereArr.push(sql`t."date" <= ${endDate.toISOString()}`);
-    }
-    // Выполняем raw SQL запрос
-    const result = await db.execute(sql`
-      SELECT 
-        t."id", t."title", t."teamId", t."date", t."categoryId", t."status", t."type", t."createdAt", t."updatedAt",
-        tm."name" as "teamName",
-        c."name" as "categoryName"
-      FROM "Training" t
-      LEFT JOIN "Team" tm ON t."teamId" = tm."id"
-      LEFT JOIN "TrainingCategory" c ON t."categoryId" = c."id"
-      WHERE ${sql.join(whereArr, sql` AND `)}
-      ORDER BY t."date" DESC
-    `);
-    const rows = (result as any).rows || [];
-    // Форматируем ответ
-    const formatted = rows.map((row: any) => {
-      const dateObj = row.date ? new Date(row.date) : null;
-      const dateOnly = dateObj ? dateObj.toISOString().split('T')[0] : null;
-      const timeOnly = dateObj ? dateObj.toISOString().split('T')[1].slice(0,5) : null;
-      return {
-        id: row.id,
-        title: row.title,
-        teamId: row.teamid,
-        team: row.teamName,
-        date: row.date ? new Date(row.date).toISOString() : null,
-        dateOnly,
-        time: timeOnly,
-        categoryId: row.categoryid,
-        category: row.categoryName,
-        status: row.status || 'SCHEDULED',
-        type: row.type || 'TRAINING',
-        createdAt: row.createdat,
-        updatedAt: row.updatedat
-      };
-    });
-    return NextResponse.json(formatted);
-  } catch (error: any) {
-    console.error('Error fetching trainings:', error);
-    return NextResponse.json({
-      error: 'Failed to fetch trainings',
-      details: error.message || 'Unknown error'
-    }, { status: 500 });
+  const token = (await getTokenFromRequest(request) as unknown) as Token | null;
+  if (!token || typeof token.clubId !== 'string') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const hasAccess = await checkClubAccess(request, token);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
+  }
+  const clubId = token.clubId as string;
+  const searchParams = request.nextUrl.searchParams;
+  const teamId = searchParams.get('teamId');
+  const fromDate = searchParams.get('fromDate');
+  const toDate = searchParams.get('toDate');
+  // Формируем where через массив условий (raw SQL)
+  const whereArr = [sql`t."clubId" = ${clubId}::uuid`];
+  if (teamId) {
+    whereArr.push(sql`t."teamId" = ${teamId}::uuid`);
+  }
+  if (fromDate) {
+    whereArr.push(sql`t."date" >= ${fromDate}`);
+  }
+  if (toDate) {
+    const endDate = new Date(toDate);
+    endDate.setHours(23, 59, 59, 999);
+    whereArr.push(sql`t."date" <= ${endDate.toISOString()}`);
+  }
+  // Выполняем raw SQL запрос
+  const result = await db.execute(sql`
+    SELECT 
+      t."id", t."title", t."teamId", t."date", t."categoryId", t."status", t."type", t."createdAt", t."updatedAt",
+      tm."name" as "teamName",
+      c."name" as "categoryName"
+    FROM "Training" t
+    LEFT JOIN "Team" tm ON t."teamId" = tm."id"
+    LEFT JOIN "TrainingCategory" c ON t."categoryId" = c."id"
+    WHERE ${sql.join(whereArr, sql` AND `)}
+    ORDER BY t."date" DESC
+  `);
+  const rows = (result as any).rows || [];
+  // Форматируем ответ
+  const formatted = rows.map((row: any) => {
+    const dateObj = row.date ? new Date(row.date) : null;
+    const dateOnly = dateObj ? dateObj.toISOString().split('T')[0] : null;
+    const timeOnly = dateObj ? dateObj.toISOString().split('T')[1].slice(0,5) : null;
+    return {
+      id: row.id,
+      title: row.title,
+      teamId: row.teamid,
+      team: row.teamName,
+      date: row.date ? new Date(row.date).toISOString() : null,
+      dateOnly,
+      time: timeOnly,
+      categoryId: row.categoryid,
+      category: row.categoryName,
+      status: row.status || 'SCHEDULED',
+      type: row.type || 'TRAINING',
+      createdAt: row.createdat,
+      updatedAt: row.updatedat
+    };
+  });
+  return NextResponse.json(formatted);
 }
 
 /**
@@ -115,13 +126,17 @@ export async function GET(request: NextRequest) {
  * Создание новой тренировки
  */
 export async function POST(request: NextRequest) {
+  const token = (await getTokenFromRequest(request) as unknown) as Token | null;
+  if (!token || typeof token.clubId !== 'string') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const hasAccess = await checkClubAccess(request, token);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
+  }
   let debug = {};
   try {
-    const token = await getTokenFromRequest(request);
     debug = { ...debug, token };
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized', debug }, { status: 401 });
-    }
     const role = token.role as string;
     const clubId = token.clubId as string;
     const userId = token.id as string;

@@ -5,6 +5,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
+import { getToken } from 'next-auth/jwt';
 
 const createTestSchema = z.object({
   name: z.string().min(2).max(128),
@@ -13,21 +16,44 @@ const createTestSchema = z.object({
   description: z.string().max(512).optional(),
 });
 
-export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.clubId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+// Добавляю тип Token
+type Token = { clubId: string; [key: string]: any };
+
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, token: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return token.clubId === club.id;
+}
+
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
+export async function GET(request: NextRequest) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-  const tests = await db.select().from(fitnessTest).where(eq(fitnessTest.clubId, session.user.clubId));
+  const hasAccess = await checkClubAccess(request, token);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
+  }
+  const tests = await db.select().from(fitnessTest).where(eq(fitnessTest.clubId, token.clubId));
   return NextResponse.json(tests);
 }
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.clubId || !session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export async function POST(request: NextRequest) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-  const body = await req.json();
+  const hasAccess = await checkClubAccess(request, token);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
+  }
+  const body = await request.json();
   const parse = createTestSchema.safeParse(body);
   if (!parse.success) {
     return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
@@ -38,8 +64,8 @@ export async function POST(req: NextRequest) {
     type,
     unit,
     description,
-    clubId: session.user.clubId,
-    createdBy: session.user.id,
+    clubId: token.clubId,
+    createdBy: token.id,
   }).returning();
   return NextResponse.json(test);
 } 

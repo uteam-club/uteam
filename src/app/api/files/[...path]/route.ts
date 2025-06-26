@@ -4,11 +4,14 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
 import { getFullFilePath } from '@/lib/storage';
 import fs from 'fs';
 import path from 'path';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
+import { getToken } from 'next-auth/jwt';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
 // Разрешенные MIME типы и их соответствующие расширения файлов
 const ALLOWED_MIME_TYPES: Record<string, string> = {
@@ -23,16 +26,35 @@ const ALLOWED_MIME_TYPES: Record<string, string> = {
   '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 };
 
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, session: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return session.user.clubId === club.id;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { path: string[] } }
 ) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     // Получаем сессию пользователя для проверки доступа
     const session = await getServerSession(authOptions);
     
     if (!session || !session.user) {
       return new NextResponse('Не авторизован', { status: 401 });
+    }
+    
+    const hasAccess = await checkClubAccess(request, session);
+    if (!hasAccess) {
+      return new NextResponse('Нет доступа к этому клубу', { status: 403 });
     }
     
     // Формируем относительный путь к файлу
@@ -46,12 +68,6 @@ export async function GET(
     }
     
     const clubId = pathParts[1];
-    
-    // Проверка принадлежности пользователя к клубу
-    if (session.user.clubId !== clubId) {
-      // Пользователь пытается получить доступ к файлам другого клуба
-      return new NextResponse('Доступ запрещен', { status: 403 });
-    }
     
     // Получаем полный путь к файлу
     const fullPath = getFullFilePath(relativePath);

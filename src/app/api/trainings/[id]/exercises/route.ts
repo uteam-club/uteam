@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
+import { getToken } from 'next-auth/jwt';
 import { db } from '@/lib/db';
 import { trainingExercise, exercise, user, exerciseCategory, exerciseTag, exerciseTagToExercise, mediaItem } from '@/db/schema';
 import { eq, and, inArray, asc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
 // Получить упражнения тренировки
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-    }
     const trainingId = params.id;
     // Получаем все связи training-exercise
     const links = await db.select().from(trainingExercise)
@@ -72,14 +73,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // Добавить упражнения к тренировке
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-    }
     const trainingId = params.id;
-    const { exerciseIds } = await req.json(); // ожидаем { exerciseIds: string[] }
+    const { exerciseIds } = await request.json(); // ожидаем { exerciseIds: string[] }
     if (!Array.isArray(exerciseIds) || !exerciseIds.length) {
       return NextResponse.json({ error: 'exerciseIds должен быть массивом' }, { status: 400 });
     }
@@ -105,14 +106,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 }
 
 // Удалить упражнение из тренировки
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-    }
     const trainingId = params.id;
-    const { trainingExerciseId } = await req.json(); // ожидаем { trainingExerciseId: string }
+    const { trainingExerciseId } = await request.json(); // ожидаем { trainingExerciseId: string }
     if (!trainingExerciseId) {
       return NextResponse.json({ error: 'trainingExerciseId обязателен' }, { status: 400 });
     }
@@ -127,10 +128,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 // PATCH — обновить порядок упражнений
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-    }
     const trainingId = params.id;
     const { positions } = await req.json(); // ожидаем { positions: [{ trainingExerciseId, position }] }
     if (!Array.isArray(positions) || positions.length === 0) {

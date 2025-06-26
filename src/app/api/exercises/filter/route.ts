@@ -6,6 +6,7 @@ import { createApiResponse, dynamicConfig } from '../../config';
 import { db } from '@/lib/db';
 import { exercise, user, exerciseCategory, exerciseTag, mediaItem, exerciseTagToExercise } from '@/db/schema';
 import { eq, and, inArray, ilike, desc, sql } from 'drizzle-orm';
+import { getToken } from 'next-auth/jwt';
 
 // Экспортируем конфигурацию для Next.js
 export const dynamic = 'force-dynamic';
@@ -30,7 +31,14 @@ const FilterSchema = z.object({
   sortOrder: SortOrderSchema.optional().default('desc')
 });
 
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
 export async function GET(request: NextRequest) {
+  const token = await getToken({ req: request });
+  if (!token) {
+    return createApiResponse({ error: 'Unauthorized' }, 401);
+  }
+
   try {
     // Получаем сессию пользователя
     const session = await getServerSession(authOptions);

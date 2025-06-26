@@ -15,13 +15,18 @@ interface ClubContextType {
   setClub: (club: Club | null) => void;
 }
 
+interface ClubContextProviderProps {
+  children: ReactNode;
+  initialClub?: Club | null;
+}
+
 const ClubContext = createContext<ClubContextType | undefined>(undefined);
 
-export const ClubContextProvider = ({ children }: { children: ReactNode }) => {
-  const [club, setClub] = useState<Club | null>(null);
+export const ClubContextProvider = ({ children, initialClub }: ClubContextProviderProps) => {
+  const [club, setClub] = useState<Club | null>(initialClub ?? null);
 
   useEffect(() => {
-    // Получаем subdomain из window.location.host
+    if (club) return; // Если клуб уже есть (например, с сервера) — не делаем fetch
     if (typeof window === 'undefined') return;
     const host = window.location.host;
     const hostParts = host.split('.');
@@ -30,14 +35,13 @@ export const ClubContextProvider = ({ children }: { children: ReactNode }) => {
     if (!hasSubdomain) return;
     const subdomain = hostParts[0];
     if (!subdomain) return;
-    // Запрашиваем клуб по subdomain
     fetch(`/api/clubs/by-subdomain?subdomain=${subdomain}`)
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data && data.id) setClub(data);
       })
       .catch(() => {});
-  }, []);
+  }, [club]);
 
   return (
     <ClubContext.Provider value={{ club, setClub }}>

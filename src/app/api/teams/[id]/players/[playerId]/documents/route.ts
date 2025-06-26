@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from '@/lib/db';
 import { playerDocument } from '@/db/schema';
 import { eq } from 'drizzle-orm';
@@ -6,15 +6,42 @@ import { uploadFile, deleteFile, getFileUrl } from '@/lib/yandex-storage';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
 import { uuidv4 } from '@/lib/uuid-wrapper';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
+import { getToken } from 'next-auth/jwt';
 
 export const dynamic = 'force-dynamic';
 
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, session: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return session.user.clubId === club.id;
+}
+
 export async function GET(req: NextRequest, { params }: { params: { id: string, playerId: string } }) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const { playerId } = params;
   if (!playerId) {
     return new Response(JSON.stringify({ error: 'playerId is required' }), { status: 400 });
   }
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
+    const hasAccess = await checkClubAccess(req, session);
+    if (!hasAccess) {
+      return new Response(JSON.stringify({ error: 'Нет доступа к этому клубу' }), { status: 403 });
+    }
     const documents = await db.select().from(playerDocument).where(eq(playerDocument.playerId, playerId));
     return new Response(JSON.stringify(documents), { status: 200 });
   } catch (e) {
@@ -23,6 +50,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string, 
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string, playerId: string } }) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const teamId = params.id;
     const playerId = params.playerId;
@@ -70,6 +101,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string,
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string, playerId: string } }) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });

@@ -4,10 +4,15 @@ import { authOptions } from '../../auth/[...nextauth]/auth-options';
 import { db } from '@/lib/db';
 import { exerciseTag, exerciseCategory } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
+import { getToken } from 'next-auth/jwt';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-
+// Добавляю тип Token
+type Token = { clubId: string; [key: string]: any };
 
 // Проверка и получение ID из параметров
 interface RouteParams {
@@ -16,8 +21,24 @@ interface RouteParams {
   };
 }
 
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, token: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return token.clubId === club.id;
+}
+
 // Обработчик PUT-запроса для обновления тега упражнений
 export async function PUT(req: NextRequest, { params }: RouteParams) {
+  const token = await getToken({ req: req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const { id } = params;
     
@@ -89,6 +110,10 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 
 // Обработчик DELETE-запроса для удаления тега упражнений
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
+  const token = await getToken({ req: req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const { id } = params;
     
@@ -133,4 +158,17 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       { status: 500 }
     );
   }
+}
+
+// В каждом обработчике (пример для GET):
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const hasAccess = await checkClubAccess(request, token);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
+  }
+  // ... остальной код ...
 } 

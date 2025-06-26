@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createUser, getUsersByClubId } from '@/services/user.service';
-import { generateRandomPassword } from '@/lib/utils';
+import { createUser, getUsersByClubId, getClubBySubdomain } from '@/services/user.service';
+import { generateRandomPassword, getSubdomain } from '@/lib/utils';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-
-
 const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
+// Добавляю тип Token
+type Token = { clubId: string; [key: string]: any };
 
 // Функция для чтения токена из заголовка Authorization
 async function getTokenFromRequest(request: NextRequest) {
@@ -48,36 +50,35 @@ async function getTokenFromRequest(request: NextRequest) {
   }
 }
 
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, token: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return token.clubId === club.id;
+}
+
 /**
  * GET /api/users
  * Получение списка пользователей текущего клуба
  */
 export async function GET(request: NextRequest) {
-  try {
-    // Получаем токен пользователя
-    const token = await getTokenFromRequest(request);
-    
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    const clubId = token.clubId as string;
-    const role = token.role as string;
-    
-    // Проверяем права (только админ или суперадмин)
-    if (!allowedRoles.includes(role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-    
-    const users = await getUsersByClubId(clubId);
-    return NextResponse.json(users);
-  } catch (error: any) {
-    console.error('Error fetching users:', error);
-    return NextResponse.json({ 
-      error: 'Failed to fetch users',
-      details: error.message || 'Unknown error'
-    }, { status: 500 });
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+  const clubId = token.clubId as string;
+  const role = token.role as string;
+  
+  // Проверяем права (только админ или суперадмин)
+  if (!allowedRoles.includes(role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  
+  const users = await getUsersByClubId(clubId);
+  return NextResponse.json(users);
 }
 
 /**
@@ -85,16 +86,12 @@ export async function GET(request: NextRequest) {
  * Создание нового пользователя
  */
 export async function POST(request: NextRequest) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     console.log('Начало обработки запроса на создание пользователя');
-    
-    // Получаем токен пользователя
-    const token = await getTokenFromRequest(request);
-    
-    if (!token) {
-      console.log('Ошибка аутентификации: пользователь не авторизован');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
     
     const clubId = token.clubId as string;
     const role = token.role as string;

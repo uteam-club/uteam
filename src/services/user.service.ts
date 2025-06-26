@@ -141,7 +141,11 @@ export async function getClubBySubdomain(subdomain: string) {
   if (!subdomain) return null;
   try {
     const [result] = await db.select().from(club).where(eq(club.subdomain, subdomain));
-    return result ?? null;
+    if (!result) return null;
+    return {
+      ...result,
+      logoUrl: result.logoUrl === null ? undefined : result.logoUrl,
+    };
   } catch (error) {
     console.error('Error fetching club by subdomain:', error);
     return null;

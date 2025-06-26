@@ -1,17 +1,41 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { getToken } from 'next-auth/jwt';
 import { db } from '@/lib/db';
 import { schedule, scheduleEvent } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { authOptions } from '@/lib/auth';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export async function GET(request: Request) {
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: Request, session: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return session.user.clubId === club.id;
+}
+
+export async function GET(request: NextRequest) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
       return new NextResponse('Unauthorized', { status: 401 });
+    }
+    const hasAccess = await checkClubAccess(request, session);
+    if (!hasAccess) {
+      return new NextResponse('Нет доступа к этому клубу', { status: 403 });
     }
     const { searchParams } = new URL(request.url);
     const teamId = searchParams.get('teamId');
@@ -31,7 +55,11 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const session = await getServerSession(authOptions);
     if (!session) {

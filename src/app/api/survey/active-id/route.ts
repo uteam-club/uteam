@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { survey } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
+import { getToken } from 'next-auth/jwt';
+
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
 export async function GET(req: NextRequest) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
+  }
   const { searchParams } = new URL(req.url);
   const tenantId = searchParams.get('tenantId');
   if (!tenantId) {

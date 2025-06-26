@@ -6,10 +6,14 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
+import { getToken } from 'next-auth/jwt';
+
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-
 
 // Схема валидации для добавления игрока в состав на матч
 const playerStatSchema = z.object({
@@ -22,22 +26,32 @@ const playerStatSchema = z.object({
   redCards: z.number().int().min(0).default(0),
 });
 
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, session: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return session.user.clubId === club.id;
+}
+
 // GET для получения всех игроков, участвующих в матче
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const hasAccess = await checkClubAccess(request, session);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
+  }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
-    }
-
     const matchId = params.id;
-
-    // Проверяем, существует ли матч и принадлежит ли он клубу пользователя
-    const [matchRow] = await db.select().from(match).where(and(eq(match.id, matchId), eq(match.clubId, session.user.clubId)));
-
-    if (!matchRow) {
-      return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
-    }
 
     // Получаем статистику игроков для этого матча
     const playerStats = await db.select({
@@ -70,6 +84,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 // POST для добавления игрока в состав на матч
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
@@ -169,6 +187,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
 // DELETE для удаления игрока из состава
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {

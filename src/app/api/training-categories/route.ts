@@ -5,6 +5,8 @@ import { db } from '@/lib/db';
 import { trainingCategory } from '@/db/schema';
 import { eq, asc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -26,6 +28,16 @@ async function getTokenFromRequest(request: NextRequest) {
   }
 }
 
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, token: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return token.clubId === club.id;
+}
+
 /**
  * GET /api/training-categories
  * Получение списка категорий тренировок клуба
@@ -41,6 +53,11 @@ export async function GET(request: NextRequest) {
     if (!token) {
       console.log('No token found, returning 401');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const hasAccess = await checkClubAccess(request, token);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
     }
     
     const clubId = token.clubId;

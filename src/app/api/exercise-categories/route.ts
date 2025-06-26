@@ -5,11 +5,14 @@ import { db } from '@/lib/db';
 import { exerciseCategory } from '@/db/schema';
 import { eq, asc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+import { getSubdomain } from '@/lib/utils';
+import { getClubBySubdomain } from '@/services/user.service';
 
 // Массив ролей, которым разрешено создавать категории
-const allowedRoles = ['SUPER_ADMIN', 'ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
+// Добавляю тип Token
+type Token = { clubId: string; [key: string]: any };
 
 // Функция для чтения токена из заголовка Authorization
 async function getTokenFromRequest(request: NextRequest) {
@@ -49,17 +52,36 @@ async function getTokenFromRequest(request: NextRequest) {
   }
 }
 
+// Проверка clubId пользователя и клуба по subdomain
+async function checkClubAccess(request: NextRequest, token: any) {
+  const host = request.headers.get('host') || '';
+  const subdomain = getSubdomain(host);
+  if (!subdomain) return false;
+  const club = await getClubBySubdomain(subdomain);
+  if (!club) return false;
+  return token.clubId === club.id;
+}
+
 export async function GET(req: NextRequest) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     console.log('Начало обработки GET-запроса для категорий упражнений');
     
     // Получаем токен пользователя
-    const token = await getTokenFromRequest(req);
+    const token = (await getTokenFromRequest(req) as unknown) as Token | null;
     
-    // Проверяем аутентификацию
-    if (!token) {
+    if (!token || typeof token.clubId !== 'string') {
       console.error('Ошибка аутентификации: пользователь не авторизован');
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    // Проверяем доступ к клубу
+    const hasAccess = await checkClubAccess(req, token);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
     }
     
     // Получаем ID клуба из токена
@@ -98,13 +120,17 @@ export async function GET(req: NextRequest) {
  * Создание новой категории упражнений
  */
 export async function POST(request: NextRequest) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     console.log('Начало обработки запроса на создание категории упражнений');
     
     // Получаем токен пользователя
-    const token = await getTokenFromRequest(request);
+    const token = (await getTokenFromRequest(request) as unknown) as Token | null;
     
-    if (!token) {
+    if (!token || typeof token.clubId !== 'string') {
       console.log('Ошибка аутентификации: пользователь не авторизован');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

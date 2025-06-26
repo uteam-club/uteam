@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { training, team, trainingCategory } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { getToken } from 'next-auth/jwt';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -13,6 +14,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {

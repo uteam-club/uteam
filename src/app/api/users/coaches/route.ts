@@ -3,10 +3,11 @@ import { db } from '@/lib/db';
 import { user, team, teamCoach } from '@/db/schema';
 import { eq, and, not, inArray, asc } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
+
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-
 
 /**
  * Получение токена из запроса с проверкой
@@ -25,15 +26,12 @@ async function getTokenFromRequest(req: NextRequest) {
  * Получение списка тренеров клуба
  */
 export async function GET(request: NextRequest) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     // Получаем токен пользователя
-    const token = await getTokenFromRequest(request);
-    
-    if (!token) {
-      console.log('GET /users/coaches: Unauthorized access attempt');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
     const clubId = token.clubId as string;
     
     // Фильтр для получения тренеров определенной команды
