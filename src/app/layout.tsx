@@ -14,6 +14,7 @@ export async function generateMetadata() {
   const host = headers().get('host') || '';
   const subdomain = getSubdomain(host);
   const club = subdomain ? await getClubBySubdomain(subdomain) : null;
+  console.log('generateMetadata:', { host, subdomain, club });
   return {
     title: club?.name || 'Uteam',
     description: club?.name ? `Платформа для клуба ${club.name}` : 'Uteam платформа для клубов',
