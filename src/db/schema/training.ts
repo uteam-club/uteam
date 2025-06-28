@@ -15,4 +15,5 @@ export const training = pgTable('Training', {
   categoryId: uuid('categoryId').notNull(),
   createdById: uuid('createdById').notNull(),
   type: varchar('type', { length: 20 }).default('TRAINING').notNull(),
+  timezone: varchar('timezone', { length: 64 }),
 }); 

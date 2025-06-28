@@ -7,6 +7,11 @@ import * as jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { getSubdomain } from '@/lib/utils';
 import { getClubBySubdomain } from '@/services/user.service';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+dayjs.extend(utc);
+dayjs.extend(timezone);
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -160,15 +165,18 @@ export async function POST(request: NextRequest) {
     if (!data.categoryId) {
       return NextResponse.json({ error: 'Missing required field: categoryId', debug }, { status: 400 });
     }
-    // Объединяем дату и время в один timestamp (UTC)
-    // Формируем ISO-строку с Z (UTC)
-    const dateTimeString = `${data.date}T${data.time}:00Z`;
+    if (!data.timezone) {
+      return NextResponse.json({ error: 'Missing required field: timezone', debug }, { status: 400 });
+    }
+    // Преобразуем локальное время в UTC с учётом таймзоны
+    const localDateTime = dayjs.tz(`${data.date} ${data.time}`, 'YYYY-MM-DD HH:mm', data.timezone);
+    const utcDateTime = localDateTime.utc().toDate();
     const trainingData = {
       id: uuidv4(),
       title: data.title.trim(),
       description: data.description || null,
       teamId: data.teamId,
-      date: new Date(dateTimeString), // всегда UTC
+      date: utcDateTime, // UTC
       location: data.location || null,
       notes: data.notes || null,
       categoryId: data.categoryId,
@@ -178,6 +186,7 @@ export async function POST(request: NextRequest) {
       type: data.type || 'TRAINING',
       createdAt: new Date(),
       updatedAt: new Date(),
+      timezone: data.timezone,
     };
     debug = { ...debug, trainingData };
     const [created] = await db.insert(training).values(trainingData).returning();

@@ -81,16 +81,6 @@ function TelegramBotSettings() {
     }
   };
 
-  // Сохраняем таймзону при изменении
-  useEffect(() => {
-    if (!selectedTeam) return;
-    fetch(`/api/teams/${selectedTeam}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ timezone: teamTimezone }),
-    });
-  }, [teamTimezone, selectedTeam]);
-
   return (
     <div className="mt-8 p-4 rounded-lg bg-vista-dark/30 border border-vista-secondary/30">
       <h3 className="text-xl font-bold mb-2 text-vista-light">Telegram-бот для опросников</h3>
@@ -109,32 +99,15 @@ function TelegramBotSettings() {
           />
         </div>
         <div className="flex flex-row items-center gap-2">
-          <label className="text-vista-light/90 font-semibold whitespace-nowrap">Часовой пояс:</label>
-          <select
-            value={teamTimezone}
-            onChange={e => setTeamTimezone(e.target.value)}
-            className="px-2 py-1 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light focus:ring-2 focus:ring-vista-accent"
-            disabled={loading}
-          >
-            <option value="Europe/Moscow">Москва (UTC+3)</option>
-            <option value="Europe/Samara">Самара (UTC+4)</option>
-            <option value="Asia/Yekaterinburg">Екатеринбург (UTC+5)</option>
-            <option value="Asia/Omsk">Омск (UTC+6)</option>
-            <option value="Asia/Krasnoyarsk">Красноярск (UTC+7)</option>
-            <option value="Asia/Irkutsk">Иркутск (UTC+8)</option>
-            <option value="Asia/Vladivostok">Владивосток (UTC+10)</option>
-            <option value="Europe/Kaliningrad">Калининград (UTC+2)</option>
-          </select>
-        </div>
-        <div className="flex flex-row items-center gap-2">
           <label className="text-vista-light/90 font-semibold whitespace-nowrap">Время рассылки:</label>
-        <input
-          type="time"
-          value={broadcastTime}
-          onChange={e => setBroadcastTime(e.target.value)}
+          <input
+            type="time"
+            value={broadcastTime}
+            onChange={e => setBroadcastTime(e.target.value)}
             className="px-2 py-1 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light focus:ring-2 focus:ring-vista-accent"
             disabled={loading}
           />
+          <span className="text-vista-light/60 text-xs">({teamTimezone})</span>
         </div>
         <label className="flex items-center gap-2 text-vista-light/90 font-semibold bg-vista-dark/40 border border-vista-secondary/50 rounded px-3 py-2 cursor-pointer select-none">
           <input

@@ -3,12 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import React from 'react';
+import { TimezoneSelect } from '../ui/timezone-select';
 
 interface EditTeamModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  team: { name: string };
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  team: { name: string; timezone: string };
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   onSave: () => void;
   onCancel: () => void;
   error?: string;
@@ -28,6 +29,15 @@ export const EditTeamModal: React.FC<EditTeamModalProps> = ({ open, onOpenChange
         <div className="space-y-2">
           <Label htmlFor="team-name" className="text-vista-light/70 font-normal">Название команды</Label>
           <Input id="team-name" name="name" value={team.name} onChange={onChange} className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light" placeholder="Введите название" disabled={loading} />
+        </div>
+        <div className="space-y-2">
+          <TimezoneSelect
+            value={team.timezone}
+            onChange={tz => onChange({ target: { name: 'timezone', value: tz } } as any)}
+            label="Часовой пояс команды"
+            placeholder="Выберите часовой пояс"
+            disabled={loading}
+          />
         </div>
       </div>
       <DialogFooter className="flex justify-end gap-2 mt-4">

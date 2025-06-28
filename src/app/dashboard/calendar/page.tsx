@@ -34,6 +34,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AddMatchModal } from '@/components/matches/AddMatchModal';
 import { CreateTrainingModal } from '@/components/training/CreateTrainingModal';
 import { AddEventTypeModal } from '@/components/calendar/AddEventTypeModal';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+dayjs.extend(utc);
+dayjs.extend(timezone);
 // import TrainingsPage from '@/app/dashboard/coaching/trainings/page';
 
 interface Team {
@@ -50,6 +55,7 @@ interface TrainingEvent {
   teamName: string;
   type: 'TRAINING' | 'MATCH' | 'GYM';
   status: string;
+  timezone?: string;
   // Добавляем поля для матчей
   competitionType?: 'FRIENDLY' | 'LEAGUE' | 'CUP';
   isHome?: boolean;
@@ -760,7 +766,7 @@ export default function CalendarPage() {
                               {/* Третья строка: дата и время */}
                               <div className="flex items-center justify-center text-vista-light/70 text-xs mt-1">
                                 <Clock className="h-3 w-3 mr-1 opacity-70" />
-                                <span>{training.date ? new Date(training.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Moscow' }) : ''}</span>
+                                <span>{training.date ? dayjs.utc(training.date).tz(training.timezone || 'Europe/Moscow').format('HH:mm') : ''}</span>
                                 <span className="mx-1">·</span>
                                 <span>{training.time}</span>
                               </div>
@@ -786,7 +792,7 @@ export default function CalendarPage() {
                               <div className="text-vista-light/80 truncate max-w-[60%]">{training.teamName}</div>
                               <div className="flex items-center text-vista-light/90">
                                 <Clock className="h-3 w-3 mr-1 opacity-70" />
-                                {training.date ? new Date(training.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' }) : ''}
+                                {training.date ? dayjs.utc(training.date).tz(training.timezone || 'Europe/Moscow').format('HH:mm') : ''}
                               </div>
                             </div>
                           </div>

@@ -20,4 +20,5 @@ export const match = pgTable('Match', {
   notes: text('notes'),
   playerPositions: text('playerPositions'),
   positionAssignments: text('positionAssignments'),
+  timezone: varchar('timezone', { length: 64 }),
 }); 

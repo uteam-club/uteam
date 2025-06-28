@@ -30,11 +30,19 @@ export function formatDateTime(date: Date | string): string {
 
 // Заглушка для getSubdomain
 export function getSubdomain(host: string): string | null {
-  // Простейшее определение поддомена
   if (!host) return null;
-  const parts = host.split('.');
-  if (parts.length < 3) return null;
-  return parts[0];
+  // Убираем порт, если есть
+  const hostWithoutPort = host.split(':')[0];
+  const parts = hostWithoutPort.split('.');
+  // Для fdcvista.localhost → ['fdcvista', 'localhost']
+  if (parts.length === 2 && parts[1] === 'localhost') {
+    return parts[0];
+  }
+  // Для боевого домена типа club.site.com
+  if (parts.length >= 3) {
+    return parts[0];
+  }
+  return null;
 }
 
 // Заглушка для generateRandomPassword

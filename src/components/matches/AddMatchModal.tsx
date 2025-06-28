@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { useSession } from 'next-auth/react';
+import { TimezoneSelect } from '../ui/timezone-select';
 
 interface Team {
   id: string;
@@ -39,6 +40,7 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
   const [teamGoals, setTeamGoals] = useState(0);
   const [opponentGoals, setOpponentGoals] = useState(0);
   const [matchStatus, setMatchStatus] = useState<'SCHEDULED' | 'FINISHED'>('SCHEDULED');
+  const [timezone, setTimezone] = useState('Europe/Moscow');
 
   // Загрузка списка команд
   useEffect(() => {
@@ -47,6 +49,19 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
       setMatchDate(initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
     }
   }, [isOpen, initialDate]);
+
+  useEffect(() => {
+    async function fetchTeamTimezone(teamId: string) {
+      if (!teamId) return;
+      try {
+        const response = await fetch(`/api/teams/${teamId}`);
+        if (!response.ok) return;
+        const data = await response.json();
+        setTimezone(data.timezone || 'Europe/Moscow');
+      } catch {}
+    }
+    if (teamId) fetchTeamTimezone(teamId);
+  }, [teamId]);
 
   const fetchTeams = async () => {
     try {
@@ -101,6 +116,7 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
           status: matchStatus,
           teamGoals: matchStatus === 'FINISHED' ? Number(teamGoals) : null,
           opponentGoals: matchStatus === 'FINISHED' ? Number(opponentGoals) : null,
+          timezone,
         }),
       });
 
@@ -288,6 +304,19 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
                 />
             </div>
           </div>
+          
+          <div className="mt-2">
+            <TimezoneSelect
+              value={timezone}
+              onChange={setTimezone}
+              label="Часовой пояс матча"
+              placeholder="Выберите часовой пояс"
+              disabled={!teamId}
+            />
+          </div>
+          {timezone && (
+            <div className="text-xs text-vista-light/60 mt-1">Время матча указывается в часовом поясе: <b>{timezone}</b></div>
+          )}
           
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} className="border-vista-secondary/30">

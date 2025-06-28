@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useClub } from '@/providers/club-provider';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, XMarkIcon, CheckIcon, TrashIcon, PencilIcon, ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
+import { TimezoneSelect } from '@/components/ui/timezone-select';
 
 // Определение перечня ролей (используется для выпадающего списка)
 const USER_ROLES = [
@@ -37,6 +38,7 @@ interface Team {
   order: number;
   description?: string;
   teamType: 'academy' | 'contract'; // новое поле
+  timezone?: string;
 }
 
 // Определяем типы для категорий тренировок
@@ -102,9 +104,9 @@ export default function AdminPage() {
   const [isAddTeamModalOpen, setIsAddTeamModalOpen] = useState(false);
   const [isEditTeamModalOpen, setIsEditTeamModalOpen] = useState(false);
   const [isDeleteTeamModalOpen, setIsDeleteTeamModalOpen] = useState(false);
-  const [newTeam, setNewTeam] = useState({ name: '', teamType: 'academy' });
+  const [newTeam, setNewTeam] = useState({ name: '', teamType: 'academy', timezone: '' });
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
-  const [editedTeam, setEditedTeam] = useState({ name: '', teamType: 'academy' });
+  const [editedTeam, setEditedTeam] = useState({ name: '', teamType: 'academy', timezone: '' });
   
   // Состояния для работы с категориями тренировок
   const [trainingCategories, setTrainingCategories] = useState<TrainingCategory[]>([]);
@@ -429,9 +431,13 @@ export default function AdminPage() {
     setError('');
     
     try {
-      // Проверка названия
       if (!newTeam.name.trim()) {
         setError('Введите название команды');
+        setIsLoading(false);
+        return;
+      }
+      if (!newTeam.timezone) {
+        setError('Выберите часовой пояс');
         setIsLoading(false);
         return;
       }
@@ -448,12 +454,7 @@ export default function AdminPage() {
       const data = await response.json();
       
       if (!response.ok) {
-        // Показываем details, если есть
-        let errorMsg = data.error || 'Ошибка при создании команды';
-        if (data.details) {
-          errorMsg += `: ${data.details}`;
-        }
-        throw new Error(errorMsg);
+        throw new Error(data.error || 'Ошибка при создании команды');
       }
       
       // Обновляем список команд
@@ -463,7 +464,7 @@ export default function AdminPage() {
       setIsAddTeamModalOpen(false);
       
       // Сбрасываем форму
-      setNewTeam({ name: '', teamType: 'academy' });
+      setNewTeam({ name: '', teamType: 'academy', timezone: '' });
     } catch (error: any) {
       console.error('Ошибка при создании команды:', error);
       setError(error.message || 'Не удалось создать команду');
@@ -475,49 +476,41 @@ export default function AdminPage() {
   // Функция для открытия модального окна редактирования команды
   const handleEditTeamClick = (team: Team) => {
     setSelectedTeam(team);
-    setEditedTeam({ name: team.name, teamType: team.teamType });
+    setEditedTeam({ name: team.name, teamType: team.teamType, timezone: team.timezone || '' });
     setIsEditTeamModalOpen(true);
   };
   
   // Функция для обновления команды
   const handleUpdateTeam = async () => {
     if (!selectedTeam) return;
-    
     setIsLoading(true);
     setError('');
-    
     try {
-      // Проверка названия
       if (!editedTeam.name.trim()) {
         setError('Введите название команды');
         setIsLoading(false);
         return;
       }
-      
+      if (!editedTeam.timezone) {
+        setError('Выберите часовой пояс');
+        setIsLoading(false);
+        return;
+      }
       const response = await fetch(`/api/teams/${selectedTeam.id}`, {
-        method: 'PUT',
+        method: 'PATCH', // исправлено с PUT на PATCH
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(editedTeam),
       });
-      
       const data = await response.json();
-      
       if (!response.ok) {
         throw new Error(data.error || 'Ошибка при обновлении команды');
       }
-      
-      // Обновляем список команд
       await fetchTeams();
-      
-      // Закрываем модальное окно редактирования
       setIsEditTeamModalOpen(false);
-      
-      // Сбрасываем выбранную команду
       setSelectedTeam(null);
     } catch (error: any) {
-      console.error('Ошибка при обновлении команды:', error);
       setError(error.message || 'Не удалось обновить команду');
     } finally {
       setIsLoading(false);
@@ -1617,6 +1610,17 @@ export default function AdminPage() {
                     </select>
                   </div>
                   
+                  <div>
+                    <label className="block text-sm font-medium text-vista-light/80 mb-1">Часовой пояс</label>
+                    <TimezoneSelect
+                      value={newTeam.timezone}
+                      onChange={(tz: string) => setNewTeam(prev => ({ ...prev, timezone: tz }))}
+                      label="Часовой пояс команды"
+                      placeholder="Выберите часовой пояс"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  
                   <div className="flex justify-end space-x-3 mt-6">
                     <Button
                       variant="outline"
@@ -1628,7 +1632,7 @@ export default function AdminPage() {
                     </Button>
                     <Button
                       onClick={handleAddTeam}
-                      disabled={isLoading || !newTeam.name.trim()}
+                      disabled={isLoading || !newTeam.name.trim() || !newTeam.timezone}
                       className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                     >
                       {isLoading ? 'Создание...' : 'Добавить'}
@@ -1689,6 +1693,17 @@ export default function AdminPage() {
                     </select>
                   </div>
                   
+                  <div>
+                    <label className="block text-sm font-medium text-vista-light/80 mb-1">Часовой пояс</label>
+                    <TimezoneSelect
+                      value={editedTeam.timezone}
+                      onChange={(tz: string) => setEditedTeam(prev => ({ ...prev, timezone: tz }))}
+                      label="Часовой пояс команды"
+                      placeholder="Выберите часовой пояс"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  
                   <div className="flex justify-end space-x-3 mt-6">
                     <Button
                       variant="outline"
@@ -1700,7 +1715,7 @@ export default function AdminPage() {
                     </Button>
                     <Button
                       onClick={handleUpdateTeam}
-                      disabled={isLoading || !editedTeam.name.trim()}
+                      disabled={isLoading || !editedTeam.name.trim() || !editedTeam.timezone}
                       className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                     >
                       {isLoading ? 'Сохранение...' : 'Сохранить'}
