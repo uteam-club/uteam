@@ -11,7 +11,7 @@ import { getToken } from 'next-auth/jwt';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Разрешенные MIME типы и их соответствующие расширения файлов
 const ALLOWED_MIME_TYPES: Record<string, string> = {

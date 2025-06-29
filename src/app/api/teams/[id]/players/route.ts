@@ -9,7 +9,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from '@/lib/auth-options';
 import { getToken } from 'next-auth/jwt';
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Проверка clubId пользователя и клуба по subdomain
 async function checkClubAccess(request: NextRequest, session: any) {

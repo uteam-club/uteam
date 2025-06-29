@@ -5,7 +5,7 @@ import { team } from "@/db/schema/team";
 import { eq, and } from "drizzle-orm";
 import { getToken } from 'next-auth/jwt';
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 function toDateOrNull(val: any) {
   if (val === null || val === undefined || val === '') return null;

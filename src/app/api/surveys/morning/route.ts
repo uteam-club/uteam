@@ -10,7 +10,7 @@ import { getToken } from 'next-auth/jwt';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // GET /api/surveys/morning
 export async function GET(request: NextRequest) {

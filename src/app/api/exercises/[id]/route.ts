@@ -12,7 +12,7 @@ import { getToken } from 'next-auth/jwt';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Функция для чтения токена из заголовка Authorization
 async function getTokenFromRequest(request: NextRequest) {

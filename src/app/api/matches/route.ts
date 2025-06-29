@@ -34,7 +34,7 @@ const matchSchema = z.object({
   opponentGoals: z.number().int().min(0).nullable().default(null),
 });
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Проверка clubId пользователя и клуба по subdomain
 async function checkClubAccess(request: NextRequest, token: any) {

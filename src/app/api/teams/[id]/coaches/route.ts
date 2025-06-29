@@ -5,7 +5,7 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
 import * as z from 'zod';
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

@@ -9,7 +9,7 @@ import { getSubdomain } from '@/lib/utils';
 import { getClubBySubdomain } from '@/services/user.service';
 
 // Массив ролей, которым разрешено создавать категории
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Добавляю тип Token
 type Token = { clubId: string; [key: string]: any };

@@ -19,7 +19,7 @@ const saveResultsSchema = z.object({
   })),
 });
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Проверка clubId пользователя и клуба по subdomain
 async function checkClubAccess(request: NextRequest, session: any) {

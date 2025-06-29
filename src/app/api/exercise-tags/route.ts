@@ -30,7 +30,7 @@ async function checkClubAccess(request: NextRequest, token: any) {
   return token.clubId === club.id;
 }
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Обработчик GET-запроса для получения всех тегов упражнений
 export async function GET(req: NextRequest) {

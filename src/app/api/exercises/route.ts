@@ -16,7 +16,7 @@ export const revalidate = 0;
 // Добавляю тип Token
 type Token = { clubId: string; [key: string]: any };
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // GET: получить все упражнения с фильтрацией и join по авторам, категориям, тегам, mediaItems
 export async function GET(req: NextRequest) {

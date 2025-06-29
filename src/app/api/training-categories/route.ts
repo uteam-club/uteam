@@ -12,7 +12,7 @@ export const revalidate = 0;
 
 
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Вспомогательная функция для получения токена из запроса
 async function getTokenFromRequest(request: NextRequest) {

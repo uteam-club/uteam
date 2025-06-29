@@ -13,6 +13,8 @@ import { v4 as uuidv4 } from 'uuid';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
+
 // Функция для получения токена
 async function getTokenFromRequest(request: NextRequest) {
   const token = await getToken({ req: request });

@@ -31,7 +31,7 @@ const FilterSchema = z.object({
   sortOrder: SortOrderSchema.optional().default('desc')
 });
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request });

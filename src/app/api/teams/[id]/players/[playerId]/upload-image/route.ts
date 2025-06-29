@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { uploadFile, deleteFile, getFileUrl } from '@/lib/yandex-storage';
 import { getToken } from 'next-auth/jwt';
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 export async function POST(req: NextRequest, { params }: { params: { id: string, playerId: string } }) {
   const token = await getToken({ req });

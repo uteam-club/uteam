@@ -5,7 +5,7 @@ import { trainingExercise, exercise, user, exerciseCategory, exerciseTag, exerci
 import { eq, and, inArray, asc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Получить упражнения тренировки
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {

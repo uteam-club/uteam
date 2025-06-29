@@ -4,7 +4,7 @@ import { team } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getToken } from 'next-auth/jwt';
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const token = await getToken({ req: request });
