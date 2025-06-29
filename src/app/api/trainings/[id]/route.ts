@@ -186,6 +186,7 @@ export async function PUT(
     if ('description' in data) trainingData.description = data.description;
     if ('teamId' in data) trainingData.teamId = data.teamId;
     if ('date' in data) trainingData.date = data.date;
+    if ('time' in data) trainingData.time = data.time;
     if ('location' in data) trainingData.location = data.location;
     if ('notes' in data) trainingData.notes = data.notes;
     if ('categoryId' in data) trainingData.categoryId = data.categoryId;

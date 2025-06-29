@@ -23,6 +23,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import AttendanceModal from '@/components/training/AttendanceModal';
 import SelectExercisesModal from '@/components/training/SelectExercisesModal';
+import { CreateTrainingModal } from '@/components/training/CreateTrainingModal';
 
 interface Training {
   id: string;
@@ -37,6 +38,7 @@ interface Training {
   categoryId: string;
   category: string;
   isCompleted?: boolean;
+  type: string;
 }
 
 interface Exercise {
@@ -89,6 +91,16 @@ interface Category {
   name: string;
 }
 
+interface Team {
+  id: string;
+  name: string;
+}
+
+interface TrainingCategory {
+  id: string;
+  name: string;
+}
+
 export default function TrainingPage() {
   const params = useParams();
   const router = useRouter();
@@ -124,6 +136,15 @@ export default function TrainingPage() {
   
   // Состояние для управления модальным окном посещаемости
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editTraining, setEditTraining] = useState<any>(null);
+
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [isLoadingTeams, setIsLoadingTeams] = useState(false);
+
+  const [trainingCategories, setTrainingCategories] = useState<TrainingCategory[]>([]);
+  const [isLoadingTrainingCategories, setIsLoadingTrainingCategories] = useState(false);
 
   useEffect(() => {
     async function fetchTraining() {
@@ -547,6 +568,91 @@ export default function TrainingPage() {
     }
   };
 
+  const handleOpenEditModal = () => {
+    if (!training) return;
+    setEditTraining({
+      title: training.title || '',
+      teamId: training.teamId || '',
+      date: training.date || '',
+      time: training.time || '',
+      categoryId: training.categoryId || '',
+      type: training.type || 'TRAINING',
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditTrainingChange = (field: string, value: string) => {
+    setEditTraining((prev: any) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditTrainingSave = async () => {
+    if (!editTraining) return;
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/trainings/${trainingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editTraining),
+      });
+      if (!response.ok) throw new Error('Ошибка при обновлении тренировки');
+      const updated = await response.json();
+      setTraining((prev: any) => ({ ...prev, ...updated }));
+      setIsEditModalOpen(false);
+    } catch (error) {
+      alert('Не удалось обновить тренировку. Пожалуйста, попробуйте снова.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    async function fetchTeams() {
+      try {
+        setIsLoadingTeams(true);
+        const response = await fetch('/api/teams', {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        if (!response.ok) throw new Error('Не удалось загрузить команды');
+        const data = await response.json();
+        setTeams(data);
+      } catch (error) {
+        setTeams([]);
+      } finally {
+        setIsLoadingTeams(false);
+      }
+    }
+    if (session?.user) fetchTeams();
+  }, [session]);
+
+  useEffect(() => {
+    async function fetchTrainingCategories() {
+      try {
+        setIsLoadingTrainingCategories(true);
+        const response = await fetch('/api/training-categories', {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        if (!response.ok) throw new Error('Не удалось загрузить категории тренировок');
+        const data = await response.json();
+        setTrainingCategories(data);
+      } catch (error) {
+        setTrainingCategories([]);
+      } finally {
+        setIsLoadingTrainingCategories(false);
+      }
+    }
+    if (session?.user) fetchTrainingCategories();
+  }, [session]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
@@ -582,7 +688,8 @@ export default function TrainingPage() {
     team: 'Основной состав',
     categoryId: '2',
     category: 'Тактическая тренировка',
-    notes: 'Обратить внимание на построение защитной линии и прессинг'
+    notes: 'Обратить внимание на построение защитной линии и прессинг',
+    type: 'TRAINING'
   };
 
   return (
@@ -637,6 +744,13 @@ export default function TrainingPage() {
               className="bg-vista-dark/70 shadow-sm border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 shadow-sm"
             >
               <Save className="mr-2 h-4 w-4" /> Сохранить
+            </Button>
+            <Button 
+              variant="secondary" 
+              onClick={handleOpenEditModal}
+              className="bg-vista-dark/70 shadow-sm border-vista-secondary/50 text-vista-light hover:bg-vista-primary/20"
+            >
+              ✏️ Редактировать
             </Button>
             <Button 
               variant="destructive" 
@@ -896,6 +1010,76 @@ export default function TrainingPage() {
         isOpen={isAttendanceModalOpen} 
         onClose={() => setIsAttendanceModalOpen(false)} 
       />
+
+      {/* Модалка редактирования тренировки */}
+      {isEditModalOpen && (
+        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-hidden backdrop-blur-xl">
+            <DialogHeader>
+              <DialogTitle className="text-vista-light text-xl">Редактировать тренировку</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-title" className="text-vista-light/40 font-normal">Название</Label>
+                <Input id="edit-title" value={editTraining.title} onChange={e => handleEditTrainingChange('title', e.target.value)} className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50" placeholder="Введите название тренировки" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-team" className="text-vista-light/40 font-normal">Команда</Label>
+                <Select value={editTraining.teamId} onValueChange={v => handleEditTrainingChange('teamId', v)}>
+                  <SelectTrigger id="edit-team" className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+                    <SelectValue placeholder="Выберите команду" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                    {teams.map(team => (
+                      <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-date" className="text-vista-light/40 font-normal">Дата и время</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative">
+                    <Input id="edit-date" type="date" value={editTraining.date} onChange={e => handleEditTrainingChange('date', e.target.value)} className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden" onClick={e => { try { (e.target as HTMLInputElement).showPicker(); } catch (error) {} }} />
+                  </div>
+                  <div className="relative">
+                    <Input id="edit-time" type="time" value={editTraining.time} onChange={e => handleEditTrainingChange('time', e.target.value)} className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden" onClick={e => { try { (e.target as HTMLInputElement).showPicker(); } catch (error) {} }} />
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-category" className="text-vista-light/40 font-normal">Категория</Label>
+                <Select value={editTraining.categoryId} onValueChange={v => handleEditTrainingChange('categoryId', v)}>
+                  <SelectTrigger id="edit-category" className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+                    <SelectValue placeholder="Выберите категорию" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                    {trainingCategories.map((category: TrainingCategory) => (
+                      <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-type" className="text-vista-light/40 font-normal">Тип</Label>
+                <Select value={editTraining.type} onValueChange={v => handleEditTrainingChange('type', v)}>
+                  <SelectTrigger id="edit-type" className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+                    <SelectValue placeholder="Выберите тип" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                    <SelectItem value="TRAINING">Тренировка</SelectItem>
+                    <SelectItem value="GYM">Тренажерный зал</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="border-vista-secondary/30">Отмена</Button>
+              <Button onClick={handleEditTrainingSave} className="bg-vista-primary hover:bg-vista-primary/90">Сохранить</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 } 
