@@ -37,6 +37,7 @@ interface Training {
   title: string;
   date: string;
   teamId: string;
+  time: string;
 }
 
 interface AttendanceData {
@@ -518,7 +519,7 @@ export default function AttendanceAnalyticsPage() {
                               className={`text-vista-light/80 font-medium text-center p-1.5 min-w-[80px] ${getTrainingColumnClass(training.date)}`}
                             >
                               <div className="flex flex-col items-center justify-center">
-                                <span className="text-xs">{format(parseISO(training.date), 'dd.MM', { locale: ru })}</span>
+                                <span className="text-xs">{training.time}</span>
                               </div>
                             </TableHead>
                           ))}

@@ -3,8 +3,8 @@ import { pgTable, uuid, varchar, integer, boolean, text, timestamp } from 'drizz
 export const match = pgTable('Match', {
   id: uuid('id').primaryKey().defaultRandom(),
   competitionType: varchar('competitionType', { length: 50 }).notNull(),
-  date: timestamp('date', { withTimezone: true }).notNull(),
-  time: varchar('time', { length: 10 }).notNull(),
+  date: varchar('date', { length: 10 }).notNull(),
+  time: varchar('time', { length: 5 }).notNull(),
   isHome: boolean('isHome').notNull(),
   teamId: uuid('teamId').notNull(),
   opponentName: varchar('opponentName', { length: 255 }).notNull(),
@@ -20,5 +20,4 @@ export const match = pgTable('Match', {
   notes: text('notes'),
   playerPositions: text('playerPositions'),
   positionAssignments: text('positionAssignments'),
-  timezone: varchar('timezone', { length: 64 }),
 }); 

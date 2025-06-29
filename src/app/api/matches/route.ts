@@ -32,7 +32,6 @@ const matchSchema = z.object({
   status: z.enum(['SCHEDULED', 'FINISHED']).default('SCHEDULED'),
   teamGoals: z.number().int().min(0).nullable().default(null),
   opponentGoals: z.number().int().min(0).nullable().default(null),
-  timezone: z.string().min(1, 'Выберите часовой пояс'),
 });
 
 const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
@@ -64,8 +63,8 @@ export async function GET(request: NextRequest) {
     const toDate = searchParams.get('toDate');
     const whereArr = [eq(match.clubId, token.clubId)];
     if (teamId) whereArr.push(eq(match.teamId, teamId));
-    if (fromDate) whereArr.push(gte(match.date, new Date(fromDate)));
-    if (toDate) { const endDate = new Date(toDate); endDate.setHours(23,59,59,999); whereArr.push(lte(match.date, endDate)); }
+    if (fromDate) whereArr.push(gte(match.date, fromDate));
+    if (toDate) whereArr.push(lte(match.date, toDate));
     const rows = await db.select({
       id: match.id,
       competitionType: match.competitionType,
@@ -118,19 +117,19 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const { competitionType, date, time, isHome, teamId, opponentName, status, teamGoals, opponentGoals, timezone: tz } = validationResult.data;
+    const { competitionType, date, time, isHome, teamId, opponentName, status, teamGoals, opponentGoals } = validationResult.data;
     const [teamRow] = await db.select().from(team).where(and(eq(team.id, teamId), eq(team.clubId, token.clubId)));
     if (!teamRow) {
       return NextResponse.json({ error: 'Команда не найдена' }, { status: 404 });
     }
     const now = new Date();
     // Преобразуем дату+время в UTC с учётом timezone
-    const localDateTime = dayjs.tz(`${date} ${time}`, 'YYYY-MM-DD HH:mm', tz);
-    const utcDateTime = localDateTime.utc().toDate();
+    const localDateTime = dayjs.tz(`${date} ${time}`, 'YYYY-MM-DD HH:mm', teamRow.timezone);
+    const utcDateString = localDateTime.utc().format('YYYY-MM-DD');
     const [created] = await db.insert(match).values({
       id: crypto.randomUUID(),
       competitionType,
-      date: utcDateTime,
+      date: utcDateString,
       time,
       isHome,
       teamId,
@@ -141,7 +140,6 @@ export async function POST(request: NextRequest) {
       clubId: token.clubId,
       createdAt: now,
       updatedAt: now,
-      timezone: tz,
     }).returning();
     return NextResponse.json(created, { status: 201 });
   } catch (error) {

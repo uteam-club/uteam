@@ -8,6 +8,6 @@ export const team = pgTable('Team', {
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow().notNull(),
   clubId: uuid('clubId').notNull(),
   order: integer('order').default(999).notNull(),
-  timezone: varchar('timezone', { length: 64 }).default('Europe/Moscow').notNull(),
   teamType: varchar('teamType', { length: 16 }).default('academy').notNull(),
+  timezone: varchar('timezone', { length: 64 }).default('Europe/Moscow').notNull(),
 }); 

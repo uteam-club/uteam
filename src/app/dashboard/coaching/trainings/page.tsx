@@ -49,7 +49,6 @@ interface Training {
   isCompleted?: boolean;
   status?: string;
   type: string;
-  dateOnly: string;
 }
 
 export default function TrainingsPage() {
@@ -184,14 +183,14 @@ export default function TrainingsPage() {
       
       // Фильтр по дате начала
       if (startDate) {
-        if (training.dateOnly < startDate) {
+        if (training.date < startDate) {
           return false;
         }
       }
       
       // Фильтр по дате окончания
       if (endDate) {
-        if (training.dateOnly > endDate) {
+        if (training.date > endDate) {
           return false;
         }
       }
@@ -536,14 +535,7 @@ export default function TrainingsPage() {
                       {/* Дата и время */}
                       <div className="flex items-center mb-4 text-vista-light/80">
                         <Calendar className="h-4 w-4 mr-2 text-vista-primary" />
-                        <span>
-                          {new Date(training.date).toLocaleDateString('ru-RU', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                            timeZone: 'Europe/Moscow',
-                          })}, {new Date(training.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })}
-                        </span>
+                        <span>{training.time}</span>
                       </div>
                       
                       {/* Теги в нижней части */}

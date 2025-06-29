@@ -413,10 +413,10 @@ export default function DocumentsPage() {
                               rel="noopener noreferrer"
                               className="bg-vista-primary/10 text-vista-primary rounded px-2 py-1 cursor-pointer transition hover:bg-vista-primary/20 hover:text-vista-primary/80"
                             >
-                              {new Date(player.visaExpiryDate).toLocaleDateString()}
+                              {player.visaExpiryDate}
                             </a>
                           ) : (
-                            <span>{new Date(player.visaExpiryDate).toLocaleDateString()}</span>
+                            <span>{player.visaExpiryDate}</span>
                           )
                         ) : '—'}
                       </TableCell>

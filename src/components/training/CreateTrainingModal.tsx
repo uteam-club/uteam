@@ -7,12 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useTrainingCategories } from '@/hooks/useExerciseData';
 import { useSession } from 'next-auth/react';
 import { format } from 'date-fns';
-import { TimezoneSelect } from '../ui/timezone-select';
 
 interface Team {
   id: string;
   name: string;
-  timezone?: string;
 }
 interface Category {
   id: string;
@@ -37,7 +35,6 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
     time: '12:00',
     categoryId: '',
     type: 'TRAINING',
-    timezone: '',
   });
   const [errors, setErrors] = useState({
     title: '',
@@ -74,23 +71,6 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
     setNewTraining((prev) => ({ ...prev, date: initialDate ? format(initialDate, 'yyyy-MM-dd') : '' }));
   }, [initialDate]);
 
-  useEffect(() => {
-    async function fetchTeamTimezone(teamId: string) {
-      if (!teamId) return;
-      try {
-        const response = await fetch(`/api/teams/${teamId}`);
-        if (!response.ok) return;
-        const data = await response.json();
-        setNewTraining((prev) => ({ ...prev, timezone: data.timezone || 'Europe/Moscow' }));
-      } catch {}
-    }
-    if (newTraining.teamId) {
-      fetchTeamTimezone(newTraining.teamId);
-    } else {
-      setNewTraining((prev) => ({ ...prev, timezone: '' }));
-    }
-  }, [newTraining.teamId]);
-
   const handleInputChange = (field: string, value: string) => {
     setNewTraining((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: '' }));
@@ -103,7 +83,6 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
     if (!newTraining.teamId) { newErrors.teamId = 'Выберите команду'; hasError = true; }
     if (!newTraining.date) { newErrors.date = 'Выберите дату'; hasError = true; }
     if (!newTraining.categoryId) { newErrors.categoryId = 'Выберите категорию'; hasError = true; }
-    if (!newTraining.timezone) { hasError = true; }
     setErrors(newErrors);
     if (hasError) return;
     try {
@@ -113,7 +92,7 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
         body: JSON.stringify(newTraining),
       });
       if (!response.ok) throw new Error('Ошибка при создании тренировки');
-      setNewTraining({ title: '', teamId: '', date: '', time: '12:00', categoryId: '', type: 'TRAINING', timezone: '' });
+      setNewTraining({ title: '', teamId: '', date: '', time: '12:00', categoryId: '', type: 'TRAINING' });
       onCreated();
       onClose();
     } catch (error) {
@@ -195,18 +174,6 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
                 />
               </div>
             </div>
-            <div className="mt-2">
-              <TimezoneSelect
-                value={newTraining.timezone}
-                onChange={tz => setNewTraining(prev => ({ ...prev, timezone: tz }))}
-                label="Часовой пояс тренировки"
-                placeholder="Выберите часовой пояс"
-                disabled={!newTraining.teamId}
-              />
-            </div>
-            {newTraining.timezone && (
-              <div className="text-xs text-vista-light/60 mt-1">Время тренировки указывается в часовом поясе: <b>{newTraining.timezone}</b></div>
-            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="category" className="text-vista-light/40 font-normal">Категория</Label>

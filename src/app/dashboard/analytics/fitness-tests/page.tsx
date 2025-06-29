@@ -94,9 +94,9 @@ function PlayerResultsHistoryModal({ open, onOpenChange, player, results }: Play
           </ResponsiveContainer>
         </div>
         <div className="space-y-2 max-h-64 overflow-y-auto">
-          {results.sort((a: FitnessTestResult, b: FitnessTestResult) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((r: FitnessTestResult) => (
+          {results.sort((a: FitnessTestResult, b: FitnessTestResult) => (b.date > a.date ? 1 : -1)).map((r: FitnessTestResult) => (
             <div key={r.id} className="flex justify-between text-sm border-b border-vista-secondary/20 py-1">
-              <span>{formatDate(r.date)}</span>
+              <span>{r.date}</span>
               <span className="font-semibold">{formatResult(r.value)}</span>
             </div>
           ))}
@@ -458,7 +458,7 @@ export default function FitnessTestsPage() {
                                   {lastResult ? (
                                     <>
                                       <div className="text-vista-light/90 text-base font-semibold">{formatResult(lastResult.value)}</div>
-                                      <div className="text-xs text-vista-light/40 mt-1">{formatDate(lastResult.date)}</div>
+                                      <div className="text-xs text-vista-light/40 mt-1">{lastResult.date}</div>
                                     </>
                                   ) : (
                                     <span className="text-vista-light/40">—</span>
@@ -506,7 +506,7 @@ export default function FitnessTestsPage() {
                                           const y = 24 - (Number(r.value) / Math.max(...arr.map(rr => Number(rr.value))) * 20);
                                           return (
                                             <circle key={i} cx={x} cy={y} r={5} fill="#00bcd4" stroke="#222b3a" strokeWidth={2}>
-                                              <title>{formatResult(r.value)} ({formatDate(r.date)})</title>
+                                              <title>{formatResult(r.value)} ({r.date})</title>
                                             </circle>
                                           );
                                         })}

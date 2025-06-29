@@ -4,7 +4,8 @@ export const training = pgTable('Training', {
   id: uuid('id').primaryKey().defaultRandom(),
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description'),
-  date: timestamp('date', { withTimezone: true }).notNull(),
+  date: varchar('date', { length: 10 }).notNull(),
+  time: varchar('time', { length: 5 }).notNull(),
   location: varchar('location', { length: 255 }),
   notes: text('notes'),
   status: varchar('status', { length: 20 }).default('SCHEDULED').notNull(),
@@ -15,5 +16,4 @@ export const training = pgTable('Training', {
   categoryId: uuid('categoryId').notNull(),
   createdById: uuid('createdById').notNull(),
   type: varchar('type', { length: 20 }).default('TRAINING').notNull(),
-  timezone: varchar('timezone', { length: 64 }),
 }); 

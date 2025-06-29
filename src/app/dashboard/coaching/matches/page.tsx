@@ -325,7 +325,7 @@ export default function MatchesPage() {
               {startDate && (
                 <Badge className="bg-vista-primary/20 text-vista-light flex items-center gap-1 pl-2">
                   <CalendarIcon size={12} />
-                  От: {new Date(startDate).toLocaleDateString('ru-RU')}
+                  От: {startDate}
                   <Button 
                     variant="ghost" 
                     className="h-5 w-5 p-0 ml-1 hover:bg-vista-primary/30" 
@@ -339,7 +339,7 @@ export default function MatchesPage() {
               {endDate && (
                 <Badge className="bg-vista-primary/20 text-vista-light flex items-center gap-1 pl-2">
                   <CalendarIcon size={12} />
-                  До: {new Date(endDate).toLocaleDateString('ru-RU')}
+                  До: {endDate}
                   <Button 
                     variant="ghost" 
                     className="h-5 w-5 p-0 ml-1 hover:bg-vista-primary/30" 
@@ -376,7 +376,7 @@ export default function MatchesPage() {
                           </span>
                         </div>
                         <span className="text-sm text-vista-light/80">
-                          {formatMatchDate(match.date)} • {match.time}
+                          <span>{match.date}</span> • {match.time}
                         </span>
                       </div>
                     </div>

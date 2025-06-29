@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
   // Выполняем raw SQL запрос
   const result = await db.execute(sql`
     SELECT 
-      t."id", t."title", t."teamId", t."date", t."categoryId", t."status", t."type", t."createdAt", t."updatedAt",
+      t."id", t."title", t."teamId", t."date", t."time", t."categoryId", t."status", t."type", t."createdAt", t."updatedAt",
       tm."name" as "teamName",
       c."name" as "categoryName"
     FROM "Training" t
@@ -104,17 +104,13 @@ export async function GET(request: NextRequest) {
   const rows = (result as any).rows || [];
   // Форматируем ответ
   const formatted = rows.map((row: any) => {
-    const dateObj = row.date ? new Date(row.date) : null;
-    const dateOnly = dateObj ? dateObj.toISOString().split('T')[0] : null;
-    const timeOnly = dateObj ? dateObj.toISOString().split('T')[1].slice(0,5) : null;
     return {
       id: row.id,
       title: row.title,
       teamId: row.teamid,
       team: row.teamName,
-      date: row.date ? new Date(row.date).toISOString() : null,
-      dateOnly,
-      time: timeOnly,
+      date: row.date,
+      time: row.time,
       categoryId: row.categoryid,
       category: row.categoryName,
       status: row.status || 'SCHEDULED',
@@ -165,18 +161,13 @@ export async function POST(request: NextRequest) {
     if (!data.categoryId) {
       return NextResponse.json({ error: 'Missing required field: categoryId', debug }, { status: 400 });
     }
-    if (!data.timezone) {
-      return NextResponse.json({ error: 'Missing required field: timezone', debug }, { status: 400 });
-    }
-    // Преобразуем локальное время в UTC с учётом таймзоны
-    const localDateTime = dayjs.tz(`${data.date} ${data.time}`, 'YYYY-MM-DD HH:mm', data.timezone);
-    const utcDateTime = localDateTime.utc().toDate();
     const trainingData = {
       id: uuidv4(),
       title: data.title.trim(),
       description: data.description || null,
       teamId: data.teamId,
-      date: utcDateTime, // UTC
+      date: data.date,
+      time: data.time,
       location: data.location || null,
       notes: data.notes || null,
       categoryId: data.categoryId,
@@ -186,7 +177,6 @@ export async function POST(request: NextRequest) {
       type: data.type || 'TRAINING',
       createdAt: new Date(),
       updatedAt: new Date(),
-      timezone: data.timezone,
     };
     debug = { ...debug, trainingData };
     const [created] = await db.insert(training).values(trainingData).returning();
@@ -194,17 +184,13 @@ export async function POST(request: NextRequest) {
     const [teamRow] = await db.select({ name: team.name }).from(team).where(eq(team.id, created.teamId));
     const [catRow] = await db.select({ name: trainingCategory.name }).from(trainingCategory).where(eq(trainingCategory.id, created.categoryId));
     // Формируем ответ
-    const dateObj = created.date;
-    const dateOnly = dateObj.toISOString().split('T')[0];
-    const timeOnly = dateObj.toISOString().split('T')[1].slice(0,5);
     const formattedTraining = {
       id: created.id,
       title: created.title,
       teamId: created.teamId,
       team: teamRow?.name || '',
-      date: created.date.toISOString(), // полная дата-время
-      dateOnly,
-      time: timeOnly,
+      date: created.date,
+      time: created.time,
       categoryId: created.categoryId,
       category: catRow?.name || '',
       status: created.status || 'SCHEDULED',
@@ -280,14 +266,13 @@ export async function PUT(request: NextRequest) {
     if (!data.categoryId) {
       return NextResponse.json({ error: 'Missing required field: categoryId', debug }, { status: 400 });
     }
-    // Объединяем дату и время в один timestamp
-    const dateTimeString = `${data.date}T${data.time}:00`;
     const trainingData = {
       id: data.id,
       title: data.title.trim(),
       description: data.description || null,
       teamId: data.teamId,
-      date: new Date(dateTimeString), // теперь и дата, и время
+      date: data.date,
+      time: data.time,
       location: data.location || null,
       notes: data.notes || null,
       categoryId: data.categoryId,
@@ -297,13 +282,6 @@ export async function PUT(request: NextRequest) {
       type: data.type || 'TRAINING',
       updatedAt: new Date(),
     };
-    if ('date' in data && 'time' in data && data.date && data.time) {
-      // Формируем ISO-строку с Z (UTC)
-      const dateTimeString = `${data.date}T${data.time}:00Z`;
-      trainingData.date = new Date(dateTimeString); // всегда UTC
-    } else if ('date' in data && data.date) {
-      trainingData.date = new Date(data.date);
-    }
     debug = { ...debug, trainingData };
     const [updated] = await db.update(training)
       .set(trainingData)
@@ -313,18 +291,14 @@ export async function PUT(request: NextRequest) {
     const [teamRow] = await db.select({ name: team.name }).from(team).where(eq(team.id, updated.teamId));
     const [catRow] = await db.select({ name: trainingCategory.name }).from(trainingCategory).where(eq(trainingCategory.id, updated.categoryId));
     // Форматируем данные для ответа клиенту
-    const dateObj = updated.date;
-    const dateOnly = dateObj?.toISOString().split('T')[0];
-    const timeOnly = dateObj?.toISOString().split('T')[1].slice(0,5);
     const formattedTraining = {
       id: updated.id,
       title: updated.title,
       description: updated.description,
       teamId: updated.teamId,
       team: teamRow?.name || '',
-      date: updated.date?.toISOString(),
-      dateOnly,
-      time: timeOnly,
+      date: updated.date,
+      time: updated.time,
       location: updated.location,
       notes: updated.notes,
       categoryId: updated.categoryId,

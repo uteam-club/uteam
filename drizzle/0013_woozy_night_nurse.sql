@@ -1,0 +1,1 @@
+ALTER TABLE "Team" ADD COLUMN "timezone" varchar(64) DEFAULT 'Europe/Moscow' NOT NULL;

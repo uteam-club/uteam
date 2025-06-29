@@ -26,7 +26,8 @@ import {
   startOfWeek,
   endOfWeek,
   addWeeks,
-  subWeeks
+  subWeeks,
+  differenceInCalendarMonths
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Users, Clock, Trophy, CheckCircle2, AlertCircle, CalendarClock, Dumbbell, Medal, Handshake, Plus } from 'lucide-react';
 import { toast } from "@/components/ui/use-toast";
@@ -92,7 +93,7 @@ export default function CalendarPage() {
   const [calendarDays, setCalendarDays] = useState<Date[]>([]);
   const [trainings, setTrainings] = useState<TrainingEvent[]>([]);
   const [isLoadingTrainings, setIsLoadingTrainings] = useState(false);
-  const [calendarView, setCalendarView] = useState<'month' | 'week'>('month');
+  const [calendarView, setCalendarView] = useState<'month' | 'week' | '3months' | '6months' | 'year'>('month');
   const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
   const [addEventDay, setAddEventDay] = useState<Date | null>(null);
   const [eventModalDate, setEventModalDate] = useState<Date | null>(null);
@@ -121,9 +122,15 @@ export default function CalendarPage() {
   // Генерация дней календаря при изменении месяца или недели
   useEffect(() => {
     if (calendarView === 'month') {
-    generateCalendarDays();
-    } else {
+      generateCalendarDays();
+    } else if (calendarView === 'week') {
       generateWeekDays();
+    } else if (calendarView === '3months') {
+      generateMultiMonthDays(3);
+    } else if (calendarView === '6months') {
+      generateMultiMonthDays(6);
+    } else if (calendarView === 'year') {
+      generateMultiMonthDays(12);
     }
   }, [currentMonth, calendarView, currentWeek]);
 
@@ -178,6 +185,13 @@ export default function CalendarPage() {
     setCalendarDays(daysInWeek);
   };
 
+  const generateMultiMonthDays = (months: number) => {
+    const start = startOfMonth(currentMonth);
+    const end = endOfMonth(addMonths(currentMonth, months - 1));
+    const days = eachDayOfInterval({ start, end });
+    setCalendarDays(days);
+  };
+
   // Функция для получения списка команд
   const fetchTeams = async () => {
     try {
@@ -202,10 +216,23 @@ export default function CalendarPage() {
     try {
       setIsLoadingTrainings(true);
       
-      // Получаем первый и последний день месяца для запроса
-      const monthStart = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
-      const monthEnd = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
-      
+      // Определяем диапазон дат в зависимости от режима
+      let fromDate: string;
+      let toDate: string;
+      if (calendarView === '3months') {
+        fromDate = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
+        toDate = format(endOfMonth(addMonths(currentMonth, 2)), 'yyyy-MM-dd');
+      } else if (calendarView === '6months') {
+        fromDate = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
+        toDate = format(endOfMonth(addMonths(currentMonth, 5)), 'yyyy-MM-dd');
+      } else if (calendarView === 'year') {
+        fromDate = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
+        toDate = format(endOfMonth(addMonths(currentMonth, 11)), 'yyyy-MM-dd');
+      } else {
+        fromDate = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
+        toDate = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
+      }
+
       // Получаем тренировки и матчи для каждой выбранной команды
       const allEvents: TrainingEvent[] = [];
       
@@ -214,7 +241,7 @@ export default function CalendarPage() {
         
         try {
           // Загружаем тренировки
-          const trainingsResponse = await fetch(`/api/trainings?teamId=${teamId}&fromDate=${monthStart}&toDate=${monthEnd}`);
+          const trainingsResponse = await fetch(`/api/trainings?teamId=${teamId}&fromDate=${fromDate}&toDate=${toDate}`);
           if (!trainingsResponse.ok) {
             throw new Error(`Не удалось загрузить тренировки для команды ${teamName}`);
           }
@@ -222,7 +249,7 @@ export default function CalendarPage() {
           const trainingsData = await trainingsResponse.json();
           
           // Загружаем матчи
-          const matchesResponse = await fetch(`/api/matches?teamId=${teamId}&fromDate=${monthStart}&toDate=${monthEnd}`);
+          const matchesResponse = await fetch(`/api/matches?teamId=${teamId}&fromDate=${fromDate}&toDate=${toDate}`);
           if (!matchesResponse.ok) {
             throw new Error(`Не удалось загрузить матчи для команды ${teamName}`);
           }
@@ -619,6 +646,14 @@ export default function CalendarPage() {
           {/* Переключатель и навигация по месяцам/неделям - справа */}
           <div className="flex items-center gap-2 mb-4">
             <Button
+              variant={calendarView === 'week' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setCalendarView('week')}
+              className="text-xs"
+            >
+              Неделя
+            </Button>
+            <Button
               variant={calendarView === 'month' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setCalendarView('month')}
@@ -627,36 +662,55 @@ export default function CalendarPage() {
               Месяц
             </Button>
             <Button
-              variant={calendarView === 'week' ? 'default' : 'outline'}
+              variant={calendarView === '3months' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setCalendarView('week')}
+              onClick={() => setCalendarView('3months')}
               className="text-xs"
             >
-              Неделя
+              Три месяца
+            </Button>
+            <Button
+              variant={calendarView === '6months' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setCalendarView('6months')}
+              className="text-xs"
+            >
+              Шесть месяцев
+            </Button>
+            <Button
+              variant={calendarView === 'year' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setCalendarView('year')}
+              className="text-xs"
+            >
+              Год
             </Button>
           </div>
           <div className="flex items-center space-x-2">
-            {calendarView === 'month' ? (
+            {['month', '3months', '6months', 'year'].includes(calendarView) ? (
               <>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={handlePreviousMonth}
-              className="border-vista-secondary/50 text-vista-light shadow-sm h-7 w-7"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </Button>
-            <div className="text-vista-light font-medium min-w-[140px] text-center text-sm">
-              {getFormattedMonth(currentMonth)}
-            </div>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={handleNextMonth} 
-              className="border-vista-secondary/50 text-vista-light shadow-sm h-7 w-7"
-            >
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentMonth(prev => subMonths(prev, 1))}
+                  className="border-vista-secondary/50 text-vista-light shadow-sm h-7 w-7"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+                <div className="text-vista-light font-medium min-w-[140px] text-center text-sm">
+                  {calendarView === 'month' && getFormattedMonth(currentMonth)}
+                  {calendarView === '3months' && `${getFormattedMonth(currentMonth)} - ${getFormattedMonth(addMonths(currentMonth, 2))}`}
+                  {calendarView === '6months' && `${getFormattedMonth(currentMonth)} - ${getFormattedMonth(addMonths(currentMonth, 5))}`}
+                  {calendarView === 'year' && `${getFormattedMonth(currentMonth)} - ${getFormattedMonth(addMonths(currentMonth, 11))}`}
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentMonth(prev => addMonths(prev, 1))}
+                  className="border-vista-secondary/50 text-vista-light shadow-sm h-7 w-7"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
               </>
             ) : (
               <>
@@ -702,7 +756,23 @@ export default function CalendarPage() {
             {/* Дни календаря */}
             <div className="grid grid-cols-7 gap-1">
               {calendarDays.map((day, index) => {
-                const isCurrentMonth = isSameMonth(day, currentMonth);
+                let isActive = false;
+                let monthColorClass = '';
+                if (calendarView === 'month' || calendarView === 'week') {
+                  isActive = isSameMonth(day, currentMonth);
+                  monthColorClass = 'bg-vista-dark/70';
+                } else if (calendarView === '3months' || calendarView === '6months' || calendarView === 'year') {
+                  const start = startOfMonth(currentMonth);
+                  let months = 2;
+                  if (calendarView === '6months') months = 5;
+                  if (calendarView === 'year') months = 11;
+                  const end = endOfMonth(addMonths(currentMonth, months));
+                  isActive = day >= start && day <= end;
+                  // Определяем номер месяца в диапазоне (0, 1, 2...)
+                  const monthIndex = differenceInCalendarMonths(startOfMonth(day), startOfMonth(currentMonth));
+                  // Чередуем два цвета
+                  monthColorClass = monthIndex % 2 === 0 ? 'bg-vista-dark/70' : 'bg-gray-700';
+                }
                 const isTodayDate = isToday(day);
                 const dayTrainings = getTrainingsForDay(day);
                 
@@ -710,7 +780,7 @@ export default function CalendarPage() {
                 const dayBlockHeight = '';
                 
                 return (
-                  <div key={index} className={`relative border border-vista-secondary/50 rounded-md p-2 ${isCurrentMonth ? 'bg-vista-dark/70 shadow-sm' : 'bg-vista-dark/30 opacity-50'} ${isTodayDate ? 'ring-1 ring-vista-primary shadow-md' : ''}`}> 
+                  <div key={index} className={`relative border border-vista-secondary/50 rounded-md p-2 ${isActive ? monthColorClass + ' shadow-sm' : 'bg-vista-dark/30 opacity-50'} ${isTodayDate ? 'ring-1 ring-vista-primary shadow-md' : ''}`}> 
                     {/* Кнопка плюсика */}
                     <button
                       className="absolute top-2 right-2 z-10 p-1 rounded-full bg-vista-dark/80 text-vista-primary/60 hover:text-vista-primary hover:bg-vista-primary/20 shadow transition"
@@ -766,9 +836,9 @@ export default function CalendarPage() {
                               {/* Третья строка: дата и время */}
                               <div className="flex items-center justify-center text-vista-light/70 text-xs mt-1">
                                 <Clock className="h-3 w-3 mr-1 opacity-70" />
-                                <span>{training.date ? dayjs.utc(training.date).tz(training.timezone || 'Europe/Moscow').format('HH:mm') : ''}</span>
-                                <span className="mx-1">·</span>
-                                <span>{training.time}</span>
+                                <div className="flex items-center text-vista-light/90">
+                                  <span>{training.time}</span>
+                                </div>
                               </div>
                             </div>
                           );
@@ -792,7 +862,7 @@ export default function CalendarPage() {
                               <div className="text-vista-light/80 truncate max-w-[60%]">{training.teamName}</div>
                               <div className="flex items-center text-vista-light/90">
                                 <Clock className="h-3 w-3 mr-1 opacity-70" />
-                                {training.date ? dayjs.utc(training.date).tz(training.timezone || 'Europe/Moscow').format('HH:mm') : ''}
+                                <span>{training.time}</span>
                               </div>
                             </div>
                           </div>

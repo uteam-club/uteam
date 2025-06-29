@@ -91,6 +91,7 @@ export async function GET(
       description: training.description,
       teamId: training.teamId,
       date: training.date,
+      time: training.time,
       location: training.location,
       notes: training.notes,
       categoryId: training.categoryId,
@@ -116,7 +117,8 @@ export async function GET(
       description: row.description,
       teamId: row.teamId,
       team: row.teamName,
-      date: row.date?.toISOString(),
+      date: row.date,
+      time: row.time,
       location: row.location,
       notes: row.notes,
       categoryId: row.categoryId,
@@ -183,7 +185,7 @@ export async function PUT(
     if ('title' in data && data.title) trainingData.title = data.title.trim();
     if ('description' in data) trainingData.description = data.description;
     if ('teamId' in data) trainingData.teamId = data.teamId;
-    if ('date' in data) trainingData.date = new Date(data.date);
+    if ('date' in data) trainingData.date = data.date;
     if ('location' in data) trainingData.location = data.location;
     if ('notes' in data) trainingData.notes = data.notes;
     if ('categoryId' in data) trainingData.categoryId = data.categoryId;
@@ -208,7 +210,8 @@ export async function PUT(
       description: updated.description,
       teamId: updated.teamId,
       team: teamRow?.name || '',
-      date: updated.date?.toISOString(),
+      date: updated.date,
+      time: updated.time,
       location: updated.location,
       notes: updated.notes,
       categoryId: updated.categoryId,

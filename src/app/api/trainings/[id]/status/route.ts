@@ -79,7 +79,7 @@ export async function PATCH(
       title: updatedTraining.title,
       teamId: updatedTraining.teamId,
       team: teamRow?.name || null,
-      date: updatedTraining.date?.toISOString?.().split('T')[0] ?? null,
+      date: updatedTraining.date,
       categoryId: updatedTraining.categoryId,
       category: categoryRow?.name || null,
       status: updatedTraining.status,

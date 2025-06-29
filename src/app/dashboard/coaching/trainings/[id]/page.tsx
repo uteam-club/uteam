@@ -679,11 +679,7 @@ export default function TrainingPage() {
                 <Calendar className="h-5 w-5 mr-3 text-vista-primary" />
                 <div>
                   <div className="text-vista-light/70 text-xs mb-1">Дата</div>
-                  <div className="text-vista-light">
-                    {new Date(trainingData.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' })}
-                    {', '}
-                    {new Date(trainingData.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })}
-                  </div>
+                  <div className="text-vista-light">{trainingData.date}</div>
                 </div>
               </div>
               
@@ -692,9 +688,7 @@ export default function TrainingPage() {
                 <Clock className="h-5 w-5 mr-3 text-vista-primary" />
                 <div>
                   <div className="text-vista-light/70 text-xs mb-1">Время</div>
-                  <div className="text-vista-light">
-                    {trainingData.date ? new Date(trainingData.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' }) : 'Неизвестно'}
-                  </div>
+                  <div className="text-vista-light">{trainingData.time ? trainingData.time : 'Неизвестно'}</div>
                 </div>
               </div>
               
