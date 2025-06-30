@@ -51,6 +51,7 @@ interface Player {
   id: string;
   firstName: string;
   lastName: string;
+  middleName: string | null;
   birthCertificateNumber: string | null;
   imageUrl: string | null;
   team: {
@@ -344,12 +345,9 @@ export default function DocumentsPage() {
                             )}
                           </div>
                           <div>
-                            <Link 
-                              href={`/dashboard/teams/${player.team.id}/players/${player.id}`}
-                              className="font-medium text-vista-light/90 hover:text-vista-primary transition-colors"
-                            >
-                              {player.lastName} {player.firstName}
-                            </Link>
+                            <div className="text-vista-light font-semibold text-base">
+                              {player.lastName} {player.firstName}{player.middleName ? ` ${player.middleName}` : ''}
+                            </div>
                             <div className="text-xs text-vista-light/50">
                               {player.team.name}
                             </div>

@@ -149,6 +149,24 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         }
       }
     }
+    // Удаляем аватары игроков из бакета, если есть imageUrl
+    const playersToDelete = await db.select().from(player).where(
+      playerIds.length === 1 ? eq(player.id, playerIds[0]) : inArray(player.id, playerIds)
+    );
+    for (const p of playersToDelete) {
+      if (p.imageUrl) {
+        try {
+          // Преобразуем imageUrl в ключ бакета, если это ссылка на Yandex
+          const bucketPrefix = 'https://storage.yandexcloud.net/' + process.env.YANDEX_STORAGE_BUCKET + '/';
+          if (p.imageUrl.startsWith(bucketPrefix)) {
+            const key = p.imageUrl.replace(bucketPrefix, '');
+            await deleteYandexFile(key);
+          }
+        } catch (e) {
+          console.error('Ошибка при удалении аватара игрока из Object Storage:', p.imageUrl, e);
+        }
+      }
+    }
     // Каскадное удаление связанных записей
     await db.delete(morningSurveyResponse).where(
       playerIds.length === 1 ? eq(morningSurveyResponse.playerId, playerIds[0]) : inArray(morningSurveyResponse.playerId, playerIds)

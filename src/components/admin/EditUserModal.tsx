@@ -75,6 +75,7 @@ interface Player {
   passportData?: string | null;
   insuranceNumber?: string | null;
   visaExpiryDate?: string | null;
+  middleName?: string | null;
 }
 
 interface EditPlayerModalProps {
@@ -84,7 +85,7 @@ interface EditPlayerModalProps {
   teams: { id: string; name: string; teamType: 'academy' | 'contract' }[];
   documents: any[];
   onSave: (updatedPlayer: Player) => void;
-  onDocumentUpload: (file: File, type: string) => Promise<void>;
+  onDocumentUpload: (file: File, type: string) => Promise<{ imageUrl?: string }>;
   onDocumentDelete: (id: string) => Promise<void>;
 }
 
@@ -143,19 +144,21 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => {
+                onClick={async () => {
                   // Триггерим выбор файла
                   const input = document.createElement('input');
                   input.type = 'file';
                   input.accept = 'image/*';
-                  input.onchange = (e: any) => {
+                  input.onchange = async (e: any) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      // Имитация onDocumentUpload для аватара
-                      onDocumentUpload(file, 'AVATAR').then(() => {
-                        // После загрузки обновить imageUrl
-                        // Можно реализовать через обновление form.imageUrl
-                      });
+                      // Загружаем аватар и получаем url
+                      const result = await onDocumentUpload(file, 'AVATAR');
+                      if (result && result.imageUrl) {
+                        setForm((prev: Player) => ({ ...prev, imageUrl: result.imageUrl }));
+                        // Сохраняем игрока с новым imageUrl
+                        await onSave({ ...form, imageUrl: result.imageUrl });
+                      }
                     }
                   };
                   input.click();
@@ -166,7 +169,10 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
               <Button
                 type="button"
                 variant="destructive"
-                onClick={() => handleChange('imageUrl', null)}
+                onClick={async () => {
+                  setForm((prev: Player) => ({ ...prev, imageUrl: null }));
+                  await onSave({ ...form, imageUrl: null });
+                }}
               >
                 Удалить
               </Button>
@@ -176,6 +182,10 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
             <div>
               <label className="text-vista-light/70 text-sm mb-2 block">Фамилия</label>
               <Input value={form.lastName || ''} onChange={e => handleChange('lastName', e.target.value)} required />
+            </div>
+            <div>
+              <label className="text-vista-light/70 text-sm mb-2 block">Отчество</label>
+              <Input value={form.middleName || ''} onChange={e => handleChange('middleName', e.target.value)} />
             </div>
             <div>
               <label className="text-vista-light/70 text-sm mb-2 block">Имя</label>
@@ -274,7 +284,7 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
                     onChange={e => handleChange('passportData', e.target.value)}
                   />
                   <DocumentUpload
-                    onUpload={onDocumentUpload}
+                    onUpload={async (file, type) => { await onDocumentUpload(file, type); }}
                     onDelete={getDeleteHandler(onDocumentDelete, documents, 'PASSPORT')}
                     documentType="PASSPORT"
                     documentName={documents.find(doc => doc.type === 'PASSPORT')?.name}
@@ -297,7 +307,7 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
                     onChange={e => handleChange('birthCertificateNumber', e.target.value)}
                   />
                   <DocumentUpload
-                    onUpload={onDocumentUpload}
+                    onUpload={async (file, type) => { await onDocumentUpload(file, type); }}
                     onDelete={getDeleteHandler(onDocumentDelete, documents, 'BIRTH_CERTIFICATE')}
                     documentType="BIRTH_CERTIFICATE"
                     documentName={documents.find(doc => doc.type === 'BIRTH_CERTIFICATE')?.name}
@@ -320,7 +330,7 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
                     onChange={e => handleChange('insuranceNumber', e.target.value)}
                   />
                   <DocumentUpload
-                    onUpload={onDocumentUpload}
+                    onUpload={async (file, type) => { await onDocumentUpload(file, type); }}
                     onDelete={getDeleteHandler(onDocumentDelete, documents, 'MEDICAL_INSURANCE')}
                     documentType="MEDICAL_INSURANCE"
                     documentName={documents.find(doc => doc.type === 'MEDICAL_INSURANCE')?.name}
@@ -344,7 +354,7 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
                     onChange={e => handleChange('visaExpiryDate', e.target.value)}
                   />
                   <DocumentUpload
-                    onUpload={onDocumentUpload}
+                    onUpload={async (file, type) => { await onDocumentUpload(file, type); }}
                     onDelete={getDeleteHandler(onDocumentDelete, documents, 'VISA')}
                     documentType="VISA"
                     documentName={documents.find(doc => doc.type === 'VISA')?.name}

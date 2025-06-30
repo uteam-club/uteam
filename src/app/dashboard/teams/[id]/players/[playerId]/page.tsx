@@ -318,9 +318,14 @@ export default function PlayerProfilePage() {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Ошибка при загрузке документа');
       }
-      
+      const data = await response.json();
+      // Если это аватар, возвращаем publicUrl
+      if (type === 'AVATAR' && data && data.publicUrl) {
+        return { imageUrl: data.publicUrl };
+      }
       // Обновляем список документов
       fetchPlayerDocuments();
+      return {};
     } catch (error: any) {
       console.error('Ошибка при загрузке документа:', error);
       throw new Error(error.message || 'Ошибка при загрузке документа');
@@ -1168,8 +1173,8 @@ export default function PlayerProfilePage() {
         teams={teams}
         documents={documents}
         onSave={handleEditSave}
-        onDocumentUpload={async (file, type) => handleDocumentUpload(file, type)}
-        onDocumentDelete={async (id) => handleDocumentDelete(id)}
+        onDocumentUpload={handleDocumentUpload as (file: File, type: string) => Promise<{ imageUrl?: string }>}
+        onDocumentDelete={handleDocumentDelete}
       />
     </div>
   );
