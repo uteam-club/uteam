@@ -55,10 +55,10 @@ function TopBar({ userName, userRole }: TopBarProps) {
   }, []);
 
   useEffect(() => {
-    if (teamsDropdownOpen && teams.length === 0 && !teamsLoading) {
+    if (teams.length === 0 && !teamsLoading) {
       fetchTeams();
     }
-  }, [teamsDropdownOpen, teams.length, teamsLoading]);
+  }, []);
 
   const fetchTeams = async () => {
     try {
@@ -151,28 +151,27 @@ function TopBar({ userName, userRole }: TopBarProps) {
       href: '/dashboard/coaching',
       hasDropdown: true,
       dropdownItems: [
-        { 
-          key: 'teams', 
-          label: 'Команды', 
-          href: '/dashboard/teams',
-          hasSubItems: true
-        },
+        ...(teams.length === 1
+          ? [{ key: 'team-single', label: teams[0].name, href: `/dashboard/teams/${teams[0].id}` }]
+          : [{ key: 'teams', label: 'Команды', href: '/dashboard/teams', hasSubItems: true }]),
         { key: 'exercises', label: 'Упражнения', href: '/dashboard/coaching/exercises' },
         { key: 'trainings', label: 'Тренировки', href: '/dashboard/coaching/trainings' },
         { key: 'matches', label: 'Матчи', href: '/dashboard/coaching/matches' },
+        { key: 'attendance', label: 'Посещаемость', href: '/dashboard/analytics/attendance' },
       ]
     },
+    { key: 'fitness', label: 'ФИТНЕС', href: '/dashboard/fitness', hasDropdown: true, dropdownItems: [
+      { key: 'fitness-tests', label: 'Фитнес тесты', href: '/dashboard/analytics/fitness-tests' },
+    ] },
     { key: 'calendar', label: 'КАЛЕНДАРЬ', href: '/dashboard/calendar' },
     { 
       key: 'analytics', 
-      label: 'АНАЛИТИКА', 
+      label: 'ОПРОСНИКИ', 
       href: '/dashboard/analytics',
       hasDropdown: true,
       dropdownItems: [
-        { key: 'gps', label: 'GPS-трекинг', href: '/dashboard/analytics/gps' },
-        { key: 'attendance', label: 'Посещаемость', href: '/dashboard/analytics/attendance' },
-        { key: 'morning-survey', label: 'Утренний опросник', href: '/dashboard/analytics/morning-survey' },
-        { key: 'fitness-tests', label: 'Фитнес тесты', href: '/dashboard/analytics/fitness-tests' },
+        { key: 'morning-survey', label: 'Состояние утро', href: '/dashboard/analytics/morning-survey' },
+        { key: 'test-admin', label: 'Тест админ', href: '/dashboard/settings/admin/surveys', adminOnly: true },
       ]
     },
     { 
@@ -188,7 +187,6 @@ function TopBar({ userName, userRole }: TopBarProps) {
       dropdownItems: [
         { key: 'account', label: 'Аккаунт', href: '/dashboard/settings/account' },
         { key: 'admin', label: 'Админка', href: '/dashboard/settings/admin', adminOnly: true },
-        { key: 'surveys', label: 'Опросники', href: '/dashboard/settings/admin/surveys', adminOnly: true },
       ]
     },
   ];
@@ -252,7 +250,7 @@ function TopBar({ userName, userRole }: TopBarProps) {
                                   {dropdownItem.hasSubItems ? (
                                     <div 
                                       onClick={toggleTeamsDropdown}
-                                      className="flex items-center justify-between px-4 py-2 text-sm text-vista-light/70 hover:bg-vista-secondary/20 hover:text-vista-primary transition-colors cursor-pointer"
+                                      className="flex items-center justify-between px-2 py-2 text-sm text-vista-light/70 hover:bg-vista-secondary/20 hover:text-vista-primary transition-colors cursor-pointer"
                                     >
                                       <span>{dropdownItem.label}</span>
                                       <ChevronDownIcon className={`h-4 w-4 ml-1 transition-transform ${teamsDropdownOpen ? 'rotate-180' : ''}`} />
@@ -260,7 +258,7 @@ function TopBar({ userName, userRole }: TopBarProps) {
                                   ) : (
                                     <Link
                                       href={dropdownItem.href}
-                                      className="block px-4 py-2 text-sm text-vista-light/70 hover:bg-vista-secondary/20 hover:text-vista-primary transition-colors"
+                                      className="block px-2 py-2 text-sm text-vista-light/70 hover:bg-vista-secondary/20 hover:text-vista-primary transition-colors"
                                       onClick={handleLinkClick}
                                     >
                                       {dropdownItem.label}

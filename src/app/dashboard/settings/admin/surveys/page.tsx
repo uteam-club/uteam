@@ -32,7 +32,7 @@ export default function SurveysPage() {
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-vista-light">Опросники</h1>
+        <h1 className="text-3xl font-bold text-vista-light">Тест админ</h1>
       </div>
 
       <div className="grid gap-6">
