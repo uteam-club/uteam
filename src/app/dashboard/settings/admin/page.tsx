@@ -9,6 +9,10 @@ import { useClub } from '@/providers/club-provider';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, XMarkIcon, CheckIcon, TrashIcon, PencilIcon, ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
 import { TimezoneSelect } from '@/components/ui/timezone-select';
+import React from 'react';
+import { Switch } from '@/components/ui/switch';
+import { Loader2 } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 
 // Определение перечня ролей (используется для выпадающего списка)
 const USER_ROLES = [
@@ -65,6 +69,15 @@ interface ExerciseTag {
     name: string;
   };
 }
+
+const SURVEY_TEMPLATES = [
+  {
+    key: 'morning',
+    title: 'Состояние утро',
+    description: 'Опросник для ежедневного мониторинга состояния игроков',
+  },
+  // В будущем можно добавить другие шаблоны
+];
 
 export default function AdminPage() {
   const { data: session } = useSession();
@@ -1084,6 +1097,7 @@ export default function AdminPage() {
           <TabsTrigger value="training-categories">Категории тренировок</TabsTrigger>
           <TabsTrigger value="exercise-categories">Категории упражнений</TabsTrigger>
           <TabsTrigger value="exercise-tags">Теги упражнений</TabsTrigger>
+          <TabsTrigger value="surveys">Опросники</TabsTrigger>
         </TabsList>
         
         <TabsContent value="users" className="mt-6">
@@ -2522,7 +2536,147 @@ export default function AdminPage() {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="surveys" className="mt-6">
+          {/* Управление подключением опросников для клуба */}
+          <SurveyClubManagement />
+        </TabsContent>
       </Tabs>
     </div>
+  );
+} 
+
+// В самом низу файла добавляю компонент управления опросниками клуба
+function SurveyClubManagement() {
+  const { club } = useClub();
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [toggleLoading, setToggleLoading] = useState(false);
+  const [surveys, setSurveys] = useState<Record<string, any>>({});
+
+  // Получить все survey для клуба
+  const fetchSurveys = async () => {
+    if (!club?.id) return;
+    setFetching(true);
+    try {
+      const result: Record<string, any> = {};
+      for (const tmpl of SURVEY_TEMPLATES) {
+        const res = await fetch(`/api/survey/active-id?tenantId=${club.id}&type=${tmpl.key}`);
+        if (res.ok) {
+          const data = await res.json();
+          result[tmpl.key] = { exists: true, ...data };
+        } else {
+          result[tmpl.key] = { exists: false };
+        }
+      }
+      setSurveys(result);
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  // Подключить (создать) survey
+  const handleCreateSurvey = async (type: string) => {
+    if (!club?.id) return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/survey/active-id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId: club.id, type }),
+      });
+      if (!res.ok) throw new Error('Ошибка при создании опросника');
+      toast({ title: 'Опросник подключён', variant: 'default' });
+      await fetchSurveys();
+    } catch (e: any) {
+      toast({ title: 'Ошибка', description: e.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Активировать/деактивировать survey
+  const handleToggleActive = async (type: string, isActive: boolean) => {
+    if (!club?.id) return;
+    setToggleLoading(true);
+    try {
+      const res = await fetch('/api/survey/active-id', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId: club.id, isActive, type }),
+      });
+      if (!res.ok) throw new Error('Ошибка при обновлении статуса');
+      toast({ title: isActive ? 'Опросник активирован' : 'Опросник деактивирован', variant: 'default' });
+      await fetchSurveys();
+    } catch (e: any) {
+      toast({ title: 'Ошибка', description: e.message, variant: 'destructive' });
+    } finally {
+      setToggleLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchSurveys();
+    // eslint-disable-next-line
+  }, [club?.id]);
+
+  return (
+    <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-vista-light">Опросники клуба</CardTitle>
+        <div style={{ width: 140 }} />
+      </CardHeader>
+      <CardContent>
+        <p className="text-vista-light/80 mb-4">Управление опросниками для клуба {club?.name || ''}.</p>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-vista-secondary/30">
+                <th className="py-3 text-left text-sm text-vista-light/70">Название</th>
+                <th className="py-3 text-left text-sm text-vista-light/70">Описание</th>
+                <th className="py-3 text-left text-sm text-vista-light/70">Статус</th>
+                <th className="py-3 text-left text-sm text-vista-light/70">Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {SURVEY_TEMPLATES.map(tmpl => {
+                const survey = surveys[tmpl.key];
+                return (
+                  <tr key={tmpl.key} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10">
+                    <td className="py-3 text-vista-light font-medium">{tmpl.title}</td>
+                    <td className="py-3 text-vista-light/80">{tmpl.description}</td>
+                    <td className="py-3">
+                      {fetching ? (
+                        <span className="flex items-center gap-2 text-vista-light/70"><Loader2 className="animate-spin w-4 h-4" />Загрузка...</span>
+                      ) : survey?.exists ? (
+                        <span className={survey.isActive ? 'text-green-400' : 'text-red-400'}>
+                          {survey.isActive ? 'Активен' : 'Неактивен'}
+                        </span>
+                      ) : (
+                        <span className="text-red-400">Не подключён</span>
+                      )}
+                    </td>
+                    <td className="py-3">
+                      {survey?.exists ? (
+                        <Switch
+                          checked={!!survey.isActive}
+                          disabled={toggleLoading}
+                          onCheckedChange={val => handleToggleActive(tmpl.key, val)}
+                        />
+                      ) : !fetching ? (
+                        <Button onClick={() => handleCreateSurvey(tmpl.key)} disabled={loading} size="sm">
+                          {loading ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : null}
+                          Подключить
+                        </Button>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   );
 } 

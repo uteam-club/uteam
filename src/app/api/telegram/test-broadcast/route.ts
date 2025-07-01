@@ -3,10 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Telegraf } from 'telegraf';
 import { db } from '@/lib/db';
 import { player, team } from '@/db/schema';
-import { eq, and, isNotNull } from 'drizzle-orm';
+import { eq, and, isNotNull, desc } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
+import { survey } from '@/db/schema/survey';
 
 // Токен должен быть от @UTEAM_infoBot
 const botToken = process.env.TELEGRAM_BOT_TOKEN || '7555689553:AAFSDvBcAC_PU7o5vq3vVoGy5DS8R9q5aPU';
@@ -30,6 +31,16 @@ export async function POST(req: NextRequest) {
   const clubId = session.user.clubId;
 
   try {
+    // Проверяем, что опросник активен
+    const [foundSurvey]: any = await db.select({ id: survey.id, isActive: survey.isActive })
+      .from(survey)
+      .where(and(eq(survey.tenantId, clubId), eq(survey.type, 'morning')))
+      .orderBy(desc(survey.createdAt))
+      .limit(1);
+    if (!foundSurvey || !foundSurvey.isActive) {
+      return NextResponse.json({ error: 'Опросник неактивен или не подключён для клуба.' }, { status: 400 });
+    }
+
     // Выбираем игроков с telegramId и нужным clubId через JOIN
     const players = await db.select({
       telegramId: player.telegramId,

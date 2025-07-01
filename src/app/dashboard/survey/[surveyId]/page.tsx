@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useParams, useSearchParams } from 'next/navigation';
 import { BodyMap } from '@/components/surveys/BodyMap';
 import { RatingTiles } from '@/components/surveys/RatingTiles';
+import { Loader2 } from 'lucide-react';
 
 interface PainArea {
   id: string;
@@ -50,6 +51,7 @@ export default function SurveyPage() {
   });
   const [showPainAreas, setShowPainAreas] = useState(false);
   const [view, setView] = useState<'front' | 'back'>('front');
+  const [surveyStatus, setSurveyStatus] = useState<{ isActive: boolean | null, loading: boolean }>({ isActive: null, loading: true });
 
   useEffect(() => {
     const handleAreaClick = (event: CustomEvent<{ id: string, name: string }>) => {
@@ -75,6 +77,22 @@ export default function SurveyPage() {
       document.removeEventListener('area-click', handleAreaClick as EventListener);
     };
   }, [view]);
+
+  useEffect(() => {
+    async function fetchSurveyStatus() {
+      if (!tenantId || !params.surveyId) return setSurveyStatus({ isActive: null, loading: false });
+      setSurveyStatus({ isActive: null, loading: true });
+      try {
+        const res = await fetch(`/api/survey/active-id?tenantId=${tenantId}&type=morning`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        setSurveyStatus({ isActive: !!data.isActive, loading: false });
+      } catch {
+        setSurveyStatus({ isActive: null, loading: false });
+      }
+    }
+    fetchSurveyStatus();
+  }, [tenantId, params.surveyId]);
 
   const handleSubmit = async () => {
     if (!tenantId) {
@@ -133,6 +151,11 @@ export default function SurveyPage() {
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4">
       <Card className="p-6">
+        {surveyStatus.loading ? (
+          <div className="flex items-center gap-2 text-vista-light/70"><Loader2 className="animate-spin w-4 h-4" />Загрузка...</div>
+        ) : surveyStatus.isActive === false ? (
+          <div className="text-red-500 text-lg font-semibold text-center">Опросник неактивен. Обратитесь к администратору клуба.</div>
+        ) : (
         <div className="space-y-8">
           {/* Длительность сна */}
           <div>
@@ -315,6 +338,7 @@ export default function SurveyPage() {
             Отправить ответ
           </Button>
         </div>
+        )}
       </Card>
     </div>
   );

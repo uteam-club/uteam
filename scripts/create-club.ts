@@ -5,7 +5,7 @@ async function main() {
   const newClub = await db.insert(club).values({
     name: 'FC Alashkert',
     subdomain: 'alashkert',
-    logoUrl: '/alashkert.png',
+    logoUrl: '/alashkert.white.png',
     // broadcastTime: '09:00', // если нужно
   }).returning();
   console.log('Клуб создан:', newClub);

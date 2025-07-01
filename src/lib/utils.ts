@@ -23,9 +23,9 @@ export function formatResult(value: string) {
 
 // Заглушка для formatDateTime
 export function formatDateTime(date: Date | string): string {
-  // Простейшее форматирование даты
+  // Форматирование только времени ЧЧ:ММ
   const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleString('ru-RU');
+  return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 // Заглушка для getSubdomain

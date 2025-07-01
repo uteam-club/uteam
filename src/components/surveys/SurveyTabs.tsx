@@ -1,180 +1,181 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useState, useEffect } from 'react';
 import { formatDateTime } from '@/lib/utils';
 import { format } from 'date-fns';
 import { TeamSelect } from '@/components/ui/team-select';
 import { useToast } from '@/components/ui/use-toast';
 import { useSession } from 'next-auth/react';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogDescription, DialogClose } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+
+interface Team {
+  id: string;
+  name: string;
+  clubId: string;
+}
 
 function TelegramBotSettings() {
-  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState<string>('');
-  const [broadcastTime, setBroadcastTime] = useState('08:00');
-  const [enabled, setEnabled] = useState(true);
+  const { toast } = useToast();
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [savingTime, setSavingTime] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
-  const [teamTimezone, setTeamTimezone] = useState('Europe/Moscow');
-  const { data: session } = useSession();
+  const [saving, setSaving] = useState<string | null>(null);
+  const [showInstruction, setShowInstruction] = useState(false);
 
-  // Отладочная информация о сессии
+  // Загрузка всех команд и их расписаний рассылки
   useEffect(() => {
-    console.log('Session info:', {
-      user: session?.user,
-      clubId: session?.user?.clubId,
-      role: session?.user?.role
-    });
-  }, [session]);
-
-  // Загрузка списка команд
-  useEffect(() => {
-    fetch('/api/teams')
-      .then(res => res.json())
-      .then(data => {
-        const arr = Array.isArray(data) ? data : [];
-        setTeams(arr);
-        if (arr.length > 0) setSelectedTeam(arr[0].id);
-      });
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const teamsRes = await fetch('/api/teams');
+        const teamsData = await teamsRes.json();
+        setTeams(teamsData);
+        const schedRes = await fetch('/api/survey/schedules');
+        const schedData = await schedRes.json();
+        setSchedules(schedData);
+      } catch (e) {
+        toast({ title: 'Ошибка', description: 'Ошибка загрузки данных', variant: 'destructive' });
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
   }, []);
 
-  // Загрузка настроек рассылки для выбранной команды
-  useEffect(() => {
-    if (!selectedTeam) return;
-    setLoading(true);
-    fetch(`/api/teams/${selectedTeam}`)
-      .then(res => res.json())
-      .then(data => {
-        setTeamTimezone(data.timezone || 'Europe/Moscow');
-      });
-    fetch(`/api/telegram/broadcast-time?teamId=${selectedTeam}`)
-      .then(res => res.json())
-      .then(data => {
-        setBroadcastTime(data.time || '08:00');
-        setEnabled(data.enabled ?? true);
-      })
-      .finally(() => setLoading(false));
-  }, [selectedTeam]);
-
-  // Сохранение настроек рассылки
-  const handleSaveTime = async () => {
-    if (!selectedTeam) return;
-    setSavingTime(true);
-    setResult(null);
+  // Обновить время/статус рассылки для команды
+  const handleSave = async (teamId: string, time: string, enabled: boolean) => {
+    setSaving(teamId);
     try {
       const res = await fetch('/api/telegram/broadcast-time', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teamId: selectedTeam, time: broadcastTime, enabled }),
+        body: JSON.stringify({ teamId, time, enabled }),
       });
       const data = await res.json();
-      setResult(data.message || 'Настройки сохранены!');
+      if (res.ok) {
+        toast({ title: 'Настройки сохранены', variant: 'default' });
+        setSchedules(schedules => schedules.map(s => s.teamId === teamId ? { ...s, sendTime: time, enabled } : s));
+      } else {
+        toast({ title: 'Ошибка', description: data.error || 'Ошибка сохранения', variant: 'destructive' });
+      }
     } catch (e) {
-      setResult('Ошибка при сохранении настроек');
+      toast({ title: 'Ошибка', description: 'Ошибка сохранения', variant: 'destructive' });
     } finally {
-      setSavingTime(false);
+      setSaving(null);
     }
   };
 
+  // Тестовая рассылка
   const handleTestBroadcast = async () => {
     setLoading(true);
-    setResult(null);
     try {
-      console.log('Starting test broadcast...');
       const res = await fetch('/api/telegram/test-broadcast', { method: 'POST' });
       const data = await res.json();
-      console.log('Broadcast response:', data);
-      setResult(data.message || 'Рассылка выполнена!');
+      if (res.ok) {
+        toast({ title: 'Тестовая рассылка выполнена', variant: 'default' });
+      } else {
+        toast({ title: 'Ошибка', description: data.error || 'Ошибка тестовой рассылки', variant: 'destructive' });
+      }
     } catch (e) {
-      console.error('Broadcast error:', e);
-      setResult('Ошибка при выполнении рассылки');
+      toast({ title: 'Ошибка', description: 'Ошибка тестовой рассылки', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="mt-8 p-4 rounded-lg bg-vista-dark/30 border border-vista-secondary/30">
-      <h3 className="text-xl font-bold mb-2 text-vista-light">Telegram-бот для опросников</h3>
-      <ol className="list-decimal list-inside text-vista-light/80 mb-4">
+    <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
+      <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-2">
+        <CardTitle className="text-vista-light text-2xl font-bold">Настройки рассылки по командам</CardTitle>
+        <div className="flex gap-2">
+          <Dialog open={showInstruction} onOpenChange={setShowInstruction}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20" onClick={() => setShowInstruction(true)}>Инструкция</Button>
+            </DialogTrigger>
+            <DialogContent className="p-0 bg-transparent border-none shadow-none">
+              <Card className="bg-vista-dark/90 border-vista-secondary/30 shadow-xl">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-vista-light text-xl font-bold">Инструкция по рассылке опросников</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 pb-4">
+                  <ol className="list-decimal list-inside text-vista-light/80 mb-4 space-y-1">
         <li>Дайте игрокам ссылку на Telegram-бота: <b>@UTEAM_infoBot</b>.</li>
         <li>Игроки должны пройти привязку (нажать /start и ввести свой пинкод).</li>
         <li>После этого вы сможете делать рассылку опросников через Telegram.</li>
       </ol>
-      <div className="mb-4 flex flex-row flex-wrap gap-4 items-center">
-        <div className="min-w-[220px]">
-          <TeamSelect
-            teams={teams}
-            value={selectedTeam}
-            onChange={setSelectedTeam}
-            disabled={loading || teams.length === 0}
-          />
+                  <div className="flex justify-end">
+                    <DialogClose asChild>
+                      <Button variant="outline" className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20">Закрыть</Button>
+                    </DialogClose>
+                  </div>
+                </CardContent>
+              </Card>
+            </DialogContent>
+          </Dialog>
+          <Button onClick={handleTestBroadcast} disabled={loading} className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark rounded-md px-4 py-2 text-sm font-semibold shadow">
+            Тестовая рассылка
+          </Button>
         </div>
-        <div className="flex flex-row items-center gap-2">
-          <label className="text-vista-light/90 font-semibold whitespace-nowrap">Время рассылки:</label>
+      </CardHeader>
+      <CardContent className="pt-0 pb-6 px-6">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-vista-secondary/30">
+                <th className="px-4 py-3 text-left text-sm text-vista-light/70 font-semibold">Команда</th>
+                <th className="px-4 py-3 text-left text-sm text-vista-light/70 font-semibold">Время рассылки</th>
+                <th className="px-4 py-3 text-left text-sm text-vista-light/70 font-semibold">Статус рассылки</th>
+                <th className="px-4 py-3 text-left text-sm text-vista-light/70 font-semibold">Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {teams.map(team => {
+                const schedule = schedules.find(s => s.teamId === team.id) || { sendTime: '08:00', enabled: true };
+                return (
+                  <tr key={team.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10">
+                    <td className="px-4 py-3 text-vista-light font-medium text-base">{team.name}</td>
+                    <td className="px-4 py-3">
           <input
             type="time"
-            value={broadcastTime}
-            onChange={e => setBroadcastTime(e.target.value)}
-            className="px-2 py-1 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light focus:ring-2 focus:ring-vista-accent"
-            disabled={loading}
-          />
-          <span className="text-vista-light/60 text-xs">({teamTimezone})</span>
+                        value={schedule.sendTime}
+                        onChange={e => setSchedules(schedules => schedules.map(s => s.teamId === team.id ? { ...s, sendTime: e.target.value } : s))}
+                        className="px-2 py-1 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light focus:ring-2 focus:ring-vista-accent text-base"
+                        disabled={saving === team.id}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={schedule.enabled ? 'text-green-400 font-semibold' : 'text-red-400 font-semibold'}>
+                        {schedule.enabled ? 'Включена' : 'Выключена'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 flex items-center gap-4">
+                      <Switch
+                        checked={schedule.enabled}
+                        onCheckedChange={e => setSchedules(schedules => schedules.map(s => s.teamId === team.id ? { ...s, enabled: e } : s))}
+                        disabled={saving === team.id}
+                        className="data-[state=checked]:bg-vista-primary data-[state=unchecked]:bg-vista-secondary"
+                      />
+                      <Button
+                        size="sm"
+                        className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark rounded-md px-4 py-2 text-sm font-semibold shadow"
+                        onClick={() => handleSave(team.id, schedule.sendTime, schedule.enabled)}
+                        disabled={saving === team.id}
+                      >
+                        {saving === team.id ? 'Сохраняю...' : 'Сохранить'}
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-        <label className="flex items-center gap-2 text-vista-light/90 font-semibold bg-vista-dark/40 border border-vista-secondary/50 rounded px-3 py-2 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={enabled}
-            onChange={e => setEnabled(e.target.checked)}
-            className="accent-vista-accent w-5 h-5"
-            disabled={loading}
-          />
-          Включить рассылку
-        </label>
-        <button
-          onClick={handleSaveTime}
-          disabled={savingTime || loading || !selectedTeam}
-          className="px-6 py-2 rounded bg-vista-accent text-white font-semibold shadow hover:bg-vista-accent/90 transition border-2 border-vista-accent focus:outline-none focus:ring-2 focus:ring-vista-accent/70"
-        >
-          {savingTime ? 'Сохраняю...' : 'Сохранить'}
-        </button>
-      </div>
-      <button
-        onClick={handleTestBroadcast}
-        disabled={loading}
-        className="px-6 py-2 rounded bg-vista-accent text-white font-semibold hover:bg-vista-accent/90 transition"
-      >
-        {loading ? 'Рассылка...' : 'Тестовая рассылка опросника'}
-      </button>
-      <button
-        onClick={async () => {
-          try {
-            const res = await fetch('/api/test-db');
-            const data = await res.json();
-            console.log('Test DB response:', data);
-            setResult(`Тест БД: ${data.playersWithTelegramCount} игроков с Telegram из ${data.totalPlayers} всего`);
-          } catch (e) {
-            console.error('Test DB error:', e);
-            setResult('Ошибка теста БД');
-          }
-        }}
-        className="ml-2 px-6 py-2 rounded bg-vista-secondary text-white font-semibold hover:bg-vista-secondary/90 transition"
-      >
-        Тест БД
-      </button>
-      <button
-        onClick={() => {
-          console.log('Current session:', session);
-          setResult(`Сессия: ${session?.user?.clubId ? `clubId: ${session.user.clubId}` : 'Нет clubId'}`);
-        }}
-        className="ml-2 px-6 py-2 rounded bg-vista-secondary text-white font-semibold hover:bg-vista-secondary/90 transition"
-      >
-        Проверить сессию
-      </button>
-      {result && <div className="mt-3 text-vista-light/90">{result}</div>}
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 

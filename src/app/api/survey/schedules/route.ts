@@ -27,3 +27,23 @@ export async function GET(req: NextRequest) {
     .leftJoin(team, eq(surveySchedule.teamId, team.id));
   return NextResponse.json(schedules);
 } 
+
+export async function POST(req: NextRequest) {
+  const token = await getToken({ req });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
+  }
+  const { teamId, enabled } = await req.json();
+  if (!teamId || typeof enabled !== 'boolean') {
+    return NextResponse.json({ error: 'Missing teamId or enabled' }, { status: 400 });
+  }
+  // Обновляем статус опросника для команды
+  const updated = await db.update(surveySchedule)
+    .set({ enabled })
+    .where(eq(surveySchedule.teamId, teamId))
+    .returning();
+  if (!updated.length) {
+    return NextResponse.json({ error: 'Schedule not found' }, { status: 404 });
+  }
+  return NextResponse.json({ success: true, schedule: updated[0] });
+} 

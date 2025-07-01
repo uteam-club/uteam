@@ -17,7 +17,7 @@ export default function LoginPage() {
     // Определение клуба по домену (hostname)
     const hostname = window.location.hostname;
     if (hostname.includes('alashkert')) {
-      setClubLogo('/alashkert.png');
+      setClubLogo('/alashkert.white.png');
     } else if (hostname.includes('fdcvista')) {
       setClubLogo('/vista.png');
     } else {
