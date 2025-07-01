@@ -7,6 +7,7 @@ import { formatDateTime } from '@/lib/utils';
 import { format } from 'date-fns';
 import { TeamSelect } from '@/components/ui/team-select';
 import { useToast } from '@/components/ui/use-toast';
+import { useSession } from 'next-auth/react';
 
 function TelegramBotSettings() {
   const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
@@ -17,6 +18,16 @@ function TelegramBotSettings() {
   const [savingTime, setSavingTime] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [teamTimezone, setTeamTimezone] = useState('Europe/Moscow');
+  const { data: session } = useSession();
+
+  // Отладочная информация о сессии
+  useEffect(() => {
+    console.log('Session info:', {
+      user: session?.user,
+      clubId: session?.user?.clubId,
+      role: session?.user?.role
+    });
+  }, [session]);
 
   // Загрузка списка команд
   useEffect(() => {
@@ -71,10 +82,13 @@ function TelegramBotSettings() {
     setLoading(true);
     setResult(null);
     try {
+      console.log('Starting test broadcast...');
       const res = await fetch('/api/telegram/test-broadcast', { method: 'POST' });
       const data = await res.json();
+      console.log('Broadcast response:', data);
       setResult(data.message || 'Рассылка выполнена!');
     } catch (e) {
+      console.error('Broadcast error:', e);
       setResult('Ошибка при выполнении рассылки');
     } finally {
       setLoading(false);
@@ -133,6 +147,31 @@ function TelegramBotSettings() {
         className="px-6 py-2 rounded bg-vista-accent text-white font-semibold hover:bg-vista-accent/90 transition"
       >
         {loading ? 'Рассылка...' : 'Тестовая рассылка опросника'}
+      </button>
+      <button
+        onClick={async () => {
+          try {
+            const res = await fetch('/api/test-db');
+            const data = await res.json();
+            console.log('Test DB response:', data);
+            setResult(`Тест БД: ${data.playersWithTelegramCount} игроков с Telegram из ${data.totalPlayers} всего`);
+          } catch (e) {
+            console.error('Test DB error:', e);
+            setResult('Ошибка теста БД');
+          }
+        }}
+        className="ml-2 px-6 py-2 rounded bg-vista-secondary text-white font-semibold hover:bg-vista-secondary/90 transition"
+      >
+        Тест БД
+      </button>
+      <button
+        onClick={() => {
+          console.log('Current session:', session);
+          setResult(`Сессия: ${session?.user?.clubId ? `clubId: ${session.user.clubId}` : 'Нет clubId'}`);
+        }}
+        className="ml-2 px-6 py-2 rounded bg-vista-secondary text-white font-semibold hover:bg-vista-secondary/90 transition"
+      >
+        Проверить сессию
       </button>
       {result && <div className="mt-3 text-vista-light/90">{result}</div>}
     </div>

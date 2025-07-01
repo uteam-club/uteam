@@ -1,6 +1,8 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { getUserByEmail, verifyPassword } from "@/services/user.service";
+import { getUserByEmail, verifyPassword, getClubBySubdomain } from "@/services/user.service";
+import { headers } from "next/headers";
+import { getSubdomain } from "@/lib/utils";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -10,7 +12,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email", placeholder: "email@example.com" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const email = credentials?.email || '';
         const password = credentials?.password || '';
         
@@ -29,6 +31,28 @@ export const authOptions: NextAuthOptions = {
         if (!isValid) {
           console.error('Authorize error: invalid password', { email });
           return null;
+        }
+
+        // Проверяем, что пользователь принадлежит к клубу поддомена (если это не супер-админ)
+        if (user.role !== 'SUPER_ADMIN') {
+          try {
+            const host = req.headers?.get('host') || '';
+            const subdomain = getSubdomain(host);
+            
+            if (subdomain) {
+              const club = await getClubBySubdomain(subdomain);
+              if (club && user.clubId !== club.id) {
+                console.error('Authorize error: user does not belong to club', { 
+                  email, 
+                  userClubId: user.clubId, 
+                  subdomainClubId: club.id 
+                });
+                return null;
+              }
+            }
+          } catch (e) {
+            console.error('Error checking club access:', e);
+          }
         }
 
         return {

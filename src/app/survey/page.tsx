@@ -73,6 +73,7 @@ export default function SurveyPage() {
 
   const [loadingSurvey, setLoadingSurvey] = useState(false);
   const [playerLoading, setPlayerLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [progress, setProgress] = useState<string>('Инициализация...');
 
@@ -134,6 +135,7 @@ export default function SurveyPage() {
       });
       if (!response.ok) throw new Error('Failed to submit survey');
       toast({ title: 'Успешно!', description: 'Ваши ответы сохранены' });
+      setShowSuccessModal(true);
     } catch (error) {
       toast({ title: 'Ошибка', description: 'Не удалось сохранить ответы', variant: 'destructive' });
     }
@@ -393,6 +395,27 @@ export default function SurveyPage() {
               </Button>
             </div>
           </Card>
+        )}
+
+        {/* Модальное окно успешной отправки */}
+        {showSuccessModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-vista-dark border border-vista-secondary/40 rounded-lg p-6 max-w-md w-full text-center">
+              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-vista-light mb-2">Опрос успешно отправлен!</h3>
+              <p className="text-vista-light/70 mb-6">Ваши ответы сохранены в системе</p>
+              <Button
+                onClick={() => window.close()}
+                className="w-full bg-vista-accent hover:bg-vista-accent/90 text-white"
+              >
+                Закрыть опросник
+              </Button>
+            </div>
+          </div>
         )}
       </div>
     </div>
