@@ -7,6 +7,7 @@ import ssl
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime, timedelta
 import pytz
+import time
 
 load_dotenv()
 
@@ -14,6 +15,11 @@ API_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 BIND_API_URL = os.getenv('BIND_API_URL')
 API_BASE_URL = os.getenv('API_BASE_URL', 'https://api.uteam.club')
 BOT_API_TOKEN = os.getenv('BOT_API_TOKEN')
+BOT_EMAIL = os.getenv('BOT_EMAIL', 'bot@uteam.club')
+BOT_PASSWORD = os.getenv('BOT_PASSWORD', 'StrongBotPassword123!')
+SERVICE_LOGIN_URL = f"{API_BASE_URL}/api/auth/service-login"
+JWT_TOKEN = None
+JWT_TOKEN_EXPIRES_AT = 0
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
@@ -101,15 +107,40 @@ async def pin_handler(message: types.Message):
                 await message.answer("Ошибка сервера. Попробуйте позже.")
     user_states.pop(message.from_user.id, None)
 
+async def fetch_jwt_token():
+    global JWT_TOKEN, JWT_TOKEN_EXPIRES_AT
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.post(
+                SERVICE_LOGIN_URL,
+                json={"email": BOT_EMAIL, "password": BOT_PASSWORD}
+            ) as resp:
+                data = await resp.json()
+                if resp.status == 200 and data.get('token'):
+                    JWT_TOKEN = data['token']
+                    # Токен живёт 1 день, обновим за 12 часов до истечения
+                    JWT_TOKEN_EXPIRES_AT = time.time() + 60 * 60 * 12
+                    print('[BOT] JWT-токен успешно получен')
+                else:
+                    print('[BOT] Не удалось получить JWT-токен:', data)
+        except Exception as e:
+            print('[BOT] Ошибка при получении JWT-токена:', e)
+
+async def ensure_jwt_token():
+    global JWT_TOKEN, JWT_TOKEN_EXPIRES_AT
+    if not JWT_TOKEN or time.time() > JWT_TOKEN_EXPIRES_AT:
+        await fetch_jwt_token()
+
 async def send_survey_broadcast():
     """
     Проверяет расписание рассылок и отправляет сообщения игрокам, если наступило время.
     Время сравнивается по таймзоне каждой команды.
     """
     try:
+        await ensure_jwt_token()
         headers = {}
-        if BOT_API_TOKEN:
-            headers['Authorization'] = f'Bearer {BOT_API_TOKEN}'
+        if JWT_TOKEN:
+            headers['Authorization'] = f'Bearer {JWT_TOKEN}'
         async with aiohttp.ClientSession() as session:
             async with session.get(f"{API_BASE_URL}/api/survey/schedules", headers=headers) as resp:
                 if resp.status != 200:
