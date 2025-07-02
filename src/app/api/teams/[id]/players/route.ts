@@ -24,6 +24,7 @@ async function checkClubAccess(request: NextRequest, session: any) {
 }
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  console.log('API /teams/[id]/players: headers', request.headers);
   const token = await getToken({ req: request });
   console.log('API /teams/[id]/players: token', token);
   if (!token || !allowedRoles.includes(token.role as string)) {
