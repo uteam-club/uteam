@@ -143,6 +143,8 @@ async def send_survey_broadcast():
             headers['Authorization'] = f'Bearer {JWT_TOKEN}'
         async with aiohttp.ClientSession() as session:
             async with session.get(f"{API_BASE_URL}/api/survey/schedules", headers=headers) as resp:
+                print("[DEBUG] Status:", resp.status)
+                print("[DEBUG] Response:", await resp.text())
                 if resp.status != 200:
                     print("[Scheduler] Не удалось получить расписания рассылок")
                     return
