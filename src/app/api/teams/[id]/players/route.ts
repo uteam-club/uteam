@@ -13,6 +13,8 @@ const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Проверка clubId пользователя и клуба по subdomain
 async function checkClubAccess(request: NextRequest, session: any) {
+  // Если пользователь SUPER_ADMIN — разрешаем доступ ко всем клубам
+  if (session.user.role === 'SUPER_ADMIN') return true;
   const host = request.headers.get('host') || '';
   const subdomain = getSubdomain(host);
   if (!subdomain) return false;
