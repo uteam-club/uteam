@@ -38,10 +38,6 @@ export async function GET(req: NextRequest) {
 } 
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
-    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
-  }
   const { teamId, enabled } = await req.json();
   if (!teamId || typeof enabled !== 'boolean') {
     return NextResponse.json({ error: 'Missing teamId or enabled' }, { status: 400 });
