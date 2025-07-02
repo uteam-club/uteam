@@ -8,6 +8,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime, timedelta
 import pytz
 import time
+import json
 
 load_dotenv()
 print('[DEBUG] NEXTAUTH_SECRET в боте:', os.getenv('NEXTAUTH_SECRET'))
@@ -166,10 +167,17 @@ async def send_survey_broadcast():
                 team_id = sched.get('teamId')
                 async with aiohttp.ClientSession() as session:
                     async with session.get(f"{API_BASE_URL}/api/teams/{team_id}/players") as resp:
+                        text = await resp.text()
+                        print(f"[DEBUG] Status (players): {resp.status}")
+                        print(f"[DEBUG] Response (players): {text}")
                         if resp.status != 200:
                             print(f"[DEBUG] Не удалось получить игроков для team_id={team_id}")
                             continue
-                        players = await resp.json(content_type=None)
+                        try:
+                            players = json.loads(text)
+                        except Exception as e:
+                            print(f"[DEBUG] Ошибка парсинга игроков: {e}")
+                            continue
                 print(f"[DEBUG] Получено игроков для рассылки: {len(players)}")
                 print(f"[DEBUG] Получено игроков: {players}")
                 for player in players:
