@@ -10,6 +10,7 @@ import pytz
 import time
 
 load_dotenv()
+print('[DEBUG] NEXTAUTH_SECRET в боте:', os.getenv('NEXTAUTH_SECRET'))
 
 API_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 BIND_API_URL = os.getenv('BIND_API_URL')
