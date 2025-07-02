@@ -4,35 +4,37 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { surveySchedule, team } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { getToken } from 'next-auth/jwt';
+import { verify } from 'jsonwebtoken';
 
 const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 export async function GET(req: NextRequest) {
-  // Логируем секрет
-  console.log('[DEBUG] NEXTAUTH_SECRET:', process.env.NEXTAUTH_SECRET);
-  // Получаем токен из заголовка Authorization или cookie (best practice)
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  console.log('[DEBUG] TOKEN:', token);
-  // Проверяем разные варианты поля роли
-  const role = token?.role || token?.userRole || token?.Role || token?.ROLE;
-  console.log('[DEBUG] ROLE:', role);
-  if (!token || !role || !allowedRoles.includes(String(role).toUpperCase())) {
-    return new Response(JSON.stringify({ error: 'Forbidden', debug: { token, role, allowedRoles } }), { status: 403 });
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return NextResponse.json({ error: 'No token' }, { status: 401 });
   }
-  // Возвращает все расписания рассылок с таймзоной команды
-  const schedules = await db
-    .select({
-      id: surveySchedule.id,
-      teamId: surveySchedule.teamId,
-      sendTime: surveySchedule.sendTime,
-      enabled: surveySchedule.enabled,
-      surveyType: surveySchedule.surveyType,
-      timezone: team.timezone,
-    })
-    .from(surveySchedule)
-    .leftJoin(team, eq(surveySchedule.teamId, team.id));
-  return NextResponse.json(schedules);
+  const token = authHeader.replace('Bearer ', '');
+  try {
+    const decoded: any = verify(token, process.env.NEXTAUTH_SECRET!, { algorithms: ['HS512'] });
+    if (!allowedRoles.includes(decoded.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    // Возвращаем расписания
+    const schedules = await db
+      .select({
+        id: surveySchedule.id,
+        teamId: surveySchedule.teamId,
+        sendTime: surveySchedule.sendTime,
+        enabled: surveySchedule.enabled,
+        surveyType: surveySchedule.surveyType,
+        timezone: team.timezone,
+      })
+      .from(surveySchedule)
+      .leftJoin(team, eq(surveySchedule.teamId, team.id));
+    return NextResponse.json(schedules);
+  } catch (e: any) {
+    return NextResponse.json({ error: 'Invalid token', details: e.message }, { status: 401 });
+  }
 } 
 
 export async function POST(req: NextRequest) {
