@@ -60,6 +60,10 @@ async function checkClubAccess(request: NextRequest, token: any) {
   if (!subdomain) return false;
   const club = await getClubBySubdomain(subdomain);
   if (!club) return false;
+  // Глобальный SUPER_ADMIN имеет доступ ко всем клубам
+  if (token.role === 'SUPER_ADMIN' && token.clubId === '00000000-0000-0000-0000-000000000000') {
+    return true;
+  }
   return token.clubId === club.id;
 }
 
