@@ -122,6 +122,7 @@ async def fetch_jwt_token():
                     # Токен живёт 1 день, обновим за 12 часов до истечения
                     JWT_TOKEN_EXPIRES_AT = time.time() + 60 * 60 * 12
                     print('[BOT] JWT-токен успешно получен')
+                    print('[DEBUG] JWT-токен:', JWT_TOKEN)
                 else:
                     print('[BOT] Не удалось получить JWT-токен:', data)
         except Exception as e:
