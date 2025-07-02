@@ -9,10 +9,16 @@ import { getToken } from 'next-auth/jwt';
 const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 export async function GET(req: NextRequest) {
+  // Логируем секрет
+  console.log('[DEBUG] NEXTAUTH_SECRET:', process.env.NEXTAUTH_SECRET);
   // Получаем токен из заголовка Authorization или cookie (best practice)
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  if (!token || !allowedRoles.includes(token.role as string)) {
-    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
+  console.log('[DEBUG] TOKEN:', token);
+  // Проверяем разные варианты поля роли
+  const role = token?.role || token?.userRole || token?.Role || token?.ROLE;
+  console.log('[DEBUG] ROLE:', role);
+  if (!token || !role || !allowedRoles.includes(String(role).toUpperCase())) {
+    return new Response(JSON.stringify({ error: 'Forbidden', debug: { token, role, allowedRoles } }), { status: 403 });
   }
   // Возвращает все расписания рассылок с таймзоной команды
   const schedules = await db
