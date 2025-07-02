@@ -9,7 +9,8 @@ import { getToken } from 'next-auth/jwt';
 const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 export async function GET(req: NextRequest) {
-  const token = await getToken({ req });
+  // Получаем токен из заголовка Authorization или cookie (best practice)
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token || !allowedRoles.includes(token.role as string)) {
     return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
   }
