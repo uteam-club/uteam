@@ -118,7 +118,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
     // Подготавливаем данные для обновления
     const updateData: any = {};
-    if ('date' in body) updateData.date = new Date(body.date);
+    if ('date' in body) updateData.date = typeof body.date === 'string' ? body.date.slice(0, 10) : undefined;
     if ('time' in body) updateData.time = body.time;
     if ('competitionType' in body) updateData.competitionType = body.competitionType;
     if ('isHome' in body) updateData.isHome = body.isHome;

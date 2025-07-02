@@ -191,6 +191,7 @@ export async function PUT(
     if ('notes' in data) trainingData.notes = data.notes;
     if ('categoryId' in data) trainingData.categoryId = data.categoryId;
     if ('status' in data) trainingData.status = data.status;
+    if ('type' in data) trainingData.type = data.type;
     
     // Обновляем тренировку
     const [updated] = await db.update(training)

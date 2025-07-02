@@ -40,6 +40,8 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
   const [opponentGoals, setOpponentGoals] = useState(0);
   const [matchStatus, setMatchStatus] = useState<'SCHEDULED' | 'FINISHED'>('SCHEDULED');
 
+  const isSingleTeam = teams.length === 1;
+
   // Загрузка списка команд
   useEffect(() => {
     if (isOpen) {
@@ -47,6 +49,12 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
       setMatchDate(initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
     }
   }, [isOpen, initialDate]);
+
+  useEffect(() => {
+    if (isSingleTeam && teams[0]) {
+      setTeamId(teams[0].id);
+    }
+  }, [isSingleTeam, teams]);
 
   const fetchTeams = async () => {
     try {
@@ -230,8 +238,9 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
           
           {/* Выбор команды и счет */}
           <div className="flex gap-4">
-            <div className="flex-1 flex flex-col space-y-2">
-              <Label htmlFor="teamId" className="text-vista-light/40 font-normal mb-2">Наша команда</Label>
+            {!isSingleTeam && (
+              <>
+                <Label htmlFor="teamId" className="text-vista-light/40 font-normal mb-2">Наша команда</Label>
                 <Select 
                   value={teamId} 
                   onValueChange={setTeamId}
@@ -248,7 +257,8 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </>
+            )}
             <div className="w-20 flex flex-col space-y-2">
               <Label htmlFor="teamGoals" className="text-vista-light/40 font-normal mb-2">Голы</Label>
                 <Input

@@ -43,6 +43,8 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
     categoryId: ''
   });
 
+  const isSingleTeam = teams.length === 1;
+
   useEffect(() => {
     async function fetchTeams() {
       try {
@@ -71,6 +73,12 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
     setNewTraining((prev) => ({ ...prev, date: initialDate ? format(initialDate, 'yyyy-MM-dd') : '' }));
   }, [initialDate]);
 
+  useEffect(() => {
+    if (isSingleTeam && teams[0]) {
+      setNewTraining((prev) => ({ ...prev, teamId: teams[0].id }));
+    }
+  }, [isSingleTeam, teams]);
+
   const handleInputChange = (field: string, value: string) => {
     setNewTraining((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: '' }));
@@ -80,7 +88,7 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
     let hasError = false;
     const newErrors = { title: '', teamId: '', date: '', categoryId: '' };
     if (!newTraining.title) { newErrors.title = 'Введите название'; hasError = true; }
-    if (!newTraining.teamId) { newErrors.teamId = 'Выберите команду'; hasError = true; }
+    if (!isSingleTeam && !newTraining.teamId) { newErrors.teamId = 'Выберите команду'; hasError = true; }
     if (!newTraining.date) { newErrors.date = 'Выберите дату'; hasError = true; }
     if (!newTraining.categoryId) { newErrors.categoryId = 'Выберите категорию'; hasError = true; }
     setErrors(newErrors);
@@ -118,29 +126,31 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
             />
             {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="team" className="text-vista-light/40 font-normal">Команда</Label>
-            <Select
-              value={newTraining.teamId}
-              onValueChange={(value) => handleInputChange('teamId', value)}
-              disabled={isLoadingTeams}
-            >
-              <SelectTrigger 
-                id="team"
-                className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
+          {!isSingleTeam && (
+            <>
+              <Label htmlFor="team" className="text-vista-light/40 font-normal">Команда</Label>
+              <Select
+                value={newTraining.teamId}
+                onValueChange={(value) => handleInputChange('teamId', value)}
+                disabled={isLoadingTeams}
               >
-                <SelectValue placeholder={isLoadingTeams ? "Загрузка..." : "Выберите команду"} />
-              </SelectTrigger>
-              <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
-                {teams.map(team => (
-                  <SelectItem key={team.id} value={team.id}>
-                    {team.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.teamId && <p className="text-red-500 text-sm">{errors.teamId}</p>}
-          </div>
+                <SelectTrigger 
+                  id="team"
+                  className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
+                >
+                  <SelectValue placeholder={isLoadingTeams ? "Загрузка..." : "Выберите команду"} />
+                </SelectTrigger>
+                <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                  {teams.map(team => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.teamId && <p className="text-red-500 text-sm">{errors.teamId}</p>}
+            </>
+          )}
           <div className="space-y-2">
             <Label htmlFor="date" className="text-vista-light/40 font-normal">Дата и время</Label>
             <div className="grid grid-cols-2 gap-2">

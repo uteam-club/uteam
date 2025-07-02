@@ -101,6 +101,8 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
   console.log('EditPlayerModal teams:', teams);
   console.log('EditPlayerModal form.teamId:', form.teamId);
 
+  const isSingleTeam = teams.length === 1;
+
   const handleChange = (field: keyof Player, value: any) => {
     setForm((prev: Player) => {
       const updated = { ...prev, [field]: value };
@@ -246,25 +248,29 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
                 </div>
               </>
             )}
-            <div>
-              <label className="text-vista-light/70 text-sm mb-2 block">Сменить команду</label>
-              {teams.length === 0 ? (
-                <div className="flex items-center gap-2 text-vista-light/60 text-sm bg-vista-dark/40 rounded px-3 py-2 border border-vista-secondary/30">
-                  <svg className="animate-spin h-4 w-4 mr-2 text-vista-primary" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
-                  Загрузка команд...
+            {!isSingleTeam && (
+              <>
+                <div>
+                  <label className="text-vista-light/70 text-sm mb-2 block">Сменить команду</label>
+                  {teams.length === 0 ? (
+                    <div className="flex items-center gap-2 text-vista-light/60 text-sm bg-vista-dark/40 rounded px-3 py-2 border border-vista-secondary/30">
+                      <svg className="animate-spin h-4 w-4 mr-2 text-vista-primary" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
+                      Загрузка команд...
+                    </div>
+                  ) : (
+                    <TeamSelect
+                      teams={teams}
+                      value={form.teamId || ''}
+                      onChange={v => {
+                        console.log('Выбрана команда:', v);
+                        handleChange('teamId', v);
+                      }}
+                      placeholder="Сменить команду"
+                    />
+                  )}
                 </div>
-              ) : (
-                <TeamSelect
-                  teams={teams}
-                  value={form.teamId || ''}
-                  onChange={v => {
-                    console.log('Выбрана команда:', v);
-                    handleChange('teamId', v);
-                  }}
-                  placeholder="Сменить команду"
-                />
-              )}
-            </div>
+              </>
+            )}
             <div>
               <label className="text-vista-light/70 text-sm mb-2 block">Пин-код</label>
               <Input value={form.pinCode || ''} disabled />

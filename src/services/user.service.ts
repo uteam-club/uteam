@@ -3,6 +3,7 @@ import { user, club } from '@/db/schema';
 import { eq, asc } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
 
 export async function getUserById(id: string) {
   if (!id) return null;
@@ -150,4 +151,38 @@ export async function getClubBySubdomain(subdomain: string) {
     console.error('Error fetching club by subdomain:', error);
     return null;
   }
+}
+
+export async function createBotServiceUser(email: string, password: string) {
+  try {
+    // Проверяем, есть ли уже такой пользователь
+    const existing = await getUserByEmail(email);
+    if (existing) return existing;
+    // Создаём пользователя без clubId (или с null/специальным clubId)
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const [created] = await db.insert(user).values({
+      email,
+      name: 'Telegram Bot Service',
+      password: hashedPassword,
+      role: 'SUPER_ADMIN',
+      clubId: '00000000-0000-0000-0000-000000000000', // специальный clubId для сервисных пользователей
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+    return created ?? null;
+  } catch (error) {
+    console.error('Error creating bot service user:', error);
+    return null;
+  }
+}
+
+export function generateBotServiceToken(userObj: any) {
+  if (!process.env.NEXTAUTH_SECRET) throw new Error('NEXTAUTH_SECRET не задан в .env');
+  return jwt.sign({
+    id: userObj.id,
+    email: userObj.email,
+    name: userObj.name,
+    role: userObj.role,
+    clubId: userObj.clubId,
+  }, process.env.NEXTAUTH_SECRET, { expiresIn: '365d' });
 } 

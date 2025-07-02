@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { player, playerDocument, playerMatchStat, playerAttendance, morningSurveyResponse, team } from "@/db/schema";
+import { player, playerDocument, playerMatchStat, playerAttendance, morningSurveyResponse, team, fitnessTestResult } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { deleteFile as deleteYandexFile } from "@/lib/yandex-storage";
 import { getSubdomain } from '@/lib/utils';
@@ -179,6 +179,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     );
     await db.delete(playerAttendance).where(
       playerIds.length === 1 ? eq(playerAttendance.playerId, playerIds[0]) : inArray(playerAttendance.playerId, playerIds)
+    );
+    // Удаляем результаты фитнес-тестов игрока
+    await db.delete(fitnessTestResult).where(
+      playerIds.length === 1 ? eq(fitnessTestResult.playerId, playerIds[0]) : inArray(fitnessTestResult.playerId, playerIds)
     );
     // Удаляем самих игроков
     await db.delete(player).where(

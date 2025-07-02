@@ -1,6 +1,6 @@
 import os
 from aiogram import Bot, Dispatcher, types, executor
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 import aiohttp
 from dotenv import load_dotenv
 import ssl
@@ -13,18 +13,23 @@ load_dotenv()
 API_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 BIND_API_URL = os.getenv('BIND_API_URL')
 API_BASE_URL = os.getenv('API_BASE_URL', 'https://api.uteam.club')
+BOT_API_TOKEN = os.getenv('BOT_API_TOKEN')
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
 LANGUAGES = {'en': 'English', 'ru': 'Русский'}
+LANGUAGE_BUTTONS = {
+    'en': 'Change language',
+    'ru': 'Сменить язык'
+}
 
 # Состояния пользователя
 user_states = {}
 
 @dp.message_handler(commands=['start'])
 async def start_handler(message: types.Message):
-    # Клавиатура выбора языка
+    # Клавиатура выбора языка + кнопка смены языка
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
     for code, name in LANGUAGES.items():
         kb.add(KeyboardButton(name))
@@ -32,6 +37,19 @@ async def start_handler(message: types.Message):
         "Welcome! Please select your language / Пожалуйста, выберите язык:",
         reply_markup=kb
     )
+    user_states[message.from_user.id] = {'step': 'choose_language'}
+
+# Кнопка смены языка
+@dp.message_handler(lambda m: m.text in [LANGUAGE_BUTTONS['en'], LANGUAGE_BUTTONS['ru']])
+async def change_language_handler(message: types.Message):
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    for code, name in LANGUAGES.items():
+        kb.add(KeyboardButton(name))
+    lang = user_states.get(message.from_user.id, {}).get('language', 'en')
+    if lang == 'en':
+        await message.answer("Please select your language:", reply_markup=kb)
+    else:
+        await message.answer("Пожалуйста, выберите язык:", reply_markup=kb)
     user_states[message.from_user.id] = {'step': 'choose_language'}
 
 @dp.message_handler(lambda m: m.text in LANGUAGES.values())
@@ -89,9 +107,11 @@ async def send_survey_broadcast():
     Время сравнивается по таймзоне каждой команды.
     """
     try:
-        # Получаем все включенные расписания
+        headers = {}
+        if BOT_API_TOKEN:
+            headers['Authorization'] = f'Bearer {BOT_API_TOKEN}'
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"{API_BASE_URL}/api/survey/schedules") as resp:
+            async with session.get(f"{API_BASE_URL}/api/survey/schedules", headers=headers) as resp:
                 if resp.status != 200:
                     print("[Scheduler] Не удалось получить расписания рассылок")
                     return
@@ -123,13 +143,36 @@ async def send_survey_broadcast():
                 for player in players:
                     telegram_id = player.get('telegramId')
                     club_id = player.get('clubId')
+                    pin_code = player.get('pinCode', '------')
+                    lang = player.get('language', 'ru')
                     if not telegram_id or not club_id:
                         print(f"[DEBUG] Пропущен игрок без telegramId или clubId: {player}")
                         continue
                     link = f"https://fdcvista.uteam.club/survey?tenantId={club_id}"
-                    text = f"Доброе утро! Пожалуйста, пройди утренний опросник: {link}\n\nВход по твоему 6-значному пинкоду."
+                    if lang == 'en':
+                        text = (
+                            "Good morning! Please complete the morning survey.\n\n"
+                            "Your pin code for login:\n"
+                            f"<code>{pin_code}</code>"
+                        )
+                        button_text = "📝 Take the survey"
+                    else:
+                        text = (
+                            "Доброе утро! Пожалуйста, пройди утренний опросник.\n\n"
+                            "Твой пинкод для входа:\n"
+                            f"<code>{pin_code}</code>"
+                        )
+                        button_text = "📝 Пройти опрос"
+                    keyboard = InlineKeyboardMarkup().add(
+                        InlineKeyboardButton(button_text, url=link)
+                    )
                     try:
-                        await bot.send_message(telegram_id, text)
+                        await bot.send_message(
+                            telegram_id,
+                            text,
+                            reply_markup=keyboard,
+                            parse_mode="HTML"
+                        )
                         print(f"[DEBUG] Сообщение отправлено: telegramId={telegram_id}")
                     except Exception as e:
                         print(f"[Scheduler] Ошибка отправки {telegram_id}: {e}")
@@ -152,19 +195,51 @@ async def handle_send_morning_survey(request):
     club_id = data.get('clubId')
     team_id = data.get('teamId')
     date = data.get('date')
-    # TODO: можно добавить проверку секретного токена
+    pin_code = data.get('pinCode', '------')
+    lang = data.get('language', 'ru')
     if not telegram_id or not club_id:
         return web.json_response({'error': 'telegramId и clubId обязательны'}, status=400)
     link = f"https://fdcvista.uteam.club/survey?tenantId={club_id}"
-    text = f"Доброе утро! Пожалуйста, пройди утренний опросник: {link}\n\nВход по твоему 6-значному пинкоду."
+    if lang == 'en':
+        text = (
+            "Good morning! Please complete the morning survey.\n\n"
+            "Your pin code for login:\n"
+            f"<code>{pin_code}</code>"
+        )
+        button_text = "📝 Take the survey"
+    else:
+        text = (
+            "Доброе утро! Пожалуйста, пройди утренний опросник.\n\n"
+            "Твой пинкод для входа:\n"
+            f"<code>{pin_code}</code>"
+        )
+        button_text = "📝 Пройти опрос"
+    keyboard = InlineKeyboardMarkup().add(
+        InlineKeyboardButton(button_text, url=link)
+    )
     try:
-        await bot.send_message(telegram_id, text)
+        await bot.send_message(
+            telegram_id,
+            text,
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
         return web.json_response({'success': True})
     except Exception as e:
         return web.json_response({'error': str(e)}, status=500)
 
+async def handle_send_survey_success(request):
+    data = await request.json()
+    telegram_id = data.get('telegramId')
+    lang = data.get('language', 'ru')
+    if not telegram_id:
+        return web.json_response({'error': 'telegramId обязателен'}, status=400)
+    await send_survey_success_message(telegram_id, lang)
+    return web.json_response({'success': True})
+
 app = web.Application()
 app.router.add_post('/send-morning-survey', handle_send_morning_survey)
+app.router.add_post('/send-survey-success', handle_send_survey_success)
 
 def run_web_app():
     loop = asyncio.get_event_loop()
@@ -174,11 +249,23 @@ def run_web_app():
     loop.run_until_complete(site.start())
     print('HTTP server started on port 8080')
 
+async def send_survey_success_message(telegram_id, lang='ru'):
+    if lang == 'en':
+        text = (
+            "✅ Thank you! Your morning survey has been successfully submitted.\n"
+            "Have a great day and productive training!"
+        )
+    else:
+        text = (
+            "✅ Спасибо! Ваш утренний опросник успешно отправлен.\n"
+            "Хорошего дня и продуктивной тренировки!"
+        )
+    try:
+        await bot.send_message(telegram_id, text)
+    except Exception as e:
+        print(f"[SurveySuccess] Ошибка отправки сообщения: {e}")
+
 if __name__ == '__main__':
     setup_scheduler()
     run_web_app()
-<<<<<<< HEAD
     executor.start_polling(dp, skip_updates=True)
-=======
-    executor.start_polling(dp, skip_updates=True)
->>>>>>> 2a3b27b10969d26dcfe0721a54ee3620544521d2

@@ -146,6 +146,8 @@ export default function TrainingPage() {
   const [trainingCategories, setTrainingCategories] = useState<TrainingCategory[]>([]);
   const [isLoadingTrainingCategories, setIsLoadingTrainingCategories] = useState(false);
 
+  const isSingleTeam = teams.length === 1;
+
   useEffect(() => {
     async function fetchTraining() {
       try {
@@ -780,13 +782,15 @@ export default function TrainingPage() {
               </div>
               
               {/* Команда */}
-              <div className="flex items-center bg-vista-dark/70 p-3 rounded-md border border-vista-secondary/50 shadow-md">
-                <Users className="h-5 w-5 mr-3 text-vista-primary" />
-                <div>
-                  <div className="text-vista-light/70 text-xs mb-1">Команда</div>
-                  <div className="text-vista-light">{trainingData.team || 'Неизвестно'}</div>
+              {!isSingleTeam && (
+                <div className="flex items-center bg-vista-dark/70 p-3 rounded-md border border-vista-secondary/50 shadow-md">
+                  <Users className="h-5 w-5 mr-3 text-vista-primary" />
+                  <div>
+                    <div className="text-vista-light/70 text-xs mb-1">Команда</div>
+                    <div className="text-vista-light">{trainingData.team || 'Неизвестно'}</div>
+                  </div>
                 </div>
-              </div>
+              )}
               
               {/* Дата */}
               <div className="flex items-center bg-vista-dark/70 p-3 rounded-md border border-vista-secondary/50 shadow-md">
@@ -1024,17 +1028,21 @@ export default function TrainingPage() {
                 <Input id="edit-title" value={editTraining.title} onChange={e => handleEditTrainingChange('title', e.target.value)} className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50" placeholder="Введите название тренировки" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-team" className="text-vista-light/40 font-normal">Команда</Label>
-                <Select value={editTraining.teamId} onValueChange={v => handleEditTrainingChange('teamId', v)}>
-                  <SelectTrigger id="edit-team" className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
-                    <SelectValue placeholder="Выберите команду" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
-                    {teams.map(team => (
-                      <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {!isSingleTeam && (
+                  <>
+                    <Label htmlFor="edit-team" className="text-vista-light/40 font-normal">Команда</Label>
+                    <Select value={editTraining.teamId} onValueChange={v => handleEditTrainingChange('teamId', v)}>
+                      <SelectTrigger id="edit-team" className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+                        <SelectValue placeholder="Выберите команду" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                        {teams.map(team => (
+                          <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-date" className="text-vista-light/40 font-normal">Дата и время</Label>

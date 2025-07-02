@@ -519,7 +519,8 @@ export default function AttendanceAnalyticsPage() {
                               className={`text-vista-light/80 font-medium text-center p-1.5 min-w-[80px] ${getTrainingColumnClass(training.date)}`}
                             >
                               <div className="flex flex-col items-center justify-center">
-                                <span className="text-xs">{training.time}</span>
+                                <span className="text-xs font-semibold">{format(parseISO(training.date), 'dd.MM.yyyy')}</span>
+                                <span className="text-[10px] text-vista-light/50 mt-0.5">{training.time}</span>
                               </div>
                             </TableHead>
                           ))}
@@ -529,7 +530,7 @@ export default function AttendanceAnalyticsPage() {
                         {getFilteredPlayers().map((player, index) => (
                           <UITableRow key={player.id} className="hover:bg-vista-dark/40 border-b border-vista-secondary/50 shadow-md">
                             {/* Информация об игроке */}
-                            <TableCell className="sticky left-0 bg-vista-dark/70 py-1.5 w-[250px] min-w-[250px]">
+                            <TableCell className="sticky left-0 bg-vista-dark py-1.5 w-[250px] min-w-[250px]">
                               <div className="flex items-center">
                                 {/* Фото игрока */}
                                 <div className="h-7 w-7 rounded-full overflow-hidden bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)] mr-2 flex-shrink-0 shadow-sm">

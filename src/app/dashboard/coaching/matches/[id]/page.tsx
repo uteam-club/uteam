@@ -221,6 +221,8 @@ export default function MatchDetailsPage() {
   const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
   const [savingEdit, setSavingEdit] = useState(false);
 
+  const isSingleTeam = teams.length === 1;
+
   useEffect(() => {
     if (matchId) {
       fetchMatchDetails();
@@ -1429,7 +1431,10 @@ export default function MatchDetailsPage() {
             <div className="flex gap-4">
               <div className="flex-1 flex flex-col space-y-2">
                 <Label htmlFor="teamId" className="text-vista-light/40 font-normal mb-2">Наша команда</Label>
-                <TeamSelect teams={teams} value={editForm.teamId} onChange={v => handleEditFormChange('teamId', v)} />
+                {isSingleTeam
+                  ? <div className="px-3 py-2 rounded bg-vista-dark-lighter border border-vista-secondary/30 text-vista-light min-h-[40px] flex items-center">{teams[0]?.name}</div>
+                  : <TeamSelect teams={teams} value={editForm.teamId} onChange={v => handleEditFormChange('teamId', v)} />
+                }
               </div>
               <div className="w-20 flex flex-col space-y-2">
                 <Label htmlFor="teamGoals" className="text-vista-light/40 font-normal mb-2">Голы</Label>

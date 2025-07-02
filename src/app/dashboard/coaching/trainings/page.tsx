@@ -306,6 +306,9 @@ export default function TrainingsPage() {
     setCurrentPage(1);
   }, []);
   
+  // Проверка: одна команда или несколько
+  const isSingleTeam = teams.length === 1;
+  
   return (
     <div className="space-y-6">
       <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
@@ -330,7 +333,7 @@ export default function TrainingsPage() {
                   placeholder="Поиск тренировок..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
+                  className="pl-10 bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary focus:ring-vista-primary/50"
                 />
                 {searchQuery && (
                   <button
@@ -343,23 +346,25 @@ export default function TrainingsPage() {
               </div>
               
               {/* Фильтр по команде */}
-              <Select
-                value={selectedTeam === null ? 'all' : selectedTeam}
-                onValueChange={(value) => setSelectedTeam(value === "all" ? null : value)}
-                disabled={isLoadingTeams}
-              >
-                <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
-                  <SelectValue placeholder={isLoadingTeams ? "Загрузка..." : "Выберите команду"} />
-                </SelectTrigger>
-                <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
-                  <SelectItem value="all">Все команды</SelectItem>
-                  {teams.map((team) => (
-                    <SelectItem key={team.id} value={team.id}>
-                      {team.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {!isSingleTeam && (
+                <Select
+                  value={selectedTeam === null ? 'all' : selectedTeam}
+                  onValueChange={(value) => setSelectedTeam(value === "all" ? null : value)}
+                  disabled={isLoadingTeams}
+                >
+                  <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+                    <SelectValue placeholder={isLoadingTeams ? "Загрузка..." : "Выберите команду"} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                    <SelectItem value="all">Все команды</SelectItem>
+                    {teams.map((team) => (
+                      <SelectItem key={team.id} value={team.id}>
+                        {team.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
 
               {/* Фильтр по категории */}
               <Select
@@ -541,7 +546,7 @@ export default function TrainingsPage() {
                       {/* Теги в нижней части */}
                       <div className="flex flex-wrap gap-2 mt-2">
                         <Badge className="bg-vista-secondary/20 text-vista-light border border-vista-secondary/50 shadow-md font-normal">
-                          {training.team}
+                          {!isSingleTeam && training.team}
                         </Badge>
                         <Badge className="bg-vista-dark text-vista-primary border border-vista-primary/30 font-normal">
                           {training.category}

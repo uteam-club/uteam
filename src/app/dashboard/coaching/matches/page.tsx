@@ -62,6 +62,8 @@ export default function MatchesPage() {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
+  const isSingleTeam = teams.length === 1;
+
   useEffect(() => {
     fetchMatches();
     fetchTeams();
@@ -204,19 +206,21 @@ export default function MatchesPage() {
             </div>
             
             {/* Фильтр по команде */}
-            <div className="flex-1 md:max-w-[250px]">
-              <Select value={selectedTeam || "all"} onValueChange={setSelectedTeam}>
-                <SelectTrigger className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light h-10">
-                  <SelectValue placeholder="Все команды" />
-                </SelectTrigger>
-                <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light">
-                  <SelectItem value="all">Все команды</SelectItem>
-                  {teams.map(team => (
-                    <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {!isSingleTeam && (
+              <div className="flex-1 md:max-w-[250px]">
+                <Select value={selectedTeam || "all"} onValueChange={setSelectedTeam}>
+                  <SelectTrigger className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light h-10">
+                    <SelectValue placeholder="Все команды" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light">
+                    <SelectItem value="all">Все команды</SelectItem>
+                    {teams.map(team => (
+                      <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             
             {/* Фильтр по дате от */}
             <div className="flex-1 md:max-w-[180px]">
@@ -308,7 +312,7 @@ export default function MatchesPage() {
           {/* Отображение выбранных фильтров */}
           {hasActiveFilters && (
             <div className="mb-4 flex flex-wrap gap-2">
-              {selectedTeam && selectedTeam !== "all" && (
+              {!isSingleTeam && selectedTeam && selectedTeam !== "all" && (
                 <Badge className="bg-vista-primary/20 text-vista-light flex items-center gap-1 pl-2">
                   <Users size={12} />
                   {teams.find(t => t.id === selectedTeam)?.name || 'Команда'}

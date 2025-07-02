@@ -97,6 +97,21 @@ export async function POST(req: NextRequest) {
       .where(eq(morningSurveyResponse.id, createdResponse.id));
     const painAreasResult = await db.select().from(painArea)
       .where(eq(painArea.surveyId, createdResponse.id));
+
+    // Отправляем сообщение в Telegram, если есть telegramId
+    if (foundPlayer.telegramId) {
+      const lang = foundPlayer.language || 'ru';
+      try {
+        await fetch('http://<IP_бота>:8080/send-survey-success', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegramId: foundPlayer.telegramId, language: lang })
+        });
+      } catch (e) {
+        console.error('[SURVEY_RESPONSE_POST] Ошибка отправки Telegram-уведомления:', e);
+      }
+    }
+
     return NextResponse.json({ ...response, painAreas: painAreasResult });
   } catch (error: any) {
     console.error('[SURVEY_RESPONSE_POST]', error);
