@@ -28,6 +28,41 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   if (!token || !allowedRoles.includes(token.role as string)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+  // Если SUPER_ADMIN — разрешаем доступ без сессии и проверки клуба
+  if (token.role === 'SUPER_ADMIN') {
+    const teamId = params.id;
+    if (!teamId) {
+      return new Response(JSON.stringify({ error: "No teamId" }), { status: 400 });
+    }
+    const players = await db
+      .select({
+        id: player.id,
+        firstName: player.firstName,
+        lastName: player.lastName,
+        middleName: player.middleName,
+        number: player.number,
+        position: player.position,
+        strongFoot: player.strongFoot,
+        dateOfBirth: player.dateOfBirth,
+        academyJoinDate: player.academyJoinDate,
+        nationality: player.nationality,
+        imageUrl: player.imageUrl,
+        status: player.status,
+        birthCertificateNumber: player.birthCertificateNumber,
+        pinCode: player.pinCode,
+        telegramId: player.telegramId,
+        language: player.language,
+        createdAt: player.createdAt,
+        updatedAt: player.updatedAt,
+        teamId: player.teamId,
+        clubId: team.clubId // alias
+      })
+      .from(player)
+      .leftJoin(team, eq(player.teamId, team.id))
+      .where(eq(player.teamId, teamId));
+    return new Response(JSON.stringify(players), { status: 200 });
+  }
+  // Для остальных — старая логика
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
