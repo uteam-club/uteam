@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
         clubId: user.clubId,
       },
       process.env.NEXTAUTH_SECRET || 'secret',
-      { expiresIn: '1d' }
+      { expiresIn: '1d', algorithm: 'HS512' }
     );
 
     return NextResponse.json({ token });
