@@ -67,7 +67,7 @@ def test_connection():
                     t.name as teamName,
                     t.timezone
                 FROM "SurveySchedule" ss
-                LEFT JOIN "Team" t ON ss.teamId = t.id
+                LEFT JOIN "Team" t ON ss."teamId" = t."id"
                 WHERE ss.enabled = true AND ss."surveyType" = 'morning'
                 LIMIT 5
             """)
