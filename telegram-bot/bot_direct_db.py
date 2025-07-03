@@ -26,7 +26,7 @@ DB_CONFIG = {
 }
 
 # Конфигурация Telegram бота
-API_TOKEN = "7555689553:AAFSDvBcAC_PU7o5vq3vV0Gy5DS8R9q5aPU"
+API_TOKEN = "7798777057:AAGYaxReg9yapQbRjiIZ3Rw5ZOgH2kA0K3o"
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
