@@ -42,7 +42,7 @@ def test_connection():
             cursor.execute("""
                 SELECT COUNT(*) as count 
                 FROM "Player" 
-                WHERE telegramId IS NOT NULL
+                WHERE "telegramId" IS NOT NULL
             """)
             result = cursor.fetchone()
             print(f"👥 Игроков с привязанным Telegram: {result['count']}")

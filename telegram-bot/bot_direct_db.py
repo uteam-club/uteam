@@ -57,15 +57,15 @@ def get_survey_schedules():
         with connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
             query = """
             SELECT 
-                ss.id,
-                ss.teamId,
-                ss.sendTime,
-                ss.enabled,
+                ss."id",
+                ss."teamId",
+                ss."sendTime",
+                ss."enabled",
                 ss."surveyType",
-                t.timezone
+                t."timezone"
             FROM "SurveySchedule" ss
-            LEFT JOIN "Team" t ON ss.teamId = t.id
-            WHERE ss.enabled = true AND ss."surveyType" = 'morning'
+            LEFT JOIN "Team" t ON ss."teamId" = t."id"
+            WHERE ss."enabled" = true AND ss."surveyType" = 'morning'
             """
             cursor.execute(query)
             schedules = cursor.fetchall()
@@ -86,16 +86,16 @@ def get_team_players(team_id):
         with connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
             query = """
             SELECT 
-                p.id,
-                p.firstName,
-                p.lastName,
-                p.telegramId,
-                p.pinCode,
-                p.language,
-                t.clubId
+                p."id",
+                p."firstName",
+                p."lastName",
+                p."telegramId",
+                p."pinCode",
+                p."language",
+                t."clubId"
             FROM "Player" p
-            LEFT JOIN "Team" t ON p.teamId = t.id
-            WHERE p.teamId = %s AND p.telegramId IS NOT NULL
+            LEFT JOIN "Team" t ON p."teamId" = t."id"
+            WHERE p."teamId" = %s AND p."telegramId" IS NOT NULL
             """
             cursor.execute(query, (team_id,))
             players = cursor.fetchall()
@@ -116,7 +116,7 @@ def bind_telegram_to_player(pin_code, telegram_id, language='ru'):
         with connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
             # Проверяем, не привязан ли уже этот telegramId
             cursor.execute(
-                "SELECT id FROM \"Player\" WHERE telegramId = %s",
+                "SELECT id FROM \"Player\" WHERE \"telegramId\" = %s",
                 (telegram_id,)
             )
             if cursor.fetchone():
@@ -124,7 +124,7 @@ def bind_telegram_to_player(pin_code, telegram_id, language='ru'):
             
             # Ищем игрока по PIN-коду
             cursor.execute(
-                "SELECT id, telegramId FROM \"Player\" WHERE pinCode = %s",
+                "SELECT id, \"telegramId\" FROM \"Player\" WHERE \"pinCode\" = %s",
                 (pin_code,)
             )
             player = cursor.fetchone()
@@ -137,7 +137,7 @@ def bind_telegram_to_player(pin_code, telegram_id, language='ru'):
             
             # Привязываем telegramId и обновляем язык
             cursor.execute(
-                "UPDATE \"Player\" SET telegramId = %s, language = %s, updatedAt = NOW() WHERE id = %s",
+                "UPDATE \"Player\" SET \"telegramId\" = %s, \"language\" = %s, \"updatedAt\" = NOW() WHERE \"id\" = %s",
                 (telegram_id, language, player['id'])
             )
             connection.commit()
