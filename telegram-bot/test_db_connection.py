@@ -74,7 +74,7 @@ def test_connection():
             schedules = cursor.fetchall()
             print(f"📋 Примеры расписаний:")
             for schedule in schedules:
-                print(f"  - Команда: {schedule['teamName']}, Время: {schedule['sendTime']}, Таймзона: {schedule['timezone']}")
+                print(f"  - Команда: {schedule.get('teamName')}, Время: {schedule.get('sendTime')}, Таймзона: {schedule.get('timezone')}")
         
         connection.close()
         print("✅ Все тесты пройдены успешно!")
