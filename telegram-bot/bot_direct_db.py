@@ -61,11 +61,11 @@ def get_survey_schedules():
                 ss.teamId,
                 ss.sendTime,
                 ss.enabled,
-                ss.surveyType,
+                ss."surveyType",
                 t.timezone
             FROM "SurveySchedule" ss
             LEFT JOIN "Team" t ON ss.teamId = t.id
-            WHERE ss.enabled = true AND ss.surveyType = 'morning'
+            WHERE ss.enabled = true AND ss."surveyType" = 'morning'
             """
             cursor.execute(query)
             schedules = cursor.fetchall()

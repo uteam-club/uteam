@@ -32,7 +32,7 @@ def test_connection():
             cursor.execute("""
                 SELECT COUNT(*) as count 
                 FROM "SurveySchedule" 
-                WHERE enabled = true AND surveyType = 'morning'
+                WHERE enabled = true AND "surveyType" = 'morning'
             """)
             result = cursor.fetchone()
             print(f"📅 Найдено активных расписаний: {result['count']}")
@@ -68,7 +68,7 @@ def test_connection():
                     t.timezone
                 FROM "SurveySchedule" ss
                 LEFT JOIN "Team" t ON ss.teamId = t.id
-                WHERE ss.enabled = true AND ss.surveyType = 'morning'
+                WHERE ss.enabled = true AND ss."surveyType" = 'morning'
                 LIMIT 5
             """)
             schedules = cursor.fetchall()
@@ -101,7 +101,7 @@ def test_read_only_access():
         with connection.cursor() as cursor:
             try:
                 cursor.execute("""
-                    INSERT INTO "SurveySchedule" (id, teamId, surveyType, enabled, sendTime)
+                    INSERT INTO "SurveySchedule" (id, teamId, "surveyType", enabled, sendTime)
                     VALUES ('test-id', 'test-team-id', 'test', false, '12:00')
                 """)
                 print("❌ ОШИБКА: Пользователь имеет права на запись!")
