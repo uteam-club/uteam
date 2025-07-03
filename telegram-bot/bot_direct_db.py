@@ -12,6 +12,7 @@ import json
 from aiohttp import web
 
 load_dotenv()
+print(f"[DEBUG] TELEGRAM_BOT_TOKEN={os.getenv('TELEGRAM_BOT_TOKEN')}")
 
 # Конфигурация базы данных для бота
 DB_CONFIG = {
