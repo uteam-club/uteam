@@ -60,15 +60,15 @@ def test_connection():
         with connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
             cursor.execute("""
                 SELECT 
-                    ss.id,
-                    ss.teamId,
-                    ss.sendTime,
-                    ss.enabled,
-                    t.name as teamName,
-                    t.timezone
+                    ss."id",
+                    ss."teamId",
+                    ss."sendTime",
+                    ss."enabled",
+                    t."name" as teamName,
+                    t."timezone"
                 FROM "SurveySchedule" ss
                 LEFT JOIN "Team" t ON ss."teamId" = t."id"
-                WHERE ss.enabled = true AND ss."surveyType" = 'morning'
+                WHERE ss."enabled" = true AND ss."surveyType" = 'morning'
                 LIMIT 5
             """)
             schedules = cursor.fetchall()
@@ -101,7 +101,7 @@ def test_read_only_access():
         with connection.cursor() as cursor:
             try:
                 cursor.execute("""
-                    INSERT INTO "SurveySchedule" (id, teamId, "surveyType", enabled, sendTime)
+                    INSERT INTO "SurveySchedule" ("id", "teamId", "surveyType", "enabled", "sendTime")
                     VALUES ('test-id', 'test-team-id', 'test', false, '12:00')
                 """)
                 print("❌ ОШИБКА: Пользователь имеет права на запись!")
@@ -117,8 +117,8 @@ def test_read_only_access():
             try:
                 cursor.execute("""
                     UPDATE "SurveySchedule" 
-                    SET sendTime = '12:00' 
-                    WHERE id = 'non-existent-id'
+                    SET "sendTime" = '12:00' 
+                    WHERE "id" = 'non-existent-id'
                 """)
                 print("❌ ОШИБКА: Пользователь имеет права на обновление!")
                 return False
@@ -133,7 +133,7 @@ def test_read_only_access():
             try:
                 cursor.execute("""
                     DELETE FROM "SurveySchedule" 
-                    WHERE id = 'non-existent-id'
+                    WHERE "id" = 'non-existent-id'
                 """)
                 print("❌ ОШИБКА: Пользователь имеет права на удаление!")
                 return False
