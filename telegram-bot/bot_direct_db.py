@@ -246,8 +246,10 @@ async def language_handler(message: types.Message, state: FSMContext):
     lang_code = 'en' if message.text == 'English' else 'ru'
     telegram_id = message.from_user.id
     user_state = user_states.get(telegram_id, {})
+    is_bound = user_state.get('is_bound') or is_telegram_bound(telegram_id)
+    print(f"[DEBUG] language_handler: telegram_id={telegram_id}, lang_code={lang_code}, user_state={user_state}, is_bound={is_bound}")
     # Если это смена языка через меню и пользователь уже привязан
-    if user_state.get('step') == 'change_language' and (user_state.get('is_bound') or is_telegram_bound(telegram_id)):
+    if user_state.get('step') == 'change_language' and is_bound:
         connection = get_db_connection()
         if connection:
             try:
