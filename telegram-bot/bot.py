@@ -191,7 +191,7 @@ async def send_survey_broadcast():
                     if not telegram_id or not club_id:
                         print(f"[DEBUG] Пропущен игрок без telegramId или clubId: {player}")
                         continue
-                    link = f"https://fdcvista.uteam.club/survey?tenantId={club_id}"
+                    link = f"https://api.uteam.club/survey?tenantId={club_id}"
                     if lang == 'en':
                         text = (
                             "Good morning! Please complete the morning survey.\n\n"
@@ -242,7 +242,7 @@ async def handle_send_morning_survey(request):
     lang = data.get('language', 'ru')
     if not telegram_id or not club_id:
         return web.json_response({'error': 'telegramId и clubId обязательны'}, status=400)
-    link = f"https://fdcvista.uteam.club/survey?tenantId={club_id}"
+    link = f"https://api.uteam.club/survey?tenantId={club_id}"
     if lang == 'en':
         text = (
             "Good morning! Please complete the morning survey.\n\n"
