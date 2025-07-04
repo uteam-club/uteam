@@ -262,7 +262,7 @@ async def language_handler(message: types.Message, state: FSMContext):
         user_states.pop(telegram_id, None)
         await state.clear()
         return
-    # Обычная логика для новых пользователей
+    # Обычная логика для новых пользователей (ещё не привязанных)
     user_states[telegram_id] = {'step': 'enter_pin', 'language': lang_code}
     if lang_code == 'en':
         await message.answer("Please enter your 6-digit pin code:", reply_markup=types.ReplyKeyboardRemove())
