@@ -43,8 +43,12 @@ LANGUAGE_BUTTONS = {
 user_states = {}
 
 # Главное меню
-MAIN_MENU = ReplyKeyboardMarkup(resize_keyboard=True)
-MAIN_MENU.add(KeyboardButton('Сменить язык'), KeyboardButton('Отвязать TelegramID'))
+MAIN_MENU = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text='Сменить язык'), KeyboardButton(text='Отвязать TelegramID')]
+    ],
+    resize_keyboard=True
+)
 
 def get_db_connection():
     """Создает подключение к базе данных"""
