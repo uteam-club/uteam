@@ -247,10 +247,12 @@ async def language_handler(message: types.Message, state: FSMContext):
     """Обработчик выбора языка"""
     lang_code = 'en' if message.text == 'English' else 'ru'
     telegram_id = message.from_user.id
-    
-    # Проверяем, привязан ли уже Telegram ID
-    if is_telegram_bound(telegram_id):
-        # Если уже привязан, обновляем язык в базе
+
+    # Получаем текущее состояние FSM
+    current_state = await state.get_state()
+
+    # Если пользователь в процессе смены языка (а не регистрации)
+    if current_state == UserStates.choose_language.state and is_telegram_bound(telegram_id):
         success, message_text = update_player_language(telegram_id, lang_code)
         if success:
             if lang_code == 'en':
@@ -264,11 +266,10 @@ async def language_handler(message: types.Message, state: FSMContext):
                 await message.answer(f"❌ Ошибка: {message_text}", reply_markup=MAIN_MENU)
         await state.finish()
         return
-    
+
     # Для новых пользователей - сохраняем язык и переходим к пин-коду
     await state.update_data(language=lang_code)
     await state.set_state(UserStates.enter_pin.state)
-    
     if lang_code == 'en':
         await message.answer("Please enter your 6-digit pin code:", reply_markup=types.ReplyKeyboardRemove())
     else:
