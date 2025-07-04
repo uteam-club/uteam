@@ -24,7 +24,7 @@ DB_CONFIG = {
     'database': 'uteam',
     'user': 'uteam_bot_reader',
     'password': 'uteambot567234!',
-    'sslmode': 'verify-ca',
+    'sslmode': 'require',
     'sslcert': './yandex_root.crt'
 }
 
