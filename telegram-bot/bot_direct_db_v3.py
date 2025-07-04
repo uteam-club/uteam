@@ -2,11 +2,11 @@ import os
 import asyncio
 import psycopg2
 import psycopg2.extras
-from aiogram import Bot, Dispatcher, types, F
+from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from dotenv import load_dotenv
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime, timedelta
@@ -30,7 +30,8 @@ DB_CONFIG = {
 # Конфигурация Telegram бота
 API_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 bot = Bot(token=API_TOKEN)
-dp = Dispatcher()
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
 
 LANGUAGES = {'en': 'English', 'ru': 'Русский'}
 LANGUAGE_BUTTONS = {
@@ -42,6 +43,10 @@ LANGUAGE_BUTTONS = {
 class UserStates(StatesGroup):
     choose_language = State()
     enter_pin = State()
+
+# Главное меню
+MAIN_MENU = ReplyKeyboardMarkup(resize_keyboard=True)
+MAIN_MENU.add(KeyboardButton('Сменить язык'), KeyboardButton('Отвязать TelegramID'))
 
 def get_db_connection():
     """Создает подключение к базе данных"""
@@ -155,42 +160,121 @@ def bind_telegram_to_player(pin_code, telegram_id, language='ru'):
     finally:
         connection.close()
 
-@dp.message(Command("start"))
+def update_player_language(telegram_id, language):
+    """Обновляет язык игрока в базе данных"""
+    connection = get_db_connection()
+    if not connection:
+        return False, "Ошибка подключения к базе данных"
+    
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'UPDATE "Player" SET "language" = %s, "updatedAt" = NOW() WHERE "telegramId" = %s',
+                (language, str(telegram_id))
+            )
+            connection.commit()
+            if cursor.rowcount > 0:
+                return True, "Язык успешно обновлен"
+            else:
+                return False, "Игрок с таким TelegramID не найден"
+    except Exception as e:
+        print(f"[DB] Ошибка обновления языка: {e}")
+        return False, "Ошибка базы данных"
+    finally:
+        connection.close()
+
+def is_telegram_bound(telegram_id):
+    """Проверяет, привязан ли Telegram ID к игроку"""
+    connection = get_db_connection()
+    if not connection:
+        return False
+    
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT id FROM "Player" WHERE "telegramId" = %s', (str(telegram_id),))
+            return cursor.fetchone() is not None
+    except Exception as e:
+        print(f"[DB] Ошибка проверки привязки TelegramID: {e}")
+        return False
+    finally:
+        connection.close()
+
+def unbind_telegram_id(telegram_id):
+    """Удаляет telegramId у игрока по Telegram user id"""
+    connection = get_db_connection()
+    if not connection:
+        return False, "Ошибка подключения к базе данных"
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'UPDATE "Player" SET "telegramId" = NULL, "updatedAt" = NOW() WHERE "telegramId" = %s',
+                (str(telegram_id),)
+            )
+            connection.commit()
+            if cursor.rowcount > 0:
+                return True, "TelegramID успешно отвязан"
+            else:
+                return False, "TelegramID не найден в базе"
+    except Exception as e:
+        print(f"[DB] Ошибка отвязки Telegram: {e}")
+        return False, "Ошибка базы данных"
+    finally:
+        connection.close()
+
+@dp.message_handler(commands=['start'])
 async def start_handler(message: types.Message, state: FSMContext):
     """Обработчик команды /start"""
-    kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text=name)] for name in LANGUAGES.values()],
-        resize_keyboard=True
-    )
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    for code, name in LANGUAGES.items():
+        kb.add(KeyboardButton(name))
     await message.answer(
         "Welcome! Please select your language / Пожалуйста, выберите язык:",
         reply_markup=kb
     )
-    await state.set_state(UserStates.choose_language)
+    await state.set_state(UserStates.choose_language.state)
 
-@dp.message(F.text.in_(LANGUAGE_BUTTONS.values()))
+@dp.message_handler(lambda m: m.text in LANGUAGE_BUTTONS.values())
 async def change_language_handler(message: types.Message, state: FSMContext):
     """Обработчик смены языка"""
-    kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text=name)] for name in LANGUAGES.values()],
-        resize_keyboard=True
-    )
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    for code, name in LANGUAGES.items():
+        kb.add(KeyboardButton(name))
     await message.answer("Пожалуйста, выберите язык:", reply_markup=kb)
-    await state.set_state(UserStates.choose_language)
+    await state.set_state(UserStates.choose_language.state)
 
-@dp.message(F.text.in_(LANGUAGES.values()))
+@dp.message_handler(lambda m: m.text in LANGUAGES.values())
 async def language_handler(message: types.Message, state: FSMContext):
     """Обработчик выбора языка"""
     lang_code = 'en' if message.text == 'English' else 'ru'
+    telegram_id = message.from_user.id
+    
+    # Проверяем, привязан ли уже Telegram ID
+    if is_telegram_bound(telegram_id):
+        # Если уже привязан, обновляем язык в базе
+        success, message_text = update_player_language(telegram_id, lang_code)
+        if success:
+            if lang_code == 'en':
+                await message.answer("✅ Language changed successfully.", reply_markup=MAIN_MENU)
+            else:
+                await message.answer("✅ Язык успешно изменён.", reply_markup=MAIN_MENU)
+        else:
+            if lang_code == 'en':
+                await message.answer(f"❌ Error: {message_text}", reply_markup=MAIN_MENU)
+            else:
+                await message.answer(f"❌ Ошибка: {message_text}", reply_markup=MAIN_MENU)
+        await state.finish()
+        return
+    
+    # Для новых пользователей - сохраняем язык и переходим к пин-коду
     await state.update_data(language=lang_code)
-    await state.set_state(UserStates.enter_pin)
+    await state.set_state(UserStates.enter_pin.state)
     
     if lang_code == 'en':
         await message.answer("Please enter your 6-digit pin code:", reply_markup=types.ReplyKeyboardRemove())
     else:
         await message.answer("Пожалуйста, введите ваш 6-значный пин-код:", reply_markup=types.ReplyKeyboardRemove())
 
-@dp.message(UserStates.enter_pin)
+@dp.message_handler(state=UserStates.enter_pin)
 async def pin_handler(message: types.Message, state: FSMContext):
     """Обработчик ввода PIN-кода"""
     pin = message.text.strip()
@@ -209,16 +293,34 @@ async def pin_handler(message: types.Message, state: FSMContext):
     
     if success:
         if lang == 'en':
-            await message.answer("✅ Successfully linked! You will now receive morning surveys.")
+            await message.answer("✅ Successfully linked! You will now receive morning surveys.", reply_markup=MAIN_MENU)
         else:
-            await message.answer("✅ Успешно привязано! Теперь вы будете получать утренние опросы.")
+            await message.answer("✅ Успешно привязано! Теперь вы будете получать утренние опросы.", reply_markup=MAIN_MENU)
     else:
         if lang == 'en':
             await message.answer(f"❌ Error: {message_text}")
         else:
             await message.answer(f"❌ Ошибка: {message_text}")
     
-    await state.clear()
+    await state.finish()
+
+@dp.message_handler(lambda m: m.text == 'Сменить язык')
+async def menu_change_language(message: types.Message, state: FSMContext):
+    """Обработчик кнопки смены языка в меню"""
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    for code, name in LANGUAGES.items():
+        kb.add(KeyboardButton(name))
+    await message.answer('Пожалуйста, выберите язык:', reply_markup=kb)
+    await state.set_state(UserStates.choose_language.state)
+
+@dp.message_handler(lambda m: m.text == 'Отвязать TelegramID')
+async def menu_unbind_telegram(message: types.Message, state: FSMContext):
+    """Обработчик кнопки отвязки TelegramID в меню"""
+    success, msg = unbind_telegram_id(message.from_user.id)
+    if success:
+        await message.answer('Ваш TelegramID отвязан. Теперь вы можете привязать новый аккаунт, введя пинкод.', reply_markup=MAIN_MENU)
+    else:
+        await message.answer(f'Ошибка: {msg}', reply_markup=MAIN_MENU)
 
 async def send_survey_broadcast():
     """Основная функция рассылки утренних опросов"""
@@ -273,16 +375,15 @@ async def send_survey_broadcast():
                         text = f"Доброе утро, {player['firstName']}! Как вы себя чувствуете сегодня?"
                     
                     # Создаем клавиатуру с вариантами ответов
-                    kb = InlineKeyboardMarkup(inline_keyboard=[
-                        [
-                            InlineKeyboardButton(text="😊 Great / Отлично", callback_data="morning_great"),
-                            InlineKeyboardButton(text="😐 Good / Хорошо", callback_data="morning_good")
-                        ],
-                        [
-                            InlineKeyboardButton(text="😕 Okay / Нормально", callback_data="morning_okay"),
-                            InlineKeyboardButton(text="😞 Bad / Плохо", callback_data="morning_bad")
-                        ]
-                    ])
+                    kb = InlineKeyboardMarkup()
+                    kb.add(
+                        InlineKeyboardButton("😊 Great / Отлично", callback_data="morning_great"),
+                        InlineKeyboardButton("😐 Good / Хорошо", callback_data="morning_good")
+                    )
+                    kb.add(
+                        InlineKeyboardButton("😕 Okay / Нормально", callback_data="morning_okay"),
+                        InlineKeyboardButton("😞 Bad / Плохо", callback_data="morning_bad")
+                    )
                     
                     await bot.send_message(
                         chat_id=player['telegramId'],
@@ -356,4 +457,5 @@ if __name__ == '__main__':
     setup_scheduler()
     run_web_app()
     print("[BOT] Бот запускается...")
-    asyncio.run(dp.start_polling(bot)) 
+    from aiogram import executor
+    executor.start_polling(dp, skip_updates=True) 
