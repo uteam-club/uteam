@@ -2,8 +2,9 @@ import os
 import asyncio
 import psycopg2
 import psycopg2.extras
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.filters import Command
 from dotenv import load_dotenv
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime, timedelta
@@ -151,9 +152,8 @@ def bind_telegram_to_player(pin_code, telegram_id, language='ru'):
     finally:
         connection.close()
 
-@dp.message_handler(commands=['start'])
+# --- Хендлеры ---
 async def start_handler(message: types.Message):
-    """Обработчик команды /start"""
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
     for code, name in LANGUAGES.items():
         kb.add(KeyboardButton(name))
@@ -163,9 +163,7 @@ async def start_handler(message: types.Message):
     )
     user_states[message.from_user.id] = {'step': 'choose_language'}
 
-@dp.message_handler(lambda m: m.text in [LANGUAGE_BUTTONS['en'], LANGUAGE_BUTTONS['ru']])
 async def change_language_handler(message: types.Message):
-    """Обработчик смены языка"""
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
     for code, name in LANGUAGES.items():
         kb.add(KeyboardButton(name))
@@ -176,9 +174,7 @@ async def change_language_handler(message: types.Message):
         await message.answer("Пожалуйста, выберите язык:", reply_markup=kb)
     user_states[message.from_user.id] = {'step': 'choose_language'}
 
-@dp.message_handler(lambda m: m.text in LANGUAGES.values())
 async def language_handler(message: types.Message):
-    """Обработчик выбора языка"""
     lang_code = 'en' if message.text == 'English' else 'ru'
     user_states[message.from_user.id] = {'step': 'enter_pin', 'language': lang_code}
     if lang_code == 'en':
@@ -186,22 +182,16 @@ async def language_handler(message: types.Message):
     else:
         await message.answer("Пожалуйста, введите ваш 6-значный пин-код:", reply_markup=types.ReplyKeyboardRemove())
 
-@dp.message_handler(lambda m: user_states.get(m.from_user.id, {}).get('step') == 'enter_pin')
 async def pin_handler(message: types.Message):
-    """Обработчик ввода PIN-кода"""
     pin = message.text.strip()
     lang = user_states[message.from_user.id].get('language', 'en')
-    
     if not pin.isdigit() or len(pin) != 6:
         if lang == 'en':
             await message.answer("Invalid pin code. Please enter a 6-digit number.")
         else:
             await message.answer("Некорректный пин-код. Введите 6-значное число.")
         return
-    
-    # Привязываем Telegram ID к игроку
     success, message_text = bind_telegram_to_player(pin, str(message.from_user.id), lang)
-    
     if success:
         if lang == 'en':
             await message.answer("Success! You are now linked and will receive notifications.")
@@ -212,8 +202,13 @@ async def pin_handler(message: types.Message):
             await message.answer(f"Error: {message_text}")
         else:
             await message.answer(f"Ошибка: {message_text}")
-    
     user_states.pop(message.from_user.id, None)
+
+# --- Регистрация хендлеров ---
+dp.message.register(start_handler, Command("start"))
+dp.message.register(change_language_handler, F.text.in_([LANGUAGE_BUTTONS['en'], LANGUAGE_BUTTONS['ru']]))
+dp.message.register(language_handler, F.text.in_(list(LANGUAGES.values())))
+dp.message.register(pin_handler, lambda m: user_states.get(m.from_user.id, {}).get('step') == 'enter_pin')
 
 async def send_survey_broadcast():
     """Проверяет расписание рассылок и отправляет сообщения игрокам"""
