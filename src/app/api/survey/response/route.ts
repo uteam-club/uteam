@@ -12,35 +12,46 @@ export const revalidate = 0;
 
 export async function POST(req: NextRequest) {
   const token = await getToken({ req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  let isAdmin = false;
+  if (token && allowedRoles.includes(token.role as string)) {
+    isAdmin = true;
+  }
+
+  let body: any;
+  try {
+    body = await req.json();
+  } catch (e) {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  const {
+    sleepDuration,
+    sleepQuality,
+    recovery,
+    mood,
+    muscleCondition,
+    painAreas,
+    surveyId,
+    tenantId,
+    playerId,
+  } = body;
+
+  if (!surveyId || !tenantId || !playerId) {
+    return NextResponse.json({ error: 'Missing required fields', body }, { status: 400 });
+  }
+
+  // Проверяем, что игрок существует
+  const [foundPlayer]: any = await db.select().from(player).where(eq(player.id, playerId)).limit(1);
+  if (!foundPlayer) {
+    return NextResponse.json({ error: 'Player not found', playerId }, { status: 404 });
+  }
+
+  // Если не админ, разрешаем только если игрок найден (авторизация по пинкоду)
+  if (!isAdmin && !foundPlayer) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   try {
-    const body = await req.json();
-    console.log('[SURVEY_RESPONSE_POST] body:', body);
-    const {
-      sleepDuration,
-      sleepQuality,
-      recovery,
-      mood,
-      muscleCondition,
-      painAreas,
-      surveyId,
-      tenantId,
-      playerId,
-    } = body;
-
-    if (!surveyId || !tenantId || !playerId) {
-      return NextResponse.json({ error: 'Missing required fields', body }, { status: 400 });
-    }
-
-    // Проверяем, что игрок существует
-    const [foundPlayer]: any = await db.select().from(player).where(eq(player.id, playerId)).limit(1);
-    if (!foundPlayer) {
-      return NextResponse.json({ error: 'Player not found', playerId }, { status: 404 });
-    }
-
     // Проверяем, есть ли уже ответ за сегодня
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
