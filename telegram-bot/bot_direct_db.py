@@ -24,7 +24,7 @@ DB_CONFIG = {
     'user': 'uteam_bot_reader',
     'password': 'uteambot567234!',
     'sslmode': 'verify-ca',
-    'sslcert': './yandex_root.crt'
+    'sslrootcert': './CA.pem'
 }
 
 # Конфигурация Telegram бота
