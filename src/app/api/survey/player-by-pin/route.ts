@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
     firstName: player.firstName,
     lastName: player.lastName,
     teamId: player.teamId,
+    language: player.language,
   })
     .from(player)
     .leftJoin(team, eq(player.teamId, team.id))

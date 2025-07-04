@@ -42,6 +42,68 @@ class ErrorBoundary extends React.Component<any, { hasError: boolean; error: any
   }
 }
 
+// Переводы
+const translations = {
+  ru: {
+    init: 'Инициализация...',
+    loadingSurvey: 'Загрузка опросника...',
+    notFound: 'Не удалось найти актуальный опросник для клуба. Обратитесь к тренеру.',
+    pinLabel: 'Введите ваш 6-значный пинкод',
+    pinHint: 'Пинкод выдается тренером или в личном кабинете',
+    pinError: 'Пинкод не найден. Проверьте правильность ввода.',
+    pinButton: 'Войти',
+    pinLoading: 'Загрузка игрока...',
+    pinChecking: 'Проверка...',
+    sleepDuration: 'Длительность сна (часов)',
+    hours: 'часов',
+    sleepQuality: 'Качество сна',
+    recovery: 'Восстановление сил',
+    mood: 'Настроение',
+    muscleCondition: 'Мышечное состояние',
+    hasPain: 'Есть ли выраженная боль?',
+    yes: 'Да',
+    no: 'Нет',
+    front: 'Вид спереди',
+    back: 'Вид сзади',
+    selectedAreas: 'Выбранные области (всего):',
+    unnamed: 'Без названия',
+    remove: 'Удалить зону',
+    submit: 'Отправить ответ',
+    successTitle: 'Опрос успешно отправлен!',
+    successDesc: 'Ваши ответы сохранены в системе',
+    close: 'Закрыть опросник',
+  },
+  en: {
+    init: 'Initialization...',
+    loadingSurvey: 'Loading survey...',
+    notFound: 'No active survey found for your club. Contact your coach.',
+    pinLabel: 'Enter your 6-digit pin code',
+    pinHint: 'Pin code is provided by your coach or in your account',
+    pinError: 'Pin code not found. Please check your input.',
+    pinButton: 'Login',
+    pinLoading: 'Loading player...',
+    pinChecking: 'Checking...',
+    sleepDuration: 'Sleep duration (hours)',
+    hours: 'hours',
+    sleepQuality: 'Sleep quality',
+    recovery: 'Recovery',
+    mood: 'Mood',
+    muscleCondition: 'Muscle condition',
+    hasPain: 'Do you have significant pain?',
+    yes: 'Yes',
+    no: 'No',
+    front: 'Front view',
+    back: 'Back view',
+    selectedAreas: 'Selected areas (total):',
+    unnamed: 'Unnamed',
+    remove: 'Remove area',
+    submit: 'Submit answer',
+    successTitle: 'Survey submitted!',
+    successDesc: 'Your answers have been saved',
+    close: 'Close survey',
+  }
+};
+
 export default function SurveyPage() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -77,6 +139,8 @@ export default function SurveyPage() {
 
   const [progress, setProgress] = useState<string>('Инициализация...');
 
+  const [lang, setLang] = useState<'ru' | 'en'>('en');
+
   useEffect(() => {
     setProgress('Инициализация...');
     if (!surveyId && tenantId) {
@@ -110,6 +174,7 @@ export default function SurveyPage() {
       if (!res.ok) throw new Error('Пинкод не найден');
       const data = await res.json();
       setPlayer(data.player);
+      if (data.player?.language === 'en') setLang('en');
       setProgress('Игрок найден, готов к заполнению опроса');
     } catch (err) {
       setPinError('Пинкод не найден. Проверьте правильность ввода.');
@@ -160,7 +225,7 @@ export default function SurveyPage() {
       <div className="w-full max-w-md sm:max-w-lg md:max-w-2xl mx-auto">
           <div className="text-vista-light text-center text-xs mb-2">{progress}</div>
           {loadingSurvey && (
-            <div className="text-vista-light text-center text-lg animate-fade-in mb-4">Загрузка опросника...</div>
+            <div className="text-vista-light text-center text-lg animate-fade-in mb-4">{translations[lang].loadingSurvey}</div>
           )}
         {surveyIdError && (
           <div className="text-red-500 text-center text-base animate-fade-in mb-4">{surveyIdError}</div>
@@ -168,12 +233,26 @@ export default function SurveyPage() {
           {!player && !loadingSurvey && !surveyIdError ? (
           <Card className="p-6 shadow-lg bg-vista-dark/80 border-vista-secondary/40">
             <form onSubmit={handlePinSubmit} className="flex flex-col gap-6">
+              <div className="flex justify-end mb-2">
+                <Button
+                  type="button"
+                  variant={lang === 'en' ? 'default' : 'outline'}
+                  className="mr-2 px-3 py-1 text-xs"
+                  onClick={() => setLang('en')}
+                >EN</Button>
+                <Button
+                  type="button"
+                  variant={lang === 'ru' ? 'default' : 'outline'}
+                  className="px-3 py-1 text-xs"
+                  onClick={() => setLang('ru')}
+                >RU</Button>
+              </div>
               <div className="flex flex-col items-center gap-2">
                 <div className="flex items-center justify-center w-12 h-12 rounded-full bg-vista-accent/20 mb-2">
                   <Lock className="w-7 h-7 text-vista-accent" />
                 </div>
-                <Label htmlFor="pinCode" className="text-xl text-vista-light text-center font-semibold">Введите ваш 6-значный пинкод</Label>
-                <span className="text-vista-light/60 text-sm text-center">Пинкод выдается тренером или в личном кабинете</span>
+                <Label htmlFor="pinCode" className="text-xl text-vista-light text-center font-semibold">{translations[lang].pinLabel}</Label>
+                <span className="text-vista-light/60 text-sm text-center">{translations[lang].pinHint}</span>
               </div>
               <input
                 id="pinCode"
@@ -190,7 +269,7 @@ export default function SurveyPage() {
                 placeholder="000000"
                   onFocus={() => setProgress('Готов к вводу пинкода')}
               />
-              {pinError && <div className="text-red-500 text-center text-base animate-fade-in">{pinError}</div>}
+              {pinError && <div className="text-red-500 text-center text-base animate-fade-in">{translations[lang].pinError}</div>}
               <Button
                 type="submit"
                 className={`w-full py-4 text-lg bg-vista-accent hover:bg-vista-accent/90 transition ${loading || pinCode.length !== 6 ? 'opacity-70 text-white' : 'text-white'}`}
@@ -202,7 +281,7 @@ export default function SurveyPage() {
                   disabled={loading || pinCode.length !== 6 || loadingSurvey}
                   onClick={() => setProgress('Проверяю пинкод...')}
               >
-                  {playerLoading ? 'Загрузка игрока...' : loading ? 'Проверка...' : 'Войти'}
+                  {playerLoading ? translations[lang].pinLoading : loading ? translations[lang].pinChecking : translations[lang].pinButton}
               </Button>
             </form>
           </Card>
@@ -211,7 +290,7 @@ export default function SurveyPage() {
             <div className="space-y-8">
               {/* Длительность сна */}
               <div>
-                <Label className="text-vista-light">Длительность сна (часов)</Label>
+                <Label className="text-vista-light">{translations[lang].sleepDuration}</Label>
                 <Slider
                   value={[formData.sleepDuration]}
                   onValueChange={([value]) => setFormData(prev => ({ ...prev, sleepDuration: value }))}
@@ -220,12 +299,12 @@ export default function SurveyPage() {
                   step={0.5}
                   className="mt-2"
                 />
-                <div className="text-vista-light mt-1">{formData.sleepDuration} часов</div>
+                <div className="text-vista-light mt-1">{formData.sleepDuration} {translations[lang].hours}</div>
               </div>
 
               {/* Качество сна */}
               <div>
-                <Label className="text-vista-light">Качество сна</Label>
+                <Label className="text-vista-light">{translations[lang].sleepQuality}</Label>
                 <div className="mt-2">
                   <RatingTiles
                     value={formData.sleepQuality}
@@ -236,7 +315,7 @@ export default function SurveyPage() {
 
               {/* Восстановление сил */}
               <div>
-                <Label className="text-vista-light">Восстановление сил</Label>
+                <Label className="text-vista-light">{translations[lang].recovery}</Label>
                 <div className="mt-2">
                   <RatingTiles
                     value={formData.recovery}
@@ -247,7 +326,7 @@ export default function SurveyPage() {
 
               {/* Настроение */}
               <div>
-                <Label className="text-vista-light">Настроение</Label>
+                <Label className="text-vista-light">{translations[lang].mood}</Label>
                 <div className="mt-2">
                   <RatingTiles
                     value={formData.mood}
@@ -258,7 +337,7 @@ export default function SurveyPage() {
 
               {/* Мышечное состояние */}
               <div>
-                <Label className="text-vista-light">Мышечное состояние</Label>
+                <Label className="text-vista-light">{translations[lang].muscleCondition}</Label>
                 <div className="mt-2">
                   <RatingTiles
                     value={formData.muscleCondition}
@@ -269,7 +348,7 @@ export default function SurveyPage() {
 
               {/* Боль */}
               <div>
-                <Label className="text-vista-light">Есть ли выраженная боль?</Label>
+                <Label className="text-vista-light">{translations[lang].hasPain}</Label>
                 <RadioGroup
                   value={formData.hasPain ? "yes" : "no"}
                   onValueChange={(value) => {
@@ -280,11 +359,11 @@ export default function SurveyPage() {
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="yes" id="pain-yes" />
-                    <Label htmlFor="pain-yes" className="text-vista-light">Да</Label>
+                    <Label htmlFor="pain-yes" className="text-vista-light">{translations[lang].yes}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="no" id="pain-no" />
-                    <Label htmlFor="pain-no" className="text-vista-light">Нет</Label>
+                    <Label htmlFor="pain-no" className="text-vista-light">{translations[lang].no}</Label>
                   </div>
                 </RadioGroup>
               </div>
@@ -297,13 +376,13 @@ export default function SurveyPage() {
                       variant={view === 'front' ? 'default' : 'outline'}
                       onClick={() => setView('front')}
                     >
-                      Вид спереди
+                      {translations[lang].front}
                     </Button>
                     <Button
                       variant={view === 'back' ? 'default' : 'outline'}
                       onClick={() => setView('back')}
                     >
-                      Вид сзади
+                      {translations[lang].back}
                     </Button>
                   </div>
                   <BodyMap
@@ -343,12 +422,12 @@ export default function SurveyPage() {
               {/* Общий список выбранных областей боли */}
               {(formData.painAreas.front.length > 0 || formData.painAreas.back.length > 0) && (
                 <div className="mt-4">
-                  <h3 className="font-medium mb-2">Выбранные области (всего):</h3>
+                  <h3 className="font-medium mb-2">{translations[lang].selectedAreas}</h3>
                   <ul className="list-disc list-inside">
                     {formData.painAreas.front.map(area => (
                       <li key={area.id + '-front'} className="flex items-center gap-2">
                         <span className="mr-2">•</span>
-                        <span>{area.name || 'Без названия'} — <span className="font-bold text-vista-accent">{area.painLevel}/10</span> <span className="text-xs text-vista-light/60">(спереди)</span></span>
+                        <span>{area.name || translations[lang].unnamed} — <span className="font-bold text-vista-accent">{area.painLevel}/10</span> <span className="text-xs text-vista-light/60">(спереди)</span></span>
                         <button
                           type="button"
                           className="ml-2 px-2 py-0.5 rounded bg-red-700 text-white text-xs hover:bg-red-800 transition"
@@ -359,14 +438,14 @@ export default function SurveyPage() {
                               front: prev.painAreas.front.filter(a => a.id !== area.id)
                             }
                           }))}
-                          title="Удалить зону"
+                          title={translations[lang].remove}
                         >✕</button>
                       </li>
                     ))}
                     {formData.painAreas.back.map(area => (
                       <li key={area.id + '-back'} className="flex items-center gap-2">
                         <span className="mr-2">•</span>
-                        <span>{area.name || 'Без названия'} — <span className="font-bold text-vista-accent">{area.painLevel}/10</span> <span className="text-xs text-vista-light/60">(сзади)</span></span>
+                        <span>{area.name || translations[lang].unnamed} — <span className="font-bold text-vista-accent">{area.painLevel}/10</span> <span className="text-xs text-vista-light/60">(сзади)</span></span>
                         <button
                           type="button"
                           className="ml-2 px-2 py-0.5 rounded bg-red-700 text-white text-xs hover:bg-red-800 transition"
@@ -377,7 +456,7 @@ export default function SurveyPage() {
                               back: prev.painAreas.back.filter(a => a.id !== area.id)
                             }
                           }))}
-                          title="Удалить зону"
+                          title={translations[lang].remove}
                         >✕</button>
                       </li>
                     ))}
@@ -391,7 +470,7 @@ export default function SurveyPage() {
                 disabled={!isFormValid}
                 className="w-full mt-6 py-4 text-lg"
               >
-                Отправить ответ
+                {translations[lang].submit}
               </Button>
             </div>
           </Card>
@@ -406,13 +485,13 @@ export default function SurveyPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-vista-light mb-2">Опрос успешно отправлен!</h3>
-              <p className="text-vista-light/70 mb-6">Ваши ответы сохранены в системе</p>
+              <h3 className="text-xl font-semibold text-vista-light mb-2">{translations[lang].successTitle}</h3>
+              <p className="text-vista-light/70 mb-6">{translations[lang].successDesc}</p>
               <Button
                 onClick={() => window.close()}
                 className="w-full bg-vista-accent hover:bg-vista-accent/90 text-white"
               >
-                Закрыть опросник
+                {translations[lang].close}
               </Button>
             </div>
           </div>
