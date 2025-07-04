@@ -204,6 +204,20 @@ def get_user_language(telegram_id):
             connection.close()
     return 'ru'  # по умолчанию
 
+def is_telegram_bound(telegram_id):
+    connection = get_db_connection()
+    if not connection:
+        return False
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT id FROM "Player" WHERE "telegramId" = %s', (str(telegram_id),))
+            return cursor.fetchone() is not None
+    except Exception as e:
+        print(f"[DB] Ошибка проверки привязки TelegramID: {e}")
+        return False
+    finally:
+        connection.close()
+
 # --- Хендлеры ---
 async def start_handler(message: types.Message):
     kb = types.ReplyKeyboardMarkup(
@@ -232,8 +246,8 @@ async def language_handler(message: types.Message, state: FSMContext):
     lang_code = 'en' if message.text == 'English' else 'ru'
     telegram_id = message.from_user.id
     user_state = user_states.get(telegram_id, {})
-    if user_state.get('step') == 'change_language' and user_state.get('is_bound'):
-        # Просто обновляем язык в базе
+    # Если это смена языка через меню и пользователь уже привязан
+    if user_state.get('step') == 'change_language' and (user_state.get('is_bound') or is_telegram_bound(telegram_id)):
         connection = get_db_connection()
         if connection:
             try:
