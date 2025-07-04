@@ -349,12 +349,11 @@ def run_web_app():
     app.router.add_post('/send-survey-success', handle_send_survey_success)
     
     runner = web.AppRunner(app)
-    asyncio.create_task(runner.setup())
-    asyncio.create_task(web.TCPSite(runner, 'localhost', 8080).start())
-    print("[WEB] HTTP сервер запущен на порту 8080")
+    print("[WEB] HTTP сервер настроен на порту 8080")
 
 if __name__ == '__main__':
     print("[BOT] Запуск Telegram-бота с прямым доступом к базе данных...")
     setup_scheduler()
     run_web_app()
+    print("[BOT] Бот запускается...")
     asyncio.run(dp.start_polling(bot)) 
