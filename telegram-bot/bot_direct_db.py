@@ -206,9 +206,29 @@ async def change_language_handler(message: types.Message):
         await message.answer("Пожалуйста, выберите язык:", reply_markup=kb)
     user_states[message.from_user.id] = {'step': 'choose_language'}
 
-async def language_handler(message: types.Message):
+async def language_handler(message: types.Message, state: FSMContext):
     lang_code = 'en' if message.text == 'English' else 'ru'
-    user_states[message.from_user.id] = {'step': 'enter_pin', 'language': lang_code}
+    telegram_id = message.from_user.id
+    user_state = user_states.get(telegram_id, {})
+    if user_state.get('step') == 'change_language' and user_state.get('is_bound'):
+        # Просто обновляем язык в базе
+        connection = get_db_connection()
+        if connection:
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute('UPDATE "Player" SET "language" = %s, "updatedAt" = NOW() WHERE "telegramId" = %s', (lang_code, str(telegram_id)))
+                    connection.commit()
+            except Exception as e:
+                print(f"[DB] Ошибка обновления языка: {e}")
+            finally:
+                connection.close()
+        await message.answer('Язык успешно изменён.' if lang_code == 'ru' else 'Language changed successfully.', reply_markup=MAIN_MENU)
+        user_states.pop(telegram_id, None)
+        await state.clear()
+        return
+    # Обычная логика для новых пользователей
+    user_states[telegram_id] = {'step': 'enter_pin', 'language': lang_code}
+    await state.set_state(UserStates.enter_pin)
     if lang_code == 'en':
         await message.answer("Please enter your 6-digit pin code:", reply_markup=types.ReplyKeyboardRemove())
     else:
@@ -242,12 +262,27 @@ async def menu_handler(message: types.Message, state: FSMContext):
 
 @dp.message(F.text == 'Сменить язык')
 async def menu_change_language(message: types.Message, state: FSMContext):
+    telegram_id = message.from_user.id
+    # Проверяем, привязан ли TelegramID
+    connection = get_db_connection()
+    is_bound = False
+    if connection:
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT id FROM "Player" WHERE "telegramId" = %s', (str(telegram_id),))
+                is_bound = cursor.fetchone() is not None
+        except Exception as e:
+            print(f"[DB] Ошибка проверки привязки TelegramID: {e}")
+        finally:
+            connection.close()
     kb = ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text=name)] for name in LANGUAGES.values()],
         resize_keyboard=True
     )
     await message.answer('Пожалуйста, выберите язык:', reply_markup=kb)
     await state.set_state(UserStates.choose_language)
+    # Сохраняем в user_states, что это смена языка, а не привязка
+    user_states[telegram_id] = {'step': 'change_language', 'is_bound': is_bound}
 
 @dp.message(F.text == 'Отвязать TelegramID')
 async def menu_unbind_telegram(message: types.Message, state: FSMContext):
@@ -305,13 +340,13 @@ async def send_survey_broadcast():
                     link = f"https://api.uteam.club/survey?tenantId={club_id}"
                     if lang == 'en':
                         text = (
-                            f"DEBUG: {survey_date}\nGood morning! Please complete the morning survey for {survey_date}.\n\n"
+                            f"Good morning! Please complete the morning survey for {survey_date}.\n\n"
                             f"Your pin code for login:\n<code>{pin_code}</code>"
                         )
                         button_text = f"📝 Take the survey for {survey_date}"
                     else:
                         text = (
-                            f"DEBUG: {survey_date}\nДоброе утро! Пожалуйста, пройди утренний опросник за {survey_date}.\n\n"
+                            f"Доброе утро! Пожалуйста, пройди утренний опросник за {survey_date}.\n\n"
                             f"Твой пинкод для входа:\n<code>{pin_code}</code>"
                         )
                         button_text = f"📝 Пройти опрос за {survey_date}"
