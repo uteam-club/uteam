@@ -248,11 +248,13 @@ async def language_handler(message: types.Message, state: FSMContext):
     lang_code = 'en' if message.text == 'English' else 'ru'
     telegram_id = message.from_user.id
 
-    # Получаем текущее состояние FSM
+    # Логирование для отладки
     current_state = await state.get_state()
+    is_bound = is_telegram_bound(telegram_id)
+    print(f"[DEBUG] language_handler: telegram_id={telegram_id}, lang_code={lang_code}, current_state={current_state}, is_bound={is_bound}")
 
     # Если пользователь в процессе смены языка (а не регистрации)
-    if current_state == UserStates.choose_language.state and is_telegram_bound(telegram_id):
+    if current_state == UserStates.choose_language.state and is_bound:
         success, message_text = update_player_language(telegram_id, lang_code)
         if success:
             if lang_code == 'en':
