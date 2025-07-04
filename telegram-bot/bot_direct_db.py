@@ -206,9 +206,10 @@ def get_user_language(telegram_id):
 
 # --- Хендлеры ---
 async def start_handler(message: types.Message):
-    kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    for code, name in LANGUAGES.items():
-        kb.add(KeyboardButton(name))
+    kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(name)] for code, name in LANGUAGES.items()],
+        resize_keyboard=True
+    )
     await message.answer(
         "Welcome! Please select your language / Пожалуйста, выберите язык:",
         reply_markup=kb
@@ -216,9 +217,10 @@ async def start_handler(message: types.Message):
     user_states[message.from_user.id] = {'step': 'choose_language'}
 
 async def change_language_handler(message: types.Message):
-    kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    for code, name in LANGUAGES.items():
-        kb.add(KeyboardButton(name))
+    kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(name)] for code, name in LANGUAGES.items()],
+        resize_keyboard=True
+    )
     lang = user_states.get(message.from_user.id, {}).get('language', 'en')
     if lang == 'en':
         await message.answer("Please select your language:", reply_markup=kb)
