@@ -184,6 +184,26 @@ def unbind_telegram_id(telegram_id):
     finally:
         connection.close()
 
+def get_user_language(telegram_id):
+    # Сначала пробуем из user_states
+    lang = user_states.get(telegram_id, {}).get('language')
+    if lang:
+        return lang
+    # Если нет — пробуем из базы
+    connection = get_db_connection()
+    if connection:
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT "language" FROM "Player" WHERE "telegramId" = %s', (str(telegram_id),))
+                row = cursor.fetchone()
+                if row and row[0] in LANGUAGES:
+                    return row[0]
+        except Exception as e:
+            print(f"[DB] Ошибка получения языка пользователя: {e}")
+        finally:
+            connection.close()
+    return 'ru'  # по умолчанию
+
 # --- Хендлеры ---
 async def start_handler(message: types.Message):
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -257,7 +277,7 @@ async def pin_handler(message: types.Message):
 
 @dp.message(Command('menu'))
 async def menu_handler(message: types.Message, state: FSMContext):
-    lang = user_states.get(message.from_user.id, {}).get('language', 'ru')
+    lang = get_user_language(message.from_user.id)
     if lang == 'en':
         menu_text = 'Main menu:'
         menu_kb = ReplyKeyboardMarkup(
@@ -297,28 +317,18 @@ async def menu_change_language(message: types.Message, state: FSMContext):
 
 @dp.message(F.text == 'Отвязать TelegramID')
 async def menu_unbind_telegram(message: types.Message, state: FSMContext):
-    lang = user_states.get(message.from_user.id, {}).get('language', 'ru')
+    lang = get_user_language(message.from_user.id)
     success, msg = unbind_telegram_id(message.from_user.id)
-    if lang == 'en':
-        menu_kb = ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text='Change language'), KeyboardButton(text='Unlink TelegramID')]],
-            resize_keyboard=True
-        )
-    else:
-        menu_kb = ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text='Сменить язык'), KeyboardButton(text='Отвязать TelegramID')]],
-            resize_keyboard=True
-        )
     if success:
         if lang == 'en':
-            await message.answer('Your TelegramID has been unlinked. Now you can link a new account by entering your pin code.', reply_markup=menu_kb)
+            await message.answer('Your TelegramID has been unlinked. Now you can link a new account by entering your pin code.', reply_markup=types.ReplyKeyboardRemove())
         else:
-            await message.answer('Ваш TelegramID отвязан. Теперь вы можете привязать новый аккаунт, введя пинкод.', reply_markup=menu_kb)
+            await message.answer('Ваш TelegramID отвязан. Теперь вы можете привязать новый аккаунт, введя пинкод.', reply_markup=types.ReplyKeyboardRemove())
     else:
         if lang == 'en':
-            await message.answer(f'Error: {msg}', reply_markup=menu_kb)
+            await message.answer(f'Error: {msg}', reply_markup=types.ReplyKeyboardRemove())
         else:
-            await message.answer(f'Ошибка: {msg}', reply_markup=menu_kb)
+            await message.answer(f'Ошибка: {msg}', reply_markup=types.ReplyKeyboardRemove())
 
 # --- Регистрация хендлеров ---
 dp.message.register(start_handler, Command("start"))
