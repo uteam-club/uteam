@@ -271,7 +271,7 @@ async def send_survey_broadcast():
                     keyboard = None
                     if link:
                         keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                            [InlineKeyboardButton(button_text, url=link)]
+                            [InlineKeyboardButton(text=button_text, url=link)]
                         ])
                     
                     try:
@@ -328,7 +328,7 @@ async def handle_send_morning_survey(request):
     keyboard = None
     if link:
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(button_text, url=link)]
+            [InlineKeyboardButton(text=button_text, url=link)]
         ])
     
     try:
