@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 import pytz
 import json
 from aiohttp import web
+import signal
 
 load_dotenv()
 print(f"[DEBUG] TELEGRAM_BOT_TOKEN={os.getenv('TELEGRAM_BOT_TOKEN')}")
@@ -366,21 +367,26 @@ async def send_survey_success_message(telegram_id, lang='ru'):
     except Exception as e:
         print(f"[SurveySuccess] Ошибка отправки сообщения: {e}")
 
-def run_web_app():
-    """Запуск HTTP сервера"""
+# --- Новый асинхронный запуск ---
+async def main():
+    setup_scheduler()
+    # Запуск HTTP сервера
     app = web.Application()
     app.router.add_post('/send-morning-survey', handle_send_morning_survey)
     app.router.add_post('/send-survey-success', handle_send_survey_success)
-    
-    loop = asyncio.get_event_loop()
     runner = web.AppRunner(app)
-    loop.run_until_complete(runner.setup())
+    await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', 8080)
-    loop.run_until_complete(site.start())
+    await site.start()
     print('HTTP server started on port 8080')
+    # Запуск aiogram
+    # Корректная обработка SIGINT/SIGTERM
+    loop = asyncio.get_running_loop()
+    stop_event = asyncio.Event()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, stop_event.set)
+    await dp.start_polling(bot, shutdown_event=stop_event)
 
 if __name__ == '__main__':
     print("[BOT] Запуск Telegram-бота с прямым доступом к базе данных...")
-    setup_scheduler()
-    run_web_app()
-    asyncio.run(dp.start_polling(bot)) 
+    asyncio.run(main()) 
