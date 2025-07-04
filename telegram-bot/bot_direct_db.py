@@ -2,7 +2,7 @@ import os
 import asyncio
 import psycopg2
 import psycopg2.extras
-from aiogram import Bot, Dispatcher, types, executor
+from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from dotenv import load_dotenv
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -21,7 +21,7 @@ DB_CONFIG = {
     'database': 'uteam',
     'user': 'uteam_bot_reader',
     'password': 'uteambot567234!',
-    'sslmode': 'verify-full',
+    'sslmode': 'verify-ca',
     'sslcert': './yandex_root.crt'
 }
 
@@ -388,4 +388,4 @@ if __name__ == '__main__':
     print("[BOT] Запуск Telegram-бота с прямым доступом к базе данных...")
     setup_scheduler()
     run_web_app()
-    executor.start_polling(dp, skip_updates=True) 
+    asyncio.run(dp.start_polling(bot)) 
