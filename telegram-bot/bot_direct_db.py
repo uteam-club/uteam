@@ -228,7 +228,6 @@ async def language_handler(message: types.Message, state: FSMContext):
         return
     # Обычная логика для новых пользователей
     user_states[telegram_id] = {'step': 'enter_pin', 'language': lang_code}
-    await state.set_state(UserStates.enter_pin)
     if lang_code == 'en':
         await message.answer("Please enter your 6-digit pin code:", reply_markup=types.ReplyKeyboardRemove())
     else:
@@ -280,7 +279,6 @@ async def menu_change_language(message: types.Message, state: FSMContext):
         resize_keyboard=True
     )
     await message.answer('Пожалуйста, выберите язык:', reply_markup=kb)
-    await state.set_state(UserStates.choose_language)
     # Сохраняем в user_states, что это смена языка, а не привязка
     user_states[telegram_id] = {'step': 'change_language', 'is_bound': is_bound}
 
