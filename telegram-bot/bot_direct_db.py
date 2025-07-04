@@ -268,9 +268,11 @@ async def send_survey_broadcast():
                         )
                         button_text = "📝 Пройти опрос"
                     
-                    keyboard = InlineKeyboardMarkup().add(
-                        InlineKeyboardButton(button_text, url=link)
-                    )
+                    keyboard = None
+                    if link:
+                        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                            [InlineKeyboardButton(button_text, url=link)]
+                        ])
                     
                     try:
                         await bot.send_message(
@@ -323,9 +325,11 @@ async def handle_send_morning_survey(request):
         )
         button_text = "📝 Пройти опрос"
     
-    keyboard = InlineKeyboardMarkup().add(
-        InlineKeyboardButton(button_text, url=link)
-    )
+    keyboard = None
+    if link:
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(button_text, url=link)]
+        ])
     
     try:
         await bot.send_message(
