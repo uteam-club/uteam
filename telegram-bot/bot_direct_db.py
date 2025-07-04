@@ -206,8 +206,8 @@ def get_user_language(telegram_id):
 
 # --- Хендлеры ---
 async def start_handler(message: types.Message):
-    kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(name)] for code, name in LANGUAGES.items()],
+    kb = types.ReplyKeyboardMarkup(
+        keyboard=[[types.KeyboardButton(name)] for code, name in LANGUAGES.items()],
         resize_keyboard=True
     )
     await message.answer(
@@ -217,8 +217,8 @@ async def start_handler(message: types.Message):
     user_states[message.from_user.id] = {'step': 'choose_language'}
 
 async def change_language_handler(message: types.Message):
-    kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(name)] for code, name in LANGUAGES.items()],
+    kb = types.ReplyKeyboardMarkup(
+        keyboard=[[types.KeyboardButton(name)] for code, name in LANGUAGES.items()],
         resize_keyboard=True
     )
     lang = user_states.get(message.from_user.id, {}).get('language', 'en')
@@ -282,14 +282,14 @@ async def menu_handler(message: types.Message, state: FSMContext):
     lang = get_user_language(message.from_user.id)
     if lang == 'en':
         menu_text = 'Main menu:'
-        menu_kb = ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text='Change language'), KeyboardButton(text='Unlink TelegramID')]],
+        menu_kb = types.ReplyKeyboardMarkup(
+            keyboard=[[types.KeyboardButton(text='Change language'), types.KeyboardButton(text='Unlink TelegramID')]],
             resize_keyboard=True
         )
     else:
         menu_text = 'Главное меню:'
-        menu_kb = ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text='Сменить язык'), KeyboardButton(text='Отвязать TelegramID')]],
+        menu_kb = types.ReplyKeyboardMarkup(
+            keyboard=[[types.KeyboardButton(text='Сменить язык'), types.KeyboardButton(text='Отвязать TelegramID')]],
             resize_keyboard=True
         )
     await message.answer(menu_text, reply_markup=menu_kb)
@@ -309,8 +309,8 @@ async def menu_change_language(message: types.Message, state: FSMContext):
             print(f"[DB] Ошибка проверки привязки TelegramID: {e}")
         finally:
             connection.close()
-    kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text=name)] for name in LANGUAGES.values()],
+    kb = types.ReplyKeyboardMarkup(
+        keyboard=[[types.KeyboardButton(text=name)] for name in LANGUAGES.values()],
         resize_keyboard=True
     )
     await message.answer('Пожалуйста, выберите язык:', reply_markup=kb)
