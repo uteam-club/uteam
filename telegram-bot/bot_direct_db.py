@@ -12,6 +12,7 @@ import pytz
 import json
 from aiohttp import web
 import signal
+from aiogram.fsm.context import FSMContext
 
 load_dotenv()
 print(f"[DEBUG] TELEGRAM_BOT_TOKEN={os.getenv('TELEGRAM_BOT_TOKEN')}")
@@ -40,6 +41,10 @@ LANGUAGE_BUTTONS = {
 
 # Состояния пользователя
 user_states = {}
+
+# Главное меню
+MAIN_MENU = ReplyKeyboardMarkup(resize_keyboard=True)
+MAIN_MENU.add(KeyboardButton('Сменить язык'), KeyboardButton('Отвязать TelegramID'))
 
 def get_db_connection():
     """Создает подключение к базе данных"""
@@ -153,6 +158,28 @@ def bind_telegram_to_player(pin_code, telegram_id, language='ru'):
     finally:
         connection.close()
 
+def unbind_telegram_id(telegram_id):
+    """Удаляет telegramId у игрока по Telegram user id"""
+    connection = get_db_connection()
+    if not connection:
+        return False, "Ошибка подключения к базе данных"
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'UPDATE "Player" SET "telegramId" = NULL, "updatedAt" = NOW() WHERE "telegramId" = %s',
+                (str(telegram_id),)
+            )
+            connection.commit()
+            if cursor.rowcount > 0:
+                return True, "TelegramID успешно отвязан"
+            else:
+                return False, "TelegramID не найден в базе"
+    except Exception as e:
+        print(f"[DB] Ошибка отвязки Telegram: {e}")
+        return False, "Ошибка базы данных"
+    finally:
+        connection.close()
+
 # --- Хендлеры ---
 async def start_handler(message: types.Message):
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -205,6 +232,34 @@ async def pin_handler(message: types.Message):
             await message.answer(f"Ошибка: {message_text}")
     user_states.pop(message.from_user.id, None)
 
+@dp.message(Command('menu'))
+async def menu_handler(message: types.Message, state: FSMContext):
+    await message.answer('Главное меню:', reply_markup=MAIN_MENU)
+
+@dp.message(F.text == 'Сменить язык')
+async def menu_change_language(message: types.Message, state: FSMContext):
+    kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text=name)] for name in LANGUAGES.values()],
+        resize_keyboard=True
+    )
+    await message.answer('Пожалуйста, выберите язык:', reply_markup=kb)
+    await state.set_state(UserStates.choose_language)
+
+@dp.message(F.text == 'Отвязать TelegramID')
+async def menu_unbind_telegram(message: types.Message, state: FSMContext):
+    lang = user_states.get(message.from_user.id, {}).get('language', 'ru')
+    success, msg = unbind_telegram_id(message.from_user.id)
+    if success:
+        if lang == 'en':
+            await message.answer('Your TelegramID has been unlinked. Now you can link a new account by entering your pin code.', reply_markup=MAIN_MENU)
+        else:
+            await message.answer('Ваш TelegramID отвязан. Теперь вы можете привязать новый аккаунт, введя пинкод.', reply_markup=MAIN_MENU)
+    else:
+        if lang == 'en':
+            await message.answer(f'Error: {msg}', reply_markup=MAIN_MENU)
+        else:
+            await message.answer(f'Ошибка: {msg}', reply_markup=MAIN_MENU)
+
 # --- Регистрация хендлеров ---
 dp.message.register(start_handler, Command("start"))
 dp.message.register(change_language_handler, F.text.in_([LANGUAGE_BUTTONS['en'], LANGUAGE_BUTTONS['ru']]))
@@ -215,65 +270,52 @@ async def send_survey_broadcast():
     """Проверяет расписание рассылок и отправляет сообщения игрокам"""
     try:
         print("[Scheduler] Проверка расписаний рассылок...")
-        
         # Получаем все активные расписания
         schedules = get_survey_schedules()
         print(f"[Scheduler] Найдено {len(schedules)} активных расписаний")
-        
         for schedule in schedules:
             if not schedule['enabled']:
                 continue
-                
             tz = schedule.get('timezone') or 'Europe/Moscow'
             try:
                 now = datetime.now(pytz.timezone(tz))
             except Exception:
                 now = datetime.utcnow() + timedelta(hours=3)  # fallback
-                
             now_str = now.strftime('%H:%M')
+            survey_date = now.strftime('%d.%m.%Y')
             print(f"[DEBUG] Проверка: sendTime={schedule.get('sendTime')}, now_str={now_str}, timezone={tz}")
-            
             if schedule.get('sendTime') == now_str:
                 # Получаем игроков команды
                 team_id = schedule.get('teamId')
                 players = get_team_players(team_id)
-                
                 print(f"[DEBUG] Получено игроков для рассылки: {len(players)}")
-                
                 # Отправляем сообщения
                 for player in players:
                     telegram_id = player.get('telegramId')
                     club_id = player.get('clubId')
                     pin_code = player.get('pinCode', '------')
                     lang = player.get('language', 'ru')
-                    
                     if not telegram_id or not club_id:
                         print(f"[DEBUG] Пропущен игрок без telegramId или clubId: {player}")
                         continue
-                    
                     link = f"https://api.uteam.club/survey?tenantId={club_id}"
-                    
                     if lang == 'en':
                         text = (
-                            "Good morning! Please complete the morning survey.\n\n"
-                            "Your pin code for login:\n"
-                            f"<code>{pin_code}</code>"
+                            f"DEBUG: {survey_date}\nGood morning! Please complete the morning survey for {survey_date}.\n\n"
+                            f"Your pin code for login:\n<code>{pin_code}</code>"
                         )
-                        button_text = "📝 Take the survey"
+                        button_text = f"📝 Take the survey for {survey_date}"
                     else:
                         text = (
-                            "Доброе утро! Пожалуйста, пройди утренний опросник.\n\n"
-                            "Твой пинкод для входа:\n"
-                            f"<code>{pin_code}</code>"
+                            f"DEBUG: {survey_date}\nДоброе утро! Пожалуйста, пройди утренний опросник за {survey_date}.\n\n"
+                            f"Твой пинкод для входа:\n<code>{pin_code}</code>"
                         )
-                        button_text = "📝 Пройти опрос"
-                    
+                        button_text = f"📝 Пройти опрос за {survey_date}"
                     keyboard = None
                     if link:
                         keyboard = InlineKeyboardMarkup(inline_keyboard=[
                             [InlineKeyboardButton(text=button_text, url=link)]
                         ])
-                    
                     try:
                         await bot.send_message(
                             telegram_id,
@@ -284,7 +326,6 @@ async def send_survey_broadcast():
                         print(f"[DEBUG] Сообщение отправлено: telegramId={telegram_id}")
                     except Exception as e:
                         print(f"[Scheduler] Ошибка отправки {telegram_id}: {e}")
-        
         print(f"[Scheduler] Проверка рассылок завершена")
     except Exception as e:
         print(f"[Scheduler] Ошибка планировщика: {e}")
@@ -342,34 +383,29 @@ async def handle_send_morning_survey(request):
     except Exception as e:
         return web.json_response({'error': str(e)}, status=500)
 
+async def send_survey_success_message(telegram_id, lang='ru', survey_date=None):
+    """Отправляет сообщение об успешном прохождении опроса"""
+    if not survey_date:
+        survey_date = datetime.now().strftime('%d.%m.%Y')
+    if lang == 'en':
+        text = f"✅ Thank you! Your morning survey for {survey_date} has been successfully submitted."
+    else:
+        text = f"✅ Спасибо! Ваш утренний опросник за {survey_date} успешно заполнен."
+    try:
+        await bot.send_message(telegram_id, text)
+    except Exception as e:
+        print(f"[SurveySuccess] Ошибка отправки сообщения: {e}")
+
 async def handle_send_survey_success(request):
     """HTTP endpoint для отправки сообщения об успешном прохождении опроса"""
     data = await request.json()
     telegram_id = data.get('telegramId')
     lang = data.get('language', 'ru')
-    
+    survey_date = data.get('surveyDate')
     if not telegram_id:
         return web.json_response({'error': 'telegramId обязателен'}, status=400)
-    
-    await send_survey_success_message(telegram_id, lang)
+    await send_survey_success_message(telegram_id, lang, survey_date)
     return web.json_response({'success': True})
-
-async def send_survey_success_message(telegram_id, lang='ru'):
-    """Отправляет сообщение об успешном прохождении опроса"""
-    if lang == 'en':
-        text = (
-            "✅ Thank you! Your morning survey has been successfully submitted.\n"
-            "Have a great day and productive training!"
-        )
-    else:
-        text = (
-            "✅ Спасибо! Ваш утренний опросник успешно отправлен.\n"
-            "Хорошего дня и продуктивной тренировки!"
-        )
-    try:
-        await bot.send_message(telegram_id, text)
-    except Exception as e:
-        print(f"[SurveySuccess] Ошибка отправки сообщения: {e}")
 
 # --- Новый асинхронный запуск ---
 async def main():
