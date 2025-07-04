@@ -28,7 +28,7 @@ DB_CONFIG = {
 # Конфигурация Telegram бота
 API_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
+dp = Dispatcher()
 
 LANGUAGES = {'en': 'English', 'ru': 'Русский'}
 LANGUAGE_BUTTONS = {
