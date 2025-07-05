@@ -171,6 +171,7 @@ function TopBar({ userName, userRole }: TopBarProps) {
       hasDropdown: true,
       dropdownItems: [
         { key: 'morning-survey', label: 'Состояние утро', href: '/dashboard/analytics/morning-survey' },
+        { key: 'rpe-survey', label: 'Оценка RPE', href: '/dashboard/analytics/rpe-survey' },
         { key: 'test-admin', label: 'Тест админ', href: '/dashboard/settings/admin/surveys', adminOnly: true },
       ]
     },

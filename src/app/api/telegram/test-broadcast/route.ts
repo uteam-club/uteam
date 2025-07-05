@@ -18,6 +18,8 @@ const SURVEY_URL = 'https://fdcvista.uteam.club/survey';
 const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
 export async function POST(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const type = searchParams.get('type') || 'morning';
   const token = await getToken({ req });
   if (!token || !allowedRoles.includes(token.role as string)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -34,7 +36,7 @@ export async function POST(req: NextRequest) {
     // Проверяем, что опросник активен
     const [foundSurvey]: any = await db.select({ id: survey.id, isActive: survey.isActive })
       .from(survey)
-      .where(and(eq(survey.tenantId, clubId), eq(survey.type, 'morning')))
+      .where(and(eq(survey.tenantId, clubId), eq(survey.type, type)))
       .orderBy(desc(survey.createdAt))
       .limit(1);
     if (!foundSurvey || !foundSurvey.isActive) {
@@ -66,8 +68,13 @@ export async function POST(req: NextRequest) {
     let errors = 0;
 
     for (const playerRow of players) {
-      const link = `${SURVEY_URL}?tenantId=${playerRow.clubId}`;
-      const text = `Доброе утро! Пожалуйста, пройди утренний опросник: ${link}\n\nВход по твоему 6-значному пинкоду.`;
+      const link = `${SURVEY_URL}?tenantId=${playerRow.clubId}&type=${type}`;
+      let text = '';
+      if (type === 'rpe') {
+        text = `Пожалуйста, оцени, насколько тяжёлой была твоя тренировка (RPE): ${link}\n\nВход по твоему 6-значному пинкоду.`;
+      } else {
+        text = `Доброе утро! Пожалуйста, пройди утренний опросник: ${link}\n\nВход по твоему 6-значному пинкоду.`;
+      }
       
       try {
         await bot.telegram.sendMessage(playerRow.telegramId!, text);

@@ -1,15 +1,19 @@
 'use client';
 
 import { SurveyTabs } from "@/components/surveys/SurveyTabs";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export default function MorningSurveyPage() {
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-vista-light">Утренний опросник</h1>
-      </div>
-      
-      <SurveyTabs />
+    <div className="space-y-6">
+      <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-vista-light">Состояние утро</CardTitle>
+        </CardHeader>
+        <CardContent className="custom-scrollbar">
+          <SurveyTabs type="morning" />
+        </CardContent>
+      </Card>
     </div>
   );
 } 

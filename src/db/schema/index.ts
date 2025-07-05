@@ -18,6 +18,7 @@ export * from './playerMatchStat';
 // export * from './schedule';
 // export * from './scheduleEvent';
 export * from './morningSurveyResponse';
+export * from './rpeSurveyResponse';
 export * from './painArea';
 export * from './muscleArea';
 export * from './survey';

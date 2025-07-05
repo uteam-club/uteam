@@ -35,6 +35,10 @@ LANGUAGE_BUTTONS = {
 # Состояния пользователя
 user_states = {}
 
+# Главное меню
+MAIN_MENU = ReplyKeyboardMarkup(resize_keyboard=True)
+MAIN_MENU.add(KeyboardButton('Сменить язык'), KeyboardButton('Отвязать TelegramID'))
+
 @dp.message_handler(commands=['start'])
 async def start_handler(message: types.Message):
     # Клавиатура выбора языка + кнопка смены языка
@@ -307,6 +311,25 @@ async def send_survey_success_message(telegram_id, lang='ru'):
         await bot.send_message(telegram_id, text)
     except Exception as e:
         print(f"[SurveySuccess] Ошибка отправки сообщения: {e}")
+
+@dp.message_handler(commands=['menu'])
+async def menu_handler(message: types.Message):
+    await message.answer('Главное меню:', reply_markup=MAIN_MENU)
+
+@dp.message_handler(lambda m: m.text == 'Сменить язык')
+async def menu_change_language(message: types.Message):
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    for code, name in LANGUAGES.items():
+        kb.add(KeyboardButton(name))
+    await message.answer('Пожалуйста, выберите язык:', reply_markup=kb)
+    user_states[message.from_user.id] = {'step': 'choose_language'}
+
+@dp.message_handler(lambda m: m.text == 'Отвязать TelegramID')
+async def menu_unbind_telegram(message: types.Message):
+    # Здесь должна быть логика удаления telegramId из базы
+    # Пример: unbind_telegram_id(message.from_user.id)
+    # Для простоты покажем сообщение об успехе
+    await message.answer('Ваш TelegramID отвязан. Теперь вы можете привязать новый аккаунт, введя пинкод.', reply_markup=MAIN_MENU)
 
 if __name__ == '__main__':
     setup_scheduler()

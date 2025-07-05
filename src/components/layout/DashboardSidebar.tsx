@@ -9,7 +9,8 @@ import {
   UsersIcon, 
   CalendarIcon, 
   PhotoIcon, 
-  Cog6ToothIcon 
+  Cog6ToothIcon,
+  ChartBarIcon
 } from '@heroicons/react/24/outline';
 
 interface SidebarItem {
@@ -42,6 +43,11 @@ function DashboardSidebar() {
       icon: <PhotoIcon className="w-5 h-5" />,
       label: 'Медиа',
       href: '/dashboard/media',
+    },
+    {
+      icon: <ChartBarIcon className="w-5 h-5" />,
+      label: 'Аналитика',
+      href: '/dashboard/analytics',
     },
     {
       icon: <Cog6ToothIcon className="w-5 h-5" />,

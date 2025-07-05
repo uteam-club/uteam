@@ -12,6 +12,8 @@ import { BodyMap } from '@/components/surveys/BodyMap';
 import { RatingTiles } from '@/components/surveys/RatingTiles';
 import { Lock } from 'lucide-react';
 import React from 'react';
+import { MorningSurveyForm } from '@/components/surveys/forms/MorningSurveyForm';
+import { RPESurveyForm } from '@/components/surveys/forms/RPESurveyForm';
 
 interface PainArea {
   id: string;
@@ -104,129 +106,142 @@ const translations = {
   }
 };
 
+const SURVEY_FORMS = {
+  morning: MorningSurveyForm,
+  rpe: RPESurveyForm,
+};
+
+type SurveyType = keyof typeof SURVEY_FORMS;
+
 export default function SurveyPage() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const tenantId = searchParams.get('tenantId');
-  const surveyId = searchParams.get('surveyId');
+  const surveyIdParam = searchParams.get('surveyId');
+  const typeParam = searchParams.get('type') as SurveyType | null;
+  const type: SurveyType = typeParam && typeParam in SURVEY_FORMS ? typeParam : 'morning';
+  const SurveyForm = SURVEY_FORMS[type];
 
   const [pinCode, setPinCode] = useState('');
   const [player, setPlayer] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [pinError, setPinError] = useState('');
-
-  const [formData, setFormData] = useState({
-    sleepDuration: 8,
-    sleepQuality: 3,
-    recovery: 3,
-    mood: 3,
-    muscleCondition: 3,
-    hasPain: false,
-    painAreas: {
-      front: [] as { id: string; name: string; painLevel: number }[],
-      back: [] as { id: string; name: string; painLevel: number }[]
-    }
-  });
-  const [showPainAreas, setShowPainAreas] = useState(false);
-  const [view, setView] = useState<'front' | 'back'>('front');
-
-  const [surveyIdState, setSurveyIdState] = useState<string | null>(surveyId || null);
+  const [surveyId, setSurveyId] = useState<string | null>(surveyIdParam || null);
   const [surveyIdError, setSurveyIdError] = useState<string | null>(null);
-
   const [loadingSurvey, setLoadingSurvey] = useState(false);
-  const [playerLoading, setPlayerLoading] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-  const [progress, setProgress] = useState<string>('Инициализация...');
-
   const [lang, setLang] = useState<'ru' | 'en'>('en');
 
   useEffect(() => {
-    setProgress('Инициализация...');
-    if (!surveyId && tenantId) {
+    if (!surveyIdParam && tenantId) {
       setLoadingSurvey(true);
-      setProgress('Получаю surveyId...');
-      fetch(`/api/survey/active-id?tenantId=${encodeURIComponent(tenantId)}`)
+      fetch(`/api/survey/active-id?tenantId=${encodeURIComponent(tenantId)}&type=${type}`)
         .then(async (res) => {
           if (!res.ok) throw new Error('Опросник не найден');
           const data = await res.json();
-          setSurveyIdState(data.surveyId);
-          setProgress('Получен surveyId, загружаю форму...');
+          setSurveyId(data.surveyId);
         })
         .catch(() => {
           setSurveyIdError('Не удалось найти актуальный опросник для клуба. Обратитесь к тренеру.');
-          setProgress('Ошибка при получении surveyId');
         })
         .finally(() => setLoadingSurvey(false));
-    } else if (surveyId) {
-      setProgress('surveyId уже есть, загружаю форму...');
     }
-  }, [surveyId, tenantId]);
+  }, [surveyIdParam, tenantId, type]);
 
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPlayerLoading(true);
     setLoading(true);
     setPinError('');
-    setProgress('Загружаю игрока по пинкоду...');
     try {
       const res = await fetch(`/api/survey/player-by-pin?pinCode=${encodeURIComponent(pinCode)}&tenantId=${encodeURIComponent(tenantId || '')}`);
       if (!res.ok) throw new Error('Пинкод не найден');
       const data = await res.json();
       setPlayer(data.player);
       if (data.player?.language === 'en') setLang('en');
-      setProgress('Игрок найден, готов к заполнению опроса');
     } catch (err) {
       setPinError('Пинкод не найден. Проверьте правильность ввода.');
-      setProgress('Ошибка при загрузке игрока');
     } finally {
       setLoading(false);
-      setPlayerLoading(false);
     }
   };
 
-  const handleSubmit = async () => {
-    if (!player || !surveyIdState) return;
-    try {
-      const response = await fetch('/api/survey/response', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          surveyId: surveyIdState,
-          tenantId,
-          playerId: player.id,
-        }),
-      });
-      if (!response.ok) throw new Error('Failed to submit survey');
-      toast({ title: 'Успешно!', description: 'Ваши ответы сохранены' });
-      setShowSuccessModal(true);
-    } catch (error) {
-      toast({ title: 'Ошибка', description: 'Не удалось сохранить ответы', variant: 'destructive' });
-    }
-  };
+  if (surveyIdError) {
+    return <div className="text-red-500 text-center text-base animate-fade-in mb-4">{surveyIdError}</div>;
+  }
 
-  // Проверка валидности формы
-  const isFormValid =
-    formData.sleepDuration > 0 &&
-    formData.sleepQuality > 0 &&
-    formData.recovery > 0 &&
-    formData.mood > 0 &&
-    formData.muscleCondition > 0 &&
-    (!formData.hasPain || (
-      (formData.painAreas.front.length > 0 || formData.painAreas.back.length > 0) &&
-      [...formData.painAreas.front, ...formData.painAreas.back].every(area => area.painLevel > 0)
-    )) &&
-    !!surveyIdState && !surveyIdError;
+  if (!player) {
+    return (
+      <div className="w-full min-h-screen flex flex-col justify-center items-center bg-vista-dark px-2 py-6">
+        <div className="w-full max-w-md sm:max-w-lg md:max-w-2xl mx-auto">
+          <Card className="p-6 shadow-lg bg-vista-dark/80 border-vista-secondary/40">
+            <form onSubmit={handlePinSubmit} className="flex flex-col gap-6">
+              <div className="flex justify-end mb-2">
+                <Button
+                  type="button"
+                  variant={lang === 'en' ? 'default' : 'outline'}
+                  className="mr-2 px-3 py-1 text-xs"
+                  onClick={() => setLang('en')}
+                >EN</Button>
+                <Button
+                  type="button"
+                  variant={lang === 'ru' ? 'default' : 'outline'}
+                  className="px-3 py-1 text-xs"
+                  onClick={() => setLang('ru')}
+                >RU</Button>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-vista-accent/20 mb-2">
+                  <Lock className="w-7 h-7 text-vista-accent" />
+                </div>
+                <Label htmlFor="pinCode" className="text-xl text-vista-light text-center font-semibold">Введите ваш 6-значный пинкод</Label>
+                <span className="text-vista-light/60 text-sm text-center">Пинкод выдается тренером или в личном кабинете</span>
+              </div>
+              <input
+                id="pinCode"
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                minLength={6}
+                autoFocus
+                className={`text-center tracking-widest text-3xl p-4 rounded-xl border-2 border-vista-accent/40 bg-vista-dark/60 text-vista-accent font-mono outline-none focus:border-vista-accent focus:ring-2 focus:ring-vista-accent transition-all duration-200 ${pinError ? 'animate-shake border-red-500' : ''}`}
+                value={pinCode}
+                onChange={e => setPinCode(e.target.value.replace(/\D/g, ''))}
+                disabled={loading || loadingSurvey}
+                placeholder="000000"
+              />
+              {pinError && <div className="text-red-500 text-center text-base animate-fade-in">Пинкод не найден. Проверьте правильность ввода.</div>}
+              <Button
+                type="submit"
+                className={`w-full py-4 text-lg bg-vista-accent hover:bg-vista-accent/90 transition ${loading || pinCode.length !== 6 ? 'opacity-70 text-white' : 'text-white'}`}
+                style={{
+                  backgroundColor: loading || pinCode.length !== 6 ? 'rgba(90, 204, 229, 0.7)' : '#5acce5',
+                  color: '#fff',
+                  cursor: loading || pinCode.length !== 6 ? 'not-allowed' : 'pointer',
+                }}
+                disabled={loading || pinCode.length !== 6 || loadingSurvey}
+              >
+                {loading ? 'Проверяю пинкод...' : 'Войти'}
+              </Button>
+            </form>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (!SurveyForm) {
+    return <div className="text-red-500 text-center text-base animate-fade-in mb-4">Опросник не найден для типа: {type}</div>;
+  }
+
+  if (!surveyId) {
+    return <div className="text-vista-light text-center text-lg animate-fade-in mb-4">Загрузка опросника...</div>;
+  }
 
   return (
     <ErrorBoundary>
     <div className="w-full min-h-screen flex flex-col justify-center items-center bg-vista-dark px-2 py-6">
       <div className="w-full max-w-md sm:max-w-lg md:max-w-2xl mx-auto">
-          <div className="text-vista-light text-center text-xs mb-2">{progress}</div>
-          {loadingSurvey && (
-            <div className="text-vista-light text-center text-lg animate-fade-in mb-4">{translations[lang].loadingSurvey}</div>
-          )}
+          <div className="text-vista-light text-center text-xs mb-2">{translations[lang].loadingSurvey}</div>
         {surveyIdError && (
           <div className="text-red-500 text-center text-base animate-fade-in mb-4">{surveyIdError}</div>
         )}
@@ -267,7 +282,6 @@ export default function SurveyPage() {
                 onChange={e => setPinCode(e.target.value.replace(/\D/g, ''))}
                   disabled={loading || loadingSurvey}
                 placeholder="000000"
-                  onFocus={() => setProgress('Готов к вводу пинкода')}
               />
               {pinError && <div className="text-red-500 text-center text-base animate-fade-in">{translations[lang].pinError}</div>}
               <Button
@@ -279,7 +293,6 @@ export default function SurveyPage() {
                   cursor: loading || pinCode.length !== 6 ? 'not-allowed' : 'pointer',
                 }}
                   disabled={loading || pinCode.length !== 6 || loadingSurvey}
-                  onClick={() => setProgress('Проверяю пинкод...')}
               >
                   {playerLoading ? translations[lang].pinLoading : loading ? translations[lang].pinChecking : translations[lang].pinButton}
               </Button>
