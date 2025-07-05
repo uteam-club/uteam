@@ -237,5 +237,5 @@ export default function SurveyPage() {
     return <div className="text-vista-light text-center text-lg animate-fade-in mb-4">Загрузка опросника...</div>;
   }
 
-  return SurveyForm;
+  return <SurveyForm player={player} surveyId={surveyId} tenantId={tenantId!} lang={lang} />;
 } 
