@@ -287,6 +287,21 @@ export default function SurveyPage() {
           </Card>
         ) : (
           <Card className="p-4 sm:p-6 shadow-lg mt-4">
+            {/* Переключатель языка */}
+            <div className="flex justify-end mb-2">
+              <Button
+                type="button"
+                variant={lang === 'en' ? 'default' : 'outline'}
+                className="mr-2 px-3 py-1 text-xs"
+                onClick={() => setLang('en')}
+              >EN</Button>
+              <Button
+                type="button"
+                variant={lang === 'ru' ? 'default' : 'outline'}
+                className="px-3 py-1 text-xs"
+                onClick={() => setLang('ru')}
+              >RU</Button>
+            </div>
             <div className="space-y-8">
               {/* Длительность сна */}
               <div>
