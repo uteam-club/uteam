@@ -696,14 +696,12 @@ export default function PlayerProfilePage() {
     if (typeof match.teamGoals !== 'number' || typeof match.opponentGoals !== 'number') {
       return 'bg-vista-dark/30';
     }
-    const teamGoals = match.isHome ? match.teamGoals : match.opponentGoals;
-    const opponentGoals = match.isHome ? match.opponentGoals : match.teamGoals;
-    if (teamGoals > opponentGoals) {
-      return 'bg-green-500/30';
-    } else if (teamGoals < opponentGoals) {
-      return 'bg-red-500/30';
+    if (match.teamGoals > match.opponentGoals) {
+      return 'bg-green-500/30'; // Победа
+    } else if (match.teamGoals < match.opponentGoals) {
+      return 'bg-red-500/30'; // Поражение
     } else {
-      return 'bg-amber-500/30';
+      return 'bg-amber-500/30'; // Ничья
     }
   };
 
@@ -1091,7 +1089,11 @@ export default function PlayerProfilePage() {
                         {match.isHome ? match.teamName : match.opponentName}
                       </span>
                       <span className={`flex justify-center items-center text-vista-light/90 font-bold text-xs px-2 py-0.5 ${getMatchResultClass(match)} rounded mx-1`} style={{minWidth: 38, textAlign: 'center'}}>
-                        {typeof match.teamGoals === 'number' && typeof match.opponentGoals === 'number' ? `${match.teamGoals} : ${match.opponentGoals}` : '-'}
+                        {typeof match.teamGoals === 'number' && typeof match.opponentGoals === 'number'
+                          ? (match.isHome
+                              ? `${match.teamGoals} : ${match.opponentGoals}`
+                              : `${match.opponentGoals} : ${match.teamGoals}`)
+                          : '-'}
                       </span>
                       <span className="text-vista-light font-semibold text-xs text-left max-w-[90px] truncate pl-2" style={{flex: 1}}>
                         {match.isHome ? match.opponentName : match.teamName}

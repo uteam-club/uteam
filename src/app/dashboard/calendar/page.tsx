@@ -580,11 +580,9 @@ export default function CalendarPage() {
     if (typeof training.teamGoals !== 'number' || typeof training.opponentGoals !== 'number') {
       return 'bg-vista-dark/30'; // Default background if no score
     }
-    const teamGoals = training.isHome ? training.teamGoals : training.opponentGoals;
-    const opponentGoals = training.isHome ? training.opponentGoals : training.teamGoals;
-    if (teamGoals > opponentGoals) {
+    if (training.teamGoals > training.opponentGoals) {
       return 'bg-green-500/30'; // Победа
-    } else if (teamGoals < opponentGoals) {
+    } else if (training.teamGoals < training.opponentGoals) {
       return 'bg-red-500/30'; // Поражение
     } else {
       return 'bg-amber-500/30'; // Ничья
@@ -826,11 +824,11 @@ export default function CalendarPage() {
                               <div className="text-vista-light/90 text-xs font-medium mb-1">
                                 <div className="flex items-center w-full">
                                   <span className="truncate flex-1">{training.isHome ? training.teamName : training.opponentName}</span>
-                                  <span className={`ml-2 px-2 py-0.5 rounded font-semibold text-xs w-7 min-w-[28px] text-center flex items-center justify-center ${training.status === 'FINISHED' ? getMatchResultClass(training) : 'bg-gray-500/30'}`}>{training.status === 'FINISHED' ? (training.teamGoals ?? '-') : '-'}</span>
+                                  <span className={`ml-2 px-2 py-0.5 rounded font-semibold text-xs w-7 min-w-[28px] text-center flex items-center justify-center ${training.status === 'FINISHED' ? getMatchResultClass(training) : 'bg-gray-500/30'}`}>{training.status === 'FINISHED' ? (training.isHome ? (training.teamGoals ?? '-') : (training.opponentGoals ?? '-')) : '-'}</span>
                                 </div>
                                 <div className="flex items-center w-full mt-0.5">
                                   <span className="truncate flex-1">{training.isHome ? training.opponentName : training.teamName}</span>
-                                  <span className={`ml-2 px-2 py-0.5 rounded font-semibold text-xs w-7 min-w-[28px] text-center flex items-center justify-center ${training.status === 'FINISHED' ? getMatchResultClass(training) : 'bg-gray-500/30'}`}>{training.status === 'FINISHED' ? (training.opponentGoals ?? '-') : '-'}</span>
+                                  <span className={`ml-2 px-2 py-0.5 rounded font-semibold text-xs w-7 min-w-[28px] text-center flex items-center justify-center ${training.status === 'FINISHED' ? getMatchResultClass(training) : 'bg-gray-500/30'}`}>{training.status === 'FINISHED' ? (training.isHome ? (training.opponentGoals ?? '-') : (training.teamGoals ?? '-')) : '-'}</span>
                                 </div>
                               </div>
                               {/* Третья строка: дата и время */}
