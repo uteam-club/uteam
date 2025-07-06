@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, integer, bigint } from 'drizzle-orm/pg-core';
 
 export const player = pgTable('Player', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -20,7 +20,7 @@ export const player = pgTable('Player', {
   insuranceNumber: varchar('insuranceNumber', { length: 255 }),
   visaExpiryDate: timestamp('visaExpiryDate', { withTimezone: true }),
   pinCode: varchar('pinCode', { length: 255 }).notNull(),
-  telegramId: varchar('telegramId', { length: 255 }).unique(),
+  telegramId: bigint('telegramId', { mode: 'number' }).unique(),
   language: varchar('language', { length: 10 }),
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow().notNull(),

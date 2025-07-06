@@ -71,7 +71,7 @@ interface Player {
   birthCertificateNumber?: string | null;
   pinCode: string;
   teamId: string;
-  telegramId?: string | null;
+  telegramId?: number | null;
   passportData?: string | null;
   insuranceNumber?: string | null;
   visaExpiryDate?: string | null;

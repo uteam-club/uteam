@@ -65,7 +65,7 @@ interface Player {
   birthCertificateNumber?: string | null;
   pinCode: string;
   teamId: string;
-  telegramId?: string | null;
+  telegramId?: number | null;
   format1?: string | null;
   format2?: string | null;
   formation1?: string | null;
