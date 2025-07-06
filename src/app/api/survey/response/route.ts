@@ -4,6 +4,7 @@ import { morningSurveyResponse, painArea, player } from '@/db/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { getToken } from 'next-auth/jwt';
+import { rpeSurveyResponse } from '@/db/schema/rpeSurveyResponse';
 
 const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
@@ -34,6 +35,8 @@ export async function POST(req: NextRequest) {
     surveyId,
     tenantId,
     playerId,
+    type,
+    rpeScore,
   } = body;
 
   if (!surveyId || !tenantId || !playerId) {
@@ -52,6 +55,50 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    if (type === 'rpe') {
+      // Проверяем, есть ли уже ответ за сегодня
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+      const [existing]: any = await db.select().from(rpeSurveyResponse)
+        .where(and(
+          eq(rpeSurveyResponse.playerId, playerId),
+          eq(rpeSurveyResponse.surveyId, surveyId),
+          eq(rpeSurveyResponse.tenantId, tenantId),
+          gte(rpeSurveyResponse.createdAt, startOfDay),
+          lte(rpeSurveyResponse.createdAt, endOfDay)
+        ))
+        .limit(1);
+      if (existing) {
+        await db.delete(rpeSurveyResponse).where(eq(rpeSurveyResponse.id, existing.id));
+      }
+      // Создаём ответ на RPE-опрос
+      const [createdResponse]: any = await db.insert(rpeSurveyResponse).values({
+        id: uuidv4(),
+        rpeScore,
+        playerId,
+        surveyId,
+        tenantId,
+        completedAt: new Date(),
+        createdAt: new Date(),
+      }).returning();
+      // Отправляем сообщение в Telegram, если есть telegramId
+      if (foundPlayer.telegramId) {
+        const lang = foundPlayer.language || 'ru';
+        try {
+          await fetch('http://<IP_бота>:8080/send-survey-success', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telegramId: foundPlayer.telegramId, language: lang })
+          });
+        } catch (e) {
+          console.error('[SURVEY_RESPONSE_POST] Ошибка отправки Telegram-уведомления:', e);
+        }
+      }
+      return NextResponse.json({ ...createdResponse });
+    }
+
     // Проверяем, есть ли уже ответ за сегодня
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
