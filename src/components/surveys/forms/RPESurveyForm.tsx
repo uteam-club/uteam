@@ -27,6 +27,7 @@ export function RPESurveyForm({ player, surveyId, tenantId, onSubmit, lang = 'en
           surveyId,
           tenantId,
           playerId: player.id,
+          type: 'rpe',
         }),
       });
       if (!response.ok) throw new Error('Failed to submit survey');
