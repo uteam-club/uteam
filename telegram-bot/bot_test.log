@@ -1,0 +1,13 @@
+[DEBUG] TELEGRAM_BOT_TOKEN=7555689553:AAFSDvBcAC_PU7o5vq3vVoGy5DS8R9q5aPU
+[BOT] Запуск Telegram-бота с прямым доступом к базе данных...
+[SCHEDULER] Планировщик запущен
+Traceback (most recent call last):
+  File "/home/uteam-admin/uteam/telegram-bot/bot_direct_db_v3.py", line 359, in <module>
+    run_web_app()
+  File "/home/uteam-admin/uteam/telegram-bot/bot_direct_db_v3.py", line 352, in run_web_app
+    asyncio.create_task(runner.setup())
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 417, in create_task
+    loop = events.get_running_loop()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: no running event loop
+sys:1: RuntimeWarning: coroutine 'BaseRunner.setup' was never awaited

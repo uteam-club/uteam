@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/home/uteam-admin/uteam/telegram-bot/bot_direct_db.py", line 5, in <module>
+    from aiogram import Bot, Dispatcher, types, executor
+ImportError: cannot import name 'executor' from 'aiogram' (/home/uteam-admin/uteam/telegram-bot/venv/lib/python3.12/site-packages/aiogram/__init__.py)

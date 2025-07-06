@@ -37,3 +37,4 @@ next-env.d.ts
 
 # telegram-bot
 telegram-bot/venv/
+.env.backup
