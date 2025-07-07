@@ -170,7 +170,7 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-2xl overflow-hidden backdrop-blur-xl flex flex-col">
+      <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-2xl overflow-hidden backdrop-blur-xl flex flex-col max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-vista-light">Посещаемость тренировки</DialogTitle>
         </DialogHeader>
