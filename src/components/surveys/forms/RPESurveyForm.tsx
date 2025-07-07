@@ -11,10 +11,31 @@ interface RPESurveyFormProps {
   lang?: 'ru' | 'en';
 }
 
+const translations = {
+  ru: {
+    successTitle: 'Опрос успешно отправлен!',
+    successDesc: 'Ваши ответы сохранены в системе',
+    close: 'Закрыть опросник',
+    rpeTitle: 'Оцените, насколько тяжёлой была тренировка (RPE)',
+    submit: 'Отправить ответ',
+    sending: 'Отправка...'
+  },
+  en: {
+    successTitle: 'Survey submitted!',
+    successDesc: 'Your answers have been saved',
+    close: 'Close survey',
+    rpeTitle: 'Rate how hard the training was (RPE)',
+    submit: 'Submit answer',
+    sending: 'Sending...'
+  }
+};
+
 export function RPESurveyForm({ player, surveyId, tenantId, onSubmit, lang = 'en' }: RPESurveyFormProps) {
   const [rpeScore, setRpeScore] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  const t = translations[lang] || translations.en;
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -43,9 +64,9 @@ export function RPESurveyForm({ player, surveyId, tenantId, onSubmit, lang = 'en
   if (success) {
     return (
       <div className="text-center p-8">
-        <div className="text-green-500 text-2xl font-bold mb-2">Опрос успешно отправлен!</div>
-        <div className="text-vista-light/70 mb-6">Ваши ответы сохранены в системе</div>
-        <Button onClick={() => window.close()} className="w-full bg-vista-accent hover:bg-vista-accent/90 text-white">Закрыть опросник</Button>
+        <div className="text-green-500 text-2xl font-bold mb-2">{t.successTitle}</div>
+        <div className="text-vista-light/70 mb-6">{t.successDesc}</div>
+        <Button onClick={() => window.close()} className="w-full bg-vista-accent hover:bg-vista-accent/90 text-white">{t.close}</Button>
       </div>
     );
   }
@@ -54,7 +75,7 @@ export function RPESurveyForm({ player, surveyId, tenantId, onSubmit, lang = 'en
     <Card className="p-4 sm:p-6 shadow-lg mt-4">
       <div className="space-y-8">
         <div>
-          <div className="text-vista-light text-lg font-semibold mb-4">Оцените, насколько тяжёлой была тренировка (RPE)</div>
+          <div className="text-vista-light text-lg font-semibold mb-4">{t.rpeTitle}</div>
           <RPERatingTiles value={rpeScore} onChange={setRpeScore} />
         </div>
         <Button
@@ -62,7 +83,7 @@ export function RPESurveyForm({ player, surveyId, tenantId, onSubmit, lang = 'en
           disabled={rpeScore === 0 || submitting}
           className="w-full mt-6 py-4 text-lg"
         >
-          {submitting ? 'Отправка...' : 'Отправить ответ'}
+          {submitting ? t.sending : t.submit}
         </Button>
       </div>
     </Card>

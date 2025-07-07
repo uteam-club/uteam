@@ -11,6 +11,7 @@ interface BodyMapProps {
   selectedAreas: string[];
   painLevels?: Record<string, number>;
   onAreaSelect: (area: string, muscleName: string, painLevel?: number) => void;
+  lang?: 'ru' | 'en';
 }
 
 const SVG_PATHS = {
@@ -47,7 +48,19 @@ const SVG_LEVEL_COLORS = {
 // Номера элементов, которые не должны быть интерактивными
 const NON_INTERACTIVE_ELEMENTS = [1];
 
-function BodyMapComponent({ view, selectedAreas, painLevels = {}, onAreaSelect }: BodyMapProps) {
+const translations = {
+  ru: {
+    selectPainLevel: 'Выберите уровень боли для области:',
+    cancel: 'Отмена',
+  },
+  en: {
+    selectPainLevel: 'Select pain level for area:',
+    cancel: 'Cancel',
+  }
+};
+
+function BodyMapComponent({ view, selectedAreas, painLevels = {}, onAreaSelect, lang = 'en' }: BodyMapProps) {
+  const t = translations[lang] || translations.en;
   const [svgContent, setSvgContent] = useState<string>('');
   const [showPainLevel, setShowPainLevel] = useState(false);
   const [selectedArea, setSelectedArea] = useState<{ id: string; name: string } | null>(null);
@@ -119,7 +132,11 @@ function BodyMapComponent({ view, selectedAreas, painLevels = {}, onAreaSelect }
   function handleClick(e: React.MouseEvent<HTMLDivElement>) {
     const target = e.target as SVGElement;
     if (target.tagName.toLowerCase() === 'path' && target.id && !target.classList.contains('non-interactive')) {
-      const muscleName = MUSCLE_NAMES[view][target.id as keyof typeof MUSCLE_NAMES[typeof view]] || '';
+      const muscleObj = MUSCLE_NAMES[view][target.id as keyof typeof MUSCLE_NAMES[typeof view]];
+      let muscleName = '';
+      if (muscleObj) {
+        muscleName = muscleObj[lang] || muscleObj['ru'] || '';
+      }
       console.log('Клик по зоне:', target.id, muscleName);
       // Если область уже выбрана, удаляем её
       if (selectedAreas.includes(target.id)) {
@@ -159,7 +176,7 @@ function BodyMapComponent({ view, selectedAreas, painLevels = {}, onAreaSelect }
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <Card className="w-[90%] max-w-md p-6 bg-vista-dark text-white shadow-xl border border-vista-light/20">
             <h3 className="text-lg font-semibold mb-6 text-center">
-              Выберите уровень боли для области:<br/>
+              {t.selectPainLevel}<br/>
               <span className="text-vista-light">{selectedArea.name}</span>
             </h3>
             <div className="flex gap-1 mb-6">
@@ -180,7 +197,7 @@ function BodyMapComponent({ view, selectedAreas, painLevels = {}, onAreaSelect }
               variant="outline"
               className="w-full border-vista-light/20 text-vista-light hover:bg-vista-light/10 hover:text-white"
             >
-              Отмена
+              {t.cancel}
             </Button>
           </Card>
         </div>
