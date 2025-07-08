@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, Clock, MapPin, Users, Trash, Save, CheckSquare, Plus, ArrowLeft, FileText, Tag, Search, Check, X, ClipboardCheck } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Trash, Save, CheckSquare, Plus, ArrowLeft, FileText, Tag, Search, Check, X, ClipboardCheck, Pencil, Share } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -104,6 +104,8 @@ interface TrainingCategory {
 export default function TrainingPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isPublicView = searchParams?.get('view') === 'public';
   const { data: session } = useSession();
   const [training, setTraining] = useState<Training | null>(null);
   const [loading, setLoading] = useState(true);
@@ -206,8 +208,8 @@ export default function TrainingPage() {
       // Защита: фильтруем невалидные элементы и подставляем дефолтные category/author
       const safeData = data.filter(Boolean).map(ex => ({
         ...ex,
-        category: ex && ex.category && typeof ex.category === 'object' ? ex.category : { id: '', name: 'Без категории' },
-        author: ex && ex.author && typeof ex.author === 'object' ? ex.author : { id: '', name: 'Неизвестно' },
+        category: ex && ex.category && typeof ex.category === 'object' && ex.category.id ? ex.category : { id: 'none', name: 'Без категории' },
+        author: ex && ex.author && typeof ex.author === 'object' && ex.author.id ? ex.author : { id: 'unknown', name: 'Неизвестно' },
       }));
       console.log('Упражнения из API (safe):', safeData);
       setModalExercises(safeData);
@@ -655,6 +657,13 @@ export default function TrainingPage() {
     if (session?.user) fetchTrainingCategories();
   }, [session]);
 
+  // Функция для копирования публичной ссылки
+  const handleShare = () => {
+    const url = `${window.location.origin}${window.location.pathname}?view=public`;
+    navigator.clipboard.writeText(url);
+    alert('Ссылка на тренировку скопирована!');
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
@@ -695,74 +704,53 @@ export default function TrainingPage() {
   };
 
   return (
-    <div className="space-y-6 pb-8">
-      {/* Кнопка возврата */}
-      <div>
-        <Link 
-          href="/dashboard/coaching/trainings" 
-          className="inline-flex items-center text-vista-light/70 hover:text-vista-light transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" /> Назад к списку тренировок
-        </Link>
-      </div>
-      
-      <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
-        <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-          {/* Кнопки действий */}
-          <div className="flex gap-2 flex-wrap sm:flex-nowrap">
-            <Button
-              onClick={handleAttendance}
-              className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark shadow-sm"
-            >
-              <ClipboardCheck className="mr-2 h-4 w-4" /> Отметить посещаемость
-            </Button>
-            
-            <Button 
-              onClick={handleOpenExerciseDialog}
-              className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark shadow-sm"
-            >
-              <Plus className="mr-2 h-4 w-4" /> Добавить упражнение
-            </Button>
-            
-            {/* Переключатель состояния тренировки */}
-            <div className={`flex items-center space-x-2 ml-1 rounded-md border px-3 py-2 transition-colors shadow-sm ${isCompleted ? 'bg-green-500/20 border-green-500/50' : 'bg-vista-primary/20 border-vista-primary/50'}`}>
-              <Switch
-                id="training-completed" 
-                checked={isCompleted}
-                onCheckedChange={handleCompletedChange}
-                className={`${isCompleted ? 'data-[state=checked]:bg-green-500' : 'data-[state=checked]:bg-vista-primary'}`}
-              />
-              <Label htmlFor="training-completed" className={`${isCompleted ? 'text-green-400' : 'text-vista-primary'} font-medium`}>
-                {isCompleted ? 'Завершена' : 'Запланирована'}
-              </Label>
+    <div className={isPublicView ? 'min-h-screen bg-vista-dark text-vista-light flex flex-col items-center px-2 py-4' : ''}>
+      {/* Верхний бар и кнопки только если не public */}
+      {!isPublicView && (
+        <div>
+          <Link 
+            href="/dashboard/coaching/trainings" 
+            className="inline-flex items-center text-vista-light/70 hover:text-vista-light transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" /> Назад к списку тренировок
+          </Link>
+        </div>
+      )}
+      <Card className={isPublicView ? 'w-full max-w-2xl mx-auto bg-vista-dark/80 border-vista-secondary/50 shadow-md' : 'bg-vista-dark/50 border-vista-secondary/50 shadow-md'}>
+        {/* Кнопки действий только если не public */}
+        {!isPublicView && (
+          <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+            <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+              <Button onClick={handleAttendance} className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark shadow-sm">
+                <ClipboardCheck className="mr-2 h-4 w-4" /> Отметить посещаемость
+              </Button>
+              <Button onClick={handleOpenExerciseDialog} className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark shadow-sm">
+                <Plus className="mr-2 h-4 w-4" /> Добавить упражнение
+              </Button>
+              <div className={`flex items-center space-x-2 ml-1 rounded-md border px-3 py-2 transition-colors shadow-sm ${isCompleted ? 'bg-green-500/20 border-green-500/50' : 'bg-vista-primary/20 border-vista-primary/50'}`}>
+                <Switch id="training-completed" checked={isCompleted} onCheckedChange={handleCompletedChange} className={`${isCompleted ? 'data-[state=checked]:bg-green-500' : 'data-[state=checked]:bg-vista-primary'}`}/>
+                <Label htmlFor="training-completed" className={`${isCompleted ? 'text-green-400' : 'text-vista-primary'} font-medium`}>
+                  {isCompleted ? 'Завершена' : 'Запланирована'}
+                </Label>
+              </div>
             </div>
-          </div>
-          
-          {/* Правые кнопки */}
-          <div className="flex gap-2 flex-wrap sm:flex-nowrap">
-            <Button 
-              variant="outline" 
-              onClick={handleSave}
-              className="bg-vista-dark/70 shadow-sm border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 shadow-sm"
-            >
-              <Save className="mr-2 h-4 w-4" /> Сохранить
-            </Button>
-            <Button 
-              variant="secondary" 
-              onClick={handleOpenEditModal}
-              className="bg-vista-dark/70 shadow-sm border-vista-secondary/50 text-vista-light hover:bg-vista-primary/20"
-            >
-              ✏️ Редактировать
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDelete}
-              className="bg-red-600/70 hover:bg-red-700/70 text-white shadow-sm"
-            >
-              <Trash className="mr-2 h-4 w-4" /> Удалить
-            </Button>
-          </div>
-        </CardHeader>
+            <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+              <Button variant="outline" onClick={handleSave} className="bg-vista-dark/70 shadow-sm border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 shadow-sm">
+                <Save className="mr-2 h-4 w-4" /> Сохранить
+              </Button>
+              <Button variant="secondary" onClick={handleOpenEditModal} className="bg-vista-dark/70 shadow-sm border-vista-secondary/50 text-vista-light hover:bg-vista-primary/20 flex items-center gap-2">
+                <Pencil className="h-4 w-4 mr-2 text-vista-light" /> Редактировать
+              </Button>
+              <Button variant="destructive" onClick={handleDelete} className="bg-red-600/70 hover:bg-red-700/70 text-white shadow-sm">
+                <Trash className="mr-2 h-4 w-4" /> Удалить
+              </Button>
+              {/* Кнопка поделиться */}
+              <Button onClick={handleShare} className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark shadow-sm">
+                <Share className="mr-2 h-4 w-4" /> Поделиться
+              </Button>
+            </div>
+          </CardHeader>
+        )}
         
         <CardContent>
           {/* Информационный блок тренировки */}
