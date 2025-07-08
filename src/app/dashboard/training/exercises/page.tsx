@@ -186,7 +186,7 @@ export default function ExercisesPage() {
     tags: [],
     file: null
   });
-  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [filePreview, setFilePreview] = useState<string | undefined>(undefined);
   const [errors, setErrors] = useState<{
     title?: string;
     description?: string;
@@ -249,6 +249,23 @@ export default function ExercisesPage() {
       ? tagsData.filter((tag: Tag) => tag.exerciseCategoryId === newExercise.categoryId)
       : [];
   }, [newExercise.categoryId, tagsData]);
+
+  // Обработчик выбора тегов для создания
+  const handleTagToggle = (tagId: string) => {
+    if (tagId === 'clear') {
+      setNewExercise((prev) => ({ ...prev, tags: [] }));
+      return;
+    }
+    setNewExercise((prev) => {
+      const isSelected = prev.tags.includes(tagId);
+      return {
+        ...prev,
+        tags: isSelected
+          ? prev.tags.filter((id: string) => id !== tagId)
+          : [...prev.tags, tagId]
+      };
+    });
+  };
 
   // Обработчик изменения полей формы редактирования
   const handleEditInputChange = (
@@ -716,6 +733,70 @@ export default function ExercisesPage() {
     }
   };
 
+  // Обработчик загрузки файла для создания
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setNewExercise((prev) => ({ ...prev, file }));
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFilePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setFilePreview(undefined);
+    }
+  };
+
+  // Валидация формы создания
+  const validateCreateForm = () => {
+    const validationErrors: { title?: string; description?: string; categoryId?: string } = {};
+    if (!newExercise.title) validationErrors.title = 'Введите название упражнения';
+    if (!newExercise.description) validationErrors.description = 'Введите описание упражнения';
+    if (!newExercise.categoryId) validationErrors.categoryId = 'Выберите категорию';
+    setErrors(validationErrors);
+    return Object.keys(validationErrors).length === 0;
+  };
+
+  // Сохранение нового упражнения
+  const saveExercise = async () => {
+    if (!validateCreateForm()) return;
+    try {
+      const formData = new FormData();
+      formData.append('title', newExercise.title);
+      formData.append('description', newExercise.description);
+      formData.append('categoryId', newExercise.categoryId);
+      if (newExercise.length) formData.append('length', newExercise.length);
+      if (newExercise.width) formData.append('width', newExercise.width);
+      if (newExercise.file) formData.append('file', newExercise.file);
+      newExercise.tags.forEach(tagId => formData.append('tags', tagId));
+      const response = await fetch('/api/exercises', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error('Ошибка при создании упражнения');
+      }
+      setIsCreateDialogOpen(false);
+      setNewExercise({
+        title: '',
+        description: '',
+        length: '',
+        width: '',
+        categoryId: '',
+        tags: [],
+        file: null
+      });
+      setFilePreview(undefined);
+      setErrors({});
+      mutate('/api/exercises', undefined, true);
+      mutate((key) => typeof key === 'string' && key.startsWith('/api/exercises/filter'), undefined, true);
+    } catch (error) {
+      setErrors({ title: 'Ошибка при создании упражнения' });
+      console.error('Ошибка при создании упражнения:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
@@ -1122,35 +1203,28 @@ export default function ExercisesPage() {
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         newExercise={newExercise}
-                onChange={(e) => {
+        onChange={(e) => {
           const { name, value } = e.target;
           setNewExercise((prev) => ({ ...prev, [name]: value }));
         }}
-        onSave={async () => {
-                // Валидация формы
-          const validationErrors: { title?: string; description?: string; categoryId?: string } = {};
-          if (!newExercise.title) validationErrors.title = 'Введите название упражнения';
-          if (!newExercise.description) validationErrors.description = 'Введите описание упражнения';
-          if (!newExercise.categoryId) validationErrors.categoryId = 'Выберите категорию';
-                if (Object.keys(validationErrors).length > 0) {
-                  setErrors(validationErrors);
-                  return;
-                }
-          // ... здесь должна быть логика сохранения упражнения ...
-        }}
+        onFileChange={handleFileChange}
+        filePreview={filePreview}
+        filteredTags={filteredTags}
+        onTagToggle={handleTagToggle}
+        onSave={saveExercise}
         onCancel={() => {
           setIsCreateDialogOpen(false);
-                  setNewExercise({
-                    title: '',
-                    description: '',
-                    length: '',
-                    width: '',
-                    categoryId: '',
-                    tags: [],
-                    file: null
-                  });
-                  setFilePreview(null);
-                  setErrors({});
+          setNewExercise({
+            title: '',
+            description: '',
+            length: '',
+            width: '',
+            categoryId: '',
+            tags: [],
+            file: null
+          });
+          setFilePreview(undefined);
+          setErrors({});
         }}
         errors={errors}
         loading={false}

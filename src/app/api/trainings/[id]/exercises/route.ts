@@ -8,54 +8,13 @@ import { v4 as uuidv4 } from 'uuid';
 const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Получить упражнения тренировки
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const trainingId = params.id;
-    const isPublic = request.nextUrl.searchParams.get('view') === 'public';
-    if (isPublic) {
-      // Публичный просмотр: отдаём упражнения только по id тренировки, без проверки токена и clubId
-      const exercises = await db.query.trainingExercise.findMany({
-        where: (te, { eq }) => eq(te.trainingId, trainingId),
-        with: {
-          exercise: {
-            with: {
-              author: true,
-              category: true,
-              tags: true,
-              mediaItems: true,
-            },
-          },
-        },
-        orderBy: (te, { asc }) => asc(te.position),
-      });
-      // Drizzle не всегда выводит типы для with, поэтому используем as any
-      return NextResponse.json(
-        exercises
-          .filter((te) => !!te.exercise)
-          .map((te) => {
-            const ex = te.exercise as any;
-            return {
-              id: ex.id,
-              title: ex.title,
-              description: ex.description,
-              author: ex.author ? { id: ex.author.id, name: ex.author.name } : null,
-              category: ex.category ? { id: ex.category.id, name: ex.category.name } : null,
-              tags: ex.tags?.map((t: any) => ({ id: t.id, name: t.name })) || [],
-              mediaItems: ex.mediaItems?.map((m: any) => ({ id: m.id, url: m.url, publicUrl: m.publicUrl, type: m.type })) || [],
-              position: te.position,
-              trainingExerciseId: te.id,
-              notes: te.notes,
-            };
-          })
-      );
-    }
-    const token = await getToken({ req: request });
-    if (!token || !allowedRoles.includes(token.role as string)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
     // Получаем все связи training-exercise
     const links = await db.select().from(trainingExercise)
       .where(eq(trainingExercise.trainingId, trainingId))
