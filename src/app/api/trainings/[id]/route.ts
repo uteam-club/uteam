@@ -69,6 +69,50 @@ export async function GET(
 ) {
   try {
     const trainingId = params.id;
+    const isPublic = request.nextUrl.searchParams.get('view') === 'public';
+    if (isPublic) {
+      // Публичный просмотр: отдаём тренировку только по id, без проверки токена и clubId
+      const [row] = await db.select({
+        id: training.id,
+        title: training.title,
+        description: training.description,
+        teamId: training.teamId,
+        date: training.date,
+        time: training.time,
+        location: training.location,
+        notes: training.notes,
+        categoryId: training.categoryId,
+        status: training.status,
+        createdAt: training.createdAt,
+        updatedAt: training.updatedAt,
+        teamName: team.name,
+        categoryName: trainingCategory.name,
+      })
+        .from(training)
+        .leftJoin(team, eq(training.teamId, team.id))
+        .leftJoin(trainingCategory, eq(training.categoryId, trainingCategory.id))
+        .where(eq(training.id, trainingId));
+      if (!row) {
+        return NextResponse.json({ error: 'Training not found' }, { status: 404 });
+      }
+      const formattedTraining = {
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        teamId: row.teamId,
+        team: row.teamName,
+        date: row.date,
+        time: row.time,
+        location: row.location,
+        notes: row.notes,
+        categoryId: row.categoryId,
+        category: row.categoryName,
+        status: row.status || 'SCHEDULED',
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt
+      };
+      return NextResponse.json(formattedTraining);
+    }
     
     // Получаем токен пользователя
     const token = await getTokenFromRequest(request);
