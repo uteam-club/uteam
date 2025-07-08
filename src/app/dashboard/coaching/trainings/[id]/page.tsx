@@ -155,21 +155,15 @@ export default function TrainingPage() {
       try {
         setLoading(true);
         const response = await fetch(`/api/trainings/${trainingId}`);
-        
         if (!response.ok) {
           if (response.status === 404) {
             throw new Error('Тренировка не найдена');
           }
           throw new Error('Не удалось загрузить данные тренировки');
         }
-        
         const data = await response.json();
         setTraining(data);
-        
-        // Устанавливаем состояние завершения тренировки
         setIsCompleted(data.isCompleted || false);
-        
-        // Проверяем, есть ли сохраненное состояние в localStorage
         const savedData = localStorage.getItem(`training_data_${trainingId}`);
         if (savedData) {
           const parsedData = JSON.parse(savedData);
@@ -184,11 +178,10 @@ export default function TrainingPage() {
         setLoading(false);
       }
     }
-    
-    if (session?.user) {
+    if (isPublicView || session?.user) {
       fetchTraining();
     }
-  }, [trainingId, session]);
+  }, [trainingId, session, isPublicView]);
   
   // Загрузка упражнений для диалога
   const loadExercises = async () => {
