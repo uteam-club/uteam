@@ -1257,6 +1257,7 @@ export default function MatchDetailsPage() {
                             className="w-16 bg-vista-dark-lighter border border-vista-secondary/30 rounded px-2 py-1 text-vista-light text-center"
                             value={editedStats[stat.id]?.minutesPlayed || 0}
                             onChange={(e) => handleStatChange(stat.id, 'minutesPlayed', parseInt(e.target.value) || 0)}
+                            onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
                           />
                         ) : (
                           stat.minutesPlayed
@@ -1270,6 +1271,7 @@ export default function MatchDetailsPage() {
                             className="w-16 bg-vista-dark-lighter border border-vista-secondary/30 rounded px-2 py-1 text-vista-light text-center"
                             value={editedStats[stat.id]?.goals || 0}
                             onChange={(e) => handleStatChange(stat.id, 'goals', parseInt(e.target.value) || 0)}
+                            onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
                           />
                         ) : (
                           stat.goals
@@ -1283,6 +1285,7 @@ export default function MatchDetailsPage() {
                             className="w-16 bg-vista-dark-lighter border border-vista-secondary/30 rounded px-2 py-1 text-vista-light text-center"
                             value={editedStats[stat.id]?.assists || 0}
                             onChange={(e) => handleStatChange(stat.id, 'assists', parseInt(e.target.value) || 0)}
+                            onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
                           />
                         ) : (
                           stat.assists
@@ -1296,6 +1299,7 @@ export default function MatchDetailsPage() {
                             className="w-16 bg-vista-dark-lighter border border-vista-secondary/30 rounded px-2 py-1 text-vista-light text-center"
                             value={editedStats[stat.id]?.yellowCards || 0}
                             onChange={(e) => handleStatChange(stat.id, 'yellowCards', parseInt(e.target.value) || 0)}
+                            onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
                           />
                         ) : (
                           stat.yellowCards
@@ -1309,6 +1313,7 @@ export default function MatchDetailsPage() {
                             className="w-16 bg-vista-dark-lighter border border-vista-secondary/30 rounded px-2 py-1 text-vista-light text-center"
                             value={editedStats[stat.id]?.redCards || 0}
                             onChange={(e) => handleStatChange(stat.id, 'redCards', parseInt(e.target.value) || 0)}
+                            onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
                           />
                         ) : (
                           stat.redCards
@@ -1446,6 +1451,7 @@ export default function MatchDetailsPage() {
                   onChange={e => handleEditFormChange('teamGoals', Number(e.target.value))}
                   className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
                   disabled={editForm.status !== 'FINISHED' && selectedStatus !== 'FINISHED'}
+                  onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
                 />
               </div>
             </div>
@@ -1471,6 +1477,7 @@ export default function MatchDetailsPage() {
                   onChange={e => handleEditFormChange('opponentGoals', Number(e.target.value))}
                   className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
                   disabled={editForm.status !== 'FINISHED' && selectedStatus !== 'FINISHED'}
+                  onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
                 />
               </div>
             </div>

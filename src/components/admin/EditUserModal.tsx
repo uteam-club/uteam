@@ -195,7 +195,7 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
             </div>
             <div>
               <label className="text-vista-light/70 text-sm mb-2 block">Игровой номер</label>
-              <Input type="number" value={form.number || ''} onChange={e => handleChange('number', e.target.value)} />
+              <Input type="number" value={form.number || ''} onChange={e => handleChange('number', e.target.value)} onFocus={e => { if (e.target.value === '0') e.target.value = ''; }} />
             </div>
             <div>
               <label className="text-vista-light/70 text-sm mb-2 block">Позиция</label>

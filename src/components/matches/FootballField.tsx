@@ -455,12 +455,16 @@ const FootballField: React.FC<FootballFieldProps> = ({
           >
             {/* Только номер игрока внутри кружка */}
             {hasPlayerAssigned(position) && (
-              <span className="text-white text-xs font-bold leading-none">{position.playerNumber}</span>
+              <span className={
+                `${colorValue === '#fff' || colorValue === '#ffffff' ? 'text-gray-800' : 'text-white'} text-xs font-bold leading-none`
+              }>
+                {position.playerNumber}
+              </span>
             )}
             {/* Инициалы под кружком на полупрозрачном фоне */}
             {hasPlayerAssigned(position) && position.playerName && (
               <div
-                className="absolute left-1/2 top-full mt-1 px-2 py-0.5 bg-black/50 rounded text-white text-[11px] font-medium select-none pointer-events-none whitespace-nowrap flex items-center justify-center"
+                className="absolute left-1/2 top-full mt-1 px-2 py-0.5 bg-black/50 rounded text-white text-[8px] font-medium select-none pointer-events-none whitespace-nowrap flex items-center justify-center"
                 style={{ transform: 'translateX(-50%)', minWidth: '28px', textAlign: 'center', lineHeight: '1.2' }}
               >
                 {position.playerName}

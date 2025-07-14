@@ -149,6 +149,7 @@ const EnterResultsModal: React.FC<EnterResultsModalProps> = ({ open, onOpenChang
                     value={editResults[player.id] ?? ''}
                     onChange={e => handleResultChange(player.id, e.target.value)}
                     placeholder={`Результат${testUnit ? ` (${FITNESS_TEST_UNITS.find(u => u.value === testUnit)?.label || testUnit})` : ''}`}
+                    onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
                   />
                 </div>
               ))}

@@ -97,6 +97,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
               onChange={onChange}
               className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
               disabled={loading}
+              onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
             />
           </div>
           <div className="space-y-2">
@@ -109,6 +110,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
               onChange={onChange}
               className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
               disabled={loading}
+              onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
             />
           </div>
         </div>
