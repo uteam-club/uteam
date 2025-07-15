@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { db } from '@/lib/db';
 import { player, team, playerDocument } from '@/db/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, and } from 'drizzle-orm';
 import { createApiResponse } from '../../config';
 import { getSubdomain } from '@/lib/utils';
 import { getClubBySubdomain } from '@/services/user.service';
@@ -24,11 +24,18 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Получаем всех игроков клуба
+    // Получаем teamId из query string
+    const { searchParams } = new URL(request.url);
+    const teamId = searchParams.get('teamId');
+
+    // Получаем всех игроков клуба или только выбранной команды
     const players = await db.select({
       id: player.id,
       firstName: player.firstName,
       lastName: player.lastName,
+      middleName: player.middleName,
+      dateOfBirth: player.dateOfBirth,
+      nationality: player.nationality,
       birthCertificateNumber: player.birthCertificateNumber,
       imageUrl: player.imageUrl,
       teamId: player.teamId,
@@ -38,7 +45,11 @@ export async function GET(request: NextRequest) {
     })
       .from(player)
       .leftJoin(team, eq(player.teamId, team.id))
-      .where(eq(team.clubId, token.clubId));
+      .where(
+        teamId && teamId !== 'all'
+          ? and(eq(team.clubId, token.clubId), eq(player.teamId, teamId))
+          : eq(team.clubId, token.clubId)
+      );
 
     const playerIds = players.map(p => p.id);
     if (playerIds.length === 0) return createApiResponse([]);

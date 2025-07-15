@@ -33,6 +33,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { countries } from '@/lib/countries';
 
 interface Team {
   id: string;
@@ -68,6 +71,8 @@ interface Player {
   passportData: string;
   insuranceNumber: string;
   visaExpiryDate: string;
+  dateOfBirth: string;
+  nationality: string;
 }
 
 export default function DocumentsPage() {
@@ -79,6 +84,17 @@ export default function DocumentsPage() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [wasHidden, setWasHidden] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportFields, setExportFields] = useState({
+    fio: true,
+    birthDate: true,
+    nationality: true,
+    team: true,
+    passport: true,
+    insurance: true,
+    visa: true,
+    birthCertificateNumber: true,
+  });
 
   // Оптимизированная функция для получения списка команд
   const fetchTeams = useCallback(async () => {
@@ -90,13 +106,8 @@ export default function DocumentsPage() {
       }
       const data = await response.json();
       setTeams(data);
-      
-      // Выбираем первую команду в списке по умолчанию, если список не пуст
-      if (data.length > 0) {
-        setSelectedTeamId(data[0].id);
-      } else {
-        setSelectedTeamId('all');
-      }
+      // По умолчанию всегда 'all', не выбираем первую команду
+      setSelectedTeamId('all');
     } catch (error) {
       console.error('Ошибка при загрузке команд:', error);
     }
@@ -189,6 +200,60 @@ export default function DocumentsPage() {
     }
   };
 
+  // Новый экспорт с выбором полей
+  const handleExport = () => {
+    setExportModalOpen(true);
+  };
+
+  const handleExportConfirm = () => {
+    // Формируем данные для экспорта
+    const data = players.map(player => {
+      const row: Record<string, string> = {};
+      if (exportFields.fio) {
+        row['ФИО'] = player.middleName
+          ? `${player.lastName} ${player.firstName} ${player.middleName}`
+          : `${player.lastName} ${player.firstName}`;
+      }
+      if (exportFields.birthDate) {
+        row['Дата рождения'] = player.dateOfBirth
+          ? new Date(player.dateOfBirth).toLocaleDateString('ru-RU')
+          : '';
+      }
+      if (exportFields.nationality) {
+        const country = countries.find(c => c.code === player.nationality);
+        row['Национальность'] = country ? country.name : player.nationality || '';
+      }
+      if (exportFields.team) {
+        let teamName = player.team?.name;
+        if (!teamName && player.team?.id) {
+          const found = teams.find(t => t.id === player.team.id);
+          if (found) teamName = found.name;
+        }
+        row['Команда'] = teamName || '';
+      }
+      if (exportFields.passport) {
+        row['Номер паспорта'] = player.passportData || '';
+      }
+      if (exportFields.insurance) {
+        row['Номер мед. страховки'] = player.insuranceNumber || '';
+      }
+      if (exportFields.visa) {
+        row['Дата окончания визы'] = player.visaExpiryDate || '';
+      }
+      if (exportFields.birthCertificateNumber) {
+        row['Номер свидетельства о рождении'] = player.birthCertificateNumber || '';
+      }
+      return row;
+    });
+    // Генерируем Excel
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Игроки');
+    const fileName = `Экспорт_игроков_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    setExportModalOpen(false);
+  };
+
   // Функция для отображения иконки документа
   const renderDocumentIcon = (document: Document | null) => {
     if (!document) {
@@ -261,14 +326,12 @@ export default function DocumentsPage() {
                   <SelectValue placeholder="Выберите команду" />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                  <SelectItem value="all">Все команды</SelectItem>
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name}
                     </SelectItem>
                   ))}
-                  <SelectItem value="all" className="border-t border-vista-secondary/40 mt-2 pt-2">
-                    Все команды
-                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -287,9 +350,9 @@ export default function DocumentsPage() {
             <Button
               variant="outline"
               size="icon"
-              onClick={downloadExcel}
+              onClick={handleExport}
               className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 shadow-sm"
-              title="Скачать список игроков в Excel"
+              title="Экспортировать игроков в Excel"
             >
               <DownloadIcon className="h-4 w-4 text-vista-primary" />
             </Button>
@@ -426,6 +489,51 @@ export default function DocumentsPage() {
       </div>
         </CardContent>
       </Card>
+      {/* Модалка выбора полей для экспорта */}
+      <Dialog open={exportModalOpen} onOpenChange={setExportModalOpen}>
+        <DialogContent className="max-w-md bg-vista-dark border border-vista-secondary/40 rounded-xl shadow-xl text-vista-light">
+          <DialogHeader>
+            <DialogTitle className="text-lg text-vista-light">Выберите поля для экспорта</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="flex items-center gap-2">
+              <Checkbox id="fio" checked={exportFields.fio} onCheckedChange={v => setExportFields(f => ({ ...f, fio: v === true }))} className="accent-vista-primary" />
+              <label htmlFor="fio" className="text-sm text-vista-light">ФИО</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox id="birthDate" checked={exportFields.birthDate} onCheckedChange={v => setExportFields(f => ({ ...f, birthDate: v === true }))} className="accent-vista-primary" />
+              <label htmlFor="birthDate" className="text-sm text-vista-light">Дата рождения</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox id="nationality" checked={exportFields.nationality} onCheckedChange={v => setExportFields(f => ({ ...f, nationality: v === true }))} className="accent-vista-primary" />
+              <label htmlFor="nationality" className="text-sm text-vista-light">Национальность</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox id="team" checked={exportFields.team} onCheckedChange={v => setExportFields(f => ({ ...f, team: v === true }))} className="accent-vista-primary" />
+              <label htmlFor="team" className="text-sm text-vista-light">Команда</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox id="passport" checked={exportFields.passport} onCheckedChange={v => setExportFields(f => ({ ...f, passport: v === true }))} className="accent-vista-primary" />
+              <label htmlFor="passport" className="text-sm text-vista-light">Номер паспорта</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox id="insurance" checked={exportFields.insurance} onCheckedChange={v => setExportFields(f => ({ ...f, insurance: v === true }))} className="accent-vista-primary" />
+              <label htmlFor="insurance" className="text-sm text-vista-light">Номер мед. страховки</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox id="visa" checked={exportFields.visa} onCheckedChange={v => setExportFields(f => ({ ...f, visa: v === true }))} className="accent-vista-primary" />
+              <label htmlFor="visa" className="text-sm text-vista-light">Дата окончания визы</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox id="birthCertificateNumber" checked={exportFields.birthCertificateNumber} onCheckedChange={v => setExportFields(f => ({ ...f, birthCertificateNumber: v === true }))} className="accent-vista-primary" />
+              <label htmlFor="birthCertificateNumber" className="text-sm text-vista-light">Номер свидетельства о рождении</label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleExportConfirm} className="w-full bg-vista-primary text-vista-dark hover:bg-vista-primary/80">Экспортировать</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 
