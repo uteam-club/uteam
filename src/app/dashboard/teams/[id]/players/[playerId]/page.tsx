@@ -49,6 +49,7 @@ import { ClockIcon, UserCheckIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { FITNESS_TEST_TYPES } from '@/lib/constants';
 import { formatResult } from '@/lib/utils';
+import { countries, countryCodeToEmoji } from '@/lib/countries';
 
 interface Player {
   id: string;
@@ -894,57 +895,63 @@ export default function PlayerProfilePage() {
         {/* Информационный блок */}
         <div className="w-[38rem] h-full flex flex-col items-start justify-start">
           <div className="bg-vista-dark/40 rounded-md shadow-md w-full h-full flex flex-col justify-start p-8">
-            <div className="space-y-4 flex-1">
+            {/* Используем grid для выравнивания */}
+            <div className="grid grid-cols-[minmax(120px,180px)_1fr] gap-y-4 gap-x-6 flex-1">
               {/* Национальность */}
-              <div className="flex items-center gap-3">
-                <span className="text-vista-light/60 text-base min-w-[120px]">Национальность</span>
+              <div className="text-vista-light/60 text-base flex items-center">Национальность</div>
+              <div>
                 {player.nationality ? (
                   (() => {
-                    const countries = [
-                      { name: 'Россия', code: 'RU' }, { name: 'Албания', code: 'AL' }, { name: 'Англия', code: 'GB-ENG' }, { name: 'Бразилия', code: 'BR' }, { name: 'Аргентина', code: 'AR' }, { name: 'Испания', code: 'ES' }, { name: 'Италия', code: 'IT' }, { name: 'Германия', code: 'DE' }, { name: 'Франция', code: 'FR' }, { name: 'Нидерланды', code: 'NL' }, { name: 'Португалия', code: 'PT' }, { name: 'Бельгия', code: 'BE' }, { name: 'Уругвай', code: 'UY' }, { name: 'Колумбия', code: 'CO' }, { name: 'Мексика', code: 'MX' }, { name: 'США', code: 'US' }, { name: 'Канада', code: 'CA' }, { name: 'Япония', code: 'JP' }, { name: 'Китай', code: 'CN' }, { name: 'Австралия', code: 'AU' }, { name: 'Корея', code: 'KR' }, { name: 'Египет', code: 'EG' }, { name: 'Марокко', code: 'MA' }, { name: 'Нигерия', code: 'NG' }, { name: 'Сенегал', code: 'SN' }, { name: 'Гана', code: 'GH' }, { name: 'Камерун', code: 'CM' }, { name: 'Алжир', code: 'DZ' }, { name: 'Украина', code: 'UA' }, { name: 'Беларусь', code: 'BY' }, { name: 'Казахстан', code: 'KZ' }, { name: 'Узбекистан', code: 'UZ' }, { name: 'Таджикистан', code: 'TJ' }, { name: 'Кыргызстан', code: 'KG' }, { name: 'Сербия', code: 'RS' }, { name: 'Хорватия', code: 'HR' }, { name: 'Швеция', code: 'SE' }, { name: 'Дания', code: 'DK' }, { name: 'Норвегия', code: 'NO' }, { name: 'Финляндия', code: 'FI' }, { name: 'Исландия', code: 'IS' }, { name: 'Польша', code: 'PL' }, { name: 'Чехия', code: 'CZ' }, { name: 'Словакия', code: 'SK' }, { name: 'Венгрия', code: 'HU' }, { name: 'Австрия', code: 'AT' }, { name: 'Швейцария', code: 'CH' }, { name: 'Греция', code: 'GR' }, { name: 'Турция', code: 'TR' }, { name: 'Румыния', code: 'RO' }, { name: 'Болгария', code: 'BG' }, { name: 'Молдова', code: 'MD' }, { name: 'Черногория', code: 'ME' }, { name: 'Босния и Герцеговина', code: 'BA' }, { name: 'Армения', code: 'AM' }, { name: 'Азербайджан', code: 'AZ' }, { name: 'Грузия', code: 'GE' }, { name: 'Иран', code: 'IR' }, { name: 'Ирак', code: 'IQ' }, { name: 'Саудовская Аравия', code: 'SA' }, { name: 'Катар', code: 'QA' }, { name: 'ОАЭ', code: 'AE' }, { name: 'Кувейт', code: 'KW' }, { name: 'Оман', code: 'OM' }, { name: 'Израиль', code: 'IL' }, { name: 'Индия', code: 'IN' }, { name: 'Пакистан', code: 'PK' }, { name: 'Бангладеш', code: 'BD' }, { name: 'Кот-д\'Ивуар', code: 'CI' }, { name: 'ЮАР', code: 'ZA' }, { name: 'Гвинея', code: 'GN' }, { name: 'Мали', code: 'ML' }, { name: 'Буркина-Фасо', code: 'BF' }, { name: 'Тунис', code: 'TN' }, { name: 'Либерия', code: 'LR' }, { name: 'Судан', code: 'SD' }, { name: 'Эфиопия', code: 'ET' }, { name: 'Кения', code: 'KE' }, { name: 'Танзания', code: 'TZ' }, { name: 'Уганда', code: 'UG' }, { name: 'Зимбабве', code: 'ZW' }, { name: 'Ангола', code: 'AO' }, { name: 'Перу', code: 'PE' }, { name: 'Чили', code: 'CL' }, { name: 'Эквадор', code: 'EC' }, { name: 'Венесуэла', code: 'VE' }, { name: 'Парагвай', code: 'PY' }, { name: 'Боливия', code: 'BO' }, { name: 'Коста-Рика', code: 'CR' }, { name: 'Панама', code: 'PA' }, { name: 'Гондурас', code: 'HN' }, { name: 'Сальвадор', code: 'SV' }, { name: 'Ямайка', code: 'JM' }, { name: 'Тайланд', code: 'TH' }, { name: 'Вьетнам', code: 'VN' }, { name: 'Индонезия', code: 'ID' }, { name: 'Малайзия', code: 'MY' }, { name: 'Филиппины', code: 'PH' }, { name: 'Новая Зеландия', code: 'NZ' }, { name: 'Гаити', code: 'HT' }, { name: 'Монголия', code: 'MN' }, { name: 'Шотландия', code: 'GB-SCT' }, { name: 'Уэльс', code: 'GB-WLS' }, { name: 'Северная Ирландия', code: 'GB-NIR' }, { name: 'Люксембург', code: 'LU' }, { name: 'Фарерские острова', code: 'FO' }, { name: 'Андорра', code: 'AD' }, { name: 'Мальта', code: 'MT' }, { name: 'Кипр', code: 'CY' }, { name: 'Макао', code: 'MO' }, { name: 'Гонконг', code: 'HK' }, { name: 'Сингапур', code: 'SG' },
-                    ];
-                    function countryCodeToEmoji(code: string) {
-                      if (code.startsWith('GB-')) return '🇬🇧';
-                      return code.replace(/-/g, '').toUpperCase().replace(/./g, (char: string) => String.fromCodePoint(127397 + char.charCodeAt(0)));
-                    }
                     const country = countries.find(c => c.code === player.nationality);
                     return country ? (
-                      <span className="flex items-center gap-2 text-vista-light text-base">
-                        <span className="text-xl">{countryCodeToEmoji(country.code)}</span>
+                      <span className="flex items-center gap-2 text-vista-light text-sm bg-vista-light/10 px-2 rounded font-medium h-8 min-w-[100px] justify-center select-none" style={{textShadow: '0 1px 2px rgba(0,0,0,0.08)'}}>
+                        <span className="text-lg">{countryCodeToEmoji(country.code)}</span>
                         <span>{country.name}</span>
                       </span>
                     ) : (
-                      <span className="text-vista-light text-base">{player.nationality}</span>
+                      <span className="text-vista-light text-sm bg-vista-light/10 px-2 rounded font-medium h-8 min-w-[100px] flex items-center justify-center select-none">{player.nationality}</span>
                     );
                   })()
                 ) : (
-                  <span className="text-vista-light/40">—</span>
+                  <span className="text-vista-light/40 h-8 flex items-center">—</span>
                 )}
               </div>
               {/* Дата рождения */}
-              <div className="flex items-center gap-3">
-                <span className="text-vista-light/60 text-base min-w-[120px]">Дата рождения</span>
-                <span className="text-vista-light text-base">{player.dateOfBirth ? new Date(player.dateOfBirth).toLocaleDateString('ru-RU') : <span className="text-vista-light/40">—</span>}</span>
+              <div className="text-vista-light/60 text-base flex items-center">Дата рождения</div>
+              <div>
+                <span className={"text-vista-light text-sm bg-vista-light/10 px-2 rounded font-medium h-8 min-w-[100px] flex items-center justify-center select-none" + (player.dateOfBirth ? '' : ' text-vista-light/40')}>{player.dateOfBirth ? new Date(player.dateOfBirth).toLocaleDateString('ru-RU') : '—'}</span>
               </div>
               {/* Позиция */}
-              <div className="flex items-center gap-3">
-                <span className="text-vista-light/60 text-base min-w-[120px]">Позиция</span>
-                <span className="text-vista-light text-base">{player.position || <span className="text-vista-light/40">—</span>}</span>
+              <div className="text-vista-light/60 text-base flex items-center">Позиция</div>
+              <div>
+                {player.position ? (
+                  <span className="bg-vista-light/10 text-vista-light px-2 rounded font-medium text-sm capitalize h-8 min-w-[100px] flex items-center justify-center select-none" style={{textShadow: '0 1px 2px rgba(0,0,0,0.08)'}}>
+                    {player.position.charAt(0).toUpperCase() + player.position.slice(1)}
+                  </span>
+                ) : (
+                  <span className="text-vista-light/40 h-8 flex items-center">—</span>
+                )}
               </div>
               {/* Сильная нога */}
-              <div className="flex items-center gap-3">
-                <span className="text-vista-light/60 text-base min-w-[120px]">Сильная нога</span>
-                <span className="text-vista-light text-base">{player.strongFoot || <span className="text-vista-light/40">—</span>}</span>
+              <div className="text-vista-light/60 text-base flex items-center">Сильная нога</div>
+              <div>
+                {player.strongFoot ? (
+                  <span className="bg-vista-light/10 text-vista-light px-2 rounded font-medium text-sm capitalize h-8 min-w-[100px] flex items-center justify-center select-none" style={{textShadow: '0 1px 2px rgba(0,0,0,0.08)'}}>
+                    {player.strongFoot.charAt(0).toUpperCase() + player.strongFoot.slice(1)}
+                  </span>
+                ) : (
+                  <span className="text-vista-light/40 h-8 flex items-center">—</span>
+                )}
               </div>
               {/* Игровой номер */}
-              <div className="flex items-center gap-3">
-                <span className="text-vista-light/60 text-base min-w-[120px]">Игровой номер</span>
-                <span className="text-vista-light text-base">{player.number || <span className="text-vista-light/40">—</span>}</span>
+              <div className="text-vista-light/60 text-base flex items-center">Игровой номер</div>
+              <div>
+                <span className={"text-vista-light text-sm bg-vista-light/10 px-2 rounded font-medium h-8 min-w-[100px] flex items-center justify-center select-none" + (player.number ? '' : ' text-vista-light/40')}>{player.number || '—'}</span>
               </div>
               {/* Команда */}
-              <div className="flex items-center gap-3">
-                <span className="text-vista-light/60 text-base min-w-[120px]">Команда</span>
-                <span className="text-vista-light text-base">{teamName || <span className="text-vista-light/40">—</span>}</span>
+              <div className="text-vista-light/60 text-base flex items-center">Команда</div>
+              <div>
+                <span className={"text-vista-light text-sm bg-vista-light/10 px-2 rounded font-medium h-8 min-w-[100px] flex items-center justify-center select-none" + (teamName ? '' : ' text-vista-light/40')}>{teamName || '—'}</span>
               </div>
             </div>
           </div>
