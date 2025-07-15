@@ -100,11 +100,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return new Response(JSON.stringify({ error: "teamId и playerId обязательны" }), { status: 400 });
     }
     const body = await req.json();
-    if (!body.status) {
-      return new Response(JSON.stringify({ error: "Поле status обязательно" }), { status: 400 });
+    // Список разрешённых к обновлению полей
+    const allowedFields = [
+      "firstName", "lastName", "middleName", "number", "position", "strongFoot", "dateOfBirth", "academyJoinDate", "nationality", "imageUrl", "status", "birthCertificateNumber", "pinCode", "telegramId", "language", "teamId",
+      "passportData", "insuranceNumber", "visaExpiryDate",
+      "format1", "formation1", "positionIndex1", "format2", "formation2", "positionIndex2"
+    ];
+    const updateData: Record<string, any> = {};
+    for (const key of allowedFields) {
+      if (body[key] !== undefined) {
+        updateData[key] = body[key];
+      }
     }
+    // Преобразуем даты к типу Date, если они есть и это строка
+    updateData.dateOfBirth = toDateOrNull(updateData.dateOfBirth);
+    updateData.academyJoinDate = toDateOrNull(updateData.academyJoinDate);
+    updateData.visaExpiryDate = toDateOrNull(updateData.visaExpiryDate);
+    updateData.number = toIntOrNull(updateData.number);
+    updateData.updatedAt = new Date();
     const result = await db.update(player)
-      .set({ status: body.status, updatedAt: new Date() })
+      .set(updateData)
       .where(and(eq(player.id, playerId), eq(player.teamId, teamId)))
       .returning();
     if (!result.length) {
@@ -112,7 +127,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
     return new Response(JSON.stringify({ player: result[0] }), { status: 200 });
   } catch (error) {
-    console.error('Player status PATCH error:', error);
-    return new Response(JSON.stringify({ error: "Ошибка при обновлении статуса игрока", details: String(error) }), { status: 500 });
+    console.error('Player PATCH error:', error);
+    return new Response(JSON.stringify({ error: "Ошибка при обновлении игрока", details: String(error) }), { status: 500 });
   }
 } 
