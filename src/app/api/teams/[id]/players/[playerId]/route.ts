@@ -118,6 +118,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     updateData.visaExpiryDate = toDateOrNull(updateData.visaExpiryDate);
     updateData.number = toIntOrNull(updateData.number);
     updateData.updatedAt = new Date();
+    // Удаляем из updateData все поля, которые равны undefined, null или ''
+    Object.keys(updateData).forEach((key) => {
+      if (updateData[key] === undefined || updateData[key] === null || updateData[key] === '') {
+        delete updateData[key];
+      }
+    });
     const result = await db.update(player)
       .set(updateData)
       .where(and(eq(player.id, playerId), eq(player.teamId, teamId)))
