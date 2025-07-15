@@ -268,7 +268,7 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
                   value={teamGoals}
                   onChange={(e) => setTeamGoals(parseInt(e.target.value))}
                   className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
-                  disabled={matchStatus !== 'FINISHED'}
+                disabled={matchStatus !== 'FINISHED'}
                   onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
                 />
             </div>
@@ -295,7 +295,7 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
                   value={opponentGoals}
                   onChange={(e) => setOpponentGoals(parseInt(e.target.value))}
                   className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
-                  disabled={matchStatus !== 'FINISHED'}
+                disabled={matchStatus !== 'FINISHED'}
                   onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
                 />
             </div>

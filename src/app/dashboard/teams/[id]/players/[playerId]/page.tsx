@@ -490,11 +490,9 @@ export default function PlayerProfilePage() {
     setIsSavingPosition(true);
     try {
       const res = await fetch(`/api/teams/${player?.teamId}/players/${player?.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          format1: selectedFormat,
-          formation1: selectedFormation,
           positionIndex1: pendingPosition
         })
       });
@@ -511,11 +509,10 @@ export default function PlayerProfilePage() {
   // Автоматическое сохранение выбранной формации и формата
   useEffect(() => {
     if (!player) return;
-    // Не отправлять запрос при первом рендере, только при изменении
     if (player.format1 === selectedFormat && player.formation1 === selectedFormation) return;
     const saveFormation = async () => {
       await fetch(`/api/teams/${player.teamId}/players/${player.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           format1: selectedFormat,
@@ -542,7 +539,7 @@ export default function PlayerProfilePage() {
     if (selectedPosition === null) return;
     const savePosition = async () => {
       await fetch(`/api/teams/${player.teamId}/players/${player.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           positionIndex1: selectedPosition
@@ -573,11 +570,9 @@ export default function PlayerProfilePage() {
     setIsSavingPosition2(true);
     try {
       const res = await fetch(`/api/teams/${player?.teamId}/players/${player?.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          format2: selectedFormat2,
-          formation2: selectedFormation2,
           positionIndex2: pendingPosition2
         })
       });
@@ -596,7 +591,7 @@ export default function PlayerProfilePage() {
     if (player.format2 === selectedFormat2 && player.formation2 === selectedFormation2) return;
     const saveFormation2 = async () => {
       await fetch(`/api/teams/${player.teamId}/players/${player.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           format2: selectedFormat2,
@@ -614,7 +609,7 @@ export default function PlayerProfilePage() {
     if (selectedPosition2 === null) return;
     const savePosition2 = async () => {
       await fetch(`/api/teams/${player.teamId}/players/${player.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           positionIndex2: selectedPosition2
