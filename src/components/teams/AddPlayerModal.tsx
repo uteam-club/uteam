@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface AddPlayerModalProps {
   open: boolean;
@@ -25,11 +26,12 @@ export function AddPlayerModal({
   onChange,
   onSubmit,
 }: AddPlayerModalProps) {
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-hidden backdrop-blur-xl">
         <DialogHeader>
-          <DialogTitle className="text-vista-light text-xl">Добавление игрока</DialogTitle>
+          <DialogTitle className="text-vista-light text-xl">{t('teamPage.add_player_modal_title')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit}>
           {formError && (
@@ -40,7 +42,7 @@ export function AddPlayerModal({
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="firstName" className="text-vista-light/40 font-normal">
-                Имя <span className="text-red-500">*</span>
+                {t('teamPage.first_name_label')} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="firstName"
@@ -48,14 +50,14 @@ export function AddPlayerModal({
                 value={firstName}
                 onChange={onChange}
                 className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
-                placeholder="Введите имя игрока"
+                placeholder={t('teamPage.first_name_placeholder')}
                 disabled={isSubmitting}
                 autoComplete="off"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="lastName" className="text-vista-light/40 font-normal">
-                Фамилия <span className="text-red-500">*</span>
+                {t('teamPage.last_name_label')} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="lastName"
@@ -63,7 +65,7 @@ export function AddPlayerModal({
                 value={lastName}
                 onChange={onChange}
                 className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
-                placeholder="Введите фамилию игрока"
+                placeholder={t('teamPage.last_name_placeholder')}
                 disabled={isSubmitting}
                 autoComplete="off"
               />
@@ -77,7 +79,7 @@ export function AddPlayerModal({
               disabled={isSubmitting}
               className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 focus:outline-none focus:ring-0"
             >
-              Отмена
+              {t('teamPage.cancel')}
             </Button>
             <Button
               type="submit"
@@ -87,10 +89,10 @@ export function AddPlayerModal({
               {isSubmitting ? (
                 <>
                   <div className="animate-spin mr-2 h-4 w-4 border-2 border-vista-dark border-t-transparent rounded-full"></div>
-                  Сохранение...
+                  {t('teamPage.saving')}
                 </>
               ) : (
-                'Сохранить'
+                t('teamPage.save')
               )}
             </Button>
           </DialogFooter>

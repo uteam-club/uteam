@@ -26,6 +26,9 @@ import {
 } from 'lucide-react';
 import { format, isValid, parseISO, subMonths, eachDayOfInterval, addDays, isSameDay } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale/en-US';
+import { useTranslation } from 'react-i18next';
+import type { SupportedLang } from '@/types/i18n';
 
 interface Team {
   id: string;
@@ -83,6 +86,7 @@ const attendanceStatuses = {
 };
 
 export default function AttendanceAnalyticsPage() {
+  const { t, i18n } = useTranslation();
   const { data: session } = useSession();
   
   // Состояние для хранения списка команд
@@ -328,13 +332,13 @@ export default function AttendanceAnalyticsPage() {
   // Форматирование даты для отображения диапазона
   const formatDateRange = () => {
     if (!startDate || !endDate) {
-      return 'Выберите даты';
+      return t('attendancePage.select_dates');
     }
-    
-    const fromFormatted = format(parseISO(startDate), 'd MMMM yyyy', { locale: ru });
-    const toFormatted = format(parseISO(endDate), 'd MMMM yyyy', { locale: ru });
-    
-    return `${fromFormatted} - ${toFormatted}`;
+    const lang: SupportedLang = i18n.language === 'en' ? 'en' : 'ru';
+    const locale = getDateFnsLocale(lang);
+    const fromFormatted = format(parseISO(startDate), 'd MMMM yyyy', { locale });
+    const toFormatted = format(parseISO(endDate), 'd MMMM yyyy', { locale });
+    return t('attendancePage.date_range', { from: fromFormatted, to: toFormatted });
   };
   
   // Получение отфильтрованных игроков в зависимости от выбранной вкладки
@@ -388,25 +392,27 @@ export default function AttendanceAnalyticsPage() {
     }
   };
 
+  const getDateFnsLocale = (lang: SupportedLang) => lang === 'en' ? enUS : ru;
+
   return (
     <div className="space-y-6">
       {/* Фильтры и кнопка сверху */}
       <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
         <CardHeader>
-          <CardTitle className="text-vista-light">Анализ посещаемости тренировок</CardTitle>
+          <CardTitle className="text-vista-light">{t('attendancePage.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-end gap-4">
             {/* Выбор команды */}
             <div className="flex-1 min-w-[250px]">
-              <label className="text-sm text-vista-light/80 font-medium mb-2 block">Команда</label>
+              <label className="text-sm text-vista-light/80 font-medium mb-2 block">{t('attendancePage.team')}</label>
               <Select 
                 value={selectedTeamId}
                 onValueChange={setSelectedTeamId}
                 disabled={isLoadingTeams}
               >
                 <SelectTrigger className="bg-vista-dark/70 border-vista-secondary/50 text-vista-light h-10 shadow-sm">
-                  <SelectValue placeholder="Выберите команду" />
+                  <SelectValue placeholder={t('attendancePage.select_team')} />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
                   {teams.map(team => (
@@ -421,7 +427,7 @@ export default function AttendanceAnalyticsPage() {
             {/* Выбор периода дат */}
             <div className="flex gap-2 flex-1 min-w-[250px]">
               <div className="flex-1">
-                <label className="text-sm text-vista-light/80 font-medium mb-2 block">С даты</label>
+                <label className="text-sm text-vista-light/80 font-medium mb-2 block">{t('attendancePage.from_date')}</label>
                 <input
                   type="date"
                   value={startDate}
@@ -430,7 +436,7 @@ export default function AttendanceAnalyticsPage() {
                 />
               </div>
               <div className="flex-1">
-                <label className="text-sm text-vista-light/80 font-medium mb-2 block">По дату</label>
+                <label className="text-sm text-vista-light/80 font-medium mb-2 block">{t('attendancePage.to_date')}</label>
                 <input
                   type="date"
                   value={endDate}
@@ -445,7 +451,7 @@ export default function AttendanceAnalyticsPage() {
               className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark h-10 shadow-sm"
               disabled={isLoadingTrainings || !selectedTeamId}
             >
-              {isLoadingTrainings ? 'Загрузка...' : 'Показать отчёт'}
+              {isLoadingTrainings ? t('attendancePage.loading') : t('attendancePage.show_report')}
             </Button>
           </div>
         </CardContent>
@@ -457,7 +463,7 @@ export default function AttendanceAnalyticsPage() {
           <CardHeader>
             <CardTitle className="text-vista-light flex items-center justify-between">
               <span>
-                Статистика посещаемости {teams.find(t => t.id === selectedTeamId)?.name}
+                {t('attendancePage.stats_title', { team: teams.find(t => t.id === selectedTeamId)?.name || '' })}
               </span>
               <span className="text-sm text-vista-light/80">
                 {formatDateRange()}
@@ -468,19 +474,19 @@ export default function AttendanceAnalyticsPage() {
             {/* Общая статистика в виде карточек */}
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-vista-dark/70 rounded-md p-3 border border-vista-secondary/50 shadow-sm">
-                <div className="text-vista-light/70 text-sm mb-1">Тренировок</div>
+                <div className="text-vista-light/70 text-sm mb-1">{t('attendancePage.total_trainings')}</div>
                 <div className="text-vista-light text-xl font-bold">{stats.totalTrainings}</div>
               </div>
               <div className="bg-vista-dark/70 rounded-md p-3 border border-vista-secondary/50 shadow-sm">
-                <div className="text-vista-light/70 text-sm mb-1">Игроков</div>
+                <div className="text-vista-light/70 text-sm mb-1">{t('attendancePage.players_count')}</div>
                 <div className="text-vista-light text-xl font-bold">{stats.playersCount}</div>
               </div>
               <div className="bg-vista-dark/70 rounded-md p-3 border border-vista-secondary/50 shadow-sm">
-                <div className="text-vista-light/70 text-sm mb-1">Всего посещений</div>
+                <div className="text-vista-light/70 text-sm mb-1">{t('attendancePage.total_attendance')}</div>
                 <div className="text-vista-light text-xl font-bold">{stats.totalAttendance}</div>
               </div>
               <div className="bg-vista-dark/70 rounded-md p-3 border border-vista-secondary/50 shadow-sm">
-                <div className="text-vista-light/70 text-sm mb-1">Средняя посещаемость</div>
+                <div className="text-vista-light/70 text-sm mb-1">{t('attendancePage.average_attendance')}</div>
                 <div className="text-vista-light text-xl font-bold">{stats.averageAttendance}%</div>
               </div>
             </div>
@@ -489,16 +495,16 @@ export default function AttendanceAnalyticsPage() {
             <Tabs value={currentTab} onValueChange={setCurrentTab} className="mt-6">
               <TabsList className="bg-vista-dark/30 border border-vista-secondary/50 mb-4">
                 <TabsTrigger value="all" className="data-[state=active]:bg-vista-primary data-[state=active]:text-vista-dark">
-                  Все игроки
+                  {t('attendancePage.all_players')}
                 </TabsTrigger>
                 <TabsTrigger value="high" className="data-[state=active]:bg-green-500 data-[state=active]:text-white">
-                  Высокая посещаемость (≥ 80%)
+                  {t('attendancePage.high_attendance')}
                 </TabsTrigger>
                 <TabsTrigger value="medium" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
-                  Средняя посещаемость (50-79%)
+                  {t('attendancePage.medium_attendance')}
                 </TabsTrigger>
                 <TabsTrigger value="low" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">
-                  Низкая посещаемость ({"<"} 50%)
+                  {t('attendancePage.low_attendance')}
                 </TabsTrigger>
               </TabsList>
               
@@ -509,8 +515,8 @@ export default function AttendanceAnalyticsPage() {
                     <Table className="relative w-auto">
                       <TableHeader>
                         <UITableRow className="bg-vista-dark/70 hover:bg-vista-dark/70 border-b border-vista-secondary/50 shadow-md">
-                          <TableHead className="text-vista-light/80 font-medium w-[250px] min-w-[250px] sticky left-0 bg-vista-dark py-2.5">Игрок</TableHead>
-                          <TableHead className="text-vista-light/80 font-medium text-center py-2.5">Посещаемость</TableHead>
+                          <TableHead className="text-vista-light/80 font-medium w-[250px] min-w-[250px] sticky left-0 bg-vista-dark py-2.5">{t('attendancePage.player')}</TableHead>
+                          <TableHead className="text-vista-light/80 font-medium text-center py-2.5">{t('attendancePage.attendance')}</TableHead>
                           
                           {/* Генерируем заголовки для каждой тренировки */}
                           {trainings.map((training) => (
@@ -618,7 +624,7 @@ export default function AttendanceAnalyticsPage() {
                 {/* Если нет данных на выбранной вкладке */}
                 {getFilteredPlayers().length === 0 && (
                   <div className="text-center py-8">
-                    <p className="text-vista-light/70">Нет игроков, соответствующих выбранным критериям</p>
+                    <p className="text-vista-light/70">{t('attendancePage.no_players_found')}</p>
                   </div>
                 )}
               </TabsContent>
@@ -626,13 +632,13 @@ export default function AttendanceAnalyticsPage() {
             
             {/* Легенда статусов */}
             <div className="mt-4 bg-vista-dark/30 p-3 rounded-md border border-vista-secondary/50 shadow-sm">
-              <h4 className="text-vista-light/80 text-sm font-medium mb-2">Легенда:</h4>
+              <h4 className="text-vista-light/80 text-sm font-medium mb-2">{t('attendancePage.legend')}</h4>
               <div className="flex flex-wrap gap-3">
-                {Object.entries(attendanceStatuses).map(([status, info]) => (
+                {(['TRAINED', 'REHAB', 'SICK', 'EDUCATION', 'OTHER'] as (keyof typeof attendanceStatuses)[]).map((status) => (
                   <div key={status} className="flex items-center">
-                    <div className={`w-4 h-4 rounded-full ${info.color} mr-2`}></div>
-                    <span className={`text-xs ${info.textColor}`}>
-                      {info.name}
+                    <div className={`w-4 h-4 rounded-full ${attendanceStatuses[status].color} mr-2`}></div>
+                    <span className={`text-xs ${attendanceStatuses[status].textColor}`}>
+                      {t(`attendancePage.status.${status}`)}
                     </span>
                   </div>
                 ))}
@@ -662,7 +668,7 @@ export default function AttendanceAnalyticsPage() {
               <div className="mb-4 text-vista-light/50">
                 <CalendarIcon className="mx-auto h-12 w-12" />
               </div>
-              <p className="text-vista-light/70">В выбранном периоде не обнаружено тренировок</p>
+              <p className="text-vista-light/70">{t('attendancePage.no_trainings_in_period')}</p>
             </div>
           </CardContent>
         </Card>
@@ -676,7 +682,7 @@ export default function AttendanceAnalyticsPage() {
               <div className="mb-4 text-vista-light/50">
                 <ListFilterIcon className="mx-auto h-12 w-12" />
               </div>
-              <p className="text-vista-light/70">Выберите команду и период для просмотра аналитики посещаемости</p>
+              <p className="text-vista-light/70">{t('attendancePage.select_team_and_period')}</p>
             </div>
           </CardContent>
         </Card>

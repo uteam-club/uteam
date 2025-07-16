@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FITNESS_TEST_UNITS } from '@/lib/constants';
+import { useTranslation } from 'react-i18next';
 
 interface Team {
   id: string;
@@ -42,6 +43,9 @@ const EnterResultsModal: React.FC<EnterResultsModalProps> = ({ open, onOpenChang
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [date, setDate] = useState<string>('');
+  const { t } = useTranslation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language === 'en' ? 'en' : 'ru';
 
   useEffect(() => {
     if (open && teamId) {
@@ -119,12 +123,14 @@ const EnterResultsModal: React.FC<EnterResultsModalProps> = ({ open, onOpenChang
       <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md w-full overflow-hidden backdrop-blur-xl">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold text-center mb-2 text-vista-light">
-            Внести результаты: {testName}
+            {t('fitnessTest.enter_results_modal_title', { testName })}
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4">
           <div>
-            <span className="block text-xs text-vista-light/60 mb-1">Дата проведения теста</span>
+            <span className="block text-xs text-vista-light/60 mb-1">
+              {t('fitnessTest.test_date_label')}
+            </span>
             <input
               type="date"
               className="form-input bg-vista-dark border-vista-secondary/50 text-vista-light focus:outline-none focus:ring-0"
@@ -135,9 +141,9 @@ const EnterResultsModal: React.FC<EnterResultsModalProps> = ({ open, onOpenChang
             />
           </div>
           {playersLoading || resultsLoading ? (
-            <div className="text-vista-light/70 text-center py-8">Загрузка...</div>
+            <div className="text-vista-light/70 text-center py-8">{t('common.loading')}</div>
           ) : players.length === 0 ? (
-            <div className="text-vista-light/70 text-center py-8">В команде нет игроков.</div>
+            <div className="text-vista-light/70 text-center py-8">{t('fitnessTest.no_players')}</div>
           ) : (
             <div className="overflow-y-auto max-h-[50vh] flex flex-col gap-2">
               {players.map((player) => (
@@ -148,7 +154,7 @@ const EnterResultsModal: React.FC<EnterResultsModalProps> = ({ open, onOpenChang
                     className="form-input flex-1"
                     value={editResults[player.id] ?? ''}
                     onChange={e => handleResultChange(player.id, e.target.value)}
-                    placeholder={`Результат${testUnit ? ` (${FITNESS_TEST_UNITS.find(u => u.value === testUnit)?.label || testUnit})` : ''}`}
+                    placeholder={t('fitnessTest.result_placeholder', { unit: testUnit ? (FITNESS_TEST_UNITS.find(u => u.value === testUnit)?.label[lang] || testUnit) : '' })}
                     onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
                   />
                 </div>
@@ -159,14 +165,14 @@ const EnterResultsModal: React.FC<EnterResultsModalProps> = ({ open, onOpenChang
         </div>
         <DialogFooter className="flex gap-2 mt-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="w-1/2 border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 focus:outline-none focus:ring-0">
-            Отмена
+            {t('common.cancel')}
           </Button>
           <Button
             className="w-1/2 bg-vista-primary hover:bg-vista-primary/90 text-vista-dark focus:outline-none focus:ring-0"
             onClick={handleSaveResults}
             disabled={saveLoading || !date || players.length === 0 || Object.values(editResults).every(v => !v || v.trim() === '')}
           >
-            {saveLoading ? 'Сохранение...' : 'Сохранить'}
+            {saveLoading ? t('common.saving') : t('common.save')}
           </Button>
         </DialogFooter>
       </DialogContent>

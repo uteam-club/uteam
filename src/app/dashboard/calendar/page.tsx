@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ru } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale/en-US';
 import { 
   format, 
   addMonths, 
@@ -40,6 +41,8 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 dayjs.extend(utc);
 dayjs.extend(timezone);
+import { useTranslation } from 'react-i18next';
+import type { SupportedLang } from '@/types/i18n';
 // import TrainingsPage from '@/app/dashboard/coaching/trainings/page';
 
 interface Team {
@@ -74,14 +77,8 @@ const STATUS_MAPPING: Record<string, string> = {
   'SCHEDULED': 'scheduled'
 };
 
-// Функция для отображения типа матча на русском
-const competitionTypeLabels: Record<string, string> = {
-  FRIENDLY: 'товарищеский',
-  LEAGUE: 'лига',
-  CUP: 'кубок',
-};
-
 export default function CalendarPage() {
+  const { t, i18n } = useTranslation();
   const { data: session } = useSession();
   const router = useRouter();
   const [teams, setTeams] = useState<Team[]>([]);
@@ -101,8 +98,22 @@ export default function CalendarPage() {
   const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
   const [isTrainingModalOpen, setIsTrainingModalOpen] = useState(false);
 
-  // Массив с днями недели на русском
-  const weekDays = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+  // Массив с днями недели через i18n
+  const weekDays = [
+    t('calendarPage.monday'),
+    t('calendarPage.tuesday'),
+    t('calendarPage.wednesday'),
+    t('calendarPage.thursday'),
+    t('calendarPage.friday'),
+    t('calendarPage.saturday'),
+    t('calendarPage.sunday'),
+  ];
+  // competitionTypeLabels через i18n
+  const competitionTypeLabels: Record<string, string> = {
+    FRIENDLY: t('calendarPage.friendly'),
+    LEAGUE: t('calendarPage.league'),
+    CUP: t('calendarPage.cup'),
+  };
 
   // Загрузка списка команд при загрузке страницы
   useEffect(() => {
@@ -373,14 +384,19 @@ export default function CalendarPage() {
   };
 
   // Функция для форматирования названия месяца на русском языке
+  const getDateFnsLocale = (lang: SupportedLang) => lang === 'en' ? enUS : ru;
   const getFormattedMonth = (date: Date) => {
-    return format(date, 'LLLL yyyy', { locale: ru }).charAt(0).toUpperCase() + format(date, 'LLLL yyyy', { locale: ru }).slice(1);
+    const lang: SupportedLang = i18n.language === 'en' ? 'en' : 'ru';
+    const locale = getDateFnsLocale(lang);
+    const month = format(date, 'LLLL', { locale });
+    const year = format(date, 'yyyy', { locale });
+    return t('calendarPage.month_year', { month: month.charAt(0).toUpperCase() + month.slice(1), year });
   };
 
   // Строка с выбранными командами для отображения
   const selectedTeamsText = () => {
-    if (selectedTeams.length === 0) return 'Команды не выбраны';
-    if (isAllTeamsSelected) return 'Все команды';
+    if (selectedTeams.length === 0) return t('calendarPage.no_teams_selected');
+    if (isAllTeamsSelected) return t('calendarPage.all_teams');
     
     const selectedTeamNames = teams
       .filter(team => selectedTeams.includes(team.id))
@@ -389,7 +405,7 @@ export default function CalendarPage() {
     if (selectedTeamNames.length <= 2) {
       return selectedTeamNames.join(', ');
     } else {
-      return `${selectedTeamNames.length} команд`;
+      return t('calendarPage.selected_teams_count', { count: selectedTeamNames.length });
     }
   };
 
@@ -519,15 +535,15 @@ export default function CalendarPage() {
   // Функция для определения названия типа тренировки
   const getTrainingTypeDisplay = (training: TrainingEvent) => {
     if (training.type === 'MATCH') {
-      return 'Матч';
+      return t('calendarPage.match');
     }
     
     switch(training.type) {
       case 'GYM':
-        return 'Тренажерный зал';
+        return t('calendarPage.gym');
       case 'TRAINING':
       default:
-        return 'Тренировка';
+        return t('calendarPage.training');
     }
   };
 
@@ -617,11 +633,11 @@ export default function CalendarPage() {
                     checked={isAllTeamsSelected} 
                     onCheckedChange={handleSelectAllTeams} 
                   />
-                  <Label htmlFor="select-all" className="text-vista-light">Все команды</Label>
+                  <Label htmlFor="select-all" className="text-vista-light">{t('calendarPage.all_teams')}</Label>
                 </div>
                 <div className="border-t border-vista-secondary/40 pt-2">
                   {isLoadingTeams ? (
-                    <p className="text-vista-light/70 text-sm p-2">Загрузка команд...</p>
+                    <p className="text-vista-light/70 text-sm p-2">{t('calendarPage.loading_teams')}</p>
                   ) : (
                     <div className="space-y-2">
                       {teams.map((team) => (
@@ -649,7 +665,7 @@ export default function CalendarPage() {
               onClick={() => setCalendarView('week')}
               className="text-xs"
             >
-              Неделя
+              {t('calendarPage.week')}
             </Button>
             <Button
               variant={calendarView === 'month' ? 'default' : 'outline'}
@@ -657,7 +673,7 @@ export default function CalendarPage() {
               onClick={() => setCalendarView('month')}
               className="text-xs"
             >
-              Месяц
+              {t('calendarPage.month')}
             </Button>
             <Button
               variant={calendarView === '3months' ? 'default' : 'outline'}
@@ -665,7 +681,7 @@ export default function CalendarPage() {
               onClick={() => setCalendarView('3months')}
               className="text-xs"
             >
-              Три месяца
+              {t('calendarPage.three_months')}
             </Button>
             <Button
               variant={calendarView === '6months' ? 'default' : 'outline'}
@@ -673,7 +689,7 @@ export default function CalendarPage() {
               onClick={() => setCalendarView('6months')}
               className="text-xs"
             >
-              Шесть месяцев
+              {t('calendarPage.six_months')}
             </Button>
             <Button
               variant={calendarView === 'year' ? 'default' : 'outline'}
@@ -681,7 +697,7 @@ export default function CalendarPage() {
               onClick={() => setCalendarView('year')}
               className="text-xs"
             >
-              Год
+              {t('calendarPage.year')}
             </Button>
           </div>
           <div className="flex items-center space-x-2">
@@ -812,11 +828,9 @@ export default function CalendarPage() {
                               <div className="flex items-center justify-between mb-1.5">
                                 <div className="flex items-center font-medium text-xs text-vista-light">
                                   {getMatchTypeIcon(training)}
-                                  <span className="ml-1">Матч</span>
+                                  <span className="ml-1">{t('calendarPage.match')}</span>
                                   {training.type === 'MATCH' && training.competitionType && (
-                                    <span className="ml-1 text-vista-light/50 text-[10px]">(
-                                      {competitionTypeLabels[training.competitionType] || training.competitionType.toLowerCase()}
-                                    )</span>
+                                    <span className="ml-1 text-vista-light/50 text-[10px]">({competitionTypeLabels[training.competitionType] || training.competitionType.toLowerCase()})</span>
                                   )}
                                 </div>
                               </div>

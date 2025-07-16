@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 // Типы для игроков
 export type Player = {
@@ -242,6 +243,7 @@ const FootballField: React.FC<FootballFieldProps> = ({
   selectedPosition,
   mode = 'match', // По умолчанию 'match'
 }) => {
+  const { t } = useTranslation();
   const [positions, setPositions] = useState<PlayerPosition[]>([]);
   const [selectedPositionIndex, setSelectedPositionIndex] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -493,13 +495,13 @@ const FootballField: React.FC<FootballFieldProps> = ({
                   onClick={() => handleRemovePlayer(index)}
                 >
                   <span className="w-4 h-4 mr-1.5">✕</span>
-                  Убрать игрока
+                  {t('footballField.remove_player')}
                 </button>
               ) : (
                 // Если игрок не привязан, показываем список доступных игроков
                 <>
                   <div className="font-semibold text-sm px-2 py-1 border-b border-slate-600/30 text-white">
-                    Выберите игрока
+                    {t('footballField.select_player')}
                   </div>
                   <div className="mt-1">
                     {getAvailablePlayers().length > 0 ? (
@@ -523,7 +525,7 @@ const FootballField: React.FC<FootballFieldProps> = ({
                       ))
                     ) : (
                       <div className="px-2 py-1 text-gray-400 text-sm">
-                        Нет доступных игроков
+                        {t('footballField.no_available_players')}
                       </div>
                     )}
                   </div>

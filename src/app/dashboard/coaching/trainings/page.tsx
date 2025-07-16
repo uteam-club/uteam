@@ -25,6 +25,7 @@ import { X, Search, Plus, Calendar, Filter, CalendarIcon, Clock } from 'lucide-r
 import { useRouter } from 'next/navigation';
 import { useTrainingCategories } from '@/hooks/useExerciseData';
 import { CreateTrainingModal } from '@/components/training/CreateTrainingModal';
+import { useTranslation } from 'react-i18next';
 
 // Типы данных
 interface Team {
@@ -52,6 +53,7 @@ interface Training {
 }
 
 export default function TrainingsPage() {
+  const { t } = useTranslation();
   const { data: session } = useSession();
   const router = useRouter();
   const { categories, isLoading: isLoadingCategories, isError: categoriesError } = useTrainingCategories();
@@ -222,10 +224,10 @@ export default function TrainingsPage() {
   const getTrainingTypeDisplay = (type: string) => {
     switch(type) {
       case 'GYM':
-        return 'Тренажерный зал';
+        return t('trainingsPage.type_gym');
       case 'TRAINING':
       default:
-        return 'Тренировка';
+        return t('trainingsPage.type_training');
     }
   };
   
@@ -233,10 +235,10 @@ export default function TrainingsPage() {
   const handleSubmit = async () => {
     // Валидация
     const newErrors = {
-      title: !newTraining.title ? 'Введите название тренировки' : '',
-      teamId: !newTraining.teamId ? 'Выберите команду' : '',
-      date: !newTraining.date ? 'Выберите дату' : '',
-      categoryId: !newTraining.categoryId ? 'Выберите категорию' : ''
+      title: !newTraining.title ? t('trainingsPage.validation_title_required') : '',
+      teamId: !newTraining.teamId ? t('trainingsPage.validation_team_required') : '',
+      date: !newTraining.date ? t('trainingsPage.validation_date_required') : '',
+      categoryId: !newTraining.categoryId ? t('trainingsPage.validation_category_required') : ''
     };
     
     setErrors(newErrors);
@@ -266,7 +268,7 @@ export default function TrainingsPage() {
       });
       
       if (!response.ok) {
-        throw new Error('Ошибка при создании тренировки');
+        throw new Error(t('trainingsPage.error_creating_training'));
       }
       
       // Получаем созданную тренировку
@@ -291,8 +293,8 @@ export default function TrainingsPage() {
       setIsCreateDialogOpen(false);
       
     } catch (error) {
-      console.error('Ошибка при создании тренировки:', error);
-      alert('Произошла ошибка при создании тренировки. Пожалуйста, попробуйте еще раз.');
+      console.error(t('trainingsPage.error_creating_training'), error);
+      alert(t('trainingsPage.error_creating_training_alert'));
     }
   };
   
@@ -313,13 +315,13 @@ export default function TrainingsPage() {
     <div className="space-y-6">
       <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-vista-light">Тренировки</CardTitle>
+          <CardTitle className="text-vista-light">{t('trainingsPage.title')}</CardTitle>
           <Button 
             onClick={() => setIsCreateDialogOpen(true)}
             className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark shadow-sm"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Создать тренировку
+            {t('trainingsPage.create_training_btn')}
           </Button>
         </CardHeader>
         <CardContent>
@@ -330,7 +332,7 @@ export default function TrainingsPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-light/50" />
                 <Input 
-                  placeholder="Поиск тренировок..."
+                  placeholder={t('trainingsPage.search_placeholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary focus:ring-vista-primary/50"
@@ -353,10 +355,10 @@ export default function TrainingsPage() {
                   disabled={isLoadingTeams}
                 >
                   <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
-                    <SelectValue placeholder={isLoadingTeams ? "Загрузка..." : "Выберите команду"} />
+                    <SelectValue placeholder={isLoadingTeams ? t('trainingsPage.loading') : t('trainingsPage.select_team_placeholder')} />
                   </SelectTrigger>
                   <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
-                    <SelectItem value="all">Все команды</SelectItem>
+                    <SelectItem value="all">{t('trainingsPage.all_teams')}</SelectItem>
                     {teams.map((team) => (
                       <SelectItem key={team.id} value={team.id}>
                         {team.name}
@@ -373,10 +375,10 @@ export default function TrainingsPage() {
                 disabled={isLoadingCategories}
               >
                 <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
-                  <SelectValue placeholder={isLoadingCategories ? "Загрузка..." : "Выберите категорию"} />
+                  <SelectValue placeholder={isLoadingCategories ? t('trainingsPage.loading') : t('trainingsPage.select_category_placeholder')} />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
-                  <SelectItem value="all">Все категории</SelectItem>
+                  <SelectItem value="all">{t('trainingsPage.all_categories')}</SelectItem>
                   {categories.map((c: Category) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.name}
@@ -462,7 +464,7 @@ export default function TrainingsPage() {
                 
                 {searchQuery && (
                   <Badge variant="secondary" className="bg-vista-secondary/30 text-vista-light">
-                    Поиск: {searchQuery}
+                    {t('trainingsPage.search_filter')}: {searchQuery}
                     <button onClick={() => setSearchQuery('')} className="ml-1">
                       <X className="h-3 w-3" />
                     </button>
@@ -471,7 +473,7 @@ export default function TrainingsPage() {
                 
                 {selectedTeam && (
                   <Badge variant="secondary" className="bg-vista-secondary/30 text-vista-light">
-                    Команда: {teams.find(t => t.id === selectedTeam)?.name}
+                    {t('trainingsPage.team_filter')}: {teams.find(t => t.id === selectedTeam)?.name}
                     <button onClick={() => setSelectedTeam(null)} className="ml-1">
                       <X className="h-3 w-3" />
                     </button>
@@ -480,7 +482,7 @@ export default function TrainingsPage() {
                 
                 {selectedCategory && (
                   <Badge variant="secondary" className="bg-vista-secondary/30 text-vista-light">
-                    Категория: {categories.find((c: Category) => c.id === selectedCategory)?.name}
+                    {t('trainingsPage.category_filter')}: {categories.find((c: Category) => c.id === selectedCategory)?.name}
                     <button onClick={() => setSelectedCategory(null)} className="ml-1">
                       <X className="h-3 w-3" />
                     </button>
@@ -489,7 +491,7 @@ export default function TrainingsPage() {
                 
                 {(startDate || endDate) && (
                   <Badge variant="secondary" className="bg-vista-secondary/30 text-vista-light">
-                    Дата: {startDate ? new Date(startDate).toLocaleDateString() : ''}
+                    {t('trainingsPage.date_filter')}: {startDate ? new Date(startDate).toLocaleDateString() : ''}
                     {endDate ? ` - ${new Date(endDate).toLocaleDateString()}` : ''}
                     <button onClick={() => { setStartDate(''); setEndDate(''); }} className="ml-1">
                       <X className="h-3 w-3" />
@@ -503,7 +505,7 @@ export default function TrainingsPage() {
                   onClick={resetFilters}
                   className="ml-auto text-vista-light/70 hover:text-vista-light border-vista-secondary/50"
                 >
-                  Сбросить все
+                  {t('trainingsPage.reset_all_filters')}
                 </Button>
               </div>
             )}
@@ -533,7 +535,7 @@ export default function TrainingsPage() {
                       <div className="flex justify-between items-start mb-3">
                         <h3 className="text-lg font-medium text-vista-light">{training.title}</h3>
                         <Badge className={`${training.isCompleted ? 'bg-green-500/20 text-green-400' : 'bg-vista-primary/20 text-vista-primary'}`}>
-                          {training.isCompleted ? 'Завершена' : 'Запланирована'}
+                          {training.isCompleted ? t('trainingsPage.completed_status') : t('trainingsPage.planned_status')}
                         </Badge>
                       </div>
                       
@@ -563,8 +565,8 @@ export default function TrainingsPage() {
               <div className="text-center py-8 border border-dashed border-vista-secondary/50 shadow-md rounded-md">
                 <p className="text-vista-light/60">
                   {hasActiveFilters
-                    ? "Тренировки по заданным фильтрам не найдены"
-                    : "Тренировки не найдены"}
+                    ? t('trainingsPage.no_trainings_found_filters')
+                    : t('trainingsPage.no_trainings_found')}
                 </p>
               </div>
             )}

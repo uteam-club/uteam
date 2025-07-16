@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { useSession } from 'next-auth/react';
+import { useTranslation } from 'react-i18next';
 
 interface Team {
   id: string;
@@ -22,6 +23,7 @@ interface AddMatchModalProps {
 }
 
 export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: AddMatchModalProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { data: session } = useSession();
 
@@ -41,6 +43,18 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
   const [matchStatus, setMatchStatus] = useState<'SCHEDULED' | 'FINISHED'>('SCHEDULED');
 
   const isSingleTeam = teams.length === 1;
+
+  // competitionTypeLabels для селекта
+  const competitionTypeLabels = {
+    FRIENDLY: t('addMatchModal.friendly'),
+    LEAGUE: t('addMatchModal.league'),
+    CUP: t('addMatchModal.cup')
+  };
+
+  const matchTypeLabels = useMemo(() => ({
+    HOME: t('addMatchModal.home'),
+    AWAY: t('addMatchModal.away'),
+  }), [t]);
 
   // Загрузка списка команд
   useEffect(() => {
@@ -70,8 +84,8 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
     } catch (error) {
       console.error('Ошибка при получении команд:', error);
       toast({
-        title: 'Ошибка',
-        description: 'Не удалось загрузить список команд',
+        title: t('addMatchModal.error'),
+        description: t('addMatchModal.load_teams_error'),
         variant: 'destructive',
       });
     } finally {
@@ -84,8 +98,8 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
     
     if (!teamId || !opponentName) {
       toast({
-        title: 'Ошибка',
-        description: 'Заполните все обязательные поля',
+        title: t('addMatchModal.error'),
+        description: t('addMatchModal.required_fields_error'),
         variant: 'destructive',
       });
       return;
@@ -114,8 +128,8 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
 
       if (response.ok) {
         toast({
-          title: 'Успешно',
-          description: 'Матч успешно добавлен',
+          title: t('addMatchModal.success'),
+          description: t('addMatchModal.match_added'),
         });
         resetForm();
         onMatchAdded();
@@ -123,16 +137,16 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
       } else {
         const errorData = await response.json();
         toast({
-          title: 'Ошибка',
-          description: errorData.error || 'Не удалось добавить матч',
+          title: t('addMatchModal.error'),
+          description: errorData.error || t('addMatchModal.add_error'),
           variant: 'destructive',
         });
       }
     } catch (error) {
       console.error('Ошибка при добавлении матча:', error);
       toast({
-        title: 'Ошибка',
-        description: 'Произошла ошибка при добавлении матча',
+        title: t('addMatchModal.error'),
+        description: t('addMatchModal.unknown_error'),
         variant: 'destructive',
       });
     } finally {
@@ -156,24 +170,24 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-hidden backdrop-blur-xl">
         <DialogHeader>
-          <DialogTitle className="text-vista-light text-xl">Добавить матч</DialogTitle>
+          <DialogTitle className="text-vista-light text-xl">{t('addMatchModal.title')}</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Тип соревнований */}
           <div className="space-y-2">
-            <Label htmlFor="competitionType" className="text-vista-light/40 font-normal">Тип соревнований</Label>
+            <Label htmlFor="competitionType" className="text-vista-light/40 font-normal">{t('addMatchModal.competition_type')}</Label>
             <Select 
               value={competitionType} 
               onValueChange={setCompetitionType}
             >
               <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30">
-                <SelectValue placeholder="Выберите тип соревнований" />
+                <SelectValue placeholder={t('addMatchModal.select_competition_type')} />
               </SelectTrigger>
               <SelectContent className="bg-vista-dark border-vista-secondary/30">
-                <SelectItem value="FRIENDLY" className="text-vista-light">Товарищеский</SelectItem>
-                <SelectItem value="LEAGUE" className="text-vista-light">Лига</SelectItem>
-                <SelectItem value="CUP" className="text-vista-light">Кубок</SelectItem>
+                <SelectItem value="FRIENDLY" className="text-vista-light">{competitionTypeLabels.FRIENDLY}</SelectItem>
+                <SelectItem value="LEAGUE" className="text-vista-light">{competitionTypeLabels.LEAGUE}</SelectItem>
+                <SelectItem value="CUP" className="text-vista-light">{competitionTypeLabels.CUP}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -181,7 +195,7 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
           {/* Дата и время матча */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="matchDate" className="text-vista-light/40 font-normal">Дата матча</Label>
+              <Label htmlFor="matchDate" className="text-vista-light/40 font-normal">{t('addMatchModal.match_date')}</Label>
               <Input
                 id="matchDate"
                 type="date"
@@ -191,7 +205,7 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="matchTime" className="text-vista-light/40 font-normal">Время матча</Label>
+              <Label htmlFor="matchTime" className="text-vista-light/40 font-normal">{t('addMatchModal.match_time')}</Label>
               <Input
                 id="matchTime"
                 type="time"
@@ -204,34 +218,34 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
           
           {/* Статус матча (запланирован/завершён) */}
           <div className="space-y-2">
-            <Label htmlFor="matchStatus" className="text-vista-light/40 font-normal">Статус матча</Label>
+            <Label htmlFor="matchStatus" className="text-vista-light/40 font-normal">{t('addMatchModal.status')}</Label>
             <Select
               value={matchStatus}
               onValueChange={v => setMatchStatus(v as 'SCHEDULED' | 'FINISHED')}
             >
               <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30">
-                <SelectValue placeholder="Выберите статус матча" />
+                <SelectValue placeholder={t('addMatchModal.select_status')} />
               </SelectTrigger>
               <SelectContent className="bg-vista-dark border-vista-secondary/30">
-                <SelectItem value="SCHEDULED" className="text-vista-light">Запланирован</SelectItem>
-                <SelectItem value="FINISHED" className="text-vista-light">Завершён</SelectItem>
+                <SelectItem value="SCHEDULED" className="text-vista-light">{t('addMatchModal.scheduled')}</SelectItem>
+                <SelectItem value="FINISHED" className="text-vista-light">{t('addMatchModal.finished')}</SelectItem>
               </SelectContent>
             </Select>
             </div>
           
           {/* Тип матча (домашний/выездной) */}
           <div className="space-y-2">
-            <Label htmlFor="isHome" className="text-vista-light/40 font-normal">Тип матча</Label>
+            <Label htmlFor="isHome" className="text-vista-light/40 font-normal">{t('addMatchModal.match_type')}</Label>
             <Select
               value={isHome ? 'HOME' : 'AWAY'}
               onValueChange={v => setIsHome(v === 'HOME')}
             >
               <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30">
-                <SelectValue placeholder="Выберите тип матча" />
+                <SelectValue placeholder={t('addMatchModal.select_match_type')} />
               </SelectTrigger>
               <SelectContent className="bg-vista-dark border-vista-secondary/30">
-                <SelectItem value="HOME" className="text-vista-light">Домашний</SelectItem>
-                <SelectItem value="AWAY" className="text-vista-light">Выездной</SelectItem>
+                <SelectItem value="HOME" className="text-vista-light">{matchTypeLabels.HOME}</SelectItem>
+                <SelectItem value="AWAY" className="text-vista-light">{matchTypeLabels.AWAY}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -239,15 +253,15 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
           {/* Выбор команды и счет */}
           <div className="flex gap-4">
             {!isSingleTeam && (
-              <>
-                <Label htmlFor="teamId" className="text-vista-light/40 font-normal mb-2">Наша команда</Label>
+              <div className="flex-1 flex flex-col space-y-2">
+                <Label htmlFor="teamId" className="text-vista-light/40 font-normal">{t('addMatchModal.team')}</Label>
                 <Select 
                   value={teamId} 
                   onValueChange={setTeamId}
                   disabled={loading || teams.length === 0}
                 >
                   <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30">
-                    <SelectValue placeholder="Выберите команду" />
+                    <SelectValue placeholder={t('addMatchModal.select_team')} />
                   </SelectTrigger>
                   <SelectContent className="bg-vista-dark border-vista-secondary/30">
                     {teams.map((team) => (
@@ -257,10 +271,10 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
                     ))}
                   </SelectContent>
                 </Select>
-              </>
+              </div>
             )}
             <div className="w-20 flex flex-col space-y-2">
-              <Label htmlFor="teamGoals" className="text-vista-light/40 font-normal mb-2">Голы</Label>
+              <Label htmlFor="teamGoals" className="text-vista-light/40 font-normal">{t('addMatchModal.goals')}</Label>
                 <Input
                   id="teamGoals"
                   type="number"
@@ -277,17 +291,17 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
           {/* Команда соперника и счет */}
           <div className="flex gap-4">
             <div className="flex-1 flex flex-col space-y-2">
-              <Label htmlFor="opponentName" className="text-vista-light/40 font-normal mb-2">Команда соперника</Label>
+              <Label htmlFor="opponentName" className="text-vista-light/40 font-normal mb-2">{t('addMatchModal.opponent')}</Label>
                 <Input
                   id="opponentName"
                   value={opponentName}
                   onChange={(e) => setOpponentName(e.target.value)}
-                  placeholder="Введите название команды соперника"
+                  placeholder={t('addMatchModal.opponent_placeholder')}
                   className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
                 />
               </div>
             <div className="w-20 flex flex-col space-y-2">
-              <Label htmlFor="opponentGoals" className="text-vista-light/40 font-normal mb-2">Голы</Label>
+              <Label htmlFor="opponentGoals" className="text-vista-light/40 font-normal">{t('addMatchModal.goals')}</Label>
                 <Input
                   id="opponentGoals"
                   type="number"
@@ -303,14 +317,14 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
           
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} className="border-vista-secondary/30">
-              Отмена
+              {t('addMatchModal.cancel')}
             </Button>
             <Button 
               type="submit" 
               disabled={submitting || loading} 
               className="bg-vista-primary hover:bg-vista-primary/90"
             >
-              {submitting ? 'Сохранение...' : 'Сохранить'}
+              {submitting ? t('addMatchModal.saving') : t('addMatchModal.save')}
             </Button>
           </DialogFooter>
         </form>

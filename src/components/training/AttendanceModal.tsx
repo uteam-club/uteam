@@ -1,45 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { XMarkIcon, CheckIcon, UserIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useTranslation } from 'react-i18next';
 
 // Типы статусов посещаемости
 type AttendanceStatus = 'TRAINED' | 'REHAB' | 'SICK' | 'EDUCATION' | 'OTHER';
-
-// Маппинг статусов на читаемые названия
-const statusLabels: Record<AttendanceStatus, string> = {
-  TRAINED: 'Тренировался',
-  REHAB: 'Реабилитация',
-  SICK: 'Болеет',
-  EDUCATION: 'Учеба',
-  OTHER: 'Другое'
-};
-
-// Маппинг статусов на цвета
-const statusColors: Record<AttendanceStatus, string> = {
-  TRAINED: 'bg-green-600 hover:bg-green-700',
-  REHAB: 'bg-yellow-600 hover:bg-yellow-700',
-  SICK: 'bg-red-600 hover:bg-red-700',
-  EDUCATION: 'bg-blue-600 hover:bg-blue-700',
-  OTHER: 'bg-gray-600 hover:bg-gray-700'
-};
-
-// Интерфейс для данных игрока
-interface PlayerAttendance {
-  id: string;
-  firstName: string;
-  lastName: string;
-  number?: string | number;
-  positionInTeam?: string;
-  imageUrl?: string;
-  attendance: {
-    id?: string;
-    status: AttendanceStatus;
-    comment?: string;
-  };
-}
 
 interface AttendanceModalProps {
   trainingId: string;
@@ -48,11 +16,45 @@ interface AttendanceModalProps {
 }
 
 export default function AttendanceModal({ trainingId, isOpen, onClose }: AttendanceModalProps) {
+  const { t } = useTranslation();
   const [players, setPlayers] = useState<PlayerAttendance[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  // Маппинг статусов на читаемые названия (мемоизированный, зависит от языка)
+  const statusLabels = useMemo(() => ({
+    TRAINED: t('attendanceModal.status_trained'),
+    REHAB: t('attendanceModal.status_rehab'),
+    SICK: t('attendanceModal.status_sick'),
+    EDUCATION: t('attendanceModal.status_education'),
+    OTHER: t('attendanceModal.status_other'),
+  }), [t]);
+
+  // Маппинг статусов на цвета
+  const statusColors: Record<AttendanceStatus, string> = {
+    TRAINED: 'bg-green-600 hover:bg-green-700',
+    REHAB: 'bg-yellow-600 hover:bg-yellow-700',
+    SICK: 'bg-red-600 hover:bg-red-700',
+    EDUCATION: 'bg-blue-600 hover:bg-blue-700',
+    OTHER: 'bg-gray-600 hover:bg-gray-700'
+  };
+
+  // Интерфейс для данных игрока
+  interface PlayerAttendance {
+    id: string;
+    firstName: string;
+    lastName: string;
+    number?: string | number;
+    positionInTeam?: string;
+    imageUrl?: string;
+    attendance: {
+      id?: string;
+      status: AttendanceStatus;
+      comment?: string;
+    };
+  }
 
   // Загрузка данных о посещаемости при открытии модального окна
   useEffect(() => {
@@ -172,13 +174,13 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-2xl overflow-hidden backdrop-blur-xl flex flex-col max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-vista-light">Посещаемость тренировки</DialogTitle>
+          <DialogTitle className="text-xl font-semibold text-vista-light">{t('attendanceModal.title')}</DialogTitle>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto p-4">
           {loading ? (
             <div className="flex items-center justify-center h-40">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vista-primary"></div>
-              <span className="ml-2 text-vista-light/80">Загрузка данных...</span>
+              <span className="ml-2 text-vista-light/80">{t('attendanceModal.loading')}</span>
             </div>
           ) : error ? (
             <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-md">
@@ -187,7 +189,7 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
                 onClick={fetchAttendance}
                 className="mt-2 bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
               >
-                Попробовать снова
+                {t('attendanceModal.try_again')}
               </Button>
             </div>
           ) : (
@@ -195,14 +197,14 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
               {success && (
                 <div className="mb-4 p-3 bg-green-500/10 border border-green-500/30 rounded-md flex items-center">
                   <CheckIcon className="w-5 h-5 text-green-500 mr-2" />
-                  <span className="text-green-500">Данные успешно сохранены</span>
+                  <span className="text-green-500">{t('attendanceModal.save_success')}</span>
                 </div>
               )}
               
               <div className="space-y-4">
                 <div className="grid grid-cols-[1fr_auto] gap-4 mb-2 pb-2 border-b border-vista-secondary/30">
-                  <div className="text-sm font-medium text-vista-light/80">Игрок</div>
-                  <div className="text-sm font-medium text-vista-light/80">Статус</div>
+                  <div className="text-sm font-medium text-vista-light/80">{t('attendanceModal.player')}</div>
+                  <div className="text-sm font-medium text-vista-light/80">{t('attendanceModal.status')}</div>
                 </div>
                 
                 {players.length === 0 ? (
@@ -308,14 +310,14 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
             variant="outline"
             className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 mr-2"
           >
-            Отмена
+            {t('attendanceModal.cancel')}
           </Button>
           <Button
             onClick={saveAttendance}
             disabled={loading || saving}
             className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
           >
-            {saving ? 'Сохранение...' : 'Сохранить'}
+            {t('attendanceModal.save')}
           </Button>
         </DialogFooter>
       </DialogContent>

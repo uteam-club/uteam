@@ -5,6 +5,7 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
+import { useTranslation } from 'react-i18next';
 
 interface CreateExerciseModalProps {
   open: boolean;
@@ -51,15 +52,17 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
   filePreview,
   filteredTags,
   onTagToggle,
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-y-auto max-h-[80vh] backdrop-blur-xl focus:outline-none focus:ring-0">
       <DialogHeader>
-        <DialogTitle className="text-vista-light text-xl">Новое упражнение</DialogTitle>
+          <DialogTitle className="text-vista-light text-xl">{t('exercisesPage.create_modal_title')}</DialogTitle>
       </DialogHeader>
       <div className="grid gap-4 py-4 custom-scrollbar">
         <div className="space-y-2">
-          <Label htmlFor="new-title" className="text-vista-light/40 font-normal">Название</Label>
+            <Label htmlFor="new-title" className="text-vista-light/40 font-normal">{t('exercisesPage.title_label')}</Label>
           <Input
             id="new-title"
             name="title"
@@ -73,7 +76,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
           )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="new-description" className="text-vista-light/40 font-normal">Описание</Label>
+            <Label htmlFor="new-description" className="text-vista-light/40 font-normal">{t('exercisesPage.description_label')}</Label>
           <Textarea
             id="new-description"
             name="description"
@@ -88,7 +91,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="new-width" className="text-vista-light/40 font-normal">Ширина (м)</Label>
+              <Label htmlFor="new-width" className="text-vista-light/40 font-normal">{t('exercisesPage.width_label')}</Label>
             <Input
               id="new-width"
               name="width"
@@ -101,7 +104,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="new-length" className="text-vista-light/40 font-normal">Длина (м)</Label>
+              <Label htmlFor="new-length" className="text-vista-light/40 font-normal">{t('exercisesPage.length_label')}</Label>
             <Input
               id="new-length"
               name="length"
@@ -115,14 +118,14 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="new-category" className="text-vista-light/40 font-normal">Категория</Label>
+            <Label htmlFor="new-category" className="text-vista-light/40 font-normal">{t('exercisesPage.category_label')}</Label>
           <Select
             value={newExercise.categoryId}
             onValueChange={value => onChange({ target: { name: 'categoryId', value } } as any)}
             disabled={loading}
           >
             <SelectTrigger className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light rounded-md px-3 py-2 focus:outline-none focus:ring-0">
-              <SelectValue placeholder="Выберите категорию" />
+                <SelectValue placeholder={t('exercisesPage.select_category_placeholder')} />
             </SelectTrigger>
             <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light shadow-lg max-h-60 overflow-y-auto">
               {categories.map((cat) => (
@@ -137,22 +140,22 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
           )}
         </div>
         <div className="space-y-2">
-          <Label className="text-vista-light/40 font-normal">Теги</Label>
+            <Label className="text-vista-light/40 font-normal">{t('exercisesPage.tags_label')}</Label>
           <Select
             value={newExercise.tags.length > 0 ? 'selected' : 'all'}
             onValueChange={value => { if (value === 'all') onTagToggle('clear'); }}
             disabled={loading || filteredTags.length === 0}
           >
             <SelectTrigger className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light rounded-md px-3 py-2 focus:outline-none focus:ring-0 min-h-[40px]">
-              <SelectValue placeholder="Выберите теги">
+                <SelectValue placeholder={t('exercisesPage.select_tags')}>
                 {newExercise.tags.length > 0
                   ? filteredTags.filter(tag => newExercise.tags.includes(tag.id)).map(tag => tag.name).join(', ')
-                  : 'Выберите теги'}
+                    : t('exercisesPage.select_tags')}
               </SelectValue>
             </SelectTrigger>
             <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light shadow-lg max-h-60 overflow-y-auto min-w-[220px]">
               {filteredTags.length === 0 ? (
-                <div className="px-3 py-2 text-vista-light/50 text-sm">Нет тегов для выбранной категории</div>
+                  <div className="px-3 py-2 text-vista-light/50 text-sm">{t('exercisesPage.no_tags_for_category')}</div>
               ) : (
                 <div className="p-2 space-y-1">
                   <button
@@ -160,7 +163,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
                     className="mb-2 w-full text-left text-xs text-vista-light/60 hover:text-vista-primary"
                     onClick={e => { e.preventDefault(); onTagToggle('clear'); }}
                   >
-                    Очистить выбор
+                      {t('exercisesPage.clear_selection')}
                   </button>
                   {filteredTags.map(tag => (
                     <div key={tag.id} className="flex items-center gap-2 py-1">
@@ -183,7 +186,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
           </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="new-file" className="text-vista-light/40 font-normal">Медиафайл</Label>
+            <Label htmlFor="new-file" className="text-vista-light/40 font-normal">{t('exercisesPage.media_label')}</Label>
           <Input
             id="new-file"
             name="file"
@@ -195,30 +198,18 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
           />
           {filePreview && (
             <div className="mt-2">
-              <img src={filePreview} alt="preview" className="max-h-40 rounded-md border border-vista-secondary/30" />
+                <img src={filePreview} alt={t('exercisesPage.media_preview_alt')} className="max-h-40 rounded-md border border-vista-secondary/30" />
             </div>
           )}
         </div>
       </div>
-      <DialogFooter className="flex justify-end gap-2">
-        <Button
-          variant="outline"
-          onClick={onCancel}
-          className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 focus:outline-none focus:ring-0"
-          disabled={loading}
-        >
-          Отмена
-        </Button>
-        <Button
-          onClick={onSave}
-          className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark focus:outline-none focus:ring-0"
-          disabled={loading || !newExercise.title || !newExercise.description || !newExercise.categoryId}
-        >
-          {loading ? 'Создание...' : 'Создать'}
-        </Button>
+        <DialogFooter className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={onCancel} disabled={loading}>{t('common.cancel')}</Button>
+          <Button onClick={onSave} disabled={loading}>{t('common.save')}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
 );
+};
 
 export default CreateExerciseModal; 

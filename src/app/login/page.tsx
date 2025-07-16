@@ -4,16 +4,21 @@ import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [clubLogo, setClubLogo] = useState('/light.svg'); // По умолчанию — общий логотип
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     // Определение клуба по домену (hostname)
     const hostname = window.location.hostname;
     if (hostname.includes('alashkert')) {
@@ -25,12 +30,14 @@ export default function LoginPage() {
     }
   }, []);
 
+  if (!isMounted) return null;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('submit', email, password); // debug log
     
     if (!email || !password) {
-      setError('Пожалуйста, заполните все поля');
+      setError(t('login.fill_all_fields'));
       return;
     }
 
@@ -45,20 +52,23 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError('Неверный email или пароль');
+        setError(t('login.invalid_credentials'));
       } else {
         router.push('/dashboard');
       }
     } catch (error) {
       console.error('Login error:', error);
-      setError('Произошла ошибка при входе');
+      setError(t('login.error'));
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-vista-dark flex flex-col items-center justify-center">
+    <div className="min-h-screen bg-vista-dark flex flex-col items-center justify-center relative">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <div className="w-full max-w-md mx-auto flex flex-col items-center">
         <div className="w-24 h-24 relative mb-8">
           <Image 
@@ -81,7 +91,7 @@ export default function LoginPage() {
               
               <div className="form-group">
                 <label htmlFor="email" className="form-label">
-                  Email
+                  {t('login.email')}
                 </label>
                 <input
                   id="email"
@@ -97,7 +107,7 @@ export default function LoginPage() {
 
               <div className="form-group">
                 <label htmlFor="password" className="form-label">
-                  Пароль
+                  {t('login.password')}
                 </label>
                 <input
                   id="password"
@@ -120,7 +130,7 @@ export default function LoginPage() {
                   {isLoading ? (
                     <span className="inline-block animate-spin mr-2">⟳</span>
                   ) : null}
-                  Войти
+                  {t('login.submit')}
                 </button>
               </div>
             </form>

@@ -49,7 +49,16 @@ import { ClockIcon, UserCheckIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { FITNESS_TEST_TYPES } from '@/lib/constants';
 import { formatResult } from '@/lib/utils';
-import { countries, countryCodeToEmoji } from '@/lib/countries';
+import { countries as countriesList, countryCodeToEmoji } from '@/lib/countries';
+import { useTranslation } from 'react-i18next';
+import type { SupportedLang } from '@/types/i18n';
+
+interface Country {
+  code: string;
+  name: {
+    [key: string]: string;
+  };
+}
 
 interface Player {
   id: string;
@@ -162,6 +171,8 @@ function PlayerFormationBlock({
 }
 
 export default function PlayerProfilePage() {
+  const { t, i18n } = useTranslation();
+  const lang: SupportedLang = (i18n.language === 'en' ? 'en' : 'ru');
   const { data: session } = useSession();
   const params = useParams();
   const router = useRouter();
@@ -243,10 +254,10 @@ export default function PlayerProfilePage() {
       const response = await fetch(`/api/teams/${teamId}/players/${playerId}`);
       if (!response.ok) {
         if (response.status === 404) {
-          setError('Игрок не найден');
+          setError(t('playerProfile.player_not_found'));
         } else {
           const data = await response.json();
-          setError(data.error || 'Ошибка при загрузке данных игрока');
+          setError(data.error || t('playerProfile.error_loading_player_data'));
         }
         return;
       }
@@ -276,7 +287,7 @@ export default function PlayerProfilePage() {
       fetchPlayerDocuments();
     } catch (error) {
       console.error('Ошибка при загрузке данных игрока:', error);
-      setError('Не удалось загрузить данные игрока');
+      setError(t('playerProfile.error_loading_player_data'));
     } finally {
       setIsLoading(false);
     }
@@ -317,7 +328,7 @@ export default function PlayerProfilePage() {
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Ошибка при загрузке документа');
+        throw new Error(errorData.error || t('playerProfile.error_uploading_document'));
       }
       const data = await response.json();
       // Если это аватар, возвращаем publicUrl
@@ -329,7 +340,7 @@ export default function PlayerProfilePage() {
       return {};
     } catch (error: any) {
       console.error('Ошибка при загрузке документа:', error);
-      throw new Error(error.message || 'Ошибка при загрузке документа');
+      throw new Error(error.message || t('playerProfile.error_uploading_document'));
     }
   };
 
@@ -346,14 +357,14 @@ export default function PlayerProfilePage() {
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Ошибка при удалении документа');
+        throw new Error(errorData.error || t('playerProfile.error_deleting_document'));
       }
       
       // Обновляем список документов
       fetchPlayerDocuments();
     } catch (error: any) {
       console.error('Ошибка при удалении документа:', error);
-      throw new Error(error.message || 'Ошибка при удалении документа');
+      throw new Error(error.message || t('playerProfile.error_deleting_document'));
     }
   };
 
@@ -392,7 +403,7 @@ export default function PlayerProfilePage() {
     e.preventDefault();
     
     if (!formData.firstName || !formData.lastName) {
-      setError('Заполните обязательные поля: Имя и Фамилия');
+      setError(t('playerProfile.required_fields_error'));
       return;
     }
     
@@ -410,7 +421,7 @@ export default function PlayerProfilePage() {
       
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Ошибка при обновлении данных игрока');
+        throw new Error(data.error || t('playerProfile.error_updating_player_data'));
       }
       
       // Если изменилась команда, перенаправляем на страницу новой команды
@@ -425,7 +436,7 @@ export default function PlayerProfilePage() {
       
     } catch (error: any) {
       console.error('Ошибка при обновлении данных игрока:', error);
-      setError(error.message || 'Не удалось обновить данные игрока');
+      setError(error.message || t('playerProfile.error_updating_player_data'));
     } finally {
       setIsSaving(false);
     }
@@ -447,7 +458,7 @@ export default function PlayerProfilePage() {
       
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Ошибка при обновлении данных игрока');
+        throw new Error(data.error || t('playerProfile.error_updating_player_data'));
       }
       
       // Если изменилась команда, перенаправляем на страницу новой команды
@@ -461,7 +472,7 @@ export default function PlayerProfilePage() {
       
     } catch (error: any) {
       console.error('Ошибка при обновлении данных игрока:', error);
-      setError(error.message || 'Не удалось обновить данные игрока');
+      setError(error.message || t('playerProfile.error_updating_player_data'));
     } finally {
       setIsSaving(false);
     }
@@ -765,7 +776,7 @@ export default function PlayerProfilePage() {
               className="mt-4 bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
               onClick={handleBackToTeam}
             >
-              Вернуться к команде
+              {t('playerProfile.back_to_team')}
             </Button>
           </div>
         </CardContent>
@@ -788,18 +799,18 @@ export default function PlayerProfilePage() {
           className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
         >
           <ChevronLeftIcon className="w-4 h-4 mr-2" />
-          Назад к команде
+          {t('playerProfile.back_to_team')}
         </Button>
-        <Button onClick={() => setEditModalOpen(true)} className="bg-vista-primary text-vista-dark hover:bg-vista-primary/90 size-sm py-2 px-4 font-medium rounded-md ml-2">Редактировать данные</Button>
+        <Button onClick={() => setEditModalOpen(true)} className="bg-vista-primary text-vista-dark hover:bg-vista-primary/90 size-sm py-2 px-4 font-medium rounded-md ml-2">{t('playerProfile.edit_data')}</Button>
         {/* Два блока пикеров в шапке */}
         <div className="flex flex-row gap-8 ml-8">
           {/* Первый набор */}
           <div className="flex flex-row gap-2 items-end">
             <div className="min-w-[100px]">
-              <div className="mb-1 text-vista-light/60 text-xs">Формат 1</div>
+              <div className="mb-1 text-vista-light/60 text-xs">{t('playerProfile.format1')}</div>
               <Select value={selectedFormat} onValueChange={handleFormatChange}>
                 <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30 text-vista-light h-8 text-sm">
-                  <SelectValue placeholder="Формат" />
+                  <SelectValue placeholder={t('playerProfile.format')} />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light">
                   {gameFormats.map((f) => (
@@ -809,10 +820,10 @@ export default function PlayerProfilePage() {
               </Select>
             </div>
             <div className="min-w-[100px]">
-              <div className="mb-1 text-vista-light/60 text-xs">Схема 1</div>
+              <div className="mb-1 text-vista-light/60 text-xs">{t('playerProfile.formation1')}</div>
               <Select value={selectedFormation} onValueChange={handleFormationChange}>
                 <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30 text-vista-light h-8 text-sm">
-                  <SelectValue placeholder="Схема" />
+                  <SelectValue placeholder={t('playerProfile.formation')} />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light">
                   {formatFormations[selectedFormat].map((form) => (
@@ -825,10 +836,10 @@ export default function PlayerProfilePage() {
           {/* Второй набор */}
           <div className="flex flex-row gap-2 items-end">
             <div className="min-w-[100px]">
-              <div className="mb-1 text-vista-light/60 text-xs">Формат 2</div>
+              <div className="mb-1 text-vista-light/60 text-xs">{t('playerProfile.format2')}</div>
               <Select value={selectedFormat2} onValueChange={(v) => setSelectedFormat2(v as FormatKey)}>
                 <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30 text-vista-light h-8 text-sm">
-                  <SelectValue placeholder="Формат" />
+                  <SelectValue placeholder={t('playerProfile.format')} />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light">
                   {gameFormats.map((f) => (
@@ -838,10 +849,10 @@ export default function PlayerProfilePage() {
               </Select>
             </div>
             <div className="min-w-[100px]">
-              <div className="mb-1 text-vista-light/60 text-xs">Схема 2</div>
+              <div className="mb-1 text-vista-light/60 text-xs">{t('playerProfile.formation2')}</div>
               <Select value={selectedFormation2} onValueChange={(v) => setSelectedFormation2(v)}>
                 <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30 text-vista-light h-8 text-sm">
-                  <SelectValue placeholder="Схема" />
+                  <SelectValue placeholder={t('playerProfile.formation')} />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light">
                   {formatFormations[selectedFormat2].map((form) => (
@@ -893,15 +904,15 @@ export default function PlayerProfilePage() {
             {/* Используем grid для выравнивания */}
             <div className="grid grid-cols-[minmax(120px,180px)_1fr] gap-y-4 gap-x-6 flex-1">
               {/* Национальность */}
-              <div className="text-vista-light/60 text-base flex items-center">Национальность</div>
+              <div className="text-vista-light/60 text-base flex items-center">{t('playerProfile.nationality')}</div>
               <div>
                 {player.nationality ? (
                   (() => {
-                    const country = countries.find(c => c.code === player.nationality);
+                    const country = countriesList.find(c => c.code === player.nationality);
                     return country ? (
                       <span className="flex items-center gap-2 text-vista-light text-sm bg-vista-light/10 px-2 rounded font-medium h-8 min-w-[100px] justify-center select-none" style={{textShadow: '0 1px 2px rgba(0,0,0,0.08)'}}>
                         <span className="text-lg">{countryCodeToEmoji(country.code)}</span>
-                        <span>{country.name}</span>
+                        <span>{country.name[lang]}</span>
                       </span>
                     ) : (
                       <span className="text-vista-light text-sm bg-vista-light/10 px-2 rounded font-medium h-8 min-w-[100px] flex items-center justify-center select-none">{player.nationality}</span>
@@ -912,39 +923,41 @@ export default function PlayerProfilePage() {
                 )}
               </div>
               {/* Дата рождения */}
-              <div className="text-vista-light/60 text-base flex items-center">Дата рождения</div>
+              <div className="text-vista-light/60 text-base flex items-center">{t('playerProfile.birth_date')}</div>
               <div>
-                <span className={"text-vista-light text-sm bg-vista-light/10 px-2 rounded font-medium h-8 min-w-[100px] flex items-center justify-center select-none" + (player.dateOfBirth ? '' : ' text-vista-light/40')}>{player.dateOfBirth ? new Date(player.dateOfBirth).toLocaleDateString('ru-RU') : '—'}</span>
+                <span className={"text-vista-light text-sm bg-vista-light/10 px-2 rounded font-medium h-8 min-w-[100px] flex items-center justify-center select-none" + (player.dateOfBirth ? '' : ' text-vista-light/40')}>
+                  {player.dateOfBirth ? new Date(player.dateOfBirth).toLocaleDateString(lang) : '—'}
+                </span>
               </div>
               {/* Позиция */}
-              <div className="text-vista-light/60 text-base flex items-center">Позиция</div>
+              <div className="text-vista-light/60 text-base flex items-center">{t('playerProfile.position')}</div>
               <div>
                 {player.position ? (
                   <span className="bg-vista-light/10 text-vista-light px-2 rounded font-medium text-sm capitalize h-8 min-w-[100px] flex items-center justify-center select-none" style={{textShadow: '0 1px 2px rgba(0,0,0,0.08)'}}>
-                    {player.position.charAt(0).toUpperCase() + player.position.slice(1)}
+                    {t('playerProfile.position_' + player.position)}
                   </span>
                 ) : (
                   <span className="text-vista-light/40 h-8 flex items-center">—</span>
                 )}
               </div>
               {/* Сильная нога */}
-              <div className="text-vista-light/60 text-base flex items-center">Сильная нога</div>
+              <div className="text-vista-light/60 text-base flex items-center">{t('playerProfile.strong_foot')}</div>
               <div>
                 {player.strongFoot ? (
                   <span className="bg-vista-light/10 text-vista-light px-2 rounded font-medium text-sm capitalize h-8 min-w-[100px] flex items-center justify-center select-none" style={{textShadow: '0 1px 2px rgba(0,0,0,0.08)'}}>
-                    {player.strongFoot.charAt(0).toUpperCase() + player.strongFoot.slice(1)}
+                    {t('playerProfile.strong_foot_' + player.strongFoot)}
                   </span>
                 ) : (
                   <span className="text-vista-light/40 h-8 flex items-center">—</span>
                 )}
               </div>
               {/* Игровой номер */}
-              <div className="text-vista-light/60 text-base flex items-center">Игровой номер</div>
+              <div className="text-vista-light/60 text-base flex items-center">{t('playerProfile.number')}</div>
               <div>
                 <span className={"text-vista-light text-sm bg-vista-light/10 px-2 rounded font-medium h-8 min-w-[100px] flex items-center justify-center select-none" + (player.number ? '' : ' text-vista-light/40')}>{player.number || '—'}</span>
               </div>
               {/* Команда */}
-              <div className="text-vista-light/60 text-base flex items-center">Команда</div>
+              <div className="text-vista-light/60 text-base flex items-center">{t('playerProfile.team')}</div>
               <div>
                 <span className={"text-vista-light text-sm bg-vista-light/10 px-2 rounded font-medium h-8 min-w-[100px] flex items-center justify-center select-none" + (teamName ? '' : ' text-vista-light/40')}>{teamName || '—'}</span>
               </div>
@@ -954,7 +967,7 @@ export default function PlayerProfilePage() {
         {/* Два поля с пикерами */}
         <div className="flex flex-row gap-7 w-[570px]">
           <PlayerFormationBlock
-            label="Формат 1 / Схема 1"
+            label={t('playerProfile.format1') + ' / ' + t('playerProfile.formation1')}
             format={selectedFormat}
             setFormat={handleFormatChange}
             formation={selectedFormation}
@@ -967,7 +980,7 @@ export default function PlayerProfilePage() {
             colorValue={SELECTED_COLOR}
           />
           <PlayerFormationBlock
-            label="Формат 2 / Схема 2"
+            label={t('playerProfile.format2') + ' / ' + t('playerProfile.formation2')}
             format={selectedFormat2}
             setFormat={(v) => setSelectedFormat2(v as FormatKey)}
             formation={selectedFormation2}
@@ -987,9 +1000,7 @@ export default function PlayerProfilePage() {
               <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-600/20 mb-2">
                 <svg width="28" height="28" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm0 4a1 1 0 0 0-1 1v6a1 1 0 1 0 2 0v-6a1 1 0 0 0-1-1z" fill="#06b6d4"/></svg>
               </div>
-              <DialogTitle className="text-lg font-semibold text-center text-vista-light mb-1">
-                {selectedPosition === null ? 'Привязать игрока к позиции?' : 'Сменить позицию игрока?'}
-              </DialogTitle>
+              <DialogTitle className="text-lg font-semibold text-center text-vista-light mb-1">{selectedPosition === null ? t('playerProfile.attach_position') : t('playerProfile.change_position')}</DialogTitle>
             </DialogHeader>
             <div className="flex flex-row gap-2 justify-center pb-6 pt-2">
               <button
@@ -1000,14 +1011,14 @@ export default function PlayerProfilePage() {
                 onClick={handleConfirmPosition}
                 disabled={isSavingPosition}
               >
-                {isSavingPosition ? <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin align-middle"></span> : 'Да'}
+                {isSavingPosition ? <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin align-middle"></span> : t('playerProfile.confirm')}
               </button>
               <button
                 className="px-5 py-2 rounded-lg font-semibold text-base bg-slate-700 hover:bg-slate-600 text-vista-light/80 border border-slate-600/40 transition-colors duration-150"
                 onClick={() => setShowPositionDialog(false)}
                 disabled={isSavingPosition}
               >
-                Отмена
+                {t('common.cancel')}
               </button>
             </div>
           </DialogContent>
@@ -1019,9 +1030,7 @@ export default function PlayerProfilePage() {
               <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-600/20 mb-2">
                 <svg width="28" height="28" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm0 4a1 1 0 0 0-1 1v6a1 1 0 1 0 2 0v-6a1 1 0 0 0-1-1z" fill="#06b6d4"/></svg>
               </div>
-              <DialogTitle className="text-lg font-semibold text-center text-vista-light mb-1">
-                {selectedPosition2 === null ? 'Привязать игрока к позиции?' : 'Сменить позицию игрока?'}
-              </DialogTitle>
+              <DialogTitle className="text-lg font-semibold text-center text-vista-light mb-1">{selectedPosition2 === null ? t('playerProfile.attach_position') : t('playerProfile.change_position')}</DialogTitle>
             </DialogHeader>
             <div className="flex flex-row gap-2 justify-center pb-6 pt-2">
               <button
@@ -1032,14 +1041,14 @@ export default function PlayerProfilePage() {
                 onClick={handleConfirmPosition2}
                 disabled={isSavingPosition2}
               >
-                {isSavingPosition2 ? <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin align-middle"></span> : 'Да'}
+                {isSavingPosition2 ? <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin align-middle"></span> : t('playerProfile.confirm')}
               </button>
               <button
                 className="px-5 py-2 rounded-lg font-semibold text-base bg-slate-700 hover:bg-slate-600 text-vista-light/80 border border-slate-600/40 transition-colors duration-150"
                 onClick={() => setShowPositionDialog2(false)}
                 disabled={isSavingPosition2}
               >
-                Отмена
+                {t('common.cancel')}
               </button>
             </div>
           </DialogContent>
@@ -1050,8 +1059,8 @@ export default function PlayerProfilePage() {
       <div className="flex flex-row gap-7 w-full mt-8 mb-32">
         <div className="w-[420px] h-[480px] bg-vista-dark/40 rounded-md shadow-md flex flex-col p-6 relative">
           <div className="flex flex-row justify-between items-start mb-4">
-            <span className="text-xl font-semibold text-vista-light tracking-tight">Статистика в матчах</span>
-            <button className="bg-vista-primary text-vista-dark rounded-md px-4 py-1.5 text-sm font-medium shadow hover:bg-vista-primary/90 transition">Все матчи</button>
+            <span className="text-xl font-semibold text-vista-light tracking-tight">{t('playerProfile.match_stats')}</span>
+            <button className="bg-vista-primary text-vista-dark rounded-md px-4 py-1.5 text-sm font-medium shadow hover:bg-vista-primary/90 transition">{t('playerProfile.all_matches')}</button>
           </div>
           {/* Здесь будет содержимое блока */}
           {isLoadingMatches ? (
@@ -1061,7 +1070,7 @@ export default function PlayerProfilePage() {
               ))}
             </div>
           ) : recentMatches.length === 0 ? (
-            <div className="text-vista-light/50 text-center mt-8">Нет данных о матчах</div>
+            <div className="text-vista-light/50 text-center mt-8">{t('playerProfile.no_matches')}</div>
           ) : (
             <div className="flex flex-col gap-2 mt-1">
               {recentMatches.slice(0, 6).map((match: any, idx: number) => (
@@ -1106,14 +1115,14 @@ export default function PlayerProfilePage() {
                   <div className="flex flex-col items-end justify-between min-w-[70px]">
                     <span className="flex items-center gap-1 text-cyan-400 text-xs">
                       <ClockIcon className="w-3 h-3" />
-                      {match.minutesPlayed} мин
+                      {match.minutesPlayed} {t('playerProfile.minutes')}
                     </span>
                     <Badge className={`mt-1 px-1.5 py-0.5 rounded text-[10px] font-normal min-w-[60px] text-center justify-center ${match.isStarter ? 'bg-green-600/10 text-white/70' : 'bg-yellow-500/10 text-white/70'}`}
                     >
                       {match.isStarter ? (
-                        <span>Основа</span>
+                        <span>{t('playerProfile.starter')}</span>
                       ) : (
-                        <span>Замена</span>
+                        <span>{t('playerProfile.substitute')}</span>
                       )}
                     </Badge>
                   </div>
@@ -1124,17 +1133,17 @@ export default function PlayerProfilePage() {
         </div>
         <div className="w-[420px] h-[480px] bg-vista-dark/40 rounded-md shadow-md flex flex-col p-6 relative">
           <div className="flex flex-row justify-between items-start mb-4">
-            <span className="text-xl font-semibold text-vista-light tracking-tight">Результаты тестов</span>
-            <button className="bg-vista-primary text-vista-dark rounded-md px-4 py-1.5 text-sm font-medium shadow hover:bg-vista-primary/90 transition">Все тесты</button>
+            <span className="text-xl font-semibold text-vista-light tracking-tight">{t('playerProfile.test_results')}</span>
+            <button className="bg-vista-primary text-vista-dark rounded-md px-4 py-1.5 text-sm font-medium shadow hover:bg-vista-primary/90 transition">{t('playerProfile.all_tests')}</button>
           </div>
           <div className="flex flex-col gap-2 mt-1">
             {[
-              { value: 'anthropometry', label: 'Антропометрия', icon: <Ruler className="w-6 h-6 text-cyan-400" /> },
-              { value: 'endurance', label: 'Выносливость', icon: <HeartPulse className="w-6 h-6 text-cyan-400" /> },
-              { value: 'speed', label: 'Скорость', icon: <Zap className="w-6 h-6 text-cyan-400" /> },
-              { value: 'strength', label: 'Сила', icon: <Dumbbell className="w-6 h-6 text-cyan-400" /> },
-              { value: 'flexibility', label: 'Гибкость', icon: <StretchHorizontal className="w-6 h-6 text-cyan-400" /> },
-              { value: 'agility', label: 'Ловкость', icon: <Shuffle className="w-6 h-6 text-cyan-400" /> },
+              { value: 'anthropometry', label: t('playerProfile.test_type.anthropometry'), icon: <Ruler className="w-6 h-6 text-cyan-400" /> },
+              { value: 'endurance', label: t('playerProfile.test_type.endurance'), icon: <HeartPulse className="w-6 h-6 text-cyan-400" /> },
+              { value: 'speed', label: t('playerProfile.test_type.speed'), icon: <Zap className="w-6 h-6 text-cyan-400" /> },
+              { value: 'strength', label: t('playerProfile.test_type.strength'), icon: <Dumbbell className="w-6 h-6 text-cyan-400" /> },
+              { value: 'flexibility', label: t('playerProfile.test_type.flexibility'), icon: <StretchHorizontal className="w-6 h-6 text-cyan-400" /> },
+              { value: 'agility', label: t('playerProfile.test_type.agility'), icon: <Shuffle className="w-6 h-6 text-cyan-400" /> },
             ].map((direction) => {
               // Оставляем только тесты с результатом
               const tests = fitnessTests.filter(test => test.type === direction.value && fitnessTestResults[test.id]);

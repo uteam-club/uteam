@@ -35,7 +35,17 @@ import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { countries } from '@/lib/countries';
+import { countries as countriesList } from '@/lib/countries';
+import { useTranslation } from 'react-i18next';
+import { format, parseISO, isValid } from 'date-fns';
+import type { SupportedLang } from '@/types/i18n';
+
+interface Country {
+  code: string;
+  name: {
+    [key: string]: string;
+  };
+}
 
 interface Team {
   id: string;
@@ -95,6 +105,11 @@ export default function DocumentsPage() {
     visa: true,
     birthCertificateNumber: true,
   });
+
+  const { t, i18n } = useTranslation();
+  const lang: SupportedLang = i18n.language === 'en' ? 'en' : 'ru';
+
+  const countries: Country[] = countriesList;
 
   // Оптимизированная функция для получения списка команд
   const fetchTeams = useCallback(async () => {
@@ -221,7 +236,7 @@ export default function DocumentsPage() {
       }
       if (exportFields.nationality) {
         const country = countries.find(c => c.code === player.nationality);
-        row['Национальность'] = country ? country.name : player.nationality || '';
+        row['Национальность'] = country ? country.name[lang] : player.nationality || '';
       }
       if (exportFields.team) {
         let teamName = player.team?.name;
@@ -283,7 +298,7 @@ export default function DocumentsPage() {
       <div className="space-y-6">
         <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
           <CardHeader>
-            <CardTitle className="text-vista-light">Выберите команду</CardTitle>
+            <CardTitle className="text-vista-light">{t('documentsPage.select_team')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4 items-end">
@@ -296,7 +311,7 @@ export default function DocumentsPage() {
         
         <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
           <CardHeader>
-            <CardTitle className="text-vista-light">Документы игроков</CardTitle>
+            <CardTitle className="text-vista-light">{t('documentsPage.player_documents')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -313,7 +328,7 @@ export default function DocumentsPage() {
       
       <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
         <CardHeader>
-          <CardTitle className="text-vista-light">Выберите команду</CardTitle>
+          <CardTitle className="text-vista-light">{t('documentsPage.select_team')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 items-end">
@@ -323,10 +338,10 @@ export default function DocumentsPage() {
                 onValueChange={setSelectedTeamId}
               >
                 <SelectTrigger className="bg-vista-dark/70 border-vista-secondary/50 text-vista-light shadow-sm">
-                  <SelectValue placeholder="Выберите команду" />
+                  <SelectValue placeholder={t('documentsPage.select_team')} />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
-                  <SelectItem value="all">Все команды</SelectItem>
+                  <SelectItem value="all">{t('documentsPage.all_teams')}</SelectItem>
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name}
@@ -339,7 +354,7 @@ export default function DocumentsPage() {
             <div className="w-64 relative">
               <Input
                 type="text"
-                placeholder="Поиск игрока по имени"
+                placeholder={t('documentsPage.search_player')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-vista-dark/70 border-vista-secondary/50 text-vista-light pr-9 focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
@@ -352,7 +367,7 @@ export default function DocumentsPage() {
               size="icon"
               onClick={handleExport}
               className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 shadow-sm"
-              title="Экспортировать игроков в Excel"
+              title={t('documentsPage.export_excel')}
             >
               <DownloadIcon className="h-4 w-4 text-vista-primary" />
             </Button>
@@ -363,9 +378,9 @@ export default function DocumentsPage() {
       <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
         <CardHeader>
           <CardTitle className="text-vista-light flex justify-between items-center">
-            <span>Документы игроков</span>
+            <span>{t('documentsPage.player_documents')}</span>
             <span className="text-sm font-normal text-vista-light/70">
-              Всего: {players.length} игроков
+              {t('documentsPage.total_players', {count: players.length})}
             </span>
           </CardTitle>
         </CardHeader>
@@ -374,18 +389,18 @@ export default function DocumentsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-vista-dark/70 hover:bg-vista-dark/70 border-b border-vista-secondary/50 shadow-md">
-                  <TableHead className="text-vista-light/80 font-medium w-[250px] min-w-[250px] sticky left-0 bg-vista-dark/70 shadow-sm">Игрок</TableHead>
-                  <TableHead className="text-vista-light/80 font-medium w-[180px] min-w-[180px] text-center">Паспорт</TableHead>
-                  <TableHead className="text-vista-light/80 font-medium w-[180px] min-w-[180px] text-center">Свидетельство о рождении</TableHead>
-                  <TableHead className="text-vista-light/80 font-medium w-[180px] min-w-[180px] text-center">Медицинская страховка</TableHead>
-                  <TableHead className="text-vista-light/80 font-medium w-[180px] min-w-[180px] text-center">Виза</TableHead>
+                  <TableHead className="text-vista-light/80 font-medium w-[250px] min-w-[250px] sticky left-0 bg-vista-dark/70 shadow-sm">{t('documentsPage.player')}</TableHead>
+                  <TableHead className="text-vista-light/80 font-medium w-[180px] min-w-[180px] text-center">{t('documentsPage.passport')}</TableHead>
+                  <TableHead className="text-vista-light/80 font-medium w-[180px] min-w-[180px] text-center">{t('documentsPage.birth_certificate')}</TableHead>
+                  <TableHead className="text-vista-light/80 font-medium w-[180px] min-w-[180px] text-center">{t('documentsPage.medical_insurance')}</TableHead>
+                  <TableHead className="text-vista-light/80 font-medium w-[180px] min-w-[180px] text-center">{t('documentsPage.visa')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {players.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-4 text-vista-light/70">
-                      Не найдено игроков или документов
+                      {t('documentsPage.not_found')}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -408,7 +423,7 @@ export default function DocumentsPage() {
                             )}
                           </div>
                           <div>
-                            <div className="text-vista-light font-semibold text-base">
+                            <div className="text-vista-light font-normal text-sm">
                               {player.lastName} {player.firstName}{player.middleName ? ` ${player.middleName}` : ''}
                             </div>
                             <div className="text-xs text-vista-light/50">
@@ -474,10 +489,10 @@ export default function DocumentsPage() {
                               rel="noopener noreferrer"
                               className="bg-vista-primary/10 text-vista-primary rounded px-2 py-1 cursor-pointer transition hover:bg-vista-primary/20 hover:text-vista-primary/80"
                             >
-                              {player.visaExpiryDate}
+                              {isValid(parseISO(player.visaExpiryDate)) ? format(parseISO(player.visaExpiryDate), 'dd.MM.yyyy') : player.visaExpiryDate}
                             </a>
                           ) : (
-                            <span>{player.visaExpiryDate}</span>
+                            <span>{isValid(parseISO(player.visaExpiryDate)) ? format(parseISO(player.visaExpiryDate), 'dd.MM.yyyy') : player.visaExpiryDate}</span>
                           )
                         ) : '—'}
                       </TableCell>
@@ -493,44 +508,44 @@ export default function DocumentsPage() {
       <Dialog open={exportModalOpen} onOpenChange={setExportModalOpen}>
         <DialogContent className="max-w-md bg-vista-dark border border-vista-secondary/40 rounded-xl shadow-xl text-vista-light">
           <DialogHeader>
-            <DialogTitle className="text-lg text-vista-light">Выберите поля для экспорта</DialogTitle>
+            <DialogTitle className="text-lg text-vista-light">{t('documentsPage.export_fields_title')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="flex items-center gap-2">
               <Checkbox id="fio" checked={exportFields.fio} onCheckedChange={v => setExportFields(f => ({ ...f, fio: v === true }))} className="accent-vista-primary" />
-              <label htmlFor="fio" className="text-sm text-vista-light">ФИО</label>
+              <label htmlFor="fio" className="text-sm text-vista-light">{t('documentsPage.fio')}</label>
             </div>
             <div className="flex items-center gap-2">
               <Checkbox id="birthDate" checked={exportFields.birthDate} onCheckedChange={v => setExportFields(f => ({ ...f, birthDate: v === true }))} className="accent-vista-primary" />
-              <label htmlFor="birthDate" className="text-sm text-vista-light">Дата рождения</label>
+              <label htmlFor="birthDate" className="text-sm text-vista-light">{t('documentsPage.birth_date')}</label>
             </div>
             <div className="flex items-center gap-2">
               <Checkbox id="nationality" checked={exportFields.nationality} onCheckedChange={v => setExportFields(f => ({ ...f, nationality: v === true }))} className="accent-vista-primary" />
-              <label htmlFor="nationality" className="text-sm text-vista-light">Национальность</label>
+              <label htmlFor="nationality" className="text-sm text-vista-light">{t('documentsPage.nationality')}</label>
             </div>
             <div className="flex items-center gap-2">
               <Checkbox id="team" checked={exportFields.team} onCheckedChange={v => setExportFields(f => ({ ...f, team: v === true }))} className="accent-vista-primary" />
-              <label htmlFor="team" className="text-sm text-vista-light">Команда</label>
+              <label htmlFor="team" className="text-sm text-vista-light">{t('documentsPage.team')}</label>
             </div>
             <div className="flex items-center gap-2">
               <Checkbox id="passport" checked={exportFields.passport} onCheckedChange={v => setExportFields(f => ({ ...f, passport: v === true }))} className="accent-vista-primary" />
-              <label htmlFor="passport" className="text-sm text-vista-light">Номер паспорта</label>
+              <label htmlFor="passport" className="text-sm text-vista-light">{t('documentsPage.passport_number')}</label>
             </div>
             <div className="flex items-center gap-2">
               <Checkbox id="insurance" checked={exportFields.insurance} onCheckedChange={v => setExportFields(f => ({ ...f, insurance: v === true }))} className="accent-vista-primary" />
-              <label htmlFor="insurance" className="text-sm text-vista-light">Номер мед. страховки</label>
+              <label htmlFor="insurance" className="text-sm text-vista-light">{t('documentsPage.insurance_number')}</label>
             </div>
             <div className="flex items-center gap-2">
               <Checkbox id="visa" checked={exportFields.visa} onCheckedChange={v => setExportFields(f => ({ ...f, visa: v === true }))} className="accent-vista-primary" />
-              <label htmlFor="visa" className="text-sm text-vista-light">Дата окончания визы</label>
+              <label htmlFor="visa" className="text-sm text-vista-light">{t('documentsPage.visa_expiry')}</label>
             </div>
             <div className="flex items-center gap-2">
               <Checkbox id="birthCertificateNumber" checked={exportFields.birthCertificateNumber} onCheckedChange={v => setExportFields(f => ({ ...f, birthCertificateNumber: v === true }))} className="accent-vista-primary" />
-              <label htmlFor="birthCertificateNumber" className="text-sm text-vista-light">Номер свидетельства о рождении</label>
+              <label htmlFor="birthCertificateNumber" className="text-sm text-vista-light">{t('documentsPage.birth_certificate_number')}</label>
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleExportConfirm} className="w-full bg-vista-primary text-vista-dark hover:bg-vista-primary/80">Экспортировать</Button>
+            <Button onClick={handleExportConfirm} className="w-full bg-vista-primary text-vista-dark hover:bg-vista-primary/80">{t('documentsPage.export')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

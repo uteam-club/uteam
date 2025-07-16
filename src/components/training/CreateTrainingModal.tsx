@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useTrainingCategories } from '@/hooks/useExerciseData';
 import { useSession } from 'next-auth/react';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 
 interface Team {
   id: string;
@@ -24,6 +25,7 @@ interface CreateTrainingModalProps {
 }
 
 export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }: CreateTrainingModalProps) {
+  const { t } = useTranslation();
   const { data: session } = useSession();
   const { categories = [], isLoading: isLoadingCategories } = useTrainingCategories();
   const [teams, setTeams] = useState<Team[]>([]);
@@ -87,10 +89,10 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
   const handleSubmit = async () => {
     let hasError = false;
     const newErrors = { title: '', teamId: '', date: '', categoryId: '' };
-    if (!newTraining.title) { newErrors.title = 'Введите название'; hasError = true; }
-    if (!isSingleTeam && !newTraining.teamId) { newErrors.teamId = 'Выберите команду'; hasError = true; }
-    if (!newTraining.date) { newErrors.date = 'Выберите дату'; hasError = true; }
-    if (!newTraining.categoryId) { newErrors.categoryId = 'Выберите категорию'; hasError = true; }
+    if (!newTraining.title) { newErrors.title = t('trainingsPage.validation_title_required'); hasError = true; }
+    if (!isSingleTeam && !newTraining.teamId) { newErrors.teamId = t('trainingsPage.validation_team_required'); hasError = true; }
+    if (!newTraining.date) { newErrors.date = t('trainingsPage.validation_date_required'); hasError = true; }
+    if (!newTraining.categoryId) { newErrors.categoryId = t('trainingsPage.validation_category_required'); hasError = true; }
     setErrors(newErrors);
     if (hasError) return;
     try {
@@ -99,7 +101,7 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newTraining),
       });
-      if (!response.ok) throw new Error('Ошибка при создании тренировки');
+      if (!response.ok) throw new Error(t('trainingsPage.error_creating_training'));
       setNewTraining({ title: '', teamId: '', date: '', time: '12:00', categoryId: '', type: 'TRAINING' });
       onCreated();
       onClose();
@@ -112,23 +114,23 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-hidden backdrop-blur-xl">
         <DialogHeader>
-          <DialogTitle className="text-vista-light text-xl">Новая тренировка</DialogTitle>
+          <DialogTitle className="text-vista-light text-xl">{t('trainingsPage.create_modal_title')}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="title" className="text-vista-light/40 font-normal">Название</Label>
+            <Label htmlFor="title" className="text-vista-light/40 font-normal">{t('trainingsPage.title_label')}</Label>
             <Input
               id="title"
               value={newTraining.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
               className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
-              placeholder="Введите название тренировки"
+              placeholder={t('trainingsPage.title_placeholder')}
             />
             {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
           </div>
           {!isSingleTeam && (
             <>
-              <Label htmlFor="team" className="text-vista-light/40 font-normal">Команда</Label>
+              <Label htmlFor="team" className="text-vista-light/40 font-normal">{t('trainingsPage.team_label')}</Label>
               <Select
                 value={newTraining.teamId}
                 onValueChange={(value) => handleInputChange('teamId', value)}
@@ -138,7 +140,7 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
                   id="team"
                   className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
                 >
-                  <SelectValue placeholder={isLoadingTeams ? "Загрузка..." : "Выберите команду"} />
+                  <SelectValue placeholder={isLoadingTeams ? t('trainingsPage.loading') : t('trainingsPage.select_team_placeholder')} />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
                   {teams.map(team => (
@@ -152,7 +154,7 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
             </>
           )}
           <div className="space-y-2">
-            <Label htmlFor="date" className="text-vista-light/40 font-normal">Дата и время</Label>
+            <Label htmlFor="date" className="text-vista-light/40 font-normal">{t('trainingsPage.date_label')}</Label>
             <div className="grid grid-cols-2 gap-2">
               <div className="relative">
                 <Input
@@ -186,7 +188,7 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="category" className="text-vista-light/40 font-normal">Категория</Label>
+            <Label htmlFor="category" className="text-vista-light/40 font-normal">{t('trainingsPage.category_label')}</Label>
             <Select
               value={newTraining.categoryId}
               onValueChange={(value) => handleInputChange('categoryId', value)}
@@ -196,7 +198,7 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
                 id="category"
                 className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
               >
-                <SelectValue placeholder={isLoadingCategories ? "Загрузка..." : "Выберите категорию"} />
+                <SelectValue placeholder={isLoadingCategories ? t('trainingsPage.loading') : t('trainingsPage.select_category_placeholder')} />
               </SelectTrigger>
               <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
                 {categories.map((category: Category) => (
@@ -209,7 +211,7 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
             {errors.categoryId && <p className="text-red-500 text-sm">{errors.categoryId}</p>}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="type" className="text-vista-light/40 font-normal">Тип</Label>
+            <Label htmlFor="type" className="text-vista-light/40 font-normal">{t('trainingsPage.type_label')}</Label>
             <Select
               value={newTraining.type}
               onValueChange={(value) => handleInputChange('type', value)}
@@ -218,11 +220,11 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
                 id="training-type"
                 className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
               >
-                <SelectValue placeholder="Выберите тип тренировки" />
+                <SelectValue placeholder={t('trainingsPage.select_type_placeholder')} />
               </SelectTrigger>
               <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
-                <SelectItem value="TRAINING">Тренировка</SelectItem>
-                <SelectItem value="GYM">Тренажерный зал</SelectItem>
+                <SelectItem value="TRAINING">{t('trainingsPage.type_training')}</SelectItem>
+                <SelectItem value="GYM">{t('trainingsPage.type_gym')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -234,14 +236,14 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
             onClick={onClose}
             className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20"
           >
-            Отмена
+            {t('common.cancel')}
           </Button>
           <Button 
             type="button" 
             onClick={handleSubmit}
             className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark shadow-sm"
           >
-            Создать
+            {t('trainingsPage.create_training_btn')}
           </Button>
         </DialogFooter>
       </DialogContent>

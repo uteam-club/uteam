@@ -8,6 +8,9 @@ import {
   ChevronDownIcon, 
   GlobeAltIcon,
 } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
+import type { SupportedLang } from '@/types/i18n';
 
 interface TopBarProps {
   userName: string;
@@ -47,16 +50,16 @@ function TopBar({ userName, userRole }: TopBarProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [itemWidths, setItemWidths] = useState<Record<string, number>>({});
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const { t } = useTranslation();
+  const [isMounted, setIsMounted] = useState(false);
+  const [lang, setLang] = useState<SupportedLang>(i18n.language === 'en' ? 'en' : 'ru');
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+  const langDropdownRef = useRef<HTMLDivElement>(null);
+  const langButtonRef = useRef<HTMLButtonElement>(null);
 
   const setItemRef = useCallback((key: string, element: HTMLDivElement | null) => {
     if (element) {
       itemRefs.current[key] = element;
-    }
-  }, []);
-
-  useEffect(() => {
-    if (teams.length === 0 && !teamsLoading) {
-      fetchTeams();
     }
   }, []);
 
@@ -74,6 +77,16 @@ function TopBar({ userName, userRole }: TopBarProps) {
       setTeamsLoading(false);
     }
   };
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (teams.length === 0 && !teamsLoading) {
+      fetchTeams();
+    }
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -109,6 +122,33 @@ function TopBar({ userName, userRole }: TopBarProps) {
     };
   }, []);
 
+  useEffect(() => {
+    const storedLang = localStorage.getItem('lang');
+    if (storedLang && storedLang !== lang) {
+      const safeLang: SupportedLang = storedLang === 'en' ? 'en' : 'ru';
+      i18n.changeLanguage(safeLang);
+      setLang(safeLang);
+    }
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (langDropdownRef.current && !langDropdownRef.current.contains(event.target as Node)) {
+        setLangDropdownOpen(false);
+      }
+    }
+    if (langDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [langDropdownOpen]);
+
+  if (!isMounted) return null;
+
   const closeAllMenus = () => {
     setActiveDropdown(null);
     setTeamsDropdownOpen(false);
@@ -143,51 +183,69 @@ function TopBar({ userName, userRole }: TopBarProps) {
     closeAllMenus();
   };
 
+  // --- Language Switcher Dropdown ---
+  const languages = [
+    { code: 'ru', label: 'Русский' },
+    { code: 'en', label: 'English' },
+  ];
+
+  const handleLangButtonClick = () => {
+    setLangDropdownOpen((open) => !open);
+  };
+  const handleLangSelect = (code: SupportedLang) => {
+    i18n.changeLanguage(code);
+    localStorage.setItem('lang', code);
+    setLang(code);
+    setLangDropdownOpen(false);
+  };
+
   const navItems: NavItem[] = [
-    { key: 'home', label: 'ГЛАВНАЯ', href: '/dashboard' },
+    { key: 'home', label: t('topbar.home'), href: '/dashboard' },
     { 
       key: 'coaching', 
-      label: 'ТРЕНЕРСКАЯ', 
+      label: t('topbar.coaching'), 
       href: '/dashboard/coaching',
       hasDropdown: true,
       dropdownItems: [
-        ...(teams.length === 1
-          ? [{ key: 'team-single', label: teams[0].name, href: `/dashboard/teams/${teams[0].id}` }]
-          : [{ key: 'teams', label: 'Команды', href: '/dashboard/teams', hasSubItems: true }]),
-        { key: 'exercises', label: 'Упражнения', href: '/dashboard/coaching/exercises' },
-        { key: 'trainings', label: 'Тренировки', href: '/dashboard/coaching/trainings' },
-        { key: 'matches', label: 'Матчи', href: '/dashboard/coaching/matches' },
-        { key: 'attendance', label: 'Посещаемость', href: '/dashboard/analytics/attendance' },
+        ...(teams.length === 0
+          ? [{ key: 'teams', label: t('dropdown.no_teams'), href: '/dashboard/teams', hasSubItems: true }]
+          : teams.length === 1
+            ? [{ key: 'team-single', label: teams[0].name, href: `/dashboard/teams/${teams[0].id}` }]
+            : [{ key: 'teams', label: t('dropdown.teams'), href: '/dashboard/teams', hasSubItems: true }]),
+        { key: 'exercises', label: t('dropdown.exercises'), href: '/dashboard/coaching/exercises' },
+        { key: 'trainings', label: t('dropdown.trainings'), href: '/dashboard/coaching/trainings' },
+        { key: 'matches', label: t('dropdown.matches'), href: '/dashboard/coaching/matches' },
+        { key: 'attendance', label: t('dropdown.attendance'), href: '/dashboard/analytics/attendance' },
       ]
     },
-    { key: 'fitness', label: 'ФИТНЕС', href: '/dashboard/fitness', hasDropdown: true, dropdownItems: [
-      { key: 'fitness-tests', label: 'Фитнес тесты', href: '/dashboard/analytics/fitness-tests' },
+    { key: 'fitness', label: t('topbar.fitness'), href: '/dashboard/fitness', hasDropdown: true, dropdownItems: [
+      { key: 'fitness-tests', label: t('dropdown.fitness_tests'), href: '/dashboard/analytics/fitness-tests' },
     ] },
-    { key: 'calendar', label: 'КАЛЕНДАРЬ', href: '/dashboard/calendar' },
+    { key: 'calendar', label: t('topbar.calendar'), href: '/dashboard/calendar' },
     { 
       key: 'analytics', 
-      label: 'ОПРОСНИКИ', 
+      label: t('topbar.analytics'), 
       href: '/dashboard/analytics',
       hasDropdown: true,
       dropdownItems: [
-        { key: 'morning-survey', label: 'Состояние утро', href: '/dashboard/analytics/morning-survey' },
-        { key: 'rpe-survey', label: 'Оценка RPE', href: '/dashboard/analytics/rpe-survey' },
-        { key: 'test-admin', label: 'Тест админ', href: '/dashboard/settings/admin/surveys', adminOnly: true },
+        { key: 'morning-survey', label: t('dropdown.morning_survey'), href: '/dashboard/analytics/morning-survey' },
+        { key: 'rpe-survey', label: t('dropdown.rpe_survey'), href: '/dashboard/analytics/rpe-survey' },
+        { key: 'test-admin', label: t('dropdown.test_admin'), href: '/dashboard/settings/admin/surveys', adminOnly: true },
       ]
     },
     { 
       key: 'documents', 
-      label: 'ДОКУМЕНТЫ', 
+      label: t('topbar.documents'), 
       href: '/dashboard/documents'
     },
     { 
       key: 'settings', 
-      label: 'НАСТРОЙКИ', 
+      label: t('topbar.settings'), 
       href: '/dashboard/settings',
       hasDropdown: true,
       dropdownItems: [
-        { key: 'account', label: 'Аккаунт', href: '/dashboard/settings/account' },
-        { key: 'admin', label: 'Админка', href: '/dashboard/settings/admin', adminOnly: true },
+        { key: 'account', label: t('dropdown.account'), href: '/dashboard/settings/account' },
+        { key: 'admin', label: t('dropdown.admin'), href: '/dashboard/settings/admin', adminOnly: true },
       ]
     },
   ];
@@ -270,7 +328,7 @@ function TopBar({ userName, userRole }: TopBarProps) {
                                     <div className="ml-4 pl-2 border-l-2 border-vista-secondary/40">
                                       {teamsLoading ? (
                                         <div className="px-4 py-2 text-sm text-vista-light/50">
-                                          Загрузка...
+                                          {t('dropdown.loading')}
                                         </div>
                                       ) : teams.length > 0 ? (
                                         teams.map(team => (
@@ -285,7 +343,7 @@ function TopBar({ userName, userRole }: TopBarProps) {
                                         ))
                                       ) : (
                                         <div className="px-4 py-2 text-sm text-vista-light/50">
-                                          Нет команд
+                                          {t('dropdown.no_teams')}
                                         </div>
                                       )}
                                     </div>
@@ -313,11 +371,35 @@ function TopBar({ userName, userRole }: TopBarProps) {
             })}
           </div>
           
-          <div className="flex items-center">
-            <button className="flex items-center px-3 py-2 text-sm font-medium text-vista-light bg-vista-secondary/20 rounded-md hover:bg-vista-secondary/40 transition-colors">
+          <div className="flex items-center" ref={langDropdownRef}>
+            <button
+              ref={langButtonRef}
+              className="flex items-center px-3 py-2 text-sm font-medium text-vista-light bg-vista-secondary/20 rounded-md hover:bg-vista-secondary/40 transition-colors relative"
+              onClick={handleLangButtonClick}
+              type="button"
+            >
               <GlobeAltIcon className="w-4 h-4 mr-1" />
-              RU
+              {languages.find(l => l.code === lang)?.code.toUpperCase() || lang.toUpperCase()}
+              <ChevronDownIcon className="ml-1 h-4 w-4 transition-transform" />
             </button>
+            {langDropdownOpen && (
+              <div
+                className="absolute z-[99999] top-full mt-1 rounded-md shadow-lg bg-vista-dark border-2 border-vista-secondary/40"
+                style={{ width: langButtonRef.current ? `${langButtonRef.current.offsetWidth}px` : '8rem' }}
+              >
+                {languages.map((l) => (
+                  <button
+                    key={l.code}
+                    className={`block w-full text-left px-2 py-2 text-sm transition-colors hover:bg-vista-secondary/20 hover:text-vista-primary
+                      ${lang === l.code ? 'text-vista-primary' : 'text-vista-light/70'}`}
+                    onClick={() => handleLangSelect(l.code as SupportedLang)}
+                    type="button"
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CountrySelect } from '@/components/ui/country-select';
 import { TeamSelect } from '@/components/ui/team-select';
 import DocumentUpload from '@/components/ui/document-upload';
+import { useTranslation } from 'react-i18next';
 
 interface EditUserModalProps {
   open: boolean;
@@ -92,6 +93,7 @@ interface EditPlayerModalProps {
 export default function EditPlayerModal({ open, onOpenChange, player, teams, documents, onSave, onDocumentUpload, onDocumentDelete }: EditPlayerModalProps) {
   const [form, setForm] = useState<Player>(player);
   const [saving, setSaving] = useState(false);
+  const { t } = useTranslation();
 
   // Определяем тип команды для выбранной команды
   const currentTeam = teams.find(t => t.id === form.teamId);
@@ -132,7 +134,7 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-vista-dark border-vista-secondary/30 text-vista-light max-w-xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-vista-light text-lg">Редактировать данные игрока</DialogTitle>
+          <DialogTitle className="text-vista-light text-lg">{t('playerProfile.editModal.title')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Аватар игрока: сменить/удалить */}
@@ -166,7 +168,7 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
                   input.click();
                 }}
               >
-                Заменить
+                {t('playerProfile.editModal.replace_avatar')}
               </Button>
               <Button
                 type="button"
@@ -176,74 +178,74 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
                   await onSave({ ...form, imageUrl: null });
                 }}
               >
-                Удалить
+                {t('playerProfile.editModal.delete_avatar')}
               </Button>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <div>
-              <label className="text-vista-light/70 text-sm mb-2 block">Фамилия</label>
+              <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.last_name')}</label>
               <Input value={form.lastName || ''} onChange={e => handleChange('lastName', e.target.value)} required />
             </div>
             <div>
-              <label className="text-vista-light/70 text-sm mb-2 block">Отчество</label>
+              <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.middle_name')}</label>
               <Input value={form.middleName || ''} onChange={e => handleChange('middleName', e.target.value)} />
             </div>
             <div>
-              <label className="text-vista-light/70 text-sm mb-2 block">Имя</label>
+              <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.first_name')}</label>
               <Input value={form.firstName || ''} onChange={e => handleChange('firstName', e.target.value)} required />
             </div>
             <div>
-              <label className="text-vista-light/70 text-sm mb-2 block">Игровой номер</label>
+              <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.number')}</label>
               <Input type="number" value={form.number || ''} onChange={e => handleChange('number', e.target.value)} onFocus={e => { if (e.target.value === '0') e.target.value = ''; }} />
             </div>
             <div>
-              <label className="text-vista-light/70 text-sm mb-2 block">Позиция</label>
+              <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.position')}</label>
               <Select value={form.position || ''} onValueChange={v => handleChange('position', v)}>
                 <SelectTrigger className="bg-vista-dark-lighter border-vista-secondary/30">
-                  <SelectValue placeholder="Выберите позицию" />
+                  <SelectValue placeholder={t('playerProfile.editModal.position_placeholder')} />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/30">
-                  <SelectItem value="goalkeeper">Вратарь</SelectItem>
-                  <SelectItem value="defender">Защитник</SelectItem>
-                  <SelectItem value="midfielder">Полузащитник</SelectItem>
-                  <SelectItem value="forward">Нападающий</SelectItem>
+                  <SelectItem value="goalkeeper">{t('playerProfile.position_goalkeeper')}</SelectItem>
+                  <SelectItem value="defender">{t('playerProfile.position_defender')}</SelectItem>
+                  <SelectItem value="midfielder">{t('playerProfile.position_midfielder')}</SelectItem>
+                  <SelectItem value="forward">{t('playerProfile.position_forward')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-vista-light/70 text-sm mb-2 block">Сильная нога</label>
+              <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.strong_foot')}</label>
               <Select value={form.strongFoot || ''} onValueChange={v => handleChange('strongFoot', v)}>
                 <SelectTrigger className="bg-vista-dark-lighter border-vista-secondary/30">
-                  <SelectValue placeholder="Выберите ногу" />
+                  <SelectValue placeholder={t('playerProfile.editModal.strong_foot_placeholder')} />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/30">
-                  <SelectItem value="right">Правая</SelectItem>
-                  <SelectItem value="left">Левая</SelectItem>
+                  <SelectItem value="right">{t('playerProfile.strong_foot_right')}</SelectItem>
+                  <SelectItem value="left">{t('playerProfile.strong_foot_left')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-vista-light/70 text-sm mb-2 block">Национальность</label>
+              <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.nationality')}</label>
               <CountrySelect value={form.nationality || ''} onChange={v => handleChange('nationality', v)} />
             </div>
             <div>
-              <label className="text-vista-light/70 text-sm mb-2 block">Дата рождения</label>
+              <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.birth_date')}</label>
               <Input type="date" value={form.dateOfBirth ? String(form.dateOfBirth).slice(0,10) : ''} onChange={e => handleChange('dateOfBirth', e.target.value)} />
             </div>
             {teamType === 'academy' ? (
               <div>
-                <label className="text-vista-light/70 text-sm mb-2 block">Зачисление в академию</label>
-                <Input type="date" value={form.academyJoinDate ? String(form.academyJoinDate).slice(0,10) : ''} onChange={e => handleChange('academyJoinDate', e.target.value)} />
+                <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.editModal.academy_join_date')}</label>
+                <Input type="date" value={form.academyJoinDate ? String(form.academyJoinDate).slice(0,10) : ''} onChange={e => handleChange('academyJoinDate', e.target.value)} placeholder={t('playerProfile.editModal.date_placeholder')} />
               </div>
             ) : (
               <>
                 <div>
-                  <label className="text-vista-light/70 text-sm mb-2 block">Контракт с:</label>
+                  <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.editModal.contract_start')}</label>
                   <Input type="date" value={form.contractStartDate ? String(form.contractStartDate).slice(0,10) : ''} onChange={e => handleChange('contractStartDate', e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-vista-light/70 text-sm mb-2 block">Контракт по:</label>
+                  <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.editModal.contract_end')}</label>
                   <Input type="date" value={form.contractEndDate ? String(form.contractEndDate).slice(0,10) : ''} onChange={e => handleChange('contractEndDate', e.target.value)} />
                 </div>
               </>
@@ -251,11 +253,11 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
             {!isSingleTeam && (
               <>
                 <div>
-                  <label className="text-vista-light/70 text-sm mb-2 block">Сменить команду</label>
+                  <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.editModal.change_team')}</label>
                   {teams.length === 0 ? (
                     <div className="flex items-center gap-2 text-vista-light/60 text-sm bg-vista-dark/40 rounded px-3 py-2 border border-vista-secondary/30">
                       <svg className="animate-spin h-4 w-4 mr-2 text-vista-primary" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
-                      Загрузка команд...
+                      {t('playerProfile.editModal.loading_teams')}
                     </div>
                   ) : (
                     <TeamSelect
@@ -265,27 +267,27 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
                         console.log('Выбрана команда:', v);
                         handleChange('teamId', v);
                       }}
-                      placeholder="Сменить команду"
+                      placeholder={t('playerProfile.editModal.change_team_placeholder')}
                     />
                   )}
                 </div>
               </>
             )}
             <div>
-              <label className="text-vista-light/70 text-sm mb-2 block">Пин-код</label>
+              <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.pin_code')}</label>
               <Input value={form.pinCode || ''} disabled />
             </div>
           </div>
           <div className="mt-8">
-            <label className="text-vista-light/70 text-sm mb-3 block">Документы игрока</label>
+            <label className="text-vista-light/70 text-sm mb-3 block">{t('playerProfile.editModal.player_documents')}</label>
             <div className="grid grid-cols-1 gap-4">
               {/* Паспорт */}
               <div className="flex flex-col gap-1">
-                <span className="text-vista-light/60 text-xs mb-1">Паспорт</span>
+                <span className="text-vista-light/60 text-xs mb-1">{t('playerProfile.passport')}</span>
                 <div className="flex items-center gap-2">
                   <Input
                     className="flex-1 min-w-0"
-                    placeholder="Серия и номер паспорта"
+                    placeholder={t('playerProfile.passport_placeholder')}
                     value={form.passportData || ''}
                     onChange={e => handleChange('passportData', e.target.value)}
                   />
@@ -304,11 +306,11 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
               </div>
               {/* Свидетельство о рождении */}
               <div className="flex flex-col gap-1">
-                <span className="text-vista-light/60 text-xs mb-1">Свидетельство о рождении</span>
+                <span className="text-vista-light/60 text-xs mb-1">{t('playerProfile.birth_certificate')}</span>
                 <div className="flex items-center gap-2">
                   <Input
                     className="flex-1 min-w-0"
-                    placeholder="Номер свидетельства о рождении"
+                    placeholder={t('playerProfile.birth_certificate_placeholder')}
                     value={form.birthCertificateNumber || ''}
                     onChange={e => handleChange('birthCertificateNumber', e.target.value)}
                   />
@@ -327,11 +329,11 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
               </div>
               {/* Медицинская страховка */}
               <div className="flex flex-col gap-1">
-                <span className="text-vista-light/60 text-xs mb-1">Медицинская страховка</span>
+                <span className="text-vista-light/60 text-xs mb-1">{t('playerProfile.medical_insurance')}</span>
                 <div className="flex items-center gap-2">
                   <Input
                     className="flex-1 min-w-0"
-                    placeholder="Номер мед. страховки"
+                    placeholder={t('playerProfile.medical_insurance_placeholder')}
                     value={form.insuranceNumber || ''}
                     onChange={e => handleChange('insuranceNumber', e.target.value)}
                   />
@@ -350,9 +352,9 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
               </div>
               {/* Виза */}
               <div className="flex flex-col gap-1">
-                <span className="text-vista-light/60 text-xs mb-1">Виза</span>
+                <span className="text-vista-light/60 text-xs mb-1">{t('playerProfile.visa')}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-vista-light/60 text-xs mb-1">Дата окончания визы</span>
+                  <span className="text-vista-light/60 text-xs mb-1">{t('playerProfile.visa_expiry_date')}</span>
                   <Input
                     className="flex-1 min-w-0 text-xs"
                     type="date"
@@ -376,7 +378,7 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
           </div>
           <div className="flex justify-end mt-4">
             <Button type="submit" className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark" disabled={saving}>
-              {saving ? 'Сохранение...' : 'Сохранить'}
+              {saving ? t('playerProfile.editModal.saving') : t('playerProfile.editModal.save')}
             </Button>
           </div>
         </form>

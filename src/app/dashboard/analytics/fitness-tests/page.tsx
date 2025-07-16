@@ -23,6 +23,7 @@ import EditFitnessTestModal from '@/components/fitness-tests/EditFitnessTestModa
 import DeleteFitnessTestModal from '@/components/fitness-tests/DeleteFitnessTestModal';
 import { Sparklines, SparklinesLine } from 'react-sparklines';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart } from 'recharts';
+import { useTranslation } from 'react-i18next';
 // @ts-ignore
 // eslint-disable-next-line
 declare module 'react-sparklines';
@@ -63,6 +64,7 @@ interface PlayerResultsHistoryModalProps {
   results: FitnessTestResult[];
 }
 function PlayerResultsHistoryModal({ open, onOpenChange, player, results }: PlayerResultsHistoryModalProps) {
+  const { t } = useTranslation();
   // Преобразуем данные для графика
   const chartData = results
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -74,7 +76,7 @@ function PlayerResultsHistoryModal({ open, onOpenChange, player, results }: Play
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-vista-dark text-vista-light rounded-xl p-6 shadow-xl max-w-2xl w-full border-none">
         <DialogHeader>
-          <DialogTitle>История результатов: {player.lastName} {player.firstName}</DialogTitle>
+          <DialogTitle>{t('fitnessTest.page.history_modal_title', { player: `${player.lastName} ${player.firstName}` })}</DialogTitle>
         </DialogHeader>
         <div className="mb-6 w-full flex justify-center">
           <ResponsiveContainer width={600} height={220}>
@@ -119,6 +121,7 @@ function formatDate(date: string) {
 }
 
 export default function FitnessTestsPage() {
+  const { t } = useTranslation();
   const [activeType, setActiveType] = useState(FITNESS_TEST_TYPES[0].value);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [tests, setTests] = useState<FitnessTest[]>([]);
@@ -341,13 +344,13 @@ export default function FitnessTestsPage() {
       <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-4 w-full">
-            <CardTitle className="text-vista-light">Фитнес тесты</CardTitle>
+            <CardTitle className="text-vista-light">{t('fitnessTest.page.title')}</CardTitle>
             <div className="w-48 ml-4">
               <TeamSelect
                 teams={teams}
                 value={selectedTeamId}
                 onChange={setSelectedTeamId}
-                placeholder="Выберите команду"
+                placeholder={t('fitnessTest.page.select_team_placeholder')}
                 disabled={teams.length === 0}
               />
             </div>
@@ -357,14 +360,14 @@ export default function FitnessTestsPage() {
             onClick={() => setIsCreateModalOpen(true)}
           >
             <Plus className="mr-2 h-4 w-4" />
-            Создать тест
+            {t('fitnessTest.page.create_test_btn')}
           </Button>
         </CardHeader>
         <CardContent>
           {teamError ? (
-            <div className="text-red-500 text-center py-8">{teamError}</div>
+            <div className="text-red-500 text-center py-8">{t('fitnessTest.page.team_error', { error: teamError })}</div>
           ) : !selectedTeamId ? (
-            <div className="text-vista-light/70 text-center py-8">Сначала выберите команду, чтобы увидеть тесты и результаты.</div>
+            <div className="text-vista-light/70 text-center py-8">{t('fitnessTest.page.select_team_hint')}</div>
           ) : (
             <>
               <Tabs value={activeType} onValueChange={setActiveType} className="w-full">
@@ -379,7 +382,7 @@ export default function FitnessTestsPage() {
                           : "text-vista-light/70 hover:text-vista-light"
                       }
                     >
-                      {type.label}
+                      {t(`fitnessTest.type.${type.value}`)}
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -387,7 +390,7 @@ export default function FitnessTestsPage() {
               {/* Горизонтальный список тестов внутри типа */}
               <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
                 {testsOfType.length === 0 ? (
-                  <div className="text-vista-light/70 text-center py-8 w-full">Нет тестов выбранного типа.</div>
+                  <div className="text-vista-light/70 text-center py-8 w-full">{t('fitnessTest.page.no_tests_of_type')}</div>
                 ) : (
                   testsOfType.map(test => (
                     <Button
@@ -407,19 +410,19 @@ export default function FitnessTestsPage() {
                 <>
                   <div className="flex gap-2 mt-4">
                     <Button size="sm" className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark" onClick={() => handleEnterResults(activeTest)}>
-                      Внести результаты
+                      {t('fitnessTest.page.enter_results_btn')}
                     </Button>
                     <Button size="sm" variant="outline" className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20" onClick={() => { setDescModalText(activeTest.description || ''); setDescModalOpen(true); }}>
-                      Описание теста
+                      {t('fitnessTest.page.test_description_btn')}
                     </Button>
-                    <Button size="sm" variant="outline" className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 ml-auto" onClick={() => { setSelectedTest(activeTest); setIsEditModalOpen(true); }}>Редактировать тест</Button>
-                    <Button size="sm" variant="destructive" onClick={() => { setSelectedTest(activeTest); setIsDeleteModalOpen(true); }}>Удалить тест</Button>
+                    <Button size="sm" variant="outline" className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 ml-auto" onClick={() => { setSelectedTest(activeTest); setIsEditModalOpen(true); }}>{t('fitnessTest.page.edit_test_btn')}</Button>
+                    <Button size="sm" variant="destructive" onClick={() => { setSelectedTest(activeTest); setIsDeleteModalOpen(true); }}>{t('fitnessTest.page.delete_test_btn')}</Button>
                   </div>
                   {/* Таблица результатов */}
                   {playersLoading || resultsLoading ? (
-                    <div className="text-vista-light/70 text-center py-8">Загрузка результатов...</div>
+                    <div className="text-vista-light/70 text-center py-8">{t('fitnessTest.page.loading_results')}</div>
                   ) : players.length === 0 ? (
-                    <div className="text-vista-light/70 text-center py-8">В команде нет игроков.</div>
+                    <div className="text-vista-light/70 text-center py-8">{t('fitnessTest.page.no_players')}</div>
                   ) : (
                     <div className="mt-6 overflow-x-auto rounded-2xl bg-vista-dark/80 border border-vista-secondary/30">
                       <table className="min-w-full text-sm">
@@ -429,7 +432,7 @@ export default function FitnessTestsPage() {
                               setSortBy('name');
                               setSortOrder(sortBy === 'name' && sortOrder === 'asc' ? 'desc' : 'asc');
                             }}>
-                              Фамилия Имя {sortBy === 'name' ? (
+                              {t('fitnessTest.page.table_name_col')} {sortBy === 'name' ? (
                                 <span style={{ fontSize: '0.8em', color: '#00bcd4', marginLeft: 2 }}>{sortOrder === 'asc' ? '▲' : '▼'}</span>
                               ) : ''}
                             </th>
@@ -437,12 +440,12 @@ export default function FitnessTestsPage() {
                               setSortBy('result');
                               setSortOrder(sortBy === 'result' && sortOrder === 'asc' ? 'desc' : 'asc');
                             }}>
-                              Результат {sortBy === 'result' ? (
+                              {t('fitnessTest.page.table_result_col')} {sortBy === 'result' ? (
                                 <span style={{ fontSize: '0.8em', color: '#00bcd4', marginLeft: 2 }}>{sortOrder === 'asc' ? '▲' : '▼'}</span>
                               ) : ''}
                             </th>
-                            <th className="text-center py-3">Динамика</th>
-                            <th className="text-center py-3">История</th>
+                            <th className="text-center py-3">{t('fitnessTest.page.table_dynamic_col')}</th>
+                            <th className="text-center py-3">{t('fitnessTest.page.table_history_col')}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -524,7 +527,7 @@ export default function FitnessTestsPage() {
                                         setHistoryModalOpen(true);
                                       }}
                                     >
-                                      История
+                                      {t('fitnessTest.page.history_btn')}
                                     </button>
                                   )}
                                 </td>
@@ -557,8 +560,8 @@ export default function FitnessTestsPage() {
         loading={createLoading}
         onSave={handleCreateTest}
         onCancel={() => setIsCreateModalOpen(false)}
-        FITNESS_TEST_TYPES={FITNESS_TEST_TYPES}
-        FITNESS_TEST_UNITS={FITNESS_TEST_UNITS}
+        FITNESS_TEST_TYPES={FITNESS_TEST_TYPES as any}
+        FITNESS_TEST_UNITS={FITNESS_TEST_UNITS as any}
         unitListRef={unitListRef}
         handleUnitScroll={handleUnitScroll}
       />

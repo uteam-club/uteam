@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
+import { useTranslation } from 'react-i18next';
 
 interface User { id: string; name: string; }
 interface Category { id: string; name: string; }
@@ -66,21 +67,23 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
   editErrors,
   loading = false,
   categories = [],
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className={`bg-vista-dark border-vista-secondary/30 text-vista-light max-h-[90vh] overflow-y-auto focus:outline-none focus:ring-0 mt-8 ${exercise && exercise.mediaItems && exercise.mediaItems.length > 0 ? 'max-w-2xl' : 'max-w-lg'}`}>
       {exercise && (
         <>
           <DialogHeader>
             <DialogTitle className="text-xl text-vista-light">
-              {isEditMode ? 'Редактирование упражнения' : exercise.title}
+                {isEditMode ? t('exercisesPage.edit_modal_title') : exercise.title}
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
             {isEditMode ? (
               <>
                 <div className="space-y-2 mb-4">
-                  <Label htmlFor="edit-title" className="text-vista-light/40 font-normal">Название</Label>
+                    <Label htmlFor="edit-title" className="text-vista-light/40 font-normal">{t('exercisesPage.title_label')}</Label>
                   <Input
                     id="edit-title"
                     name="title"
@@ -92,7 +95,7 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
                   {editErrors.title && <p className="text-red-400 text-sm">{editErrors.title}</p>}
                 </div>
                 <div className="space-y-2 mb-4">
-                  <Label htmlFor="edit-description" className="text-vista-light/40 font-normal">Описание</Label>
+                    <Label htmlFor="edit-description" className="text-vista-light/40 font-normal">{t('exercisesPage.description_label')}</Label>
                   <Textarea
                     id="edit-description"
                     name="description"
@@ -105,7 +108,7 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
                 </div>
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="space-y-2">
-                    <Label htmlFor="edit-width" className="text-vista-light/40 font-normal">Ширина (м)</Label>
+                      <Label htmlFor="edit-width" className="text-vista-light/40 font-normal">{t('exercisesPage.width_label')}</Label>
                     <Input
                       id="edit-width"
                       name="width"
@@ -118,7 +121,7 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-length" className="text-vista-light/40 font-normal">Длина (м)</Label>
+                      <Label htmlFor="edit-length" className="text-vista-light/40 font-normal">{t('exercisesPage.length_label')}</Label>
                     <Input
                       id="edit-length"
                       name="length"
@@ -132,7 +135,7 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
                   </div>
                 </div>
                 <div className="space-y-2 mb-4">
-                  <Label htmlFor="edit-category" className="text-vista-light/40 font-normal">Категория</Label>
+                    <Label htmlFor="edit-category" className="text-vista-light/40 font-normal">{t('exercisesPage.category_label')}</Label>
                   <select
                     id="edit-category"
                     name="categoryId"
@@ -141,7 +144,7 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
                     className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light rounded-md px-3 py-2 focus:outline-none focus:ring-0"
                     disabled={loading}
                   >
-                    <option value="">Выберите категорию</option>
+                      <option value="">{t('exercisesPage.select_category_placeholder')}</option>
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
@@ -162,7 +165,7 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
                     />
                   ) : (
                     <div className="w-full h-64 flex items-center justify-center bg-vista-dark/70 rounded-md text-vista-light/40">
-                      Нет медиа
+                        {t('exercisesPage.no_media')}
                     </div>
                   )}
                 </div>
@@ -174,7 +177,7 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
                       <span key={tag.id} className="bg-vista-secondary/20 text-vista-light/90 text-xs rounded px-2 py-1">{tag.name}</span>
                     ))
                   ) : (
-                    <span className="text-vista-light/50 text-xs">Теги: -</span>
+                      <span className="text-vista-light/50 text-xs">{t('exercisesPage.no_tags')}</span>
                   )}
                 </div>
                 {/* Название */}
@@ -188,56 +191,28 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
                 {/* Размеры площадки */}
                 {(exercise.length || exercise.width) && (
                   <div className="flex gap-4 mb-4 text-xs text-vista-light/60">
-                    {exercise.length && <span>Длина: {exercise.length} м</span>}
-                    {exercise.width && <span>Ширина: {exercise.width} м</span>}
+                      {exercise.length && <span>{t('exercisesPage.length_label')}: {exercise.length} м</span>}
+                      {exercise.width && <span>{t('exercisesPage.width_label')}: {exercise.width} м</span>}
                   </div>
                 )}
                 {/* Автор */}
                 <div className="mt-4">
-                  <h4 className="text-sm font-medium text-vista-light/70 mb-1">Автор:</h4>
-                  <p className="text-vista-light">{exercise.author?.name || 'Неизвестно'}</p>
+                    <h4 className="text-sm font-medium text-vista-light/70 mb-1">{t('exercisesPage.author')}:</h4>
+                    <p className="text-vista-light">{exercise.author?.name || t('exercisesPage.unknown')}</p>
                 </div>
               </>
             )}
           </div>
-          {/* Кнопки управления */}
           <DialogFooter className="flex justify-end gap-2 mt-4">
             {isEditMode ? (
               <>
-                <Button
-                  variant="outline"
-                  onClick={onCancel}
-                  className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 focus:outline-none focus:ring-0"
-                  disabled={loading}
-                >
-                  Отмена
-                </Button>
-                <Button
-                  onClick={onSave}
-                  className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark focus:outline-none focus:ring-0"
-                  disabled={loading}
-                >
-                  Сохранить
-                </Button>
+                  <Button variant="outline" onClick={onCancel} disabled={loading}>{t('common.cancel')}</Button>
+                  <Button onClick={onSave} disabled={loading}>{t('common.save')}</Button>
               </>
             ) : (
               <>
-                <Button
-                  variant="outline"
-                  onClick={onEdit}
-                  className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 focus:outline-none focus:ring-0"
-                  disabled={loading}
-                >
-                  Редактировать
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={onDelete}
-                  className="bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 focus:outline-none focus:ring-0"
-                  disabled={loading}
-                >
-                  Удалить
-                </Button>
+                  <Button variant="outline" onClick={onEdit} disabled={loading}>{t('exercisesPage.edit_btn')}</Button>
+                  <Button variant="destructive" onClick={onDelete} disabled={loading}>{t('exercisesPage.delete_btn')}</Button>
               </>
             )}
           </DialogFooter>
@@ -246,5 +221,6 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
     </DialogContent>
   </Dialog>
 );
+};
 
 export default PreviewExerciseModal; 

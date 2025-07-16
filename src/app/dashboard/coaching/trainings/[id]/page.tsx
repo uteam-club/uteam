@@ -24,6 +24,8 @@ import { Label } from '@/components/ui/label';
 import AttendanceModal from '@/components/training/AttendanceModal';
 import SelectExercisesModal from '@/components/training/SelectExercisesModal';
 import { CreateTrainingModal } from '@/components/training/CreateTrainingModal';
+import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
 
 interface Training {
   id: string;
@@ -102,6 +104,7 @@ interface TrainingCategory {
 }
 
 export default function TrainingPage() {
+  const { t } = useTranslation();
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
@@ -702,7 +705,7 @@ export default function TrainingPage() {
           href="/dashboard/coaching/trainings" 
           className="inline-flex items-center text-vista-light/70 hover:text-vista-light transition-colors"
         >
-          <ArrowLeft className="h-4 w-4 mr-1" /> Назад к списку тренировок
+          <ArrowLeft className="h-4 w-4 mr-1" /> {t('trainingsPage.back_to_list')}
         </Link>
       </div>
       
@@ -714,14 +717,14 @@ export default function TrainingPage() {
               onClick={handleAttendance}
               className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark shadow-sm"
             >
-              <ClipboardCheck className="mr-2 h-4 w-4" /> Отметить посещаемость
+              <ClipboardCheck className="mr-2 h-4 w-4" /> {t('trainingsPage.mark_attendance')}
             </Button>
             
             <Button 
               onClick={handleOpenExerciseDialog}
               className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark shadow-sm"
             >
-              <Plus className="mr-2 h-4 w-4" /> Добавить упражнение
+              <Plus className="mr-2 h-4 w-4" /> {t('trainingsPage.add_exercise')}
             </Button>
             
             {/* Переключатель состояния тренировки */}
@@ -733,7 +736,7 @@ export default function TrainingPage() {
                 className={`${isCompleted ? 'data-[state=checked]:bg-green-500' : 'data-[state=checked]:bg-vista-primary'}`}
               />
               <Label htmlFor="training-completed" className={`${isCompleted ? 'text-green-400' : 'text-vista-primary'} font-medium`}>
-                {isCompleted ? 'Завершена' : 'Запланирована'}
+                {isCompleted ? t('trainingsPage.completed_status') : t('trainingsPage.planned_status')}
               </Label>
             </div>
           </div>
@@ -745,21 +748,21 @@ export default function TrainingPage() {
               onClick={handleSave}
               className="bg-vista-dark/70 shadow-sm border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 shadow-sm"
             >
-              <Save className="mr-2 h-4 w-4" /> Сохранить
+              <Save className="mr-2 h-4 w-4" /> {t('common.save')}
             </Button>
             <Button 
               variant="secondary" 
               onClick={handleOpenEditModal}
               className="bg-vista-dark/70 shadow-sm border-vista-secondary/50 text-vista-light hover:bg-vista-primary/20 flex items-center gap-2"
             >
-              <Pencil className="h-4 w-4 mr-2 text-vista-light" /> Редактировать
+              <Pencil className="h-4 w-4 mr-2 text-vista-light" /> {t('common.edit')}
             </Button>
             <Button 
               variant="destructive" 
               onClick={handleDelete}
               className="bg-red-600/70 hover:bg-red-700/70 text-white shadow-sm"
             >
-              <Trash className="mr-2 h-4 w-4" /> Удалить
+              <Trash className="mr-2 h-4 w-4" /> {t('common.delete')}
             </Button>
           </div>
         </CardHeader>
@@ -776,8 +779,8 @@ export default function TrainingPage() {
               <div className="flex items-center bg-vista-dark/70 p-3 rounded-md border border-vista-secondary/50 shadow-md">
                 <Tag className="h-5 w-5 mr-3 text-vista-primary" />
                 <div>
-                  <div className="text-vista-light/70 text-xs mb-1">Категория</div>
-                  <div className="text-vista-light">{trainingData.category || { id: '', name: 'Без категории' }.name}</div>
+                  <div className="text-vista-light/70 text-xs mb-1">{t('trainingsPage.category_label')}</div>
+                  <div className="text-vista-light">{trainingData.category && !trainingData.category.startsWith('trainingsPage.') ? trainingData.category : t('trainingsPage.no_category')}</div>
                 </div>
               </div>
               
@@ -786,8 +789,8 @@ export default function TrainingPage() {
                 <div className="flex items-center bg-vista-dark/70 p-3 rounded-md border border-vista-secondary/50 shadow-md">
                   <Users className="h-5 w-5 mr-3 text-vista-primary" />
                   <div>
-                    <div className="text-vista-light/70 text-xs mb-1">Команда</div>
-                    <div className="text-vista-light">{trainingData.team || 'Неизвестно'}</div>
+                    <div className="text-vista-light/70 text-xs mb-1">{t('trainingsPage.team_label')}</div>
+                    <div className="text-vista-light">{trainingData.team || t('trainingsPage.no_team')}</div>
                   </div>
                 </div>
               )}
@@ -796,8 +799,8 @@ export default function TrainingPage() {
               <div className="flex items-center bg-vista-dark/70 p-3 rounded-md border border-vista-secondary/50 shadow-md">
                 <Calendar className="h-5 w-5 mr-3 text-vista-primary" />
                 <div>
-                  <div className="text-vista-light/70 text-xs mb-1">Дата</div>
-                  <div className="text-vista-light">{trainingData.date}</div>
+                  <div className="text-vista-light/70 text-xs mb-1">{t('trainingsPage.date_label')}</div>
+                  <div className="text-vista-light">{trainingData.date ? dayjs(trainingData.date).format('DD.MM.YYYY') : t('trainingsPage.no_time')}</div>
                 </div>
               </div>
               
@@ -805,8 +808,8 @@ export default function TrainingPage() {
               <div className="flex items-center bg-vista-dark/70 p-3 rounded-md border border-vista-secondary/50 shadow-md">
                 <Clock className="h-5 w-5 mr-3 text-vista-primary" />
                 <div>
-                  <div className="text-vista-light/70 text-xs mb-1">Время</div>
-                  <div className="text-vista-light">{trainingData.time ? trainingData.time : 'Неизвестно'}</div>
+                  <div className="text-vista-light/70 text-xs mb-1">{t('trainingsPage.time_label')}</div>
+                  <div className="text-vista-light">{trainingData.time ? trainingData.time : t('trainingsPage.no_time')}</div>
                 </div>
               </div>
               
@@ -815,7 +818,7 @@ export default function TrainingPage() {
                 <div className="flex items-center bg-vista-dark/70 p-3 rounded-md border border-vista-secondary/50 shadow-md sm:col-span-2 md:col-span-4">
                   <MapPin className="h-5 w-5 mr-3 text-vista-primary" />
                   <div>
-                    <div className="text-vista-light/70 text-xs mb-1">Место проведения</div>
+                    <div className="text-vista-light/70 text-xs mb-1">{t('trainingsPage.location_label')}</div>
                     <div className="text-vista-light">{trainingData.location || 'Неизвестно'}</div>
                   </div>
                 </div>
@@ -829,7 +832,7 @@ export default function TrainingPage() {
                   <div className="bg-vista-dark/30 p-4 rounded-md border border-vista-secondary/30 shadow-md">
                     <div className="flex items-center mb-2">
                       <FileText className="h-5 w-5 mr-2 text-vista-primary" />
-                      <h3 className="text-vista-light font-medium">Описание</h3>
+                      <h3 className="text-vista-light font-medium">{t('trainingsPage.description_title')}</h3>
                     </div>
                     <p className="text-vista-light/90">{trainingData.description || 'Без описания'}</p>
                   </div>
@@ -839,7 +842,7 @@ export default function TrainingPage() {
                   <div className="bg-vista-dark/30 p-4 rounded-md border border-vista-secondary/30 shadow-md">
                     <div className="flex items-center mb-2">
                       <FileText className="h-5 w-5 mr-2 text-vista-primary" />
-                      <h3 className="text-vista-light font-medium">Примечания</h3>
+                      <h3 className="text-vista-light font-medium">{t('trainingsPage.notes_title')}</h3>
                     </div>
                     <p className="text-vista-light/90 whitespace-pre-line">{trainingData.notes || 'Без примечаний'}</p>
                   </div>
@@ -852,7 +855,7 @@ export default function TrainingPage() {
 
           {/* Упражнения для тренировки */}
           <div>
-            <h3 className="text-vista-light text-lg mb-4">Упражнения</h3>
+            <h3 className="text-vista-light text-lg mb-4">{t('trainingsPage.exercises_title')}</h3>
             
             {exercises.length > 0 ? (
               <div className="space-y-4">
@@ -894,14 +897,14 @@ export default function TrainingPage() {
                               </div>
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-vista-light/50 min-h-[200px]">
-                                <span>Изображение недоступно</span>
+                                <span>{t('trainingsPage.image_unavailable')}</span>
                               </div>
                             );
                           })()}
                         </>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-vista-light/50 min-h-[200px]">
-                          <span>Нет изображения</span>
+                          <span>{t('trainingsPage.no_image')}</span>
                         </div>
                       )}
                     </div>
@@ -972,7 +975,7 @@ export default function TrainingPage() {
             ) : (
               <div className="text-center py-10 border border-dashed border-vista-secondary/50 rounded-md">
                 <p className="text-vista-light/60">
-                  Для этой тренировки пока не добавлены упражнения
+                  {t('trainingsPage.no_exercises_for_training')}
                 </p>
               </div>
             )}
@@ -1020,20 +1023,20 @@ export default function TrainingPage() {
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
           <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-hidden backdrop-blur-xl">
             <DialogHeader>
-              <DialogTitle className="text-vista-light text-xl">Редактировать тренировку</DialogTitle>
+              <DialogTitle className="text-vista-light text-xl">{t('trainingsPage.edit_training_title')}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-title" className="text-vista-light/40 font-normal">Название</Label>
-                <Input id="edit-title" value={editTraining.title} onChange={e => handleEditTrainingChange('title', e.target.value)} className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50" placeholder="Введите название тренировки" />
+                <Label htmlFor="edit-title" className="text-vista-light/40 font-normal">{t('trainingsPage.title_label')}</Label>
+                <Input id="edit-title" value={editTraining.title} onChange={e => handleEditTrainingChange('title', e.target.value)} className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50" placeholder={t('trainingsPage.training_title_placeholder')} />
               </div>
               <div className="space-y-2">
                 {!isSingleTeam && (
                   <>
-                    <Label htmlFor="edit-team" className="text-vista-light/40 font-normal">Команда</Label>
+                    <Label htmlFor="edit-team" className="text-vista-light/40 font-normal">{t('trainingsPage.team_label')}</Label>
                     <Select value={editTraining.teamId} onValueChange={v => handleEditTrainingChange('teamId', v)}>
                       <SelectTrigger id="edit-team" className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
-                        <SelectValue placeholder="Выберите команду" />
+                        <SelectValue placeholder={t('trainingsPage.select_team_placeholder')} />
                       </SelectTrigger>
                       <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
                         {teams.map(team => (
@@ -1045,7 +1048,7 @@ export default function TrainingPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-date" className="text-vista-light/40 font-normal">Дата и время</Label>
+                <Label htmlFor="edit-date" className="text-vista-light/40 font-normal">{t('trainingsPage.date_and_time_label')}</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="relative">
                     <Input id="edit-date" type="date" value={editTraining.date} onChange={e => handleEditTrainingChange('date', e.target.value)} className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden" onClick={e => { try { (e.target as HTMLInputElement).showPicker(); } catch (error) {} }} />
@@ -1056,10 +1059,10 @@ export default function TrainingPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-category" className="text-vista-light/40 font-normal">Категория</Label>
+                <Label htmlFor="edit-category" className="text-vista-light/40 font-normal">{t('trainingsPage.category_label')}</Label>
                 <Select value={editTraining.categoryId} onValueChange={v => handleEditTrainingChange('categoryId', v)}>
                   <SelectTrigger id="edit-category" className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
-                    <SelectValue placeholder="Выберите категорию" />
+                    <SelectValue placeholder={t('trainingsPage.select_category_placeholder')} />
                   </SelectTrigger>
                   <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
                     {trainingCategories.map((category: TrainingCategory) => (
@@ -1069,21 +1072,21 @@ export default function TrainingPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-type" className="text-vista-light/40 font-normal">Тип</Label>
+                <Label htmlFor="edit-type" className="text-vista-light/40 font-normal">{t('trainingsPage.type_label')}</Label>
                 <Select value={editTraining.type} onValueChange={v => handleEditTrainingChange('type', v)}>
                   <SelectTrigger id="edit-type" className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
-                    <SelectValue placeholder="Выберите тип" />
+                    <SelectValue placeholder={t('trainingsPage.select_type_placeholder')} />
                   </SelectTrigger>
                   <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
-                    <SelectItem value="TRAINING">Тренировка</SelectItem>
-                    <SelectItem value="GYM">Тренажерный зал</SelectItem>
+                    <SelectItem value="TRAINING">{t('trainingsPage.training_type')}</SelectItem>
+                    <SelectItem value="GYM">{t('trainingsPage.gym_type')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="border-vista-secondary/30">Отмена</Button>
-              <Button onClick={handleEditTrainingSave} className="bg-vista-primary hover:bg-vista-primary/90">Сохранить</Button>
+              <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="border-vista-secondary/30">{t('common.cancel')}</Button>
+              <Button onClick={handleEditTrainingSave} className="bg-vista-primary hover:bg-vista-primary/90">{t('common.save')}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

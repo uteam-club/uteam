@@ -49,6 +49,8 @@ import {
 import { mutate } from 'swr';
 import CreateExerciseModal from '@/components/training/CreateExerciseModal';
 import PreviewExerciseModal from '@/components/training/PreviewExerciseModal';
+import { useTranslation } from 'react-i18next';
+import type { SupportedLang } from '@/types/i18n';
 
 interface User {
   id: string;
@@ -88,6 +90,8 @@ interface Exercise {
 }
 
 export default function ExercisesPage() {
+  const { t, i18n } = useTranslation();
+  const lang: SupportedLang = i18n.language === 'en' ? 'en' : 'ru';
   const { data: session } = useSession();
   
   // Состояние для фильтров
@@ -353,15 +357,15 @@ export default function ExercisesPage() {
     } = {};
     
     if (!editExerciseForm.title.trim()) {
-      newErrors.title = 'Название упражнения обязательно';
+      newErrors.title = t('exercisesPage.validation_title_required');
     }
     
     if (!editExerciseForm.description.trim()) {
-      newErrors.description = 'Описание упражнения обязательно';
+      newErrors.description = t('exercisesPage.validation_description_required');
     }
     
     if (!editExerciseForm.categoryId) {
-      newErrors.categoryId = 'Категория упражнения обязательна';
+      newErrors.categoryId = t('exercisesPage.validation_category_required');
     }
     
     setEditErrors(newErrors);
@@ -441,7 +445,7 @@ export default function ExercisesPage() {
       });
       
       if (!response.ok) {
-        throw new Error('Ошибка при обновлении упражнения');
+        throw new Error(t('exercisesPage.error_updating_exercise'));
       }
       
       // Получаем обновленные данные
@@ -491,7 +495,7 @@ export default function ExercisesPage() {
       
     } catch (error) {
       console.error('Ошибка при обновлении упражнения:', error);
-      alert('Произошла ошибка при обновлении упражнения');
+      alert(t('exercisesPage.error_updating_exercise'));
       
       // Восстанавливаем данные в случае ошибки
       mutate('/api/exercises', undefined, true);
@@ -506,7 +510,7 @@ export default function ExercisesPage() {
   const deleteExercise = async () => {
     if (!previewExercise) return;
     
-    if (!window.confirm('Вы уверены, что хотите удалить это упражнение?')) {
+    if (!window.confirm(t('exercisesPage.confirm_delete_exercise'))) {
       return;
     }
     
@@ -539,7 +543,7 @@ export default function ExercisesPage() {
       });
       
       if (!response.ok) {
-        throw new Error('Ошибка при удалении упражнения');
+        throw new Error(t('exercisesPage.error_deleting_exercise'));
       }
       
       // После успешного удаления принудительно обновляем данные
@@ -580,7 +584,7 @@ export default function ExercisesPage() {
       
     } catch (error) {
       console.error('Ошибка при удалении упражнения:', error);
-      alert('Произошла ошибка при удалении упражнения');
+      alert(t('exercisesPage.error_deleting_exercise'));
       
       // В случае ошибки, восстанавливаем данные
       mutate('/api/exercises', undefined, true);
@@ -638,7 +642,7 @@ export default function ExercisesPage() {
       return (
         <div className="flex items-center justify-center p-4">
           <Loader2 className="h-6 w-6 animate-spin text-vista-primary" />
-          <span className="ml-2">Загрузка тегов...</span>
+          <span className="ml-2">{t('exercisesPage.loading_tags')}</span>
         </div>
       );
     }
@@ -646,7 +650,7 @@ export default function ExercisesPage() {
     if (isTagsError) {
       return (
         <div className="flex flex-col items-center justify-center p-4">
-          <div className="text-red-500 mb-2">Не удалось загрузить список тегов</div>
+          <div className="text-red-500 mb-2">{t('exercisesPage.failed_to_load_tags')}</div>
           <Button 
             variant="outline" 
             size="sm"
@@ -654,7 +658,7 @@ export default function ExercisesPage() {
             className="flex items-center"
           >
             <Play className="h-4 w-4 mr-2" />
-            Повторить загрузку
+            {t('exercisesPage.retry_load')}
           </Button>
         </div>
       );
@@ -662,9 +666,7 @@ export default function ExercisesPage() {
 
     if (!tagsData || tagsData.length === 0) {
       return (
-        <div className="text-center p-4 text-vista-secondary">
-          Нет доступных тегов
-        </div>
+        <div className="text-center p-4 text-vista-secondary">{t('exercisesPage.no_tags_available')}</div>
       );
     }
 
@@ -751,9 +753,9 @@ export default function ExercisesPage() {
   // Валидация формы создания
   const validateCreateForm = () => {
     const validationErrors: { title?: string; description?: string; categoryId?: string } = {};
-    if (!newExercise.title) validationErrors.title = 'Введите название упражнения';
-    if (!newExercise.description) validationErrors.description = 'Введите описание упражнения';
-    if (!newExercise.categoryId) validationErrors.categoryId = 'Выберите категорию';
+    if (!newExercise.title) validationErrors.title = t('exercisesPage.validation_title_required');
+    if (!newExercise.description) validationErrors.description = t('exercisesPage.validation_description_required');
+    if (!newExercise.categoryId) validationErrors.categoryId = t('exercisesPage.validation_category_required');
     setErrors(validationErrors);
     return Object.keys(validationErrors).length === 0;
   };
@@ -775,7 +777,7 @@ export default function ExercisesPage() {
         body: formData,
       });
       if (!response.ok) {
-        throw new Error('Ошибка при создании упражнения');
+        throw new Error(t('exercisesPage.error_creating_exercise'));
       }
       setIsCreateDialogOpen(false);
       setNewExercise({
@@ -792,7 +794,8 @@ export default function ExercisesPage() {
       mutate('/api/exercises', undefined, true);
       mutate((key) => typeof key === 'string' && key.startsWith('/api/exercises/filter'), undefined, true);
     } catch (error) {
-      setErrors({ title: 'Ошибка при создании упражнения' });
+      setErrors({ title: t('exercisesPage.error_creating_exercise') });
+      alert(t('exercisesPage.error_creating_exercise'));
       console.error('Ошибка при создании упражнения:', error);
     }
   };
@@ -801,13 +804,13 @@ export default function ExercisesPage() {
     <div className="space-y-6">
       <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-vista-light">Упражнения</CardTitle>
+          <CardTitle className="text-vista-light">{t('exercisesPage.title')}</CardTitle>
           <Button 
             onClick={() => setIsCreateDialogOpen(true)}
             className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Добавить упражнение
+            {t('exercisesPage.add_exercise')}
           </Button>
         </CardHeader>
         <CardContent className="custom-scrollbar">
@@ -818,7 +821,7 @@ export default function ExercisesPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-light/50" />
                 <Input 
-                  placeholder="Поиск упражнений..."
+                  placeholder={t('exercisesPage.search_placeholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
@@ -839,10 +842,10 @@ export default function ExercisesPage() {
                 onValueChange={(value) => setSelectedAuthor(value === "all" ? null : value)}
               >
                 <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
-                  <SelectValue placeholder="Выберите автора" />
+                  <SelectValue placeholder={t('exercisesPage.select_author_placeholder')} />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light shadow-lg">
-                  <SelectItem value="all">Все авторы</SelectItem>
+                  <SelectItem value="all">{t('exercisesPage.all_authors')}</SelectItem>
                   {usersData.map((user: User) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.name}
@@ -857,10 +860,10 @@ export default function ExercisesPage() {
                 onValueChange={(value) => setSelectedCategory(value === "all" ? null : value)}
               >
                 <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
-                  <SelectValue placeholder="Выберите категорию" />
+                  <SelectValue placeholder={t('exercisesPage.select_category_placeholder')} />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light shadow-lg">
-                  <SelectItem value="all">Все категории</SelectItem>
+                  <SelectItem value="all">{t('exercisesPage.all_categories')}</SelectItem>
                   {categoriesData.map((category: Category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
@@ -876,7 +879,7 @@ export default function ExercisesPage() {
                   className="w-full sm:w-[200px] justify-between bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
                   onClick={() => setTagsPopoverOpen(!tagsPopoverOpen)}
                 >
-                  {selectedTags.length > 0 ? `${selectedTags.length} тегов` : "Выберите теги"}
+                  {selectedTags.length > 0 ? `${selectedTags.length} ${t('exercisesPage.selected_tags')}` : `${t('exercisesPage.select_tags')}`}
                   <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
                 
@@ -886,7 +889,7 @@ export default function ExercisesPage() {
                       <div className="relative mb-2">
                         <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-light/50" />
                         <Input 
-                          placeholder="Поиск тега..." 
+                          placeholder={t('exercisesPage.search_tag_placeholder')} 
                           className="pl-8 pr-2 h-9 text-vista-light bg-vista-dark/30 border-vista-secondary/30"
                         />
                       </div>
@@ -902,14 +905,14 @@ export default function ExercisesPage() {
                           className="mr-2 text-xs border-vista-secondary/30"
                           onClick={() => setSelectedTags([])}
                         >
-                          Очистить
+                          {t('exercisesPage.clear_tags')}
                         </Button>
                         <Button 
                           size="sm" 
                           className="text-xs bg-vista-primary text-vista-dark hover:bg-vista-primary/90"
                           onClick={() => setTagsPopoverOpen(false)}
                         >
-                          Готово
+                          {t('exercisesPage.done')}
                         </Button>
                       </div>
                     </div>
@@ -921,11 +924,11 @@ export default function ExercisesPage() {
             {/* Отображение выбранных фильтров */}
             {hasActiveFilters && (
               <div className="flex flex-wrap items-center gap-2 mt-2">
-                <span className="text-sm text-vista-light/70">Активные фильтры:</span>
+                <span className="text-sm text-vista-light/70">{t('exercisesPage.active_filters')}:</span>
                 
                 {searchQuery && (
                   <Badge variant="secondary" className="bg-vista-secondary/20 text-vista-light">
-                    Поиск: {searchQuery}
+                    {t('exercisesPage.search')}: {searchQuery}
                     <button onClick={() => setSearchQuery('')} className="ml-1">
                       <X className="h-3 w-3" />
                     </button>
@@ -934,7 +937,7 @@ export default function ExercisesPage() {
                 
                 {selectedAuthor && (
                   <Badge variant="secondary" className="bg-vista-secondary/20 text-vista-light">
-                    Автор: {usersData.find((u: User) => u.id === selectedAuthor)?.name || 'Неизвестно'}
+                    {t('exercisesPage.author')}: {usersData.find((u: User) => u.id === selectedAuthor)?.name || t('exercisesPage.unknown')}
                     <button onClick={() => setSelectedAuthor(null)} className="ml-1">
                       <X className="h-3 w-3" />
                     </button>
@@ -943,7 +946,7 @@ export default function ExercisesPage() {
                 
                 {selectedCategory && (
                   <Badge variant="secondary" className="bg-vista-secondary/20 text-vista-light">
-                    Категория: {categoriesData.find((c: Category) => c.id === selectedCategory)?.name}
+                    {t('exercisesPage.category')}: {categoriesData.find((c: Category) => c.id === selectedCategory)?.name}
                     <button onClick={() => setSelectedCategory(null)} className="ml-1">
                       <X className="h-3 w-3" />
                     </button>
@@ -952,7 +955,7 @@ export default function ExercisesPage() {
                 
                 {selectedTagNames.map((tagName) => (
                   <Badge key={tagName} variant="secondary" className="bg-vista-secondary/20 text-vista-light">
-                    Тег: {tagName}
+                    {t('exercisesPage.tag')}: {tagName}
                     <button 
                       onClick={() => {
                         const tagId = tagsData.find((t: Tag) => t.name === tagName)?.id;
@@ -973,7 +976,7 @@ export default function ExercisesPage() {
                   onClick={resetFilters}
                   className="ml-auto text-vista-light/70 hover:text-vista-light border-vista-secondary/30"
                 >
-                  Сбросить все
+                  {t('exercisesPage.reset_all_filters')}
                 </Button>
               </div>
             )}
@@ -1055,12 +1058,12 @@ export default function ExercisesPage() {
                       
                       <div className="mt-2">
                         <span className="inline-block px-2 py-1 text-xs rounded-md bg-vista-primary/20 text-vista-primary">
-                          {exercise.category?.name || 'Без категории'}
+                          {exercise.category?.name || t('exercisesPage.no_category')}
                         </span>
                       </div>
                       
                       <div className="mt-2 text-xs text-vista-light/70">
-                        Автор: {exercise.author?.name || 'Неизвестно'}
+                        {t('exercisesPage.author')}: {exercise.author?.name || t('exercisesPage.unknown')}
                       </div>
                       
                       <div className="mt-2 flex flex-wrap gap-1">
@@ -1093,7 +1096,7 @@ export default function ExercisesPage() {
                     disabled={!pagination.hasPreviousPage}
                     className="border-vista-secondary/30 text-vista-light"
                   >
-                    Назад
+                    {t('exercisesPage.back')}
                   </Button>
                   
                   <div className="flex items-center space-x-1">
@@ -1164,7 +1167,7 @@ export default function ExercisesPage() {
                     disabled={!pagination.hasNextPage}
                     className="border-vista-secondary/30 text-vista-light"
                   >
-                    Вперед
+                    {t('exercisesPage.forward')}
                   </Button>
                 </div>
               )}
@@ -1173,8 +1176,8 @@ export default function ExercisesPage() {
             <div className="text-center py-8 border border-dashed border-vista-secondary/30 rounded-md">
               <p className="text-vista-light/60">
                 {hasActiveFilters
-                  ? "Упражнения по заданным фильтрам не найдены"
-                  : "Упражнения не найдены"}
+                  ? t('exercisesPage.no_exercises_filtered_message')
+                  : t('exercisesPage.no_exercises_message')}
               </p>
             </div>
           )}

@@ -57,6 +57,9 @@ import { TeamSelect } from '@/components/ui/team-select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
+import { useMemo } from 'react';
 
 interface Player {
   id: string;
@@ -103,67 +106,6 @@ interface MatchDetails {
   playerStats: PlayerStat[];
   positionAssignments?: Record<string, number>;
   status?: string;
-}
-
-const competitionTypeLabels = {
-  FRIENDLY: 'Товарищеский',
-  LEAGUE: 'Лига',
-  CUP: 'Кубок'
-};
-
-// Mapping of game formats to available formations
-const formatFormations = {
-  '7×7': ['1-3-3', '1-3-2-1', '1-2-3-1'],
-  '8×8': ['1-4-3', '1-4-2-1', '1-3-3-1', '1-3-1-3', '1-3-1-2-1'],
-  '9×9': ['1-4-3-1', '1-3-4-1', '1-3-3-2', '1-3-2-3', '1-3-1-3-1'],
-  '10×10': ['1-4-4-1', '1-4-3-2', '1-4-2-3', '1-4-1-3-1', '1-3-4-2', '1-3-3-3', '1-3-2-3-1'],
-  '11×11': ['1-5-2-3', '1-5-3-2', '1-4-5-1', '1-4-1-4-1', '1-4-4-2', '1-4-2-3-1', '1-4-3-3', '1-3-4-3', '1-3-4-1-2', '1-3-4-2-1']
-};
-
-// All available formats
-const gameFormats = Object.keys(formatFormations);
-
-// Available marker colors with actual color hex values
-const markerColors = [
-  { name: 'Красный', value: 'red-500', hex: '#ef4444' },
-  { name: 'Синий', value: 'blue-500', hex: '#3b82f6' },
-  { name: 'Зеленый', value: 'green-500', hex: '#22c55e' },
-  { name: 'Желтый', value: 'yellow-500', hex: '#eab308' },
-  { name: 'Оранжевый', value: 'orange-500', hex: '#f97316' },
-  { name: 'Розовый', value: 'pink-500', hex: '#ec4899' },
-  { name: 'Фиолетовый', value: 'purple-500', hex: '#a855f7' },
-  { name: 'Голубой', value: 'sky-500', hex: '#0ea5e9' },
-  { name: 'Бирюзовый', value: 'teal-500', hex: '#14b8a6' },
-  { name: 'Лайм', value: 'lime-500', hex: '#84cc16' },
-  { name: 'Коричневый', value: 'amber-800', hex: '#92400e' },
-  { name: 'Серый', value: 'gray-500', hex: '#6b7280' },
-  { name: 'Черный', value: 'black', hex: '#000000' },
-  { name: 'Белый', value: 'white', hex: '#ffffff' }
-];
-
-// Function to get hex color from color value
-const getColorHex = (colorValue: string) => {
-  const color = markerColors.find(c => c.value === colorValue);
-  return color ? color.hex : '#ef4444'; // Default to red if not found
-};
-
-// Enumerate player statuses for squad selection
-enum PlayerSquadStatus {
-  STARTER = 'STARTER',
-  SUBSTITUTE = 'SUBSTITUTE',
-  RESERVE = 'RESERVE'
-}
-
-// Add to your interfaces
-interface TeamPlayer {
-  id: string;
-  firstName: string;
-  lastName: string;
-  number?: number;
-  position?: string;
-  imageUrl?: string;
-  teamId: string;
-  squadStatus?: PlayerSquadStatus; // For tracking status in the modal
 }
 
 export default function MatchDetailsPage() {
@@ -222,6 +164,64 @@ export default function MatchDetailsPage() {
   const [savingEdit, setSavingEdit] = useState(false);
 
   const isSingleTeam = teams.length === 1;
+
+  const { t } = useTranslation();
+  // Competition type labels
+  const competitionTypeLabels = useMemo(() => ({
+    FRIENDLY: t('matchPage.friendly'),
+    LEAGUE: t('matchPage.league'),
+    CUP: t('matchPage.cup')
+  }), [t]);
+  // Mapping of game formats to available formations
+  const formatFormations = {
+    '7×7': ['1-3-3', '1-3-2-1', '1-2-3-1'],
+    '8×8': ['1-4-3', '1-4-2-1', '1-3-3-1', '1-3-1-3', '1-3-1-2-1'],
+    '9×9': ['1-4-3-1', '1-3-4-1', '1-3-3-2', '1-3-2-3', '1-3-1-3-1'],
+    '10×10': ['1-4-4-1', '1-4-3-2', '1-4-2-3', '1-4-1-3-1', '1-3-4-2', '1-3-3-3', '1-3-2-3-1'],
+    '11×11': ['1-5-2-3', '1-5-3-2', '1-4-5-1', '1-4-1-4-1', '1-4-4-2', '1-4-2-3-1', '1-4-3-3', '1-3-4-3', '1-3-4-1-2', '1-3-4-2-1']
+  };
+  // All available formats
+  const gameFormats = Object.keys(formatFormations);
+  // Available marker colors with actual color hex values
+  const markerColors = [
+    { name: t('matchPage.red'), value: 'red-500', hex: '#ef4444' },
+    { name: t('matchPage.blue'), value: 'blue-500', hex: '#3b82f6' },
+    { name: t('matchPage.green'), value: 'green-500', hex: '#22c55e' },
+    { name: t('matchPage.yellow'), value: 'yellow-500', hex: '#eab308' },
+    { name: t('matchPage.orange'), value: 'orange-500', hex: '#f97316' },
+    { name: t('matchPage.pink'), value: 'pink-500', hex: '#ec4899' },
+    { name: t('matchPage.purple'), value: 'purple-500', hex: '#a855f7' },
+    { name: t('matchPage.sky'), value: 'sky-500', hex: '#0ea5e9' },
+    { name: t('matchPage.teal'), value: 'teal-500', hex: '#14b8a6' },
+    { name: t('matchPage.lime'), value: 'lime-500', hex: '#84cc16' },
+    { name: t('matchPage.brown'), value: 'amber-800', hex: '#92400e' },
+    { name: t('matchPage.gray'), value: 'gray-500', hex: '#6b7280' },
+    { name: t('matchPage.black'), value: 'black', hex: '#000000' },
+    { name: t('matchPage.white'), value: 'white', hex: '#ffffff' }
+  ];
+  // Function to get hex color from color value
+  const getColorHex = (colorValue: string) => {
+    const color = markerColors.find(c => c.value === colorValue);
+    return color ? color.hex : '#ef4444'; // Default to red if not found
+  };
+
+  // Enumerate player statuses for squad selection
+  enum PlayerSquadStatus {
+    STARTER = 'STARTER',
+    SUBSTITUTE = 'SUBSTITUTE',
+    RESERVE = 'RESERVE'
+  }
+  // Add to your interfaces
+  interface TeamPlayer {
+    id: string;
+    firstName: string;
+    lastName: string;
+    number?: number;
+    position?: string;
+    imageUrl?: string;
+    teamId: string;
+    squadStatus?: PlayerSquadStatus; // For tracking status in the modal
+  }
 
   useEffect(() => {
     if (matchId) {
@@ -891,14 +891,14 @@ export default function MatchDetailsPage() {
           className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
         >
           <ChevronLeftIcon className="w-4 h-4 mr-2" />
-          Назад к матчам
+          {t('matchPage.back_to_matches')}
         </Button>
         <Button
           size="sm"
           className="bg-vista-primary/90 hover:bg-vista-primary text-vista-dark h-8"
           onClick={() => setEditModalOpen(true)}
         >
-          Редактировать данные
+          {t('matchPage.edit_data')}
         </Button>
         {hasChanges && (
           <Button 
@@ -908,7 +908,7 @@ export default function MatchDetailsPage() {
             disabled={isSaving}
           >
             <Save className="w-4 h-4 mr-1" />
-            {isSaving ? 'Сохранение...' : 'Сохранить'}
+            {isSaving ? 'Сохранение...' : t('matchPage.save')}
           </Button>
         )}
       </div>
@@ -922,10 +922,10 @@ export default function MatchDetailsPage() {
                 <div className="flex flex-col items-center">
                   <div className="text-vista-light/60 text-sm flex items-center mb-2">
                     <Calendar className="w-4 h-4 mr-1" />
-                    Дата и время
+                    {t('matchPage.date_and_time')}
                   </div>
                   <div className="text-vista-light font-semibold flex items-center space-x-2">
-                    <span>{formatMatchDate(match.date)}</span>
+                    <span>{dayjs(match.date).format('DD.MM.YYYY')}</span>
                     <span>·</span>
                     <span>{match.time}</span>
                   </div>
@@ -938,10 +938,10 @@ export default function MatchDetailsPage() {
                 <div className="flex flex-col items-center">
                   <div className="text-vista-light/60 text-sm flex items-center mb-2">
                     <MapPin className="w-4 h-4 mr-1" />
-                    Место проведения
+                    {t('matchPage.location')}
                   </div>
                   <div className="text-vista-light font-semibold">
-                    {match.isHome ? 'Домашний матч' : 'Выездной матч'}
+                    {match.isHome ? t('matchPage.home_match') : t('matchPage.away_match')}
                   </div>
                 </div>
               </CardContent>
@@ -952,7 +952,7 @@ export default function MatchDetailsPage() {
                 <div className="flex flex-col items-center">
                   <div className="text-vista-light/60 text-sm flex items-center mb-2">
                     <Medal className="w-4 h-4 mr-1" />
-                    Тип матча
+                    {t('matchPage.match_type')}
                   </div>
                   <div className="text-vista-light font-semibold">
                     {competitionTypeLabels[match.competitionType]}
@@ -971,7 +971,7 @@ export default function MatchDetailsPage() {
                     {match.isHome ? (match.team?.name || 'Команда') : match.opponentName}
                   </div>
                   <div className="text-sm text-vista-light/70">
-                    {match.isHome ? 'Наша команда' : 'Соперник'}
+                    {match.isHome ? t('matchPage.our_team') : t('matchPage.opponent')}
                   </div>
                 </div>
                 
@@ -992,7 +992,7 @@ export default function MatchDetailsPage() {
                     {match.isHome ? match.opponentName : (match.team?.name || 'Команда')}
                   </div>
                   <div className="text-sm text-vista-light/70">
-                    {match.isHome ? 'Соперник' : 'Наша команда'}
+                    {match.isHome ? t('matchPage.opponent') : t('matchPage.our_team')}
                   </div>
                 </div>
               </div>
@@ -1006,7 +1006,7 @@ export default function MatchDetailsPage() {
               className="w-full h-[52px] bg-vista-dark/50 border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 shadow-sm flex items-center justify-center"
             >
               <Activity className="w-4 h-4 mr-2 text-vista-primary" />
-              GPS отчет
+              {t('matchPage.gps_report')}
             </Button>
             
             <Button 
@@ -1014,7 +1014,7 @@ export default function MatchDetailsPage() {
               className="w-full h-[52px] bg-vista-dark/50 border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 shadow-sm flex items-center justify-center"
             >
               <FileText className="w-4 h-4 mr-2 text-vista-primary" />
-              План на игру
+              {t('matchPage.plan')}
             </Button>
             
             <Button 
@@ -1022,7 +1022,7 @@ export default function MatchDetailsPage() {
               className="w-full h-[52px] bg-vista-dark/50 border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 shadow-sm flex items-center justify-center"
             >
               <Video className="w-4 h-4 mr-2 text-vista-primary" />
-              Запись игры
+              {t('matchPage.video')}
             </Button>
             
             <Button 
@@ -1030,7 +1030,7 @@ export default function MatchDetailsPage() {
               className="w-full h-[52px] bg-vista-dark/50 border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 shadow-sm flex items-center justify-center"
             >
               <Info className="w-4 h-4 mr-2 text-vista-primary" />
-              Детали матча
+              {t('matchPage.details')}
             </Button>
             
             <Button 
@@ -1038,7 +1038,7 @@ export default function MatchDetailsPage() {
               className="w-full h-[52px] bg-vista-dark/50 border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 shadow-sm flex items-center justify-center"
             >
               <BarChart2 className="w-4 h-4 mr-2 text-vista-primary" />
-              Анализ матча
+              {t('matchPage.analysis')}
             </Button>
           </div>
         </div>
@@ -1065,13 +1065,13 @@ export default function MatchDetailsPage() {
                 <div className="space-y-4">
                   {/* Формат игры - выпадающий список */}
                   <div>
-                    <div className="text-vista-light/60 text-sm mb-1">Формат игры</div>
+                    <div className="text-vista-light/60 text-sm mb-1">{t('matchPage.game_format')}</div>
                     <Select
                       value={selectedFormat}
                       onValueChange={handleFormatChange}
                     >
                       <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30 text-vista-light">
-                        <SelectValue placeholder="Выберите формат" />
+                        <SelectValue placeholder={t('matchPage.select_format')} />
                       </SelectTrigger>
                       <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light">
                         {gameFormats.map((format) => (
@@ -1085,13 +1085,13 @@ export default function MatchDetailsPage() {
                   
                   {/* Схема расстановки - выпадающий список */}
                   <div>
-                    <div className="text-vista-light/60 text-sm mb-1">Схема расстановки</div>
+                    <div className="text-vista-light/60 text-sm mb-1">{t('matchPage.formation_scheme')}</div>
                     <Select
                       value={selectedFormation}
                       onValueChange={handleFormationChange}
                     >
                       <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30 text-vista-light">
-                        <SelectValue placeholder="Выберите схему" />
+                        <SelectValue placeholder={t('matchPage.select_formation')} />
                       </SelectTrigger>
                       <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light">
                         {availableFormations.map((formation) => (
@@ -1105,7 +1105,7 @@ export default function MatchDetailsPage() {
 
                   {/* Цвет фишек - заменяем на Popover для выбора цвета */}
                   <div>
-                    <div className="text-vista-light/60 text-sm mb-1">Цвет фишек</div>
+                    <div className="text-vista-light/60 text-sm mb-1">{t('matchPage.marker_color')}</div>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button 
@@ -1117,7 +1117,7 @@ export default function MatchDetailsPage() {
                               className="w-5 h-5 rounded-full mr-2 flex-shrink-0" 
                               style={{ backgroundColor: getColorHex(selectedColor) }}
                             ></div>
-                            <span>{markerColors.find(c => c.value === selectedColor)?.name || 'Выберите цвет'}</span>
+                            <span>{markerColors.find(c => c.value === selectedColor)?.name || t('matchPage.select_color')}</span>
                           </div>
                           <ChevronDown className="h-4 w-4 opacity-50" />
                         </Button>
@@ -1151,31 +1151,31 @@ export default function MatchDetailsPage() {
                   {/* Кнопки одна под другой */}
                   <div className="space-y-3 pt-2">
                     <div>
-                      <div className="text-vista-light/60 text-sm mb-1">Состав на матч</div>
+                      <div className="text-vista-light/60 text-sm mb-1">{t('matchPage.squad_on_match')}</div>
                       <Button 
                         className="w-full h-[33px] bg-vista-primary/90 hover:bg-vista-primary text-vista-dark flex items-center justify-center"
                         onClick={handleSquadModalOpen}
                       >
                         <User className="w-4 h-4 mr-2" />
-                        Редактировать
+                        {t('matchPage.squad')}
                       </Button>
                     </div>
 
                     <div>
-                      <div className="text-vista-light/60 text-sm mb-1">Статистика</div>
+                      <div className="text-vista-light/60 text-sm mb-1">{t('matchPage.statistics')}</div>
                       <Button 
                         className="w-full h-[33px] bg-vista-primary/90 hover:bg-vista-primary text-vista-dark flex items-center justify-center"
                         onClick={handleStatsEdit}
                         disabled={savingStats}
                       >
                         <BarChart2 className="w-4 h-4 mr-2" />
-                        {isEditingStats ? 'Сохранить' : 'Редактировать'}
+                        {isEditingStats ? t('matchPage.save') : t('matchPage.edit')}
                       </Button>
                       <Button 
                         className="w-full h-[33px] bg-red-400/80 hover:bg-red-500/60 text-white flex items-center justify-center mt-2 transition-colors"
                         onClick={() => setIsDeleteDialogOpen(true)}
                       >
-                        Удалить матч
+                        {t('matchPage.delete_match')}
                       </Button>
                     </div>
                   </div>
@@ -1189,21 +1189,19 @@ export default function MatchDetailsPage() {
       {/* Нижний блок: Состав и статистика игроков */}
       <Card className="bg-vista-dark/50 border-vista-secondary/50">
         <CardContent className="p-4">
-          <h3 className="text-xl font-semibold text-vista-light mb-4">
-            Состав на матч
-          </h3>
+          <h3 className="text-xl font-semibold text-vista-light mb-4">{t('matchPage.squad_on_match')}</h3>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="text-vista-light/70 border-b border-vista-secondary/30">
-                  <th className="py-3 px-4">Игрок</th>
-                  <th className="py-3 px-4">Статус</th>
-                  <th className="py-3 px-4">Минуты</th>
-                  <th className="py-3 px-4">Голы</th>
-                  <th className="py-3 px-4">Ассисты</th>
-                  <th className="py-3 px-4">ЖК</th>
-                  <th className="py-3 px-4">КК</th>
+                  <th className="py-3 px-4">{t('matchPage.player')}</th>
+                  <th className="py-3 px-4">{t('matchPage.status')}</th>
+                  <th className="py-3 px-4">{t('matchPage.minutes')}</th>
+                  <th className="py-3 px-4">{t('matchPage.goals')}</th>
+                  <th className="py-3 px-4">{t('matchPage.assists')}</th>
+                  <th className="py-3 px-4">{t('matchPage.yellow_cards')}</th>
+                  <th className="py-3 px-4">{t('matchPage.red_cards')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1246,7 +1244,7 @@ export default function MatchDetailsPage() {
                       </td>
                       <td className="py-3 px-4">
                         <span className={`text-xs px-2 py-1 rounded ${stat.isStarter ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                          {stat.isStarter ? 'Основной' : 'Запасной'}
+                          {stat.isStarter ? t('matchPage.starter') : t('matchPage.substitute')}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-vista-light">
@@ -1324,7 +1322,7 @@ export default function MatchDetailsPage() {
                 ) : (
                   <tr>
                     <td colSpan={7} className="py-6 text-center text-vista-light/60">
-                      Нет данных по составу на матч
+                      {t('matchPage.no_squad_data')}
                     </td>
                   </tr>
                 )}
@@ -1360,27 +1358,27 @@ export default function MatchDetailsPage() {
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
         <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-hidden backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle className="text-vista-light text-xl">Редактировать данные матча</DialogTitle>
+            <DialogTitle className="text-vista-light text-xl">{t('matchPage.edit_match_data')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={e => { e.preventDefault(); handleEditSave(); }} className="space-y-4">
             {/* Тип соревнований */}
             <div className="space-y-2">
-              <Label htmlFor="competitionType" className="text-vista-light/40 font-normal">Тип соревнований</Label>
+              <Label htmlFor="competitionType" className="text-vista-light/40 font-normal">{t('matchPage.competition_type')}</Label>
               <Select value={editForm.competitionType} onValueChange={v => handleEditFormChange('competitionType', v)}>
                 <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30">
-                  <SelectValue placeholder="Выберите тип соревнований" />
+                  <SelectValue placeholder={t('matchPage.select_competition_type')} />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/30">
-                  <SelectItem value="FRIENDLY" className="text-vista-light">Товарищеский</SelectItem>
-                  <SelectItem value="LEAGUE" className="text-vista-light">Лига</SelectItem>
-                  <SelectItem value="CUP" className="text-vista-light">Кубок</SelectItem>
+                  <SelectItem value="FRIENDLY" className="text-vista-light">{t('matchPage.friendly_match')}</SelectItem>
+                  <SelectItem value="LEAGUE" className="text-vista-light">{t('matchPage.league')}</SelectItem>
+                  <SelectItem value="CUP" className="text-vista-light">{t('matchPage.cup')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {/* Дата и время матча */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="matchDate" className="text-vista-light/40 font-normal">Дата матча</Label>
+                <Label htmlFor="matchDate" className="text-vista-light/40 font-normal">{t('matchPage.match_date')}</Label>
                 <Input
                   id="matchDate"
                   type="date"
@@ -1390,7 +1388,7 @@ export default function MatchDetailsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="matchTime" className="text-vista-light/40 font-normal">Время матча</Label>
+                <Label htmlFor="matchTime" className="text-vista-light/40 font-normal">{t('matchPage.match_time')}</Label>
                 <Input
                   id="matchTime"
                   type="time"
@@ -1402,47 +1400,47 @@ export default function MatchDetailsPage() {
             </div>
             {/* Статус матча */}
             <div className="space-y-2">
-              <Label htmlFor="matchStatus" className="text-vista-light/40 font-normal">Статус матча</Label>
+              <Label htmlFor="matchStatus" className="text-vista-light/40 font-normal">{t('matchPage.match_status')}</Label>
               <Select
                 value={editForm.status || (selectedStatus as string) || 'SCHEDULED'}
                 onValueChange={v => { handleEditFormChange('status', v); setSelectedStatus(v); }}
               >
                 <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30">
-                  <SelectValue placeholder="Выберите статус матча" />
+                  <SelectValue placeholder={t('matchPage.select_match_status')} />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/30">
-                  <SelectItem value="SCHEDULED" className="text-vista-light">Запланирован</SelectItem>
-                  <SelectItem value="FINISHED" className="text-vista-light">Завершён</SelectItem>
+                  <SelectItem value="SCHEDULED" className="text-vista-light">{t('matchPage.scheduled')}</SelectItem>
+                  <SelectItem value="FINISHED" className="text-vista-light">{t('matchPage.finished')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {/* Тип матча (домашний/выездной) */}
             <div className="space-y-2">
-              <Label htmlFor="isHome" className="text-vista-light/40 font-normal">Тип матча</Label>
+              <Label htmlFor="isHome" className="text-vista-light/40 font-normal">{t('matchPage.match_type_home_away')}</Label>
               <Select
                 value={editForm.isHome ? 'HOME' : 'AWAY'}
                 onValueChange={v => handleEditFormChange('isHome', v === 'HOME')}
               >
                 <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30">
-                  <SelectValue placeholder="Выберите тип матча" />
+                  <SelectValue placeholder={t('matchPage.select_match_type')} />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/30">
-                  <SelectItem value="HOME" className="text-vista-light">Домашний</SelectItem>
-                  <SelectItem value="AWAY" className="text-vista-light">Выездной</SelectItem>
+                  <SelectItem value="HOME" className="text-vista-light">{t('matchPage.home_match')}</SelectItem>
+                  <SelectItem value="AWAY" className="text-vista-light">{t('matchPage.away_match')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {/* Наша команда и голы */}
             <div className="flex gap-4">
               <div className="flex-1 flex flex-col space-y-2">
-                <Label htmlFor="teamId" className="text-vista-light/40 font-normal mb-2">Наша команда</Label>
+                <Label htmlFor="teamId" className="text-vista-light/40 font-normal mb-2">{t('matchPage.our_team')}</Label>
                 {isSingleTeam
                   ? <div className="px-3 py-2 rounded bg-vista-dark-lighter border border-vista-secondary/30 text-vista-light min-h-[40px] flex items-center">{teams[0]?.name}</div>
                   : <TeamSelect teams={teams} value={editForm.teamId} onChange={v => handleEditFormChange('teamId', v)} />
                 }
               </div>
               <div className="w-20 flex flex-col space-y-2">
-                <Label htmlFor="teamGoals" className="text-vista-light/40 font-normal mb-2">Голы</Label>
+                <Label htmlFor="teamGoals" className="text-vista-light/40 font-normal mb-2">{t('matchPage.goals')}</Label>
                 <Input
                   id="teamGoals"
                   type="number"
@@ -1458,17 +1456,17 @@ export default function MatchDetailsPage() {
             {/* Команда соперника и голы */}
             <div className="flex gap-4">
               <div className="flex-1 flex flex-col space-y-2">
-                <Label htmlFor="opponentName" className="text-vista-light/40 font-normal mb-2">Команда соперника</Label>
+                <Label htmlFor="opponentName" className="text-vista-light/40 font-normal mb-2">{t('matchPage.opponent_team')}</Label>
                 <Input
                   id="opponentName"
                   value={editForm.opponentName}
                   onChange={e => handleEditFormChange('opponentName', e.target.value)}
-                  placeholder="Введите название команды соперника"
+                  placeholder={t('matchPage.enter_opponent_name')}
                   className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
                 />
               </div>
               <div className="w-20 flex flex-col space-y-2">
-                <Label htmlFor="opponentGoals" className="text-vista-light/40 font-normal mb-2">Голы</Label>
+                <Label htmlFor="opponentGoals" className="text-vista-light/40 font-normal mb-2">{t('matchPage.goals')}</Label>
                 <Input
                   id="opponentGoals"
                   type="number"
@@ -1483,10 +1481,10 @@ export default function MatchDetailsPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditModalOpen(false)} className="border-vista-secondary/30">
-                Отмена
+                {t('matchPage.cancel')}
               </Button>
               <Button type="submit" disabled={savingEdit} className="bg-vista-primary hover:bg-vista-primary/90">
-                {savingEdit ? 'Сохранение...' : 'Сохранить'}
+                {savingEdit ? t('matchPage.saving') : t('matchPage.save')}
               </Button>
             </DialogFooter>
           </form>

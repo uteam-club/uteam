@@ -18,6 +18,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
 
 interface Match {
   id: string;
@@ -41,13 +43,8 @@ interface Team {
   name: string;
 }
 
-const competitionTypeLabels = {
-  FRIENDLY: 'Товарищеский',
-  LEAGUE: 'Лига',
-  CUP: 'Кубок'
-};
-
 export default function MatchesPage() {
+  const { t } = useTranslation();
   const { data: session } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
@@ -63,6 +60,12 @@ export default function MatchesPage() {
   const [endDate, setEndDate] = useState<string>('');
 
   const isSingleTeam = teams.length === 1;
+
+  const competitionTypeLabels = useMemo(() => ({
+    FRIENDLY: t('matchesPage.friendly'),
+    LEAGUE: t('matchesPage.league'),
+    CUP: t('matchesPage.cup')
+  }), [t]);
 
   useEffect(() => {
     fetchMatches();
@@ -180,14 +183,14 @@ export default function MatchesPage() {
       <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <CardTitle className="text-vista-light">Список матчей</CardTitle>
+            <CardTitle className="text-vista-light">{t('matchesPage.title')}</CardTitle>
             
             <Button 
               className="bg-vista-primary hover:bg-vista-primary/90"
               onClick={() => setIsAddModalOpen(true)}
             >
               <Plus className="mr-2 h-4 w-4" />
-              Добавить матч
+              {t('matchesPage.add_match')}
             </Button>
           </div>
         </CardHeader>
@@ -199,7 +202,7 @@ export default function MatchesPage() {
               <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-vista-light/50" />
               <Input 
                 className="pl-8 bg-vista-dark-lighter border-vista-secondary/30 text-vista-light w-full" 
-                placeholder="Поиск матчей..." 
+                placeholder={t('matchesPage.search_placeholder')} 
                 value={searchValue}
                 onChange={handleSearchChange}
               />
@@ -210,10 +213,10 @@ export default function MatchesPage() {
               <div className="flex-1 md:max-w-[250px]">
                 <Select value={selectedTeam || "all"} onValueChange={setSelectedTeam}>
                   <SelectTrigger className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light h-10">
-                    <SelectValue placeholder="Все команды" />
+                    <SelectValue placeholder={t('matchesPage.all_teams')} />
                   </SelectTrigger>
                   <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light">
-                    <SelectItem value="all">Все команды</SelectItem>
+                    <SelectItem value="all">{t('matchesPage.all_teams')}</SelectItem>
                     {teams.map(team => (
                       <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
                     ))}
@@ -246,7 +249,7 @@ export default function MatchesPage() {
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   className="pl-10 bg-vista-dark-lighter border-vista-secondary/30 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
-                  placeholder="Дата от"
+                  placeholder={t('matchesPage.date_placeholder')}
                   onClick={(e) => {
                     try {
                       (e.target as HTMLInputElement).showPicker();
@@ -282,7 +285,7 @@ export default function MatchesPage() {
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                   className="pl-10 bg-vista-dark-lighter border-vista-secondary/30 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
-                  placeholder="Дата до"
+                  placeholder={t('matchesPage.date_placeholder')}
                   onClick={(e) => {
                     try {
                       (e.target as HTMLInputElement).showPicker();
@@ -303,7 +306,7 @@ export default function MatchesPage() {
                   onClick={resetFilters}
                 >
                   <X className="mr-2 h-4 w-4" />
-                  Сбросить
+                  {t('matchesPage.reset_filters')}
                 </Button>
               </div>
             )}
@@ -329,7 +332,7 @@ export default function MatchesPage() {
               {startDate && (
                 <Badge className="bg-vista-primary/20 text-vista-light flex items-center gap-1 pl-2">
                   <CalendarIcon size={12} />
-                  От: {startDate}
+                  {t('matchesPage.date_from')}: {startDate}
                   <Button 
                     variant="ghost" 
                     className="h-5 w-5 p-0 ml-1 hover:bg-vista-primary/30" 
@@ -343,7 +346,7 @@ export default function MatchesPage() {
               {endDate && (
                 <Badge className="bg-vista-primary/20 text-vista-light flex items-center gap-1 pl-2">
                   <CalendarIcon size={12} />
-                  До: {endDate}
+                  {t('matchesPage.date_to')}: {endDate}
                   <Button 
                     variant="ghost" 
                     className="h-5 w-5 p-0 ml-1 hover:bg-vista-primary/30" 
@@ -358,7 +361,7 @@ export default function MatchesPage() {
 
           {isLoading ? (
             <div className="flex justify-center py-10">
-              <p className="text-vista-light/60">Загрузка матчей...</p>
+              <p className="text-vista-light/60">{t('matchesPage.loading_matches')}</p>
             </div>
           ) : filteredMatches.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -376,11 +379,11 @@ export default function MatchesPage() {
                             {competitionTypeLabels[match.competitionType]}
                           </span>
                           <span className="text-xs px-2 py-1 rounded bg-vista-dark text-vista-light/70">
-                            {match.isHome ? 'Домашний' : 'Выездной'}
+                            {match.isHome ? t('matchesPage.home_match') : t('matchesPage.away_match')}
                           </span>
                         </div>
                         <span className="text-sm text-vista-light/80">
-                          <span>{match.date}</span> • {match.time}
+                          <span>{dayjs(match.date).format('DD.MM.YYYY')}</span> • {match.time}
                         </span>
                       </div>
                     </div>
@@ -420,7 +423,7 @@ export default function MatchesPage() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-10 gap-4">
-              <p className="text-vista-light/60">Матчи не найдены</p>
+              <p className="text-vista-light/60">{t('matchesPage.no_matches_found')}</p>
             </div>
           )}
         </CardContent>

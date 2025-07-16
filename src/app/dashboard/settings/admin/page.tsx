@@ -13,6 +13,9 @@ import React from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Loader2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { useTranslation } from 'react-i18next';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { TFunction } from 'i18next';
 
 // Определение перечня ролей (используется для выпадающего списка)
 const USER_ROLES = [
@@ -73,18 +76,18 @@ interface ExerciseTag {
 const SURVEY_TEMPLATES = [
   {
     key: 'morning',
-    title: 'Состояние утро',
-    description: 'Опросник для ежедневного мониторинга состояния игроков',
+    getTitle: (t: TFunction) => t('adminPage.survey_morning_title'),
+    getDescription: (t: TFunction) => t('adminPage.survey_morning_desc'),
   },
   {
     key: 'rpe',
-    title: 'Оценка RPE',
-    description: 'Опросник для оценки воспринимаемой нагрузки (RPE)',
+    getTitle: (t: TFunction) => t('adminPage.survey_rpe_title'),
+    getDescription: (t: TFunction) => t('adminPage.survey_rpe_desc'),
   },
-  // В будущем можно добавить другие шаблоны
 ];
 
 export default function AdminPage() {
+  const { t } = useTranslation();
   const { data: session } = useSession();
   const router = useRouter();
   const { club } = useClub();
@@ -1097,29 +1100,29 @@ export default function AdminPage() {
     <div className="space-y-6">
       <Tabs defaultValue="users" className="w-full">
         <TabsList className="bg-vista-dark/30 border border-vista-secondary/30">
-          <TabsTrigger value="users">Пользователи</TabsTrigger>
-          <TabsTrigger value="teams">Команды</TabsTrigger>
-          <TabsTrigger value="training-categories">Категории тренировок</TabsTrigger>
-          <TabsTrigger value="exercise-categories">Категории упражнений</TabsTrigger>
-          <TabsTrigger value="exercise-tags">Теги упражнений</TabsTrigger>
-          <TabsTrigger value="surveys">Опросники</TabsTrigger>
+          <TabsTrigger value="users">{t('adminPage.users')}</TabsTrigger>
+          <TabsTrigger value="teams">{t('adminPage.teams')}</TabsTrigger>
+          <TabsTrigger value="training-categories">{t('adminPage.training_categories')}</TabsTrigger>
+          <TabsTrigger value="exercise-categories">{t('adminPage.exercise_categories')}</TabsTrigger>
+          <TabsTrigger value="exercise-tags">{t('adminPage.exercise_tags')}</TabsTrigger>
+          <TabsTrigger value="surveys">{t('adminPage.surveys')}</TabsTrigger>
         </TabsList>
         
         <TabsContent value="users" className="mt-6">
           <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-vista-light">Управление пользователями</CardTitle>
+              <CardTitle className="text-vista-light">{t('adminPage.users')}</CardTitle>
               <Button 
                 className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                 onClick={() => setIsAddModalOpen(true)}
               >
                 <PlusIcon className="w-4 h-4 mr-2" />
-                Добавить пользователя
+                {t('adminPage.add_user')}
               </Button>
             </CardHeader>
             <CardContent>
               <p className="text-vista-light/80 mb-4">
-                Здесь вы можете управлять пользователями клуба {club?.name || ''}.
+                {t('adminPage.users_description')}
               </p>
               
               {error && (
@@ -1133,10 +1136,10 @@ export default function AdminPage() {
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b border-vista-secondary/30">
-                        <th className="px-4 py-3 text-left text-sm text-vista-light/70">Имя</th>
-                        <th className="px-4 py-3 text-left text-sm text-vista-light/70">Email</th>
-                        <th className="px-4 py-3 text-left text-sm text-vista-light/70">Роль</th>
-                        <th className="px-4 py-3 text-right text-sm text-vista-light/70">Действия</th>
+                        <th className="px-4 py-3 text-left text-sm text-vista-light/70">{t('adminPage.name')}</th>
+                        <th className="px-4 py-3 text-left text-sm text-vista-light/70">{t('adminPage.email')}</th>
+                        <th className="px-4 py-3 text-left text-sm text-vista-light/70">{t('adminPage.role')}</th>
+                        <th className="px-4 py-3 text-right text-sm text-vista-light/70">{t('adminPage.actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1155,7 +1158,7 @@ export default function AdminPage() {
                               onClick={() => handleEditClick(user)}
                             >
                               <PencilIcon className="w-4 h-4 mr-1" />
-                              Редактировать
+                              {t('adminPage.edit')}
                             </Button>
                             
                             {/* Не показываем кнопку удаления для своего аккаунта */}
@@ -1167,7 +1170,7 @@ export default function AdminPage() {
                                 onClick={() => handleDeleteClick(user)}
                               >
                                 <TrashIcon className="w-4 h-4 mr-1" />
-                                Удалить
+                                {t('adminPage.delete')}
                               </Button>
                             )}
                           </td>
@@ -1178,7 +1181,7 @@ export default function AdminPage() {
                 </div>
               ) : (
                 <div className="p-4 border border-dashed border-vista-secondary/30 rounded-md text-center">
-                  <p className="text-vista-light/60">Нет пользователей. Добавьте первого пользователя.</p>
+                  <p className="text-vista-light/60">{t('adminPage.no_users')}</p>
                 </div>
               )}
             </CardContent>
@@ -1189,7 +1192,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-vista-dark p-6 rounded-lg shadow-xl w-full max-w-md border border-vista-secondary/30">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-vista-light">Добавить пользователя</h3>
+                  <h3 className="text-xl font-semibold text-vista-light">{t('adminPage.add_user')}</h3>
                   <button 
                     onClick={() => setIsAddModalOpen(false)}
                     className="text-vista-light/70 hover:text-vista-light"
@@ -1207,7 +1210,7 @@ export default function AdminPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Имя
+                      {t('adminPage.name')}
                     </label>
                     <input
                       type="text"
@@ -1215,13 +1218,13 @@ export default function AdminPage() {
                       value={newUser.firstName}
                       onChange={handleInputChange}
                       className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
-                      placeholder="Имя пользователя"
+                      placeholder={t('adminPage.placeholder_name')}
                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Фамилия
+                      {t('adminPage.lastName')}
                     </label>
                     <input
                       type="text"
@@ -1229,13 +1232,13 @@ export default function AdminPage() {
                       value={newUser.lastName}
                       onChange={handleInputChange}
                       className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
-                      placeholder="Фамилия пользователя"
+                      placeholder={t('adminPage.placeholder_lastName')}
                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Email *
+                      {t('adminPage.email')} *
                     </label>
                     <input
                       type="email"
@@ -1243,27 +1246,28 @@ export default function AdminPage() {
                       value={newUser.email}
                       onChange={handleInputChange}
                       className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
-                      placeholder="email@example.com"
+                      placeholder={t('adminPage.placeholder_email')}
                       required
                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Роль
+                      {t('adminPage.role')}
                     </label>
-                    <select
-                      name="role"
-                      value={newUser.role}
-                      onChange={handleInputChange}
-                      className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
-                    >
-                      {USER_ROLES.map(role => (
-                        <option key={role.value} value={role.value}>
-                          {role.label}
-                        </option>
-                      ))}
-                    </select>
+                    <Select value={newUser.role} onValueChange={value => setNewUser(prev => ({ ...prev, role: value }))}>
+                      <SelectTrigger className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary">
+                        <SelectValue placeholder={t('adminPage.role')} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light">
+                        <SelectItem value="ADMIN">{t('adminPage.role_admin')}</SelectItem>
+                        <SelectItem value="COACH">{t('adminPage.role_coach')}</SelectItem>
+                        <SelectItem value="SCOUT">{t('adminPage.role_scout')}</SelectItem>
+                        <SelectItem value="DOCTOR">{t('adminPage.role_doctor')}</SelectItem>
+                        <SelectItem value="DIRECTOR">{t('adminPage.role_director')}</SelectItem>
+                        <SelectItem value="MEMBER">{t('adminPage.role_member')}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div className="flex justify-end space-x-3 mt-6">
@@ -1273,14 +1277,14 @@ export default function AdminPage() {
                       disabled={isLoading}
                       className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
                     >
-                      Отмена
+                      {t('adminPage.cancel')}
                     </Button>
                     <Button
                       onClick={handleAddUser}
                       disabled={isLoading || !newUser.email}
                       className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                     >
-                      {isLoading ? 'Создание...' : 'Добавить'}
+                      {isLoading ? t('adminPage.loading') : t('adminPage.add')}
                     </Button>
                   </div>
                 </div>
@@ -1293,7 +1297,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-vista-dark p-6 rounded-lg shadow-xl w-full max-w-md border border-vista-secondary/30">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-vista-light">Редактировать пользователя</h3>
+                  <h3 className="text-xl font-semibold text-vista-light">{t('adminPage.edit_user')}</h3>
                   <button 
                     onClick={() => setIsEditModalOpen(false)}
                     className="text-vista-light/70 hover:text-vista-light"
@@ -1311,7 +1315,7 @@ export default function AdminPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Email
+                      {t('adminPage.email')}
                     </label>
                     <input
                       type="email"
@@ -1319,12 +1323,12 @@ export default function AdminPage() {
                       disabled
                       className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light/50"
                     />
-                    <p className="text-xs text-vista-light/50 mt-1">Email нельзя изменить</p>
+                    <p className="text-xs text-vista-light/50 mt-1">{t('adminPage.email_note')}</p>
                   </div>
                 
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Имя
+                      {t('adminPage.name')}
                     </label>
                     <input
                       type="text"
@@ -1332,13 +1336,13 @@ export default function AdminPage() {
                       value={editedUser.firstName}
                       onChange={handleEditInputChange}
                       className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
-                      placeholder="Имя пользователя"
+                      placeholder={t('adminPage.placeholder_name')}
                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Фамилия
+                      {t('adminPage.lastName')}
                     </label>
                     <input
                       type="text"
@@ -1346,26 +1350,27 @@ export default function AdminPage() {
                       value={editedUser.lastName}
                       onChange={handleEditInputChange}
                       className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
-                      placeholder="Фамилия пользователя"
+                      placeholder={t('adminPage.placeholder_lastName')}
                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Роль
+                      {t('adminPage.role')}
                     </label>
-                    <select
-                      name="role"
-                      value={editedUser.role}
-                      onChange={handleEditInputChange}
-                      className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
-                    >
-                      {USER_ROLES.map(role => (
-                        <option key={role.value} value={role.value}>
-                          {role.label}
-                        </option>
-                      ))}
-                    </select>
+                    <Select value={editedUser.role} onValueChange={value => setEditedUser(prev => ({ ...prev, role: value }))}>
+                      <SelectTrigger className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary">
+                        <SelectValue placeholder={t('adminPage.role')} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light">
+                        <SelectItem value="ADMIN">{t('adminPage.role_admin')}</SelectItem>
+                        <SelectItem value="COACH">{t('adminPage.role_coach')}</SelectItem>
+                        <SelectItem value="SCOUT">{t('adminPage.role_scout')}</SelectItem>
+                        <SelectItem value="DOCTOR">{t('adminPage.role_doctor')}</SelectItem>
+                        <SelectItem value="DIRECTOR">{t('adminPage.role_director')}</SelectItem>
+                        <SelectItem value="MEMBER">{t('adminPage.role_member')}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div className="flex justify-end space-x-3 mt-6">
@@ -1375,14 +1380,14 @@ export default function AdminPage() {
                       disabled={isLoading}
                       className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
                     >
-                      Отмена
+                      {t('adminPage.cancel')}
                     </Button>
                     <Button
                       onClick={handleUpdateUser}
                       disabled={isLoading}
                       className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                     >
-                      {isLoading ? 'Сохранение...' : 'Сохранить'}
+                      {isLoading ? t('adminPage.saving') : t('adminPage.save')}
                     </Button>
                   </div>
                 </div>
@@ -1395,7 +1400,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-vista-dark p-6 rounded-lg shadow-xl w-full max-w-md border border-vista-secondary/30">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-vista-light">Удаление пользователя</h3>
+                  <h3 className="text-xl font-semibold text-vista-light">{t('adminPage.delete_user')}</h3>
                   <button 
                     onClick={() => setIsDeleteModalOpen(false)}
                     className="text-vista-light/70 hover:text-vista-light"
@@ -1412,11 +1417,11 @@ export default function AdminPage() {
                 
                 <div className="space-y-4">
                   <p className="text-vista-light">
-                    Вы уверены, что хотите удалить пользователя <span className="font-semibold">{selectedUser.name || selectedUser.email}</span>?
+                    {t('adminPage.confirm_delete_user', { name: selectedUser.name || selectedUser.email })}
                   </p>
                   
                   <p className="text-red-500/70 text-sm">
-                    Это действие нельзя отменить. Все данные пользователя будут безвозвратно удалены.
+                    {t('adminPage.irreversible_action')}
                   </p>
                   
                   <div className="flex justify-end space-x-3 mt-6">
@@ -1426,14 +1431,14 @@ export default function AdminPage() {
                       disabled={isLoading}
                       className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
                     >
-                      Отмена
+                      {t('adminPage.cancel')}
                     </Button>
                     <Button
                       onClick={handleDeleteUser}
                       disabled={isLoading}
                       className="bg-red-500 hover:bg-red-600 text-white"
                     >
-                      {isLoading ? 'Удаление...' : 'Удалить'}
+                      {isLoading ? t('adminPage.deleting') : t('adminPage.delete')}
                     </Button>
                   </div>
                 </div>
@@ -1446,7 +1451,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-vista-dark p-6 rounded-lg shadow-xl max-w-md w-full border border-vista-secondary/30">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-vista-light">Пользователь создан успешно</h3>
+                  <h3 className="text-xl font-semibold text-vista-light">{t('adminPage.user_created')}</h3>
                   <button 
                     onClick={() => setShowCreationSuccess(false)}
                     className="text-vista-light/70 hover:text-vista-light"
@@ -1457,34 +1462,34 @@ export default function AdminPage() {
                 
                 <div className="bg-vista-dark/30 p-4 rounded-md border border-vista-secondary/30 mb-6">
                   <div className="grid grid-cols-3 gap-2 mb-2">
-                    <div className="text-vista-light/60">Имя:</div>
+                    <div className="text-vista-light/60">{t('adminPage.name')}:</div>
                     <div className="text-vista-light col-span-2">{createdUser.name || '-'}</div>
                   </div>
                   <div className="grid grid-cols-3 gap-2 mb-2">
-                    <div className="text-vista-light/60">Email:</div>
+                    <div className="text-vista-light/60">{t('adminPage.email')}:</div>
                     <div className="text-vista-light col-span-2">{createdUser.email}</div>
                   </div>
                   <div className="grid grid-cols-3 gap-2 mb-2">
-                    <div className="text-vista-light/60">Роль:</div>
+                    <div className="text-vista-light/60">{t('adminPage.role')}:</div>
                     <div className="text-vista-light col-span-2">
                       {USER_ROLES.find(r => r.value === createdUser.role)?.label || createdUser.role}
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2 mb-2">
-                    <div className="text-vista-light/60">Пароль:</div>
+                    <div className="text-vista-light/60">{t('adminPage.password')}:</div>
                     <div className="text-vista-primary font-bold col-span-2">{createdUser.password}</div>
                   </div>
                 </div>
                 
                 <div className="text-center">
                   <p className="text-vista-light/70 text-sm mb-4">
-                    Эти данные будут показаны только один раз. Сохраните их в надежном месте.
+                    {t('adminPage.data_shown_once')}
                   </p>
                   <Button
                     onClick={() => setShowCreationSuccess(false)}
                     className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                   >
-                    Понятно
+                    {t('adminPage.ok')}
                   </Button>
                 </div>
               </div>
@@ -1495,18 +1500,18 @@ export default function AdminPage() {
         <TabsContent value="teams" className="mt-6">
           <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-vista-light">Управление командами</CardTitle>
+              <CardTitle className="text-vista-light">{t('adminPage.teams')}</CardTitle>
               <Button 
                 className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                 onClick={() => setIsAddTeamModalOpen(true)}
               >
                 <PlusIcon className="w-4 h-4 mr-2" />
-                Добавить команду
+                {t('adminPage.add_team')}
               </Button>
             </CardHeader>
             <CardContent>
               <p className="text-vista-light/80 mb-4">
-                Управление командами клуба {club?.name || ''}.
+                {t('adminPage.teams_description')}
               </p>
               
               {error && (
@@ -1520,8 +1525,8 @@ export default function AdminPage() {
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b border-vista-secondary/30">
-                        <th className="px-4 py-3 text-left text-sm text-vista-light/70">Название</th>
-                        <th className="px-4 py-3 text-right text-sm text-vista-light/70">Действия</th>
+                        <th className="px-4 py-3 text-left text-sm text-vista-light/70">{t('adminPage.name')}</th>
+                        <th className="px-4 py-3 text-right text-sm text-vista-light/70">{t('adminPage.actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1554,7 +1559,7 @@ export default function AdminPage() {
                               onClick={() => handleEditTeamClick(team)}
                             >
                               <PencilIcon className="w-4 h-4 mr-1" />
-                              Редактировать
+                              {t('adminPage.edit')}
                             </Button>
                             <Button
                               variant="outline"
@@ -1563,7 +1568,7 @@ export default function AdminPage() {
                               onClick={() => handleDeleteTeamClick(team)}
                             >
                               <TrashIcon className="w-4 h-4 mr-1" />
-                              Удалить
+                              {t('adminPage.delete')}
                             </Button>
                           </td>
                         </tr>
@@ -1573,7 +1578,7 @@ export default function AdminPage() {
                 </div>
               ) : (
                 <div className="p-4 border border-dashed border-vista-secondary/30 rounded-md text-center">
-                  <p className="text-vista-light/60">Нет команд. Добавьте первую команду.</p>
+                  <p className="text-vista-light/60">{t('adminPage.no_teams')}</p>
                 </div>
               )}
             </CardContent>
@@ -1584,7 +1589,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-vista-dark p-6 rounded-lg shadow-xl w-full max-w-md border border-vista-secondary/30">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-vista-light">Добавить команду</h3>
+                  <h3 className="text-xl font-semibold text-vista-light">{t('adminPage.add_team')}</h3>
                   <button 
                     onClick={() => setIsAddTeamModalOpen(false)}
                     className="text-vista-light/70 hover:text-vista-light"
@@ -1602,7 +1607,7 @@ export default function AdminPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Название команды
+                      {t('adminPage.team_name')}
                     </label>
                     <input
                       type="text"
@@ -1610,32 +1615,38 @@ export default function AdminPage() {
                       value={newTeam.name}
                       onChange={handleTeamInputChange}
                       className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
-                      placeholder="Название команды"
+                      placeholder={t('adminPage.placeholder_teamName')}
                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Тип команды
+                      {t('adminPage.team_type')}
                     </label>
-                    <select
-                      name="teamType"
+                    <Select
                       value={newTeam.teamType}
-                      onChange={handleTeamInputChange}
-                      className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
+                      onValueChange={value => setNewTeam(prev => ({ ...prev, teamType: value }))}
+                      disabled={isLoading}
                     >
-                      <option value="academy">Академия</option>
-                      <option value="contract">Контракт</option>
-                    </select>
+                      <SelectTrigger className="w-full bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary">
+                        <SelectValue placeholder={t('adminPage.team_type')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="academy">{t('adminPage.academy')}</SelectItem>
+                        <SelectItem value="contract">{t('adminPage.contract')}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-vista-light/80 mb-1">Часовой пояс</label>
+                    <label className="block text-sm font-medium text-vista-light/80 mb-1">
+                      {t('adminPage.timezone')}
+                    </label>
                     <TimezoneSelect
                       value={newTeam.timezone}
                       onChange={(tz: string) => setNewTeam(prev => ({ ...prev, timezone: tz }))}
-                      label="Часовой пояс команды"
-                      placeholder="Выберите часовой пояс"
+                      label={t('adminPage.timezone_label')}
+                      placeholder={t('adminPage.select_timezone')}
                       disabled={isLoading}
                     />
                   </div>
@@ -1647,14 +1658,14 @@ export default function AdminPage() {
                       disabled={isLoading}
                       className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
                     >
-                      Отмена
+                      {t('adminPage.cancel')}
                     </Button>
                     <Button
                       onClick={handleAddTeam}
                       disabled={isLoading || !newTeam.name.trim() || !newTeam.timezone}
                       className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                     >
-                      {isLoading ? 'Создание...' : 'Добавить'}
+                      {isLoading ? t('adminPage.loading') : t('adminPage.add')}
                     </Button>
                   </div>
                 </div>
@@ -1667,7 +1678,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-vista-dark p-6 rounded-lg shadow-xl w-full max-w-md border border-vista-secondary/30">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-vista-light">Редактировать команду</h3>
+                  <h3 className="text-xl font-semibold text-vista-light">{t('adminPage.edit_team')}</h3>
                   <button 
                     onClick={() => setIsEditTeamModalOpen(false)}
                     className="text-vista-light/70 hover:text-vista-light"
@@ -1685,7 +1696,7 @@ export default function AdminPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Название команды
+                      {t('adminPage.team_name')}
                     </label>
                     <input
                       type="text"
@@ -1693,32 +1704,38 @@ export default function AdminPage() {
                       value={editedTeam.name}
                       onChange={handleEditTeamInputChange}
                       className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
-                      placeholder="Название команды"
+                      placeholder={t('adminPage.placeholder_teamName')}
                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Тип команды
+                      {t('adminPage.team_type')}
                     </label>
-                    <select
-                      name="teamType"
+                    <Select
                       value={editedTeam.teamType}
-                      onChange={handleEditTeamInputChange}
-                      className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
+                      onValueChange={value => setEditedTeam(prev => ({ ...prev, teamType: value }))}
+                      disabled={isLoading}
                     >
-                      <option value="academy">Академия</option>
-                      <option value="contract">Контракт</option>
-                    </select>
+                      <SelectTrigger className="w-full bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary">
+                        <SelectValue placeholder={t('adminPage.team_type')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="academy">{t('adminPage.academy')}</SelectItem>
+                        <SelectItem value="contract">{t('adminPage.contract')}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-vista-light/80 mb-1">Часовой пояс</label>
+                    <label className="block text-sm font-medium text-vista-light/80 mb-1">
+                      {t('adminPage.timezone')}
+                    </label>
                     <TimezoneSelect
                       value={editedTeam.timezone}
                       onChange={(tz: string) => setEditedTeam(prev => ({ ...prev, timezone: tz }))}
-                      label="Часовой пояс команды"
-                      placeholder="Выберите часовой пояс"
+                      label={t('adminPage.timezone_label')}
+                      placeholder={t('adminPage.select_timezone')}
                       disabled={isLoading}
                     />
                   </div>
@@ -1730,14 +1747,14 @@ export default function AdminPage() {
                       disabled={isLoading}
                       className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
                     >
-                      Отмена
+                      {t('adminPage.cancel')}
                     </Button>
                     <Button
                       onClick={handleUpdateTeam}
                       disabled={isLoading || !editedTeam.name.trim() || !editedTeam.timezone}
                       className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                     >
-                      {isLoading ? 'Сохранение...' : 'Сохранить'}
+                      {isLoading ? t('adminPage.saving') : t('adminPage.save')}
                     </Button>
                   </div>
                 </div>
@@ -1750,7 +1767,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-vista-dark p-6 rounded-lg shadow-xl w-full max-w-md border border-vista-secondary/30">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-vista-light">Удаление команды</h3>
+                  <h3 className="text-xl font-semibold text-vista-light">{t('adminPage.delete_team')}</h3>
                   <button 
                     onClick={() => setIsDeleteTeamModalOpen(false)}
                     className="text-vista-light/70 hover:text-vista-light"
@@ -1767,11 +1784,11 @@ export default function AdminPage() {
                 
                 <div className="space-y-4">
                   <p className="text-vista-light">
-                    Вы уверены, что хотите удалить команду <span className="font-semibold">{selectedTeam.name}</span>?
+                    {t('adminPage.confirm_delete_team', { name: selectedTeam.name })}
                   </p>
                   
                   <p className="text-red-500/70 text-sm">
-                    Это действие нельзя отменить. Все данные команды будут безвозвратно удалены.
+                    {t('adminPage.irreversible_action')}
                   </p>
                   
                   <div className="flex justify-end space-x-3 mt-6">
@@ -1781,14 +1798,14 @@ export default function AdminPage() {
                       disabled={isLoading}
                       className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
                     >
-                      Отмена
+                      {t('adminPage.cancel')}
                     </Button>
                     <Button
                       onClick={handleDeleteTeam}
                       disabled={isLoading}
                       className="bg-red-500 hover:bg-red-600 text-white"
                     >
-                      {isLoading ? 'Удаление...' : 'Удалить'}
+                      {isLoading ? t('adminPage.deleting') : t('adminPage.delete')}
                     </Button>
                   </div>
                 </div>
@@ -1800,18 +1817,18 @@ export default function AdminPage() {
         <TabsContent value="training-categories" className="mt-6">
           <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-vista-light">Категории тренировок</CardTitle>
+              <CardTitle className="text-vista-light">{t('adminPage.training_categories')}</CardTitle>
               <Button 
                 className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                 onClick={() => setIsAddTrainingCategoryModalOpen(true)}
               >
                 <PlusIcon className="w-4 h-4 mr-2" />
-                Добавить категорию
+                {t('adminPage.add_category')}
               </Button>
             </CardHeader>
             <CardContent>
               <p className="text-vista-light/80 mb-4">
-                Управление категориями тренировок для клуба {club?.name || ''}.
+                {t('adminPage.training_categories_description')}
               </p>
               
               {error && (
@@ -1825,8 +1842,8 @@ export default function AdminPage() {
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b border-vista-secondary/30">
-                        <th className="px-4 py-3 text-left text-sm text-vista-light/70">Название</th>
-                        <th className="px-4 py-3 text-right text-sm text-vista-light/70">Действия</th>
+                        <th className="px-4 py-3 text-left text-sm text-vista-light/70">{t('adminPage.name')}</th>
+                        <th className="px-4 py-3 text-right text-sm text-vista-light/70">{t('adminPage.actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1841,7 +1858,7 @@ export default function AdminPage() {
                               onClick={() => handleEditTrainingCategoryClick(category)}
                             >
                               <PencilIcon className="w-4 h-4 mr-1" />
-                              Редактировать
+                              {t('adminPage.edit')}
                             </Button>
                             <Button
                               variant="outline"
@@ -1850,7 +1867,7 @@ export default function AdminPage() {
                               onClick={() => handleDeleteTrainingCategoryClick(category)}
                             >
                               <TrashIcon className="w-4 h-4 mr-1" />
-                              Удалить
+                              {t('adminPage.delete')}
                             </Button>
                           </td>
                         </tr>
@@ -1860,7 +1877,7 @@ export default function AdminPage() {
                 </div>
               ) : (
                 <div className="p-4 border border-dashed border-vista-secondary/30 rounded-md text-center">
-                  <p className="text-vista-light/60">Нет категорий тренировок. Добавьте первую категорию.</p>
+                  <p className="text-vista-light/60">{t('adminPage.no_categories')}</p>
                 </div>
               )}
             </CardContent>
@@ -1871,7 +1888,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-vista-dark p-6 rounded-lg shadow-xl w-full max-w-md border border-vista-secondary/30">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-vista-light">Добавить категорию тренировок</h3>
+                  <h3 className="text-xl font-semibold text-vista-light">{t('adminPage.add_category')}</h3>
                   <button 
                     onClick={() => setIsAddTrainingCategoryModalOpen(false)}
                     className="text-vista-light/70 hover:text-vista-light"
@@ -1889,7 +1906,7 @@ export default function AdminPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Название категории
+                      {t('adminPage.category_name')}
                     </label>
                     <input
                       type="text"
@@ -1897,7 +1914,7 @@ export default function AdminPage() {
                       value={newTrainingCategory.name}
                       onChange={handleTrainingCategoryInputChange}
                       className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
-                      placeholder="Название категории"
+                      placeholder={t('adminPage.placeholder_categoryName')}
                     />
                   </div>
                   
@@ -1908,14 +1925,14 @@ export default function AdminPage() {
                       disabled={isLoading}
                       className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
                     >
-                      Отмена
+                      {t('adminPage.cancel')}
                     </Button>
                     <Button
                       onClick={handleAddTrainingCategory}
                       disabled={isLoading || !newTrainingCategory.name.trim()}
                       className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                     >
-                      {isLoading ? 'Создание...' : 'Добавить'}
+                      {isLoading ? t('adminPage.loading') : t('adminPage.add')}
                     </Button>
                   </div>
                 </div>
@@ -1928,7 +1945,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-vista-dark p-6 rounded-lg shadow-xl w-full max-w-md border border-vista-secondary/30">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-vista-light">Редактировать категорию тренировок</h3>
+                  <h3 className="text-xl font-semibold text-vista-light">{t('adminPage.edit_category')}</h3>
                   <button 
                     onClick={() => setIsEditTrainingCategoryModalOpen(false)}
                     className="text-vista-light/70 hover:text-vista-light"
@@ -1946,7 +1963,7 @@ export default function AdminPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Название категории
+                      {t('adminPage.category_name')}
                     </label>
                     <input
                       type="text"
@@ -1954,7 +1971,7 @@ export default function AdminPage() {
                       value={editedTrainingCategory.name}
                       onChange={handleEditTrainingCategoryInputChange}
                       className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
-                      placeholder="Название категории"
+                      placeholder={t('adminPage.placeholder_categoryName')}
                     />
                   </div>
                   
@@ -1965,14 +1982,14 @@ export default function AdminPage() {
                       disabled={isLoading}
                       className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
                     >
-                      Отмена
+                      {t('adminPage.cancel')}
                     </Button>
                     <Button
                       onClick={handleUpdateTrainingCategory}
                       disabled={isLoading || !editedTrainingCategory.name.trim()}
                       className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                     >
-                      {isLoading ? 'Сохранение...' : 'Сохранить'}
+                      {isLoading ? t('adminPage.saving') : t('adminPage.save')}
                     </Button>
                   </div>
                 </div>
@@ -1985,7 +2002,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-vista-dark p-6 rounded-lg shadow-xl w-full max-w-md border border-vista-secondary/30">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-vista-light">Удаление категории тренировок</h3>
+                  <h3 className="text-xl font-semibold text-vista-light">{t('adminPage.delete_category')}</h3>
                   <button 
                     onClick={() => setIsDeleteTrainingCategoryModalOpen(false)}
                     className="text-vista-light/70 hover:text-vista-light"
@@ -2002,11 +2019,11 @@ export default function AdminPage() {
                 
                 <div className="space-y-4">
                   <p className="text-vista-light">
-                    Вы уверены, что хотите удалить категорию <span className="font-semibold">{selectedTrainingCategory.name}</span>?
+                    {t('adminPage.confirm_delete_category', { name: selectedTrainingCategory.name })}
                   </p>
                   
                   <p className="text-red-500/70 text-sm">
-                    Это действие нельзя отменить. Все данные категории будут безвозвратно удалены.
+                    {t('adminPage.irreversible_action')}
                   </p>
                   
                   <div className="flex justify-end space-x-3 mt-6">
@@ -2016,14 +2033,14 @@ export default function AdminPage() {
                       disabled={isLoading}
                       className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
                     >
-                      Отмена
+                      {t('adminPage.cancel')}
                     </Button>
                     <Button
                       onClick={handleDeleteTrainingCategory}
                       disabled={isLoading}
                       className="bg-red-500 hover:bg-red-600 text-white"
                     >
-                      {isLoading ? 'Удаление...' : 'Удалить'}
+                      {isLoading ? t('adminPage.deleting') : t('adminPage.delete')}
                     </Button>
                   </div>
                 </div>
@@ -2035,18 +2052,18 @@ export default function AdminPage() {
         <TabsContent value="exercise-categories" className="mt-6">
           <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-vista-light">Категории упражнений</CardTitle>
+              <CardTitle className="text-vista-light">{t('adminPage.exercise_categories')}</CardTitle>
               <Button 
                 className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                 onClick={() => setIsAddExerciseCategoryModalOpen(true)}
               >
                 <PlusIcon className="w-4 h-4 mr-2" />
-                Добавить категорию
+                {t('adminPage.add_category')}
               </Button>
             </CardHeader>
             <CardContent>
               <p className="text-vista-light/80 mb-4">
-                Управление категориями упражнений для клуба {club?.name || ''}.
+                {t('adminPage.exercise_categories_description')}
               </p>
               
               {error && (
@@ -2060,8 +2077,8 @@ export default function AdminPage() {
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b border-vista-secondary/30">
-                        <th className="px-4 py-3 text-left text-sm text-vista-light/70">Название</th>
-                        <th className="px-4 py-3 text-right text-sm text-vista-light/70">Действия</th>
+                        <th className="px-4 py-3 text-left text-sm text-vista-light/70">{t('adminPage.name')}</th>
+                        <th className="px-4 py-3 text-right text-sm text-vista-light/70">{t('adminPage.actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2076,7 +2093,7 @@ export default function AdminPage() {
                               onClick={() => handleEditExerciseCategoryClick(category)}
                             >
                               <PencilIcon className="w-4 h-4 mr-1" />
-                              Редактировать
+                              {t('adminPage.edit')}
                             </Button>
                             <Button
                               variant="outline"
@@ -2085,7 +2102,7 @@ export default function AdminPage() {
                               onClick={() => handleDeleteExerciseCategoryClick(category)}
                             >
                               <TrashIcon className="w-4 h-4 mr-1" />
-                              Удалить
+                              {t('adminPage.delete')}
                             </Button>
                           </td>
                         </tr>
@@ -2095,7 +2112,7 @@ export default function AdminPage() {
                 </div>
               ) : (
                 <div className="p-4 border border-dashed border-vista-secondary/30 rounded-md text-center">
-                  <p className="text-vista-light/60">Нет категорий упражнений. Добавьте первую категорию.</p>
+                  <p className="text-vista-light/60">{t('adminPage.no_categories')}</p>
                 </div>
               )}
             </CardContent>
@@ -2106,7 +2123,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-vista-dark p-6 rounded-lg shadow-xl w-full max-w-md border border-vista-secondary/30">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-vista-light">Добавить категорию упражнений</h3>
+                  <h3 className="text-xl font-semibold text-vista-light">{t('adminPage.add_category')}</h3>
                   <button 
                     onClick={() => setIsAddExerciseCategoryModalOpen(false)}
                     className="text-vista-light/70 hover:text-vista-light"
@@ -2124,7 +2141,7 @@ export default function AdminPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Название категории
+                      {t('adminPage.category_name')}
                     </label>
                     <input
                       type="text"
@@ -2132,7 +2149,7 @@ export default function AdminPage() {
                       value={newExerciseCategory.name}
                       onChange={handleExerciseCategoryInputChange}
                       className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
-                      placeholder="Название категории"
+                      placeholder={t('adminPage.placeholder_categoryName')}
                     />
                   </div>
                   
@@ -2143,14 +2160,14 @@ export default function AdminPage() {
                       disabled={isLoading}
                       className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
                     >
-                      Отмена
+                      {t('adminPage.cancel')}
                     </Button>
                     <Button
                       onClick={handleAddExerciseCategory}
                       disabled={isLoading || !newExerciseCategory.name.trim()}
                       className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                     >
-                      {isLoading ? 'Создание...' : 'Добавить'}
+                      {isLoading ? t('adminPage.loading') : t('adminPage.add')}
                     </Button>
                   </div>
                 </div>
@@ -2163,7 +2180,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-vista-dark p-6 rounded-lg shadow-xl w-full max-w-md border border-vista-secondary/30">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-vista-light">Редактировать категорию упражнений</h3>
+                  <h3 className="text-xl font-semibold text-vista-light">{t('adminPage.edit_category')}</h3>
                   <button 
                     onClick={() => setIsEditExerciseCategoryModalOpen(false)}
                     className="text-vista-light/70 hover:text-vista-light"
@@ -2181,7 +2198,7 @@ export default function AdminPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Название категории
+                      {t('adminPage.category_name')}
                     </label>
                     <input
                       type="text"
@@ -2189,7 +2206,7 @@ export default function AdminPage() {
                       value={editedExerciseCategory.name}
                       onChange={handleEditExerciseCategoryInputChange}
                       className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
-                      placeholder="Название категории"
+                      placeholder={t('adminPage.placeholder_categoryName')}
                     />
                   </div>
                   
@@ -2200,14 +2217,14 @@ export default function AdminPage() {
                       disabled={isLoading}
                       className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
                     >
-                      Отмена
+                      {t('adminPage.cancel')}
                     </Button>
                     <Button
                       onClick={handleUpdateExerciseCategory}
                       disabled={isLoading || !editedExerciseCategory.name.trim()}
                       className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                     >
-                      {isLoading ? 'Сохранение...' : 'Сохранить'}
+                      {isLoading ? t('adminPage.saving') : t('adminPage.save')}
                     </Button>
                   </div>
                 </div>
@@ -2220,7 +2237,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-vista-dark p-6 rounded-lg shadow-xl w-full max-w-md border border-vista-secondary/30">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-vista-light">Удаление категории упражнений</h3>
+                  <h3 className="text-xl font-semibold text-vista-light">{t('adminPage.delete_category')}</h3>
                   <button 
                     onClick={() => setIsDeleteExerciseCategoryModalOpen(false)}
                     className="text-vista-light/70 hover:text-vista-light"
@@ -2237,11 +2254,11 @@ export default function AdminPage() {
                 
                 <div className="space-y-4">
                   <p className="text-vista-light">
-                    Вы уверены, что хотите удалить категорию <span className="font-semibold">{selectedExerciseCategory.name}</span>?
+                    {t('adminPage.confirm_delete_category', { name: selectedExerciseCategory.name })}
                   </p>
                   
                   <p className="text-red-500/70 text-sm">
-                    Это действие нельзя отменить. Все данные категории будут безвозвратно удалены.
+                    {t('adminPage.irreversible_action')}
                   </p>
                   
                   <div className="flex justify-end space-x-3 mt-6">
@@ -2251,14 +2268,14 @@ export default function AdminPage() {
                       disabled={isLoading}
                       className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
                     >
-                      Отмена
+                      {t('adminPage.cancel')}
                     </Button>
                     <Button
                       onClick={handleDeleteExerciseCategory}
                       disabled={isLoading}
                       className="bg-red-500 hover:bg-red-600 text-white"
                     >
-                      {isLoading ? 'Удаление...' : 'Удалить'}
+                      {isLoading ? t('adminPage.deleting') : t('adminPage.delete')}
                     </Button>
                   </div>
                 </div>
@@ -2270,18 +2287,18 @@ export default function AdminPage() {
         <TabsContent value="exercise-tags" className="mt-6">
           <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-vista-light">Теги упражнений</CardTitle>
+              <CardTitle className="text-vista-light">{t('adminPage.exercise_tags')}</CardTitle>
               <Button 
                 className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                 onClick={() => setIsAddExerciseTagModalOpen(true)}
               >
                 <PlusIcon className="w-4 h-4 mr-2" />
-                Добавить тег
+                {t('adminPage.add_tag')}
               </Button>
             </CardHeader>
             <CardContent>
               <p className="text-vista-light/80 mb-4">
-                Управление тегами упражнений для клуба {club?.name || ''}.
+                {t('adminPage.exercise_tags_description')}
               </p>
               
               {error && (
@@ -2295,9 +2312,9 @@ export default function AdminPage() {
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b border-vista-secondary/30">
-                        <th className="px-4 py-3 text-left text-sm text-vista-light/70">Название</th>
-                        <th className="px-4 py-3 text-left text-sm text-vista-light/70">Категория</th>
-                        <th className="px-4 py-3 text-right text-sm text-vista-light/70">Действия</th>
+                        <th className="px-4 py-3 text-left text-sm text-vista-light/70">{t('adminPage.name')}</th>
+                        <th className="px-4 py-3 text-left text-sm text-vista-light/70">{t('adminPage.category')}</th>
+                        <th className="px-4 py-3 text-right text-sm text-vista-light/70">{t('adminPage.actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2313,7 +2330,7 @@ export default function AdminPage() {
                               onClick={() => handleEditExerciseTagClick(tag)}
                             >
                               <PencilIcon className="w-4 h-4 mr-1" />
-                              Редактировать
+                              {t('adminPage.edit')}
                             </Button>
                             <Button
                               variant="outline"
@@ -2322,7 +2339,7 @@ export default function AdminPage() {
                               onClick={() => handleDeleteExerciseTagClick(tag)}
                             >
                               <TrashIcon className="w-4 h-4 mr-1" />
-                              Удалить
+                              {t('adminPage.delete')}
                             </Button>
                           </td>
                         </tr>
@@ -2332,7 +2349,7 @@ export default function AdminPage() {
                 </div>
               ) : (
                 <div className="p-4 border border-dashed border-vista-secondary/30 rounded-md text-center">
-                  <p className="text-vista-light/60">Нет тегов упражнений. Добавьте первый тег.</p>
+                  <p className="text-vista-light/60">{t('adminPage.no_tags')}</p>
                 </div>
               )}
             </CardContent>
@@ -2343,7 +2360,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-vista-dark p-6 rounded-lg shadow-xl w-full max-w-md border border-vista-secondary/30">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-vista-light">Добавить тег упражнений</h3>
+                  <h3 className="text-xl font-semibold text-vista-light">{t('adminPage.add_tag')}</h3>
                   <button 
                     onClick={() => setIsAddExerciseTagModalOpen(false)}
                     className="text-vista-light/70 hover:text-vista-light"
@@ -2361,7 +2378,7 @@ export default function AdminPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Название тега
+                      {t('adminPage.tag_name')}
                     </label>
                     <input
                       type="text"
@@ -2369,27 +2386,30 @@ export default function AdminPage() {
                       value={newExerciseTag.name}
                       onChange={handleExerciseTagInputChange}
                       className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
-                      placeholder="Название тега"
+                      placeholder={t('adminPage.placeholder_tagName')}
                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Категория
+                      {t('adminPage.category')}
                     </label>
-                    <select
-                      name="exerciseCategoryId"
+                    <Select
                       value={newExerciseTag.exerciseCategoryId}
-                      onChange={handleExerciseTagInputChange}
-                      className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
+                      onValueChange={value => setNewExerciseTag(prev => ({ ...prev, exerciseCategoryId: value }))}
+                      disabled={isLoading}
                     >
-                      <option value="">Выберите категорию</option>
-                      {exerciseCategories.map(category => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+                        <SelectValue placeholder={t('adminPage.select_category')} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                        {exerciseCategories.map(category => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div className="flex justify-end space-x-3 mt-6">
@@ -2399,14 +2419,14 @@ export default function AdminPage() {
                       disabled={isLoading}
                       className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
                     >
-                      Отмена
+                      {t('adminPage.cancel')}
                     </Button>
                     <Button
                       onClick={handleAddExerciseTag}
                       disabled={isLoading || !newExerciseTag.name.trim() || !newExerciseTag.exerciseCategoryId}
                       className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                     >
-                      {isLoading ? 'Создание...' : 'Добавить'}
+                      {isLoading ? t('adminPage.loading') : t('adminPage.add')}
                     </Button>
                   </div>
                 </div>
@@ -2419,7 +2439,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-vista-dark p-6 rounded-lg shadow-xl w-full max-w-md border border-vista-secondary/30">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-vista-light">Редактировать тег упражнений</h3>
+                  <h3 className="text-xl font-semibold text-vista-light">{t('adminPage.edit_tag')}</h3>
                   <button 
                     onClick={() => setIsEditExerciseTagModalOpen(false)}
                     className="text-vista-light/70 hover:text-vista-light"
@@ -2437,7 +2457,7 @@ export default function AdminPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Название тега
+                      {t('adminPage.tag_name')}
                     </label>
                     <input
                       type="text"
@@ -2445,27 +2465,30 @@ export default function AdminPage() {
                       value={editedExerciseTag.name}
                       onChange={handleEditExerciseTagInputChange}
                       className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
-                      placeholder="Название тега"
+                      placeholder={t('adminPage.placeholder_tagName')}
                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-vista-light/80 mb-1">
-                      Категория
+                      {t('adminPage.category')}
                     </label>
-                    <select
-                      name="exerciseCategoryId"
+                    <Select
                       value={editedExerciseTag.exerciseCategoryId}
-                      onChange={handleEditExerciseTagInputChange}
-                      className="w-full p-2 bg-vista-dark/70 border border-vista-secondary/30 rounded text-vista-light focus:ring-1 focus:ring-vista-primary focus:border-vista-primary"
+                      onValueChange={value => setEditedExerciseTag(prev => ({ ...prev, exerciseCategoryId: value }))}
+                      disabled={isLoading}
                     >
-                      <option value="">Выберите категорию</option>
-                      {exerciseCategories.map(category => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+                        <SelectValue placeholder={t('adminPage.select_category')} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                        {exerciseCategories.map(category => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div className="flex justify-end space-x-3 mt-6">
@@ -2475,14 +2498,14 @@ export default function AdminPage() {
                       disabled={isLoading}
                       className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
                     >
-                      Отмена
+                      {t('adminPage.cancel')}
                     </Button>
                     <Button
                       onClick={handleUpdateExerciseTag}
                       disabled={isLoading || !editedExerciseTag.name.trim() || !editedExerciseTag.exerciseCategoryId}
                       className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                     >
-                      {isLoading ? 'Сохранение...' : 'Сохранить'}
+                      {isLoading ? t('adminPage.saving') : t('adminPage.save')}
                     </Button>
                   </div>
                 </div>
@@ -2495,7 +2518,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-vista-dark p-6 rounded-lg shadow-xl w-full max-w-md border border-vista-secondary/30">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-vista-light">Удаление тега упражнений</h3>
+                  <h3 className="text-xl font-semibold text-vista-light">{t('adminPage.delete_tag')}</h3>
                   <button 
                     onClick={() => setIsDeleteExerciseTagModalOpen(false)}
                     className="text-vista-light/70 hover:text-vista-light"
@@ -2512,11 +2535,11 @@ export default function AdminPage() {
                 
                 <div className="space-y-4">
                   <p className="text-vista-light">
-                    Вы уверены, что хотите удалить тег <span className="font-semibold">{selectedExerciseTag.name}</span>?
+                    {t('adminPage.confirm_delete_tag', { name: selectedExerciseTag.name })}
                   </p>
                   
                   <p className="text-red-500/70 text-sm">
-                    Это действие нельзя отменить. Все данные тега будут безвозвратно удалены.
+                    {t('adminPage.irreversible_action')}
                   </p>
                   
                   <div className="flex justify-end space-x-3 mt-6">
@@ -2526,14 +2549,14 @@ export default function AdminPage() {
                       disabled={isLoading}
                       className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
                     >
-                      Отмена
+                      {t('adminPage.cancel')}
                     </Button>
                     <Button
                       onClick={handleDeleteExerciseTag}
                       disabled={isLoading}
                       className="bg-red-500 hover:bg-red-600 text-white"
                     >
-                      {isLoading ? 'Удаление...' : 'Удалить'}
+                      {isLoading ? t('adminPage.deleting') : t('adminPage.delete')}
                     </Button>
                   </div>
                 </div>
@@ -2553,6 +2576,7 @@ export default function AdminPage() {
 
 // В самом низу файла добавляю компонент управления опросниками клуба
 function SurveyClubManagement() {
+  const { t } = useTranslation();
   const { club } = useClub();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -2591,10 +2615,10 @@ function SurveyClubManagement() {
         body: JSON.stringify({ tenantId: club.id, type }),
       });
       if (!res.ok) throw new Error('Ошибка при создании опросника');
-      toast({ title: 'Опросник подключён', variant: 'default' });
+      toast({ title: t('adminPage.survey_connected'), variant: 'default' });
       await fetchSurveys();
     } catch (e: any) {
-      toast({ title: 'Ошибка', description: e.message, variant: 'destructive' });
+      toast({ title: t('adminPage.error'), description: e.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -2611,10 +2635,10 @@ function SurveyClubManagement() {
         body: JSON.stringify({ tenantId: club.id, isActive, type }),
       });
       if (!res.ok) throw new Error('Ошибка при обновлении статуса');
-      toast({ title: isActive ? 'Опросник активирован' : 'Опросник деактивирован', variant: 'default' });
+      toast({ title: isActive ? t('adminPage.survey_activated') : t('adminPage.survey_deactivated'), variant: 'default' });
       await fetchSurveys();
     } catch (e: any) {
-      toast({ title: 'Ошибка', description: e.message, variant: 'destructive' });
+      toast({ title: t('adminPage.error'), description: e.message, variant: 'destructive' });
     } finally {
       setToggleLoading(false);
     }
@@ -2628,19 +2652,19 @@ function SurveyClubManagement() {
   return (
     <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-vista-light">Опросники клуба</CardTitle>
+        <CardTitle className="text-vista-light">{t('adminPage.surveys')}</CardTitle>
         <div style={{ width: 140 }} />
       </CardHeader>
       <CardContent>
-        <p className="text-vista-light/80 mb-4">Управление опросниками для клуба {club?.name || ''}.</p>
+        <p className="text-vista-light/80 mb-4">{t('adminPage.surveys_description')}</p>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-vista-secondary/30">
-                <th className="py-3 text-left text-sm text-vista-light/70">Название</th>
-                <th className="py-3 text-left text-sm text-vista-light/70">Описание</th>
-                <th className="py-3 text-left text-sm text-vista-light/70">Статус</th>
-                <th className="py-3 text-left text-sm text-vista-light/70">Действия</th>
+                <th className="py-3 text-left text-sm text-vista-light/70">{t('adminPage.name')}</th>
+                <th className="py-3 text-left text-sm text-vista-light/70">{t('adminPage.description')}</th>
+                <th className="py-3 text-left text-sm text-vista-light/70">{t('adminPage.status')}</th>
+                <th className="py-3 text-left text-sm text-vista-light/70">{t('adminPage.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -2648,17 +2672,17 @@ function SurveyClubManagement() {
                 const survey = surveys[tmpl.key];
                 return (
                   <tr key={tmpl.key} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10">
-                    <td className="py-3 text-vista-light font-medium">{tmpl.title}</td>
-                    <td className="py-3 text-vista-light/80">{tmpl.description}</td>
+                    <td className="py-3 text-vista-light font-medium">{tmpl.getTitle(t)}</td>
+                    <td className="py-3 text-vista-light/80">{tmpl.getDescription(t)}</td>
                     <td className="py-3">
                       {fetching ? (
-                        <span className="flex items-center gap-2 text-vista-light/70"><Loader2 className="animate-spin w-4 h-4" />Загрузка...</span>
+                        <span className="flex items-center gap-2 text-vista-light/70"><Loader2 className="animate-spin w-4 h-4" />{t('adminPage.loading')}</span>
                       ) : survey?.exists ? (
                         <span className={survey.isActive ? 'text-green-400' : 'text-red-400'}>
-                          {survey.isActive ? 'Активен' : 'Неактивен'}
+                          {survey.isActive ? t('adminPage.active') : t('adminPage.inactive')}
                         </span>
                       ) : (
-                        <span className="text-red-400">Не подключён</span>
+                        <span className="text-red-400">{t('adminPage.not_connected')}</span>
                       )}
                     </td>
                     <td className="py-3">
@@ -2671,7 +2695,7 @@ function SurveyClubManagement() {
                       ) : !fetching ? (
                         <Button onClick={() => handleCreateSurvey(tmpl.key)} disabled={loading} size="sm">
                           {loading ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : null}
-                          Подключить
+                          {t('adminPage.connect')}
                         </Button>
                       ) : null}
                     </td>

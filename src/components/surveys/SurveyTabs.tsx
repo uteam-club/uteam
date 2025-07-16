@@ -11,6 +11,7 @@ import { useSession } from 'next-auth/react';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { useTranslation } from 'react-i18next';
 
 interface Team {
   id: string;
@@ -19,6 +20,7 @@ interface Team {
 }
 
 function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [teams, setTeams] = useState<Team[]>([]);
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -90,30 +92,30 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
   return (
     <div className="p-0 md:p-6 bg-vista-dark/60 border border-vista-secondary/30 rounded-lg mb-6">
       <div className="flex flex-row items-center justify-between mb-4">
-        <h3 className="text-xl font-bold text-vista-light">Настройки рассылки по командам</h3>
+        <h3 className="text-xl font-bold text-vista-light">{t('morningSurveyTabs.settings_title')}</h3>
         <div className="flex gap-2">
           <Dialog open={showInstruction} onOpenChange={setShowInstruction}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20" onClick={() => setShowInstruction(true)}>Инструкция</Button>
+              <Button variant="outline" className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20" onClick={() => setShowInstruction(true)}>{t('morningSurveyTabs.instruction')}</Button>
             </DialogTrigger>
             <DialogContent className="p-0 bg-transparent border-none shadow-none">
               <div className="bg-vista-dark/90 border-vista-secondary/30 shadow-xl rounded-lg p-6">
-                <h4 className="text-vista-light text-lg font-bold mb-2">Инструкция по рассылке опросников</h4>
+                <h4 className="text-vista-light text-lg font-bold mb-2">{t('morningSurveyTabs.instruction_title')}</h4>
                 <ol className="list-decimal list-inside text-vista-light/80 mb-4 space-y-1">
-                  <li>Дайте игрокам ссылку на Telegram-бота: <b>@UTEAM_infoBot</b>.</li>
-                  <li>Игроки должны пройти привязку (нажать /start и ввести свой пинкод).</li>
-                  <li>После этого вы сможете делать рассылку опросников через Telegram.</li>
+                  <li>{t('morningSurveyTabs.instruction_step1')}</li>
+                  <li>{t('morningSurveyTabs.instruction_step2')}</li>
+                  <li>{t('morningSurveyTabs.instruction_step3')}</li>
                 </ol>
                 <div className="flex justify-end">
                   <DialogClose asChild>
-                    <Button variant="outline" className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20">Закрыть</Button>
+                    <Button variant="outline" className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20">{t('morningSurveyTabs.close')}</Button>
                   </DialogClose>
                 </div>
               </div>
             </DialogContent>
           </Dialog>
           <Button onClick={handleTestBroadcast} disabled={loading} className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark rounded-md px-4 py-2 text-sm font-semibold shadow">
-            Тестовая рассылка
+            {t('morningSurveyTabs.test_broadcast')}
           </Button>
         </div>
       </div>
@@ -121,10 +123,10 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-vista-secondary/30">
-              <th className="px-4 py-3 text-left text-sm text-vista-light/70 font-semibold">Команда</th>
-              <th className="px-4 py-3 text-left text-sm text-vista-light/70 font-semibold">Время рассылки</th>
-              <th className="px-4 py-3 text-left text-sm text-vista-light/70 font-semibold">Статус рассылки</th>
-              <th className="px-4 py-3 text-left text-sm text-vista-light/70 font-semibold">Действия</th>
+              <th className="px-4 py-3 text-left text-sm text-vista-light/70 font-semibold">{t('morningSurveyTabs.team')}</th>
+              <th className="px-4 py-3 text-left text-sm text-vista-light/70 font-semibold">{t('morningSurveyTabs.send_time')}</th>
+              <th className="px-4 py-3 text-left text-sm text-vista-light/70 font-semibold">{t('morningSurveyTabs.status')}</th>
+              <th className="px-4 py-3 text-left text-sm text-vista-light/70 font-semibold">{t('morningSurveyTabs.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -144,7 +146,7 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
                   </td>
                   <td className="px-4 py-3">
                     <span className={schedule.enabled ? 'text-green-400 font-semibold' : 'text-red-400 font-semibold'}>
-                      {schedule.enabled ? 'Включена' : 'Выключена'}
+                      {schedule.enabled ? t('morningSurveyTabs.enabled') : t('morningSurveyTabs.disabled')}
                     </span>
                   </td>
                   <td className="px-4 py-3 flex items-center gap-4">
@@ -160,7 +162,7 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
                       onClick={() => handleSave(team.id, schedule.sendTime, schedule.enabled)}
                       disabled={saving === team.id}
                     >
-                      {saving === team.id ? 'Сохраняю...' : 'Сохранить'}
+                      {saving === team.id ? t('morningSurveyTabs.saving') : t('morningSurveyTabs.save')}
                     </Button>
                   </td>
                 </tr>
@@ -178,6 +180,7 @@ interface SurveyTabsProps {
 }
 
 export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
+  const { t } = useTranslation();
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<string>('');
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -250,41 +253,41 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
   return (
     <Tabs defaultValue="settings" className="w-full">
       <TabsList className="grid w-full grid-cols-2 mb-6">
-        <TabsTrigger value="settings">Настройка</TabsTrigger>
-        <TabsTrigger value="analysis">Анализ</TabsTrigger>
+        <TabsTrigger value="settings">{t('morningSurveyTabs.settings')}</TabsTrigger>
+        <TabsTrigger value="analysis">{t('morningSurveyTabs.analysis')}</TabsTrigger>
       </TabsList>
       <TabsContent value="settings">
         <TelegramBotSettings type={type} />
       </TabsContent>
       <TabsContent value="analysis">
         <Card className="p-6 bg-vista-dark/50 border-vista-secondary/50">
-          <h3 className="text-xl font-bold text-vista-light mb-4">Анализ ответов</h3>
+          <h3 className="text-xl font-bold text-vista-light mb-4">{t('morningSurveyTabs.analysis_title')}</h3>
           <div className="flex flex-wrap gap-4 mb-4 items-end">
             <div className="min-w-[220px]">
               <TeamSelect teams={teams} value={selectedTeam} onChange={setSelectedTeam} />
             </div>
             <div>
-              <label className="block text-vista-light/80 mb-1">Дата</label>
+              <label className="block text-vista-light/80 mb-1">{t('morningSurveyTabs.date')}</label>
               <input type="date" value={date} onChange={e => setDate(e.target.value)} className="px-2 py-1 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light" />
             </div>
           </div>
           {loading ? (
-            <div className="text-vista-light/70">Загрузка...</div>
+            <div className="text-vista-light/70">{t('morningSurveyTabs.loading')}</div>
           ) : error ? (
             <div className="text-red-500">{error}</div>
           ) : players.length === 0 ? (
-            <div className="text-vista-light/70">Нет игроков в команде</div>
+            <div className="text-vista-light/70">{t('morningSurveyTabs.no_players')}</div>
           ) : (
             <div className="overflow-x-auto">
               {type === 'rpe' ? (
                 <table className="min-w-full text-sm text-vista-light border border-vista-secondary/30 rounded-md">
                   <thead>
                     <tr className="bg-vista-dark/70 text-xs">
-                      <th className="px-3 py-2 border-b border-vista-secondary/30 text-left whitespace-nowrap">Игрок</th>
-                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Оценка RPE</th>
-                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Статус</th>
-                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Время</th>
-                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Действия</th>
+                      <th className="px-3 py-2 border-b border-vista-secondary/30 text-left whitespace-nowrap">{t('morningSurveyTabs.player')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">{t('morningSurveyTabs.rpe_score')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">{t('morningSurveyTabs.status')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">{t('morningSurveyTabs.time')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">{t('morningSurveyTabs.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -298,7 +301,7 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                               <span className="inline-block rounded-lg shadow border border-vista-secondary/30 text-xl font-semibold w-16 h-10 flex items-center justify-center bg-vista-primary/20">{resp.rpeScore}</span>
                             ) : ''}
                           </td>
-                          <td className="px-2 py-2 text-center align-middle">{resp ? <span className="text-green-400">Прошёл</span> : <span className="text-red-400">Не прошёл</span>}</td>
+                          <td className="px-2 py-2 text-center align-middle">{resp ? <span className="text-green-400">{t('morningSurveyTabs.completed')}</span> : <span className="text-red-400">{t('morningSurveyTabs.not_completed')}</span>}</td>
                           <td className="px-2 py-2 text-center align-middle">{resp ? formatDateTime(resp.createdAt) : '-'}</td>
                           <td className="px-2 py-2 text-center align-middle">
                             {!resp && <button
@@ -314,7 +317,7 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                                   });
                                   const data = await res.json();
                                   if (res.ok && data.success) {
-                                    toast({ title: 'Опрос отправлен', description: `Игроку ${player.lastName} ${player.firstName} отправлен опрос повторно.` });
+                                    toast({ title: 'Опрос отправлен', description: `${t('morningSurveyTabs.survey_sent_to')} ${player.lastName} ${player.firstName}` });
                                   } else {
                                     toast({ title: 'Ошибка', description: data.error || 'Не удалось отправить опрос', variant: 'destructive' });
                                   }
@@ -324,14 +327,14 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                                   setResending(null);
                                 }
                               }}
-                            >{resending === player.id ? 'Отправка...' : 'Отправить повторно'}</button>}
+                            >{resending === player.id ? t('morningSurveyTabs.resending') : t('morningSurveyTabs.resend')}</button>}
                           </td>
                         </tr>
                       );
                     })}
                     {/* Среднее значение */}
                     <tr className="bg-vista-dark/80 font-bold">
-                      <td className="px-3 py-2 text-center">Среднее</td>
+                      <td className="px-3 py-2 text-center">{t('morningSurveyTabs.average')}</td>
                       <td className="px-2 py-2 text-center align-middle">
                         {filteredPlayers.filter(p => responseByPlayerId[p.id]).length > 0 ? (filteredPlayers.reduce((acc, p) => acc + (responseByPlayerId[p.id]?.rpeScore || 0), 0) / filteredPlayers.filter(p => responseByPlayerId[p.id]).length).toFixed(2) : ''}
                       </td>
@@ -345,16 +348,16 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                 <table className="min-w-full text-sm text-vista-light border border-vista-secondary/30 rounded-md">
                   <thead>
                     <tr className="bg-vista-dark/70 text-xs">
-                      <th className="px-3 py-2 border-b border-vista-secondary/30 text-left whitespace-nowrap">Игрок</th>
-                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Сон (ч)</th>
-                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Качество</th>
-                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Восст.</th>
-                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Настр.</th>
-                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Мышцы</th>
-                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap min-w-[180px]">Боль</th>
-                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Статус</th>
-                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Время</th>
-                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">Действия</th>
+                      <th className="px-3 py-2 border-b border-vista-secondary/30 text-left whitespace-nowrap">{t('morningSurveyTabs.player')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">{t('morningSurveyTabs.sleep_duration')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">{t('morningSurveyTabs.sleep_quality')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">{t('morningSurveyTabs.recovery')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">{t('morningSurveyTabs.mood')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">{t('morningSurveyTabs.muscle_condition')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap min-w-[180px]">{t('morningSurveyTabs.pain')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">{t('morningSurveyTabs.status')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">{t('morningSurveyTabs.time')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap">{t('morningSurveyTabs.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -384,7 +387,7 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                               </div>
                             ) : ''}
                           </td>
-                          <td className="px-2 py-2 text-center align-middle">{resp ? <span className="text-green-400">Прошёл</span> : <span className="text-red-400">Не прошёл</span>}</td>
+                          <td className="px-2 py-2 text-center align-middle">{resp ? <span className="text-green-400">{t('morningSurveyTabs.completed')}</span> : <span className="text-red-400">{t('morningSurveyTabs.not_completed')}</span>}</td>
                           <td className="px-2 py-2 text-center align-middle">{resp ? formatDateTime(resp.createdAt) : '-'}</td>
                           <td className="px-2 py-2 text-center align-middle">
                             {!resp && <button
@@ -400,7 +403,7 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                                   });
                                   const data = await res.json();
                                   if (res.ok && data.success) {
-                                    toast({ title: 'Опрос отправлен', description: `Игроку ${player.lastName} ${player.firstName} отправлен опрос повторно.` });
+                                    toast({ title: 'Опрос отправлен', description: `${t('morningSurveyTabs.survey_sent_to')} ${player.lastName} ${player.firstName}` });
                                   } else {
                                     toast({ title: 'Ошибка', description: data.error || 'Не удалось отправить опрос', variant: 'destructive' });
                                   }
@@ -410,14 +413,14 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                                   setResending(null);
                                 }
                               }}
-                            >{resending === player.id ? 'Отправка...' : 'Отправить повторно'}</button>}
+                            >{resending === player.id ? t('morningSurveyTabs.resending') : t('morningSurveyTabs.resend')}</button>}
                           </td>
                         </tr>
                       );
                     })}
                     {/* Средние значения */}
                     <tr className="bg-vista-dark/80 font-bold">
-                      <td className="px-3 py-2 text-center">Среднее</td>
+                      <td className="px-3 py-2 text-center">{t('morningSurveyTabs.average')}</td>
                       {["sleepDuration","sleepQuality","recovery","mood","muscleCondition"].map((key, idx) => (
                         <td key={key} className="px-2 py-2 text-center align-middle">
                           {filteredPlayers.filter(p => responseByPlayerId[p.id]).length > 0 ? (filteredPlayers.reduce((acc, p) => acc + (responseByPlayerId[p.id]?.[key] || 0), 0) / filteredPlayers.filter(p => responseByPlayerId[p.id]).length).toFixed(2) : ''}

@@ -24,6 +24,7 @@ import { PlayerStatusModal } from '@/components/teams/PlayerStatusModal';
 import { PlayersByStatusModal } from '@/components/teams/PlayersByStatusModal';
 import AddCoachModal from '@/components/teams/AddCoachModal';
 import DeleteCoachesModal from '@/components/teams/DeleteCoachesModal';
+import { useTranslation } from 'react-i18next';
 
 interface Team {
   id: string;
@@ -68,6 +69,7 @@ interface CoachCandidate {
 }
 
 export default function TeamPage() {
+  const { t } = useTranslation();
   const { data: session } = useSession();
   const params = useParams();
   const router = useRouter();
@@ -133,10 +135,10 @@ export default function TeamPage() {
         
         if (!response.ok) {
           if (response.status === 404) {
-            setError('Команда не найдена');
+            setError(t('teamPage.error_team_not_found'));
           } else {
             const data = await response.json();
-            setError(data.error || 'Ошибка при загрузке данных команды');
+            setError(data.error || t('teamPage.error_loading_team_data'));
           }
           return;
         }
@@ -145,7 +147,7 @@ export default function TeamPage() {
         setTeam(data);
       } catch (error) {
         console.error('Ошибка при загрузке данных команды:', error);
-        setError('Не удалось загрузить данные команды');
+        setError(t('teamPage.error_loading_team_data'));
       } finally {
         setIsLoading(false);
       }
@@ -195,7 +197,7 @@ export default function TeamPage() {
       fetchPlayersData();
       fetchCoachesData();
     }
-  }, [session, teamId]);
+  }, [session, teamId, t]);
 
   // Защита от автоперезагрузки при возврате на вкладку (visibilitychange)
   useEffect(() => {
@@ -236,7 +238,7 @@ export default function TeamPage() {
     
     // Проверка валидации
     if (!newPlayer.firstName.trim() || !newPlayer.lastName.trim()) {
-      setFormError('Заполните все обязательные поля');
+      setFormError(t('teamPage.fill_required'));
       return;
     }
     
@@ -255,7 +257,7 @@ export default function TeamPage() {
       
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Ошибка при создании игрока');
+        throw new Error(data.error || t('teamPage.error_creating_player'));
       }
       
       const createdPlayer = await response.json();
@@ -275,7 +277,7 @@ export default function TeamPage() {
       
     } catch (error: any) {
       console.error('Ошибка при создании игрока:', error);
-      setFormError(error.message || 'Не удалось создать игрока');
+      setFormError(error.message || t('teamPage.error_creating_player'));
     } finally {
       setIsSubmitting(false);
     }
@@ -310,7 +312,7 @@ export default function TeamPage() {
   // Обработчик удаления выбранных игроков
   const handleDeletePlayers = async () => {
     if (selectedPlayerIds.length === 0) {
-      setDeleteError('Выберите хотя бы одного игрока для удаления');
+      setDeleteError(t('teamPage.select_player_to_delete'));
       return;
     }
 
@@ -329,7 +331,7 @@ export default function TeamPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Ошибка при удалении игроков');
+        throw new Error(data.error || t('teamPage.error_deleting_players'));
       }
 
       // Обновляем список игроков
@@ -340,7 +342,7 @@ export default function TeamPage() {
       setSelectedPlayerIds([]);
     } catch (error: any) {
       console.error('Ошибка при удалении игроков:', error);
-      setDeleteError(error.message || 'Не удалось удалить игроков');
+      setDeleteError(error.message || t('teamPage.error_deleting_players'));
     } finally {
       setIsDeleting(false);
     }
@@ -370,7 +372,7 @@ export default function TeamPage() {
       if (!response.ok) {
         const data = await response.json();
         console.error('Error response data:', data);
-        throw new Error(data.error || data.details || 'Ошибка при обновлении статуса игрока');
+        throw new Error(data.error || data.details || t('teamPage.error_updating_player_status'));
       }
       
       const result = await response.json();
@@ -387,7 +389,7 @@ export default function TeamPage() {
       
     } catch (error: any) {
       console.error('Ошибка при обновлении статуса игрока:', error);
-      setStatusError(error.message || 'Не удалось обновить статус игрока');
+      setStatusError(error.message || t('teamPage.error_updating_player_status'));
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -411,7 +413,7 @@ export default function TeamPage() {
       
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Ошибка при загрузке списка тренеров');
+        throw new Error(data.error || t('teamPage.error_loading_coaches'));
       }
       
       const coaches = await response.json();
@@ -421,7 +423,7 @@ export default function TeamPage() {
       setIsAddCoachDialogOpen(true);
     } catch (error: any) {
       console.error('Ошибка при получении списка доступных тренеров:', error);
-      setAddCoachError(error.message || 'Не удалось загрузить список тренеров');
+      setAddCoachError(error.message || t('teamPage.error_loading_coaches'));
     }
   };
 
@@ -437,7 +439,7 @@ export default function TeamPage() {
   // Обработчик добавления выбранных тренеров
   const handleAddCoaches = async () => {
     if (selectedCoachIds.length === 0) {
-      setAddCoachError('Выберите хотя бы одного тренера для добавления');
+      setAddCoachError(t('teamPage.select_coach_to_add'));
       return;
     }
 
@@ -456,7 +458,7 @@ export default function TeamPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Ошибка при добавлении тренеров');
+        throw new Error(data.error || t('teamPage.error_adding_coaches'));
       }
 
       // Обновляем список тренеров
@@ -471,7 +473,7 @@ export default function TeamPage() {
       setSelectedCoachIds([]);
     } catch (error: any) {
       console.error('Ошибка при добавлении тренеров:', error);
-      setAddCoachError(error.message || 'Не удалось добавить тренеров');
+      setAddCoachError(error.message || t('teamPage.error_adding_coaches'));
     } finally {
       setIsAddingCoaches(false);
     }
@@ -496,7 +498,7 @@ export default function TeamPage() {
   // Обработчик удаления выбранных тренеров
   const handleDeleteCoaches = async () => {
     if (selectedCoachIdsToDelete.length === 0) {
-      setDeleteCoachError('Выберите хотя бы одного тренера для удаления');
+      setDeleteCoachError(t('teamPage.select_coach_to_delete'));
       return;
     }
 
@@ -515,7 +517,7 @@ export default function TeamPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Ошибка при удалении тренеров');
+        throw new Error(data.error || t('teamPage.error_deleting_coaches'));
       }
 
       // Обновляем список тренеров
@@ -526,7 +528,7 @@ export default function TeamPage() {
       setSelectedCoachIdsToDelete([]);
     } catch (error: any) {
       console.error('Ошибка при удалении тренеров:', error);
-      setDeleteCoachError(error.message || 'Не удалось удалить тренеров');
+      setDeleteCoachError(error.message || t('teamPage.error_deleting_coaches'));
     } finally {
       setIsDeletingCoaches(false);
     }
@@ -551,7 +553,7 @@ export default function TeamPage() {
           <div className="bg-vista-dark/70 border border-vista-secondary/30 py-1 px-3 rounded-md text-vista-light h-9 flex items-center">
             <div>
               <h1 className="text-sm font-medium">
-                {isLoading ? 'Загрузка...' : team?.name || 'Команда'}
+                {isLoading ? t('teamPage.loading') : team?.name || t('teamPage.team_name')}
               </h1>
               {team?.description && (
                 <p className="text-xs text-vista-light/70">{team.description}</p>
@@ -568,7 +570,7 @@ export default function TeamPage() {
             onClick={activeTab === 'squad' ? handleOpenAddPlayerDialog : handleOpenAddCoachDialog}
           >
             <PlusIcon className="w-4 h-4 mr-2" />
-            {activeTab === 'squad' ? 'Добавить игрока' : 'Добавить тренера'}
+            {activeTab === 'squad' ? t('teamPage.add_player') : t('teamPage.add_coach')}
           </Button>
           <Button 
             variant="outline" 
@@ -578,7 +580,7 @@ export default function TeamPage() {
             disabled={activeTab === 'squad' ? players.length === 0 : coaches.length === 0}
           >
             <TrashIcon className="w-4 h-4 mr-2" />
-            {activeTab === 'squad' ? 'Удалить игрока' : 'Удалить тренера'}
+            {activeTab === 'squad' ? t('teamPage.delete_player') : t('teamPage.delete_coach')}
           </Button>
         </div>
       </div>
@@ -600,7 +602,7 @@ export default function TeamPage() {
                 className="mt-4 bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                 onClick={handleBackToList}
               >
-                Вернуться к списку команд
+                {t('teamPage.back_to_teams_list')}
               </Button>
             </div>
           </CardContent>
@@ -612,10 +614,10 @@ export default function TeamPage() {
             <div className="flex items-center justify-between bg-vista-dark/50 border-b border-vista-secondary/30">
               <TabsList className="bg-transparent border-0 rounded-none justify-start z-50">
                 <TabsTrigger value="squad" className="data-[state=active]:bg-vista-primary/20 data-[state=active]:text-vista-primary">
-                  Состав
+                  {t('teamPage.squad')}
                 </TabsTrigger>
                 <TabsTrigger value="staff" className="data-[state=active]:bg-vista-primary/20 data-[state=active]:text-vista-primary">
-                  Тренерский штаб
+                  {t('teamPage.staff')}
                 </TabsTrigger>
               </TabsList>
               
@@ -623,51 +625,51 @@ export default function TeamPage() {
                 <div className="flex items-center space-x-2 px-2">
                   <div 
                     className="flex items-center rounded-md bg-green-500/20 px-2 py-1 cursor-pointer hover:bg-green-500/30"
-                    onClick={() => handleOpenStatusPlayersDialog('ready', 'Готов')}
+                    onClick={() => handleOpenStatusPlayersDialog('ready', t('teamPage.ready'))}
                   >
                     <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
                     <span className="text-green-300 text-xs whitespace-nowrap">
-                      Готов: {(players || []).filter(p => p && (p.status === 'ready' || !p.status)).length}
+                      {t('teamPage.ready')}: {(players || []).filter(p => p && (p.status === 'ready' || !p.status)).length}
                     </span>
                   </div>
                   
                   <div 
                     className="flex items-center rounded-md bg-blue-500/20 px-2 py-1 cursor-pointer hover:bg-blue-500/30"
-                    onClick={() => handleOpenStatusPlayersDialog('rehabilitation', 'Реабилитация')}
+                    onClick={() => handleOpenStatusPlayersDialog('rehabilitation', t('teamPage.rehabilitation'))}
                   >
                     <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
                     <span className="text-blue-300 text-xs whitespace-nowrap">
-                      Реабилитация: {(players || []).filter(p => p && p.status === 'rehabilitation').length}
+                      {t('teamPage.rehabilitation')}: {(players || []).filter(p => p && p.status === 'rehabilitation').length}
                     </span>
                   </div>
                   
                   <div 
                     className="flex items-center rounded-md bg-yellow-500/20 px-2 py-1 cursor-pointer hover:bg-yellow-500/30"
-                    onClick={() => handleOpenStatusPlayersDialog('sick', 'Болеет')}
+                    onClick={() => handleOpenStatusPlayersDialog('sick', t('teamPage.sick'))}
                   >
                     <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
                     <span className="text-yellow-300 text-xs whitespace-nowrap">
-                      Болеет: {(players || []).filter(p => p && p.status === 'sick').length}
+                      {t('teamPage.sick')}: {(players || []).filter(p => p && p.status === 'sick').length}
                     </span>
                   </div>
                   
                   <div 
                     className="flex items-center rounded-md bg-purple-500/20 px-2 py-1 cursor-pointer hover:bg-purple-500/30"
-                    onClick={() => handleOpenStatusPlayersDialog('study', 'Учеба')}
+                    onClick={() => handleOpenStatusPlayersDialog('study', t('teamPage.study'))}
                   >
                     <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
                     <span className="text-purple-300 text-xs whitespace-nowrap">
-                      Учеба: {(players || []).filter(p => p && p.status === 'study').length}
+                      {t('teamPage.study')}: {(players || []).filter(p => p && p.status === 'study').length}
                     </span>
                   </div>
                   
                   <div 
                     className="flex items-center rounded-md bg-gray-500/20 px-2 py-1 cursor-pointer hover:bg-gray-500/30"
-                    onClick={() => handleOpenStatusPlayersDialog('other', 'Другое')}
+                    onClick={() => handleOpenStatusPlayersDialog('other', t('teamPage.other'))}
                   >
                     <div className="w-2 h-2 bg-gray-500 rounded-full mr-2"></div>
                     <span className="text-gray-300 text-xs whitespace-nowrap">
-                      Другое: {(players || []).filter(p => p && p.status === 'other').length}
+                      {t('teamPage.other')}: {(players || []).filter(p => p && p.status === 'other').length}
                     </span>
                   </div>
                 </div>
@@ -677,7 +679,7 @@ export default function TeamPage() {
             <TabsContent value="squad">
               <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-vista-light">Состав команды</CardTitle>
+                  <CardTitle className="text-vista-light">{t('teamPage.squad_title')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {isLoadingPlayers ? (
@@ -743,11 +745,11 @@ export default function TeamPage() {
                                     setSelectedPlayer(player);
                                   }}
                                 >
-                                  {player.status === 'rehabilitation' ? 'Реабилитация' :
-                                    player.status === 'sick' ? 'Болеет' :
-                                    player.status === 'study' ? 'Учеба' :
-                                    player.status === 'other' ? 'Другое' :
-                                    'Готов'
+                                  {player.status === 'rehabilitation' ? t('teamPage.rehabilitation') :
+                                    player.status === 'sick' ? t('teamPage.sick') :
+                                    player.status === 'study' ? t('teamPage.study') :
+                                    player.status === 'other' ? t('teamPage.other') :
+                                    t('teamPage.ready')
                                   }
                                 </div>
                               </div>
@@ -761,13 +763,13 @@ export default function TeamPage() {
                       <div className="mb-4 text-vista-light/50">
                         <UsersIcon className="mx-auto h-12 w-12" />
                       </div>
-                      <p className="text-vista-light/70">В команде пока нет игроков</p>
+                      <p className="text-vista-light/70">{t('teamPage.no_players_in_team')}</p>
                       <Button 
                         onClick={handleOpenAddPlayerDialog}
                         className="mt-4 bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                       >
                         <PlusIcon className="w-4 h-4 mr-2" />
-                        Добавить первого игрока
+                        {t('teamPage.add_first_player')}
                       </Button>
                     </div>
                   )}
@@ -778,7 +780,7 @@ export default function TeamPage() {
             <TabsContent value="staff">
               <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-vista-light">Тренерский штаб</CardTitle>
+                  <CardTitle className="text-vista-light">{t('teamPage.staff_title')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {isLoadingCoaches ? (
@@ -797,7 +799,7 @@ export default function TeamPage() {
                               {coach.user.imageUrl ? (
                                 <img 
                                   src={coach.user.imageUrl} 
-                                  alt={coach.user.name || 'Тренер'} 
+                                  alt={coach.user.name || t('teamPage.coach')} 
                                   className="w-full h-full object-cover" 
                                 />
                               ) : (
@@ -807,7 +809,7 @@ export default function TeamPage() {
                               )}
                             </div>
                             
-                            <h3 className="font-medium text-vista-light">{coach.user.name || 'Не указано'}</h3>
+                            <h3 className="font-medium text-vista-light">{coach.user.name || t('teamPage.coach_not_specified')}</h3>
                             <p className="text-sm text-vista-light/70 mt-1">{coach.user.email}</p>
                             
                             {coach.role && (
@@ -824,13 +826,13 @@ export default function TeamPage() {
                       <div className="mb-4 text-vista-light/50">
                         <UsersIcon className="mx-auto h-12 w-12" />
                       </div>
-                      <p className="text-vista-light/70">В команде пока нет тренеров</p>
+                      <p className="text-vista-light/70">{t('teamPage.no_coaches_in_team')}</p>
                       <Button 
                         onClick={handleOpenAddCoachDialog}
                         className="mt-4 bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
                       >
                         <PlusIcon className="w-4 h-4 mr-2" />
-                        Добавить первого тренера
+                        {t('teamPage.add_first_coach')}
                       </Button>
                     </div>
                   )}
@@ -869,7 +871,7 @@ export default function TeamPage() {
       <PlayerStatusModal
         open={isStatusDialogOpen}
         onOpenChange={setIsStatusDialogOpen}
-        playerName={selectedPlayer ? `${selectedPlayer.firstName} ${selectedPlayer.lastName}` : 'Игрок'}
+        playerName={selectedPlayer ? `${selectedPlayer.firstName} ${selectedPlayer.lastName}` : t('teamPage.player')}
         statusError={statusError}
         onStatusSelect={handleUpdatePlayerStatus}
       />

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 interface EditFitnessTestModalProps {
   open: boolean;
@@ -15,6 +16,7 @@ export default function EditFitnessTestModal({ open, onOpenChange, test, onSucce
   const [description, setDescription] = useState(test?.description || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   React.useEffect(() => {
     setName(test?.name || '');
@@ -30,11 +32,11 @@ export default function EditFitnessTestModal({ open, onOpenChange, test, onSucce
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, description }),
       });
-      if (!res.ok) throw new Error('Ошибка при сохранении');
+      if (!res.ok) throw new Error(t('fitnessTest.save_error'));
       onOpenChange(false);
       onSuccess();
     } catch (e) {
-      setError('Ошибка при сохранении');
+      setError(t('fitnessTest.save_error'));
     } finally {
       setLoading(false);
     }
@@ -44,11 +46,15 @@ export default function EditFitnessTestModal({ open, onOpenChange, test, onSucce
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-vista-dark text-vista-light rounded-xl p-6 shadow-xl border-vista-secondary/30">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold text-vista-light">Редактировать тест</DialogTitle>
+          <DialogTitle className="text-lg font-semibold text-vista-light">
+            {t('fitnessTest.edit_modal_title')}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <span className="block text-xs text-vista-light/60 mb-1">Название теста</span>
+            <span className="block text-xs text-vista-light/60 mb-1">
+              {t('fitnessTest.test_name_label')}
+            </span>
             <Input
               value={name}
               onChange={e => setName(e.target.value)}
@@ -57,7 +63,9 @@ export default function EditFitnessTestModal({ open, onOpenChange, test, onSucce
             />
           </div>
           <div>
-            <span className="block text-xs text-vista-light/60 mb-1">Описание (необязательно)</span>
+            <span className="block text-xs text-vista-light/60 mb-1">
+              {t('fitnessTest.test_description_label')}
+            </span>
             <Input
               value={description}
               onChange={e => setDescription(e.target.value)}
@@ -68,9 +76,11 @@ export default function EditFitnessTestModal({ open, onOpenChange, test, onSucce
           {error && <div className="text-red-500 text-sm">{error}</div>}
         </div>
         <DialogFooter className="mt-6 flex flex-row gap-2 justify-end">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading} className="min-w-[100px]">Отмена</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading} className="min-w-[100px]">
+            {t('common.cancel')}
+          </Button>
           <Button onClick={handleSave} disabled={!name.trim() || loading} className="min-w-[100px]">
-            {loading ? <span className="animate-pulse">Сохраняю...</span> : 'Сохранить'}
+            {loading ? <span className="animate-pulse">{t('common.saving')}</span> : t('common.save')}
           </Button>
         </DialogFooter>
       </DialogContent>
