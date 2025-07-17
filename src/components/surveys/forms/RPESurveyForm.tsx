@@ -76,7 +76,7 @@ export function RPESurveyForm({ player, surveyId, tenantId, onSubmit, lang = 'en
       <div className="space-y-8">
         <div>
           <div className="text-vista-light text-lg font-semibold mb-4">{t.rpeTitle}</div>
-          <RPERatingTiles value={rpeScore} onChange={setRpeScore} />
+          <RPERatingTiles value={rpeScore} onChange={setRpeScore} lang={lang} />
         </div>
         <Button
           onClick={handleSubmit}

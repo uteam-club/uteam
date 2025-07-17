@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 interface RPERatingTilesProps {
   value: number;
   onChange: (value: number) => void;
+  lang?: 'ru' | 'en';
 }
 
 const COLORS = {
@@ -47,19 +48,34 @@ const BORDER_COLORS = {
 } as const;
 
 const RPE_LABELS = {
-  1: 'Очень легко',
-  2: 'Легко',
-  3: 'Умеренно легко',
-  4: 'Умеренно',
-  5: 'Умеренно тяжело',
-  6: 'Тяжело',
-  7: 'Очень тяжело',
-  8: 'Крайне тяжело',
-  9: 'Максимально',
-  10: 'За пределами',
+  ru: {
+    1: 'Очень легко',
+    2: 'Легко',
+    3: 'Умеренно легко',
+    4: 'Умеренно',
+    5: 'Умеренно тяжело',
+    6: 'Тяжело',
+    7: 'Очень тяжело',
+    8: 'Крайне тяжело',
+    9: 'Максимально',
+    10: 'За пределами',
+  },
+  en: {
+    1: 'Very easy',
+    2: 'Easy',
+    3: 'Moderately easy',
+    4: 'Moderate',
+    5: 'Moderately hard',
+    6: 'Hard',
+    7: 'Very hard',
+    8: 'Extremely hard',
+    9: 'Maximal',
+    10: 'Beyond limits',
+  }
 } as const;
 
-export function RPERatingTiles({ value, onChange }: RPERatingTilesProps) {
+export function RPERatingTiles({ value, onChange, lang = 'ru' }: RPERatingTilesProps) {
+  const labels = RPE_LABELS[lang] || RPE_LABELS['ru'];
   return (
     <div className="space-y-4">
       {/* 1-9: по 3 в ряд, 10 — на всю ширину */}
@@ -77,7 +93,7 @@ export function RPERatingTiles({ value, onChange }: RPERatingTilesProps) {
           >
             <span className="text-lg font-bold">{number}</span>
             <span className="text-xs text-center leading-tight">
-              {RPE_LABELS[number as keyof typeof RPE_LABELS]}
+              {labels[number as keyof typeof labels]}
             </span>
           </button>
         ))}
@@ -94,7 +110,7 @@ export function RPERatingTiles({ value, onChange }: RPERatingTilesProps) {
         >
           <span className="text-lg font-bold">10</span>
           <span className="text-xs text-center leading-tight">
-            {RPE_LABELS[10]}
+            {labels[10]}
           </span>
         </button>
       </div>
@@ -104,7 +120,7 @@ export function RPERatingTiles({ value, onChange }: RPERatingTilesProps) {
             Выбранная оценка: <span className="text-lg font-bold">{value}</span>
           </p>
           <p className="text-vista-light/70 text-sm">
-            {RPE_LABELS[value as keyof typeof RPE_LABELS]}
+            {labels[value as keyof typeof labels]}
           </p>
         </div>
       )}
