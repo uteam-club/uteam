@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     if (!clubId) {
       return NextResponse.json({ error: 'No clubId in session', session }, { status: 400 });
     }
-    const { teamId, time, enabled } = await req.json();
+    const { teamId, time, enabled, type = 'morning' } = await req.json();
     if (!teamId || typeof teamId !== 'string') {
       return NextResponse.json({ error: 'No teamId provided', teamId }, { status: 400 });
     }
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Team not found or not in your club', teamId }, { status: 404 });
     }
     // Проверяем, есть ли уже расписание для этой команды и типа опроса
-    const [existing] = await db.select().from(surveySchedule).where(and(eq(surveySchedule.teamId, teamId), eq(surveySchedule.surveyType, 'morning')));
+    const [existing] = await db.select().from(surveySchedule).where(and(eq(surveySchedule.teamId, teamId), eq(surveySchedule.surveyType, type)));
     let result;
     if (existing) {
       // Обновляем
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       [result] = await db.insert(surveySchedule).values({
         id: uuidv4(),
         teamId,
-        surveyType: 'morning',
+        surveyType: type,
         sendTime: time,
         enabled: enabled ?? true,
         createdAt: new Date(),

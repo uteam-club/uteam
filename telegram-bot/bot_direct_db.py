@@ -77,7 +77,7 @@ def get_survey_schedules():
                 t."timezone"
             FROM "SurveySchedule" ss
             LEFT JOIN "Team" t ON ss."teamId" = t."id"
-            WHERE ss."enabled" = true AND ss."surveyType" = 'morning'
+            WHERE ss."enabled" = true
             """
             cursor.execute(query)
             schedules = cursor.fetchall()
@@ -355,14 +355,14 @@ dp.message.register(language_handler, F.text.in_(list(LANGUAGES.values())))
 dp.message.register(pin_handler, lambda m: user_states.get(m.from_user.id, {}).get('step') == 'enter_pin')
 
 async def send_survey_broadcast():
-    """Проверяет расписание рассылок и отправляет сообщения игрокам"""
+    """Проверяет расписание рассылок и отправляет сообщения игрокам для всех типов опросов"""
     try:
         print("[Scheduler] Проверка расписаний рассылок...")
-        # Получаем все активные расписания
+        # Получаем все активные расписания (без фильтра по типу)
         schedules = get_survey_schedules()
         print(f"[Scheduler] Найдено {len(schedules)} активных расписаний")
         for schedule in schedules:
-            if not schedule['enabled']:
+            if not schedule.get('enabled'):
                 continue
             tz = schedule.get('timezone') or 'Europe/Moscow'
             try:
@@ -371,13 +371,11 @@ async def send_survey_broadcast():
                 now = datetime.utcnow() + timedelta(hours=3)  # fallback
             now_str = now.strftime('%H:%M')
             survey_date = now.strftime('%d.%m.%Y')
-            print(f"[DEBUG] Проверка: sendTime={schedule.get('sendTime')}, now_str={now_str}, timezone={tz}")
             if schedule.get('sendTime') == now_str:
-                # Получаем игроков команды
                 team_id = schedule.get('teamId')
+                survey_type = schedule.get('surveyType', 'morning')
                 players = get_team_players(team_id)
-                print(f"[DEBUG] Получено игроков для рассылки: {len(players)}")
-                # Отправляем сообщения
+                print(f"[Scheduler] Получено игроков для рассылки: {len(players)}")
                 for player in players:
                     telegram_id = player.get('telegramId')
                     club_id = player.get('clubId')
@@ -386,7 +384,10 @@ async def send_survey_broadcast():
                     if not telegram_id or not club_id:
                         print(f"[DEBUG] Пропущен игрок без telegramId или clubId: {player}")
                         continue
-                    link = f"https://api.uteam.club/survey?tenantId={club_id}"
+                    # Формируем ссылку с нужным type
+                    link = f"https://api.uteam.club/survey?tenantId={club_id}&type={survey_type}"
+                    # Текст и кнопка для разных типов опросов
+                    if survey_type == 'morning':
                     if lang == 'en':
                         text = (
                             f"Good morning! Please complete the morning survey for {survey_date}.\n\n"
@@ -399,6 +400,32 @@ async def send_survey_broadcast():
                             f"Твой пинкод для входа:\n<code>{pin_code}</code>"
                         )
                         button_text = f"📝 Пройти опрос за {survey_date}"
+                    elif survey_type == 'rpe':
+                        if lang == 'en':
+                            text = (
+                                f"Please rate how hard your training was (RPE) for {survey_date}.\n\n"
+                                f"Your pin code for login:\n<code>{pin_code}</code>"
+                            )
+                            button_text = f"📝 Rate RPE for {survey_date}"
+                        else:
+                            text = (
+                                f"Пожалуйста, оцени, насколько тяжёлой была твоя тренировка (RPE) за {survey_date}.\n\n"
+                                f"Твой пинкод для входа:\n<code>{pin_code}</code>"
+                            )
+                            button_text = f"📝 Оценить RPE за {survey_date}"
+                    else:
+                        if lang == 'en':
+                            text = (
+                                f"Please complete the survey for {survey_date}.\n\n"
+                                f"Your pin code for login:\n<code>{pin_code}</code>"
+                            )
+                            button_text = f"📝 Take the survey for {survey_date}"
+                        else:
+                            text = (
+                                f"Пожалуйста, пройди опрос за {survey_date}.\n\n"
+                                f"Твой пинкод для входа:\n<code>{pin_code}</code>"
+                            )
+                            button_text = f"📝 Пройти опрос за {survey_date}"
                     keyboard = None
                     if link:
                         keyboard = InlineKeyboardMarkup(inline_keyboard=[
