@@ -55,7 +55,7 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
       const res = await fetch('/api/telegram/broadcast-time', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teamId, time, enabled }),
+        body: JSON.stringify({ teamId, time, enabled, type }), // добавлен type
       });
       const data = await res.json();
       if (res.ok) {
