@@ -192,8 +192,8 @@ export default function SurveyPage() {
                 <div className="flex items-center justify-center w-12 h-12 rounded-full bg-vista-accent/20 mb-2">
                   <Lock className="w-7 h-7 text-vista-accent" />
                 </div>
-                <Label htmlFor="pinCode" className="text-xl text-vista-light text-center font-semibold">Введите ваш 6-значный пинкод</Label>
-                <span className="text-vista-light/60 text-sm text-center">Пинкод выдается тренером или в личном кабинете</span>
+                <Label htmlFor="pinCode" className="text-xl text-vista-light text-center font-semibold">{translations[lang].pinLabel}</Label>
+                <span className="text-vista-light/60 text-sm text-center">{translations[lang].pinHint}</span>
               </div>
               <input
                 id="pinCode"
@@ -209,7 +209,7 @@ export default function SurveyPage() {
                 disabled={loading || loadingSurvey}
                 placeholder="000000"
               />
-              {pinError && <div className="text-red-500 text-center text-base animate-fade-in">Пинкод не найден. Проверьте правильность ввода.</div>}
+              {pinError && <div className="text-red-500 text-center text-base animate-fade-in">{translations[lang].pinError}</div>}
               <Button
                 type="submit"
                 className={`w-full py-4 text-lg bg-vista-accent hover:bg-vista-accent/90 transition ${loading || pinCode.length !== 6 ? 'opacity-70 text-white' : 'text-white'}`}
@@ -237,5 +237,5 @@ export default function SurveyPage() {
     return <div className="text-vista-light text-center text-lg animate-fade-in mb-4">Загрузка опросника...</div>;
   }
 
-  return <SurveyForm player={player} surveyId={surveyId} tenantId={tenantId!} lang={lang} />;
+  return <SurveyForm player={player} surveyId={surveyId!} tenantId={tenantId!} lang={lang} />;
 } 
