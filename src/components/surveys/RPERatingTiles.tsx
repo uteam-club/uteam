@@ -74,6 +74,11 @@ const RPE_LABELS = {
   }
 } as const;
 
+const SELECTED_LABEL = {
+  ru: 'Выбранная оценка',
+  en: 'Selected score',
+};
+
 export function RPERatingTiles({ value, onChange, lang = 'ru' }: RPERatingTilesProps) {
   const labels = RPE_LABELS[lang] || RPE_LABELS['ru'];
   return (
@@ -117,7 +122,7 @@ export function RPERatingTiles({ value, onChange, lang = 'ru' }: RPERatingTilesP
       {value > 0 && (
         <div className="text-center p-3 bg-vista-dark/30 rounded-lg">
           <p className="text-vista-light font-medium">
-            Выбранная оценка: <span className="text-lg font-bold">{value}</span>
+            {SELECTED_LABEL[lang] || SELECTED_LABEL['ru']}: <span className="text-lg font-bold">{value}</span>
           </p>
           <p className="text-vista-light/70 text-sm">
             {labels[value as keyof typeof labels]}
