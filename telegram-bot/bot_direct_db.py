@@ -388,18 +388,18 @@ async def send_survey_broadcast():
                     link = f"https://api.uteam.club/survey?tenantId={club_id}&type={survey_type}"
                     # Текст и кнопка для разных типов опросов
                     if survey_type == 'morning':
-                    if lang == 'en':
-                        text = (
-                            f"Good morning! Please complete the morning survey for {survey_date}.\n\n"
-                            f"Your pin code for login:\n<code>{pin_code}</code>"
-                        )
-                        button_text = f"📝 Take the survey for {survey_date}"
-                    else:
-                        text = (
-                            f"Доброе утро! Пожалуйста, пройди утренний опросник за {survey_date}.\n\n"
-                            f"Твой пинкод для входа:\n<code>{pin_code}</code>"
-                        )
-                        button_text = f"📝 Пройти опрос за {survey_date}"
+                        if lang == 'en':
+                            text = (
+                                f"Good morning! Please complete the morning survey for {survey_date}.\n\n"
+                                f"Your pin code for login:\n<code>{pin_code}</code>"
+                            )
+                            button_text = f"📝 Take the survey for {survey_date}"
+                        else:
+                            text = (
+                                f"Доброе утро! Пожалуйста, пройди утренний опросник за {survey_date}.\n\n"
+                                f"Твой пинкод для входа:\n<code>{pin_code}</code>"
+                            )
+                            button_text = f"📝 Пройти опрос за {survey_date}"
                     elif survey_type == 'rpe':
                         if lang == 'en':
                             text = (
