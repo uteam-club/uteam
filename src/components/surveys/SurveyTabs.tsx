@@ -12,6 +12,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogDescription, 
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useTranslation } from 'react-i18next';
+import { MUSCLE_NAMES } from '@/lib/constants';
 
 interface Team {
   id: string;
@@ -180,7 +181,8 @@ interface SurveyTabsProps {
 }
 
 export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language === 'en' ? 'en' : 'ru';
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<string>('');
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -378,12 +380,18 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                           <td className="px-2 py-2 min-w-[180px] max-w-[220px] overflow-x-auto">
                             {resp && resp.painAreas && resp.painAreas.length > 0 ? (
                               <div className="flex flex-wrap gap-1">
-                                {resp.painAreas.map((area: any, idx: number) => (
-                                  <span key={idx} className="inline-flex items-center rounded-full border border-vista-secondary/30 bg-vista-dark/40 px-2 py-0.5 text-xs font-medium whitespace-nowrap gap-1">
-                                    <span className={`inline-block w-2 h-2 rounded-full ${area.painLevel >= 7 ? 'bg-red-500' : area.painLevel >= 4 ? 'bg-yellow-400' : 'bg-green-400'}`}></span>
-                                    {area.areaName} <span className="opacity-60">({area.painLevel})</span>
-                                  </span>
-                                ))}
+                                {resp.painAreas.map((area: any, idx: number) => {
+                                  // Определяем view (front/back) по id: если есть в MUSCLE_NAMES.front, иначе back
+                                  let view: 'front' | 'back' = 'front';
+                                  if (MUSCLE_NAMES.back[area.id as keyof typeof MUSCLE_NAMES.back]) view = 'back';
+                                  const localizedName = MUSCLE_NAMES[view][area.id as keyof typeof MUSCLE_NAMES[typeof view]]?.[lang] || area.areaName || '';
+                                  return (
+                                    <span key={idx} className="inline-flex items-center rounded-full border border-vista-secondary/30 bg-vista-dark/40 px-2 py-0.5 text-xs font-medium whitespace-nowrap gap-1">
+                                      <span className={`inline-block w-2 h-2 rounded-full ${area.painLevel >= 7 ? 'bg-red-500' : area.painLevel >= 4 ? 'bg-yellow-400' : 'bg-green-400'}`}></span>
+                                      {localizedName} <span className="opacity-60">({area.painLevel})</span>
+                                    </span>
+                                  );
+                                })}
                               </div>
                             ) : ''}
                           </td>
