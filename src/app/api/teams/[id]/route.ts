@@ -44,4 +44,18 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     return new Response(JSON.stringify({ error: "Team not found" }), { status: 404 });
   }
   return new Response(JSON.stringify(updated), { status: 200 });
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req: request });
+  if (!token || !allowedRoles.includes(token.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const teamId = params.id;
+  if (!teamId) {
+    return new Response(JSON.stringify({ error: "No teamId" }), { status: 400 });
+  }
+  // Можно добавить проверку, что команда принадлежит клубу пользователя
+  await db.delete(team).where(eq(team.id, teamId));
+  return new Response(JSON.stringify({ success: true }), { status: 200 });
 } 
