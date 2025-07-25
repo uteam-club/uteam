@@ -22,17 +22,17 @@ const saveResultsSchema = z.object({
 });
 
 // Проверка clubId пользователя и клуба по subdomain
-async function checkClubAccess(request: NextRequest, session: any) {
+async function checkClubAccess(request: NextRequest, token: any) {
   const host = request.headers.get('host') || '';
   const subdomain = getSubdomain(host);
   if (!subdomain) return false;
   const club = await getClubBySubdomain(subdomain);
   if (!club) return false;
   // Глобальный SUPER_ADMIN имеет доступ ко всем клубам
-  if (session.user.role === 'SUPER_ADMIN' && session.user.clubId === '00000000-0000-0000-0000-000000000000') {
+  if (token.role === 'SUPER_ADMIN' && token.clubId === '00000000-0000-0000-0000-000000000000') {
     return true;
   }
-  return session.user.clubId === club.id;
+  return token.clubId === club.id;
 }
 
 export async function GET(req: NextRequest) {
@@ -42,11 +42,7 @@ export async function GET(req: NextRequest) {
   if (!hasPermission(permissions, 'fitnessTests.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  const hasAccess = await checkClubAccess(req, session);
+  const hasAccess = await checkClubAccess(req, token);
   if (!hasAccess) {
     return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
   }
@@ -76,10 +72,6 @@ export async function POST(req: NextRequest) {
   if (!hasPermission(permissions, 'fitnessTests.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
   const body = await req.json();
   const parse = saveResultsSchema.safeParse(body);
   if (!parse.success) {
@@ -104,7 +96,7 @@ export async function POST(req: NextRequest) {
     playerId: r.playerId,
     value: String(r.value),
     date,
-    createdBy: session.user.id,
+    createdBy: token.id,
   }));
   await db.insert(fitnessTestResult).values(toInsert);
   return NextResponse.json({ success: true });

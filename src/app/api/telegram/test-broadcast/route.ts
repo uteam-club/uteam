@@ -29,13 +29,10 @@ export async function POST(req: NextRequest) {
   if (!hasPermission(permissions, 'adminPanel.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.clubId) {
-    return NextResponse.json({ error: 'No clubId in session' }, { status: 400 });
+  if (!token.clubId) {
+    return NextResponse.json({ error: 'No clubId in token' }, { status: 400 });
   }
-
-  const clubId = session.user.clubId;
+  const clubId = token.clubId;
 
   try {
     // Проверяем, что опросник активен

@@ -51,37 +51,13 @@ export async function GET(req: NextRequest) {
   }
   try {
     console.log('Начало обработки GET-запроса для тегов упражнений');
-    
-    // Получаем данные сессии пользователя
-    const session = await getServerSession(authOptions);
-    console.log('Данные сессии:', { 
-      authenticated: !!session, 
-      userId: session?.user?.id,
-      clubId: session?.user?.clubId 
-    });
-    
-    // Проверяем аутентификацию
-    if (!session || !session.user) {
-      console.error('Ошибка аутентификации: пользователь не авторизован');
-      return new NextResponse(
-        JSON.stringify({ error: 'Не авторизован' }), 
-        { 
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        }
-      );
-    }
-    
-    // Получаем ID клуба из сессии пользователя
-    const clubId = session.user.clubId;
-    
+    // Получаем ID клуба из токена
+    const clubId = token.clubId;
     if (!clubId) {
-      console.error('Ошибка: отсутствует ID клуба в сессии пользователя');
+      console.error('Ошибка: отсутствует ID клуба в токене');
       return new NextResponse(
-        JSON.stringify({ error: 'Отсутствует ID клуба' }), 
-        { 
+        JSON.stringify({ error: 'Отсутствует ID клуба' }),
+        {
           status: 400,
           headers: {
             'Content-Type': 'application/json',
@@ -89,7 +65,6 @@ export async function GET(req: NextRequest) {
         }
       );
     }
-    
     // Получаем список тегов упражнений для клуба пользователя
     const exerciseTags = await db.select({
       id: exerciseTag.id,
@@ -102,19 +77,16 @@ export async function GET(req: NextRequest) {
       .leftJoin(exerciseCategory, eq(exerciseTag.exerciseCategoryId, exerciseCategory.id))
       .where(eq(exerciseTag.clubId, clubId))
       .orderBy(asc(exerciseTag.name));
-    
     console.log(`Найдено ${exerciseTags.length} тегов для клуба ${clubId}`);
-    
     // Преобразуем к нужному виду:
     const tagsWithCategoryObj = exerciseTags.map(tag => ({
       ...tag,
       exerciseCategory: tag.exerciseCategoryName ? { name: tag.exerciseCategoryName } : undefined,
     }));
-    
     // Возвращаем список тегов
     return new NextResponse(
       JSON.stringify(tagsWithCategoryObj),
-      { 
+      {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
@@ -152,34 +124,16 @@ export async function POST(req: NextRequest) {
   }
   try {
     console.log('Начало обработки POST-запроса для создания тега упражнений');
-    
-    // Получаем данные сессии пользователя
-    const session = await getServerSession(authOptions);
-    console.log('Данные сессии:', {
-      authenticated: !!session,
-      userId: session?.user?.id,
-      clubId: session?.user?.clubId,
-      role: session?.user?.role
-    });
-    
-    // Проверяем аутентификацию и права доступа
-    if (!session || !session.user) {
-      console.error('Ошибка аутентификации: пользователь не авторизован');
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-    }
-    
-    if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'COACH') {
-      console.error('Ошибка прав доступа:', { userRole: session.user.role });
+    // Проверяем роль через token
+    if (token.role !== 'ADMIN' && token.role !== 'SUPER_ADMIN' && token.role !== 'COACH') {
+      console.error('Ошибка прав доступа:', { userRole: token.role });
       return NextResponse.json({ error: 'Нет прав доступа' }, { status: 403 });
     }
-    
-    // Получаем ID клуба из сессии пользователя
-    const clubId = session.user.clubId;
-    
+    // Получаем ID клуба из токена
+    const clubId = token.clubId;
     // Получаем данные из запроса
     const data = await req.json();
     console.log('Полученные данные:', data);
-    
     // Проверяем обязательные поля
     if (!data.name || !data.exerciseCategoryId) {
       console.error('Ошибка валидации: отсутствуют обязательные поля');
@@ -188,11 +142,9 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    
     // Проверяем существование категории и принадлежность к клубу
     const [category] = await db.select().from(exerciseCategory)
       .where(and(eq(exerciseCategory.id, data.exerciseCategoryId), eq(exerciseCategory.clubId, clubId)));
-    
     if (!category) {
       console.error('Ошибка: категория не найдена или принадлежит другому клубу');
       return NextResponse.json(
@@ -200,7 +152,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    
     // Создаем новый тег упражнений
     const [createdTag] = await db.insert(exerciseTag).values({
       name: data.name,
@@ -210,7 +161,6 @@ export async function POST(req: NextRequest) {
       createdAt: new Date(),
       updatedAt: new Date(),
     }).returning();
-    
     // Получаем тег с названием категории
     const [tagWithCategory] = await db.select({
       id: exerciseTag.id,
@@ -222,7 +172,6 @@ export async function POST(req: NextRequest) {
       .from(exerciseTag)
       .leftJoin(exerciseCategory, eq(exerciseTag.exerciseCategoryId, exerciseCategory.id))
       .where(eq(exerciseTag.id, createdTag.id));
-    
     return NextResponse.json({
       ...tagWithCategory,
       exerciseCategory: tagWithCategory.exerciseCategoryName ? { name: tagWithCategory.exerciseCategoryName } : undefined,

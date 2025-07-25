@@ -27,19 +27,17 @@ async function checkClubAccess(request: NextRequest, token: any) {
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const token = await getToken({ req: request });
   if (!token) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    console.log('RETURNING 401: Нет токена', { token, params });
+    return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
   }
   const permissions = await getUserPermissions(token.id);
   if (!hasPermission(permissions, 'matches.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
-    }
-    const hasAccess = await checkClubAccess(request, session.user);
+    const hasAccess = await checkClubAccess(request, token);
     if (!hasAccess) {
+      console.log('RETURNING 403: Нет доступа к клубу', { token, params });
       return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
     }
     const matchId = params.id;
@@ -69,7 +67,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     })
       .from(match)
       .leftJoin(team, eq(match.teamId, team.id))
-      .where(and(eq(match.id, matchId), eq(match.clubId, session.user.clubId)));
+      .where(and(eq(match.id, matchId), eq(match.clubId, token.clubId)));
     if (!row) {
       return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
     }
@@ -107,21 +105,22 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   const token = await getToken({ req: request });
   if (!token) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    console.log('RETURNING 401: Нет токена', { token, params });
+    return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
   }
   const permissions = await getUserPermissions(token.id);
   if (!hasPermission(permissions, 'matches.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
-    }
     const matchId = params.id;
     const body = await request.json();
     // Проверяем, существует ли матч и принадлежит ли он клубу пользователя
-    const [existing] = await db.select().from(match).where(and(eq(match.id, matchId), eq(match.clubId, session.user.clubId)));
+    if (!token) {
+      console.log('RETURNING 401: Нет токена', { token, params });
+      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
+    }
+    const [existing] = await db.select().from(match).where(and(eq(match.id, matchId), eq(match.clubId, token.clubId)));
     if (!existing) {
       return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
     }
@@ -158,20 +157,21 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const token = await getToken({ req: request });
   if (!token) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    console.log('RETURNING 401: Нет токена', { token, params });
+    return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
   }
   const permissions = await getUserPermissions(token.id);
   if (!hasPermission(permissions, 'matches.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
-    }
     const matchId = params.id;
     // Проверяем, существует ли матч и принадлежит ли он клубу пользователя
-    const [existing] = await db.select().from(match).where(and(eq(match.id, matchId), eq(match.clubId, session.user.clubId)));
+    if (!token) {
+      console.log('RETURNING 401: Нет токена', { token, params });
+      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
+    }
+    const [existing] = await db.select().from(match).where(and(eq(match.id, matchId), eq(match.clubId, token.clubId)));
     if (!existing) {
       return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
     }

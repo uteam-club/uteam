@@ -20,17 +20,13 @@ export async function GET(req: NextRequest) {
   if (!hasPermission(permissions, 'adminPanel.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
   const { searchParams } = new URL(req.url);
   const teamId = searchParams.get('teamId');
   if (!teamId) {
     return NextResponse.json({ error: 'No teamId provided' }, { status: 400 });
   }
   // Проверяем, что команда принадлежит клубу пользователя
-  const [foundTeam] = await db.select().from(team).where(and(eq(team.id, teamId), eq(team.clubId, session.user.clubId))).limit(1);
+  const [foundTeam] = await db.select().from(team).where(and(eq(team.id, teamId), eq(team.clubId, token.clubId))).limit(1);
   if (!foundTeam) {
     return NextResponse.json({ error: 'Team not found or not in your club' }, { status: 404 });
   }
@@ -52,16 +48,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
     const { teamId, time, enabled } = await req.json();
     if (!teamId || typeof time !== 'string' || typeof enabled !== 'boolean') {
       return NextResponse.json({ error: 'Invalid input', teamId, time, enabled }, { status: 400 });
     }
     // Проверяем, что команда принадлежит клубу пользователя
-    const [foundTeam] = await db.select().from(team).where(and(eq(team.id, teamId), eq(team.clubId, session.user.clubId))).limit(1);
+    const [foundTeam] = await db.select().from(team).where(and(eq(team.id, teamId), eq(team.clubId, token.clubId))).limit(1);
     if (!foundTeam) {
       return NextResponse.json({ error: 'Team not found or not in your club' }, { status: 404 });
     }

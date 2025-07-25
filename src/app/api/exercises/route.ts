@@ -121,12 +121,6 @@ export async function POST(req: NextRequest) {
   }
   console.log('[DEBUG] POST /api/exercises called');
   try {
-    const session = await getServerSession(authOptions);
-    console.log('[DEBUG] session:', session);
-    if (!session?.user) {
-      console.log('[DEBUG] Нет сессии пользователя');
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-    }
     const formData = await req.formData();
     console.log('[DEBUG] formData:', Array.from(formData.entries()));
     const title = formData.get('title') as string;
@@ -145,14 +139,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Отсутствуют обязательные поля' }, { status: 400 });
     }
     // Проверяем существование категории
-    const [category] = await db.select().from(exerciseCategory).where(and(eq(exerciseCategory.id, categoryId), eq(exerciseCategory.clubId, session.user.clubId)));
+    const [category] = await db.select().from(exerciseCategory).where(and(eq(exerciseCategory.id, categoryId), eq(exerciseCategory.clubId, token.clubId)));
     if (!category) {
       return NextResponse.json({ error: 'Категория не найдена' }, { status: 400 });
     }
     // Проверяем существование тегов
     let tags: any[] = [];
     if (tagIdsArray.length > 0) {
-      tags = await db.select().from(exerciseTag).where(and(inArray(exerciseTag.id, tagIdsArray), eq(exerciseTag.clubId, session.user.clubId)));
+      tags = await db.select().from(exerciseTag).where(and(inArray(exerciseTag.id, tagIdsArray), eq(exerciseTag.clubId, token.clubId)));
       if (tags.length !== tagIdsArray.length) {
         return NextResponse.json({ error: 'Некоторые теги не найдены' }, { status: 400 });
       }
@@ -167,8 +161,8 @@ export async function POST(req: NextRequest) {
       categoryId,
       width,
       length,
-      authorId: session.user.id,
-      clubId: session.user.clubId,
+      authorId: token.id,
+      clubId: token.clubId,
       createdAt: new Date(),
       updatedAt: new Date(),
     }).returning();
@@ -186,7 +180,7 @@ export async function POST(req: NextRequest) {
       if (file.type.startsWith('image/')) mediaType = 'IMAGE';
       else if (file.type.startsWith('video/')) mediaType = 'VIDEO';
       else if (file.type.includes('pdf') || file.type.includes('document')) mediaType = 'DOCUMENT';
-      const storagePath = `clubs/${session.user.clubId}/exercises/${createdExercise.id}/${file.name}`;
+      const storagePath = `clubs/${token.clubId}/exercises/${createdExercise.id}/${file.name}`;
       // Преобразуем File в Buffer
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
@@ -199,9 +193,9 @@ export async function POST(req: NextRequest) {
         url: storagePath,
         publicUrl,
         size: file.size,
-        clubId: session.user.clubId,
+        clubId: token.clubId,
         exerciseId: createdExercise.id,
-        uploadedById: session.user.id,
+        uploadedById: token.id,
         createdAt: new Date(),
         updatedAt: new Date(),
       }).returning();

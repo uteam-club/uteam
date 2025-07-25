@@ -6,33 +6,27 @@ import { player, team, club } from '@/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
+import { getToken } from 'next-auth/jwt';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const token = await getToken({ req });
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' });
+    }
     const debugInfo = {
-      session: session ? {
-        user: {
-          id: session.user?.id,
-          email: session.user?.email,
-          role: session.user?.role,
-          clubId: session.user?.clubId
-        }
-      } : null,
-      clubId: session?.user?.clubId,
+      token,
+      clubId: token.clubId,
       host: req.headers.get('host'),
       userAgent: req.headers.get('user-agent')
     };
-
-    if (!session?.user?.clubId) {
+    if (!token.clubId) {
       return NextResponse.json({ 
-        error: 'No clubId in session',
+        error: 'No clubId in token',
         debug: debugInfo
       });
     }
-
-    const clubId = session.user.clubId;
+    const clubId = token.clubId;
 
     // Получаем информацию о клубе
     const [clubInfo] = await db.select().from(club).where(eq(club.id, clubId));

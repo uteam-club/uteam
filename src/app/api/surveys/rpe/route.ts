@@ -19,10 +19,7 @@ export async function GET(request: NextRequest) {
   }
   
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // token уже проверен выше, дополнительных проверок не требуется
     
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get("startDate");

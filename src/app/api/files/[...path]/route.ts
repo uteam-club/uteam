@@ -28,13 +28,13 @@ const ALLOWED_MIME_TYPES: Record<string, string> = {
 };
 
 // Проверка clubId пользователя и клуба по subdomain
-async function checkClubAccess(request: NextRequest, session: any) {
+async function checkClubAccess(request: NextRequest, token: any) {
   const host = request.headers.get('host') || '';
   const subdomain = getSubdomain(host);
   if (!subdomain) return false;
   const club = await getClubBySubdomain(subdomain);
   if (!club) return false;
-  return session.user.clubId === club.id;
+  return token.clubId === club.id;
 }
 
 export async function GET(
@@ -50,14 +50,7 @@ export async function GET(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
-    // Получаем сессию пользователя для проверки доступа
-    const session = await getServerSession(authOptions);
-    
-    if (!session || !session.user) {
-      return new NextResponse('Не авторизован', { status: 401 });
-    }
-    
-    const hasAccess = await checkClubAccess(request, session);
+    const hasAccess = await checkClubAccess(request, token);
     if (!hasAccess) {
       return new NextResponse('Нет доступа к этому клубу', { status: 403 });
     }
