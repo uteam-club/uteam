@@ -18,8 +18,18 @@ async function checkClubAccess(request: NextRequest, session: any) {
   if (session.user.role === 'SUPER_ADMIN') return true;
   const host = request.headers.get('host') || '';
   const subdomain = getSubdomain(host);
-  if (!subdomain) return false;
+  if (!subdomain) {
+    console.log('CHECK CLUB ACCESS: no subdomain', { host });
+    return false;
+  }
   const club = await getClubBySubdomain(subdomain);
+  console.log('CHECK CLUB ACCESS', {
+    userClubId: session.user.clubId,
+    host,
+    subdomain,
+    foundClubId: club ? club.id : null,
+    clubObj: club,
+  });
   if (!club) return false;
   return session.user.clubId === club.id;
 }
