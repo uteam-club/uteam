@@ -6,6 +6,8 @@ import { getUserByEmail, verifyPassword, getClubBySubdomain } from "@/services/u
 import { headers } from "next/headers";
 import { getSubdomain } from "@/lib/utils";
 
+console.log('API /api/auth/[...nextauth]/auth-options.ts loaded');
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -15,6 +17,7 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials, req) {
+        console.log('Authorize called', credentials);
         const email = credentials?.email || '';
         const password = credentials?.password || '';
         

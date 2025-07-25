@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth-options";
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-
+console.log('API /api/auth/[...nextauth]/route.ts called');
 
 const handler = NextAuth(authOptions);
 
