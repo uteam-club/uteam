@@ -1,7 +1,7 @@
 import { getUserPermissions } from '@/services/user.service';
 import { hasPermission } from '@/lib/permissions';
 import NextAuth from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { authOptions } from "./auth-options";
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
