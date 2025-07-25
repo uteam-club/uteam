@@ -92,12 +92,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     return new Response(JSON.stringify(players), { status: 200 });
   }
   // Для остальных — старая логика
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    console.log('RETURNING 401: Нет session', { userId: token?.id, role: token?.role, clubId: token?.clubId, permissions, params });
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  const hasAccess = await checkClubAccess(request, session);
+  const hasAccess = await checkClubAccess(request, { user: token });
   if (!hasAccess) {
     console.log('RETURNING 403: Нет доступа к клубу', { userId: token?.id, role: token?.role, clubId: token?.clubId, permissions, params });
     return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
