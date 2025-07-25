@@ -38,9 +38,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const token = await getToken({ req: request });
   const permissions = token ? await getUserPermissions(token.id) : null;
   if (!token) {
+    console.log('RETURNING 403: Нет токена', { userId: null, role: null, clubId: null, permissions: null, params });
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   if (!permissions) {
+    console.log('RETURNING 403: Нет permissions', { userId: token?.id, role: token?.role, clubId: token?.clubId, permissions: null, params });
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   console.log('SCOUT DEBUG', {
@@ -52,6 +54,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     headers: Object.fromEntries(request.headers.entries()),
   });
   if (!hasPermission(permissions, 'teams.read')) {
+    console.log('RETURNING 403: Нет права teams.read', { userId: token?.id, role: token?.role, clubId: token?.clubId, permissions, params });
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   // Если SUPER_ADMIN — разрешаем доступ без сессии и проверки клуба
@@ -91,10 +94,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   // Для остальных — старая логика
   const session = await getServerSession(authOptions);
   if (!session) {
+    console.log('RETURNING 401: Нет session', { userId: token?.id, role: token?.role, clubId: token?.clubId, permissions, params });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const hasAccess = await checkClubAccess(request, session);
   if (!hasAccess) {
+    console.log('RETURNING 403: Нет доступа к клубу', { userId: token?.id, role: token?.role, clubId: token?.clubId, permissions, params });
     return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
   }
   const teamId = params.id;
