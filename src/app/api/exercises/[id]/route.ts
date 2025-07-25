@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
@@ -12,7 +14,6 @@ import { getToken } from 'next-auth/jwt';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Функция для чтения токена из заголовка Authorization
 async function getTokenFromRequest(request: NextRequest) {
@@ -35,7 +36,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   const token = await getToken({ req: req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exercises.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const hasAccess = await checkClubAccess(req, token);
@@ -89,7 +94,11 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   const token = await getToken({ req: req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exercises.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -201,7 +210,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   const token = await getToken({ req: req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exercises.delete')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {

@@ -8,6 +8,7 @@ import { getSubdomain } from '@/lib/utils';
 import { getClubBySubdomain } from '@/services/user.service';
 import { ClubContextProvider } from '@/providers/club-provider';
 import I18nProvider from '@/providers/i18n-provider';
+import PermissionsProviderWrapper from '@/providers/permissions-provider';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
@@ -60,9 +61,11 @@ export default async function RootLayout({
       <body className={inter.className}>
         <I18nProvider>
         <NextAuthProvider>
-          <ClubContextProvider initialClub={club}>
-            {children}
-          </ClubContextProvider>
+          <PermissionsProviderWrapper>
+            <ClubContextProvider initialClub={club}>
+              {children}
+            </ClubContextProvider>
+          </PermissionsProviderWrapper>
           <Toaster />
         </NextAuthProvider>
         </I18nProvider>

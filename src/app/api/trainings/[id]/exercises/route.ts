@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { db } from '@/lib/db';
@@ -5,12 +7,15 @@ import { trainingExercise, exercise, user, exerciseCategory, exerciseTag, exerci
 import { eq, and, inArray, asc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Получить упражнения тренировки
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exercises.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -75,7 +80,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 // Добавить упражнения к тренировке
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exercises.create')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -108,7 +117,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 // Удалить упражнение из тренировки
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exercises.delete')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -127,6 +140,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
 // PATCH — обновить порядок упражнений
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const token = await getToken({ req: req });
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exercises.update')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const trainingId = params.id;
     const { positions } = await req.json(); // ожидаем { positions: [{ trainingExerciseId, position }] }

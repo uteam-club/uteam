@@ -9,6 +9,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { getSubdomain } from '@/lib/utils';
 import { getClubBySubdomain } from '@/services/user.service';
 import { getToken } from 'next-auth/jwt';
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -16,12 +18,13 @@ export const revalidate = 0;
 // Добавляю тип Token
 type Token = { clubId: string; [key: string]: any };
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // GET: получить все упражнения с фильтрацией и join по авторам, категориям, тегам, mediaItems
 export async function GET(req: NextRequest) {
   const token = await getToken({ req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exercises.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const hasAccess = await checkClubAccess(req, token);
@@ -111,7 +114,9 @@ export async function GET(req: NextRequest) {
 // POST: создать упражнение с тегами и mediaItem
 export async function POST(req: NextRequest) {
   const token = await getToken({ req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exercises.create')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   console.log('[DEBUG] POST /api/exercises called');

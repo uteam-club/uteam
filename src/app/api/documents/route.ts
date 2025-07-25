@@ -2,6 +2,8 @@ import { getSubdomain } from '@/lib/utils';
 import { getClubBySubdomain } from '@/services/user.service';
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 
 // Добавляю тип Token
 type Token = { clubId: string; [key: string]: any };
@@ -47,11 +49,12 @@ async function getTokenFromRequest(request: NextRequest) {
   }
 }
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'documents.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const hasAccess = await checkClubAccess(request, token);

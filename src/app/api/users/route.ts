@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createUser, getUsersByClubId, getClubBySubdomain } from '@/services/user.service';
+import { createUser, getUsersByClubId, getClubBySubdomain, getUserPermissions } from '@/services/user.service';
 import { generateRandomPassword, getSubdomain } from '@/lib/utils';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
+import { hasPermission } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
 // Добавляю тип Token
 type Token = { clubId: string; [key: string]: any };
@@ -70,17 +70,12 @@ async function checkClubAccess(request: NextRequest, token: any) {
  */
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'users.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const clubId = token.clubId as string;
-  const role = token.role as string;
-  
-  // Проверяем права (только админ или суперадмин)
-  if (!allowedRoles.includes(role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-  
   const users = await getUsersByClubId(clubId);
   return NextResponse.json(users);
 }
@@ -91,50 +86,40 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'users.read')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  if (!hasPermission(permissions, 'users.create')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
     console.log('Начало обработки запроса на создание пользователя');
-    
     const clubId = token.clubId as string;
-    const role = token.role as string;
     const email = token.email as string;
-    
     console.log('Пользователь авторизован:', email);
-    
-    // Проверяем права (только админ или суперадмин)
-    if (!allowedRoles.includes(role)) {
-      console.log('Ошибка доступа: у пользователя недостаточно прав');
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-    
     // Парсим тело запроса
     const data = await request.json();
     console.log('Получены данные:', data);
-    
     // Проверяем обязательные поля
     if (!data.email) {
       console.log('Ошибка валидации: email обязателен');
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
-    
     // Генерируем случайный пароль
     const password = generateRandomPassword();
     console.log('Сгенерирован пароль для нового пользователя');
-    
     // Составляем полное имя из имени и фамилии
     const name = data.firstName && data.lastName 
       ? `${data.firstName} ${data.lastName}` 
       : data.firstName || data.lastName || '';
-    
     console.log('Создаем пользователя с данными:', { 
       email: data.email, 
       name, 
       role: data.role || 'MEMBER',
       clubId
     });
-    
     // Создаем пользователя
     try {
       const user = await createUser({
@@ -144,14 +129,11 @@ export async function POST(request: NextRequest) {
         role: data.role || 'MEMBER',
         clubId, // Привязываем к текущему клубу
       });
-      
       if (!user) {
         console.error('Пользователь не был создан: функция вернула null');
         return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
       }
-      
       console.log('Пользователь успешно создан:', user.id);
-      
       // Возвращаем данные созданного пользователя вместе с паролем (для показа)
       return NextResponse.json({
         ...user,
@@ -159,17 +141,14 @@ export async function POST(request: NextRequest) {
       });
     } catch (innerError: any) {
       console.error('Ошибка при создании пользователя в createUser:', innerError);
-      
       // Проверяем ошибку уникальности email
       if (innerError.code === 'P2002' && innerError.meta?.target?.includes('email')) {
         return NextResponse.json({ error: 'Пользователь с таким email уже существует' }, { status: 400 });
       }
-      
       throw innerError; // Пробрасываем ошибку дальше
     }
   } catch (error: any) {
     console.error('Необработанная ошибка при создании пользователя:', error);
-    
     return NextResponse.json({ 
       error: 'Failed to create user', 
       details: error.message || 'Unknown error' 

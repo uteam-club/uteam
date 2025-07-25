@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserById, updateUser, deleteUser, getClubBySubdomain } from '@/services/user.service';
 import { getToken } from 'next-auth/jwt';
@@ -7,7 +9,6 @@ import { getSubdomain } from '@/lib/utils';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
 // Добавляю тип Token
 type Token = { clubId: string; [key: string]: any };
@@ -84,10 +85,7 @@ export async function GET(
     const role = token.role as string;
     const clubId = token.clubId as string;
     
-    // Проверяем права (только админ или суперадмин)
-    if (!allowedRoles.includes(role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Удаляю проверку по allowedRoles
     
     const userId = params.id;
     const user = await getUserById(userId);
@@ -141,11 +139,7 @@ export async function PUT(
     const role = token.role as string;
     const clubId = token.clubId as string;
     
-    // Проверяем права (только админ или суперадмин)
-    if (!allowedRoles.includes(role)) {
-      console.log('Ошибка доступа: у пользователя недостаточно прав');
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Удаляю проверку по allowedRoles
     
     const userId = params.id;
     
@@ -240,11 +234,7 @@ export async function DELETE(
     const clubId = token.clubId as string;
     const currentUserId = token.id as string;
     
-    // Проверяем права (только админ или суперадмин)
-    if (!allowedRoles.includes(role)) {
-      console.log('Ошибка доступа: у пользователя недостаточно прав');
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Удаляю проверку по allowedRoles
     
     const userId = params.id;
     

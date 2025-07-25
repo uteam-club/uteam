@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { fitnessTest } from '@/db/schema/fitnessTest';
@@ -33,11 +35,12 @@ async function checkClubAccess(request: NextRequest, token: any) {
   return token.clubId === club.id;
 }
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'fitnessTests.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const hasAccess = await checkClubAccess(request, token);
@@ -50,7 +53,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'fitnessTests.create')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const hasAccess = await checkClubAccess(request, token);

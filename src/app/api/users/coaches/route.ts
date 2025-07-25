@@ -3,8 +3,9 @@ import { db } from '@/lib/db';
 import { user, team, teamCoach } from '@/db/schema';
 import { eq, and, not, inArray, asc } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -27,7 +28,11 @@ async function getTokenFromRequest(req: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'users.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {

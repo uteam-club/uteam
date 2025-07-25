@@ -16,6 +16,10 @@ import { toast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { TFunction } from 'i18next';
+import RolesPermissionsTable from '@/components/admin/RolesPermissionsTable';
+import UserPermissionsModal from '@/components/admin/UserPermissionsModal';
+import { usePermissions } from '@/context/PermissionsContext';
+import { hasPermission } from '@/lib/permissions';
 
 // Определение перечня ролей (используется для выпадающего списка)
 const USER_ROLES = [
@@ -91,6 +95,7 @@ export default function AdminPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const { club } = useClub();
+  const permissions = usePermissions();
   
   // Состояния для работы с пользователями
   const [users, setUsers] = useState<User[]>([]);
@@ -102,6 +107,8 @@ export default function AdminPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [showCreationSuccess, setShowCreationSuccess] = useState(false);
+  const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   
   // Состояния для форм
   const [newUser, setNewUser] = useState({
@@ -112,7 +119,6 @@ export default function AdminPage() {
   });
   
   // Состояния для редактирования и удаления
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editedUser, setEditedUser] = useState({
     firstName: '',
     lastName: '',
@@ -179,7 +185,7 @@ export default function AdminPage() {
   }, [session]);
 
   // Если нет сессии или роль не подходит, показываем заглушку загрузки
-  if (!session || (session.user?.role !== 'ADMIN' && session.user?.role !== 'SUPER_ADMIN' && session.user?.role !== 'COACH')) {
+  if (!permissions || !hasPermission(permissions, 'users.read')) {
     return <div className="p-8 flex justify-center"><p className="text-vista-light/50">Загрузка...</p></div>;
   }
 
@@ -216,7 +222,7 @@ export default function AdminPage() {
   // Функция для получения списка категорий тренировок
   const fetchTrainingCategories = async () => {
     try {
-      const response = await fetch('/api/training-categories');
+      const response = await fetch('/api/training-categories', { credentials: 'include' });
       if (!response.ok) {
         throw new Error('Ошибка при загрузке категорий тренировок');
       }
@@ -1099,26 +1105,28 @@ export default function AdminPage() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="bg-vista-dark/30 border border-vista-secondary/30">
-          <TabsTrigger value="users">{t('adminPage.users')}</TabsTrigger>
-          <TabsTrigger value="teams">{t('adminPage.teams')}</TabsTrigger>
-          <TabsTrigger value="training-categories">{t('adminPage.training_categories')}</TabsTrigger>
-          <TabsTrigger value="exercise-categories">{t('adminPage.exercise_categories')}</TabsTrigger>
-          <TabsTrigger value="exercise-tags">{t('adminPage.exercise_tags')}</TabsTrigger>
-          <TabsTrigger value="surveys">{t('adminPage.surveys')}</TabsTrigger>
+        <TabsList className="mb-4">
+          <TabsTrigger value="users">Пользователи</TabsTrigger>
+          <TabsTrigger value="teams">Команды</TabsTrigger>
+          <TabsTrigger value="trainingCategories">Категории тренировок</TabsTrigger>
+          <TabsTrigger value="exerciseCategories">Категории упражнений</TabsTrigger>
+          <TabsTrigger value="exerciseTags">Теги упражнений</TabsTrigger>
+          <TabsTrigger value="surveys">Опросники</TabsTrigger>
+          <TabsTrigger value="roles">Роли</TabsTrigger>
         </TabsList>
         
         <TabsContent value="users" className="mt-6">
           <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-vista-light">{t('adminPage.users')}</CardTitle>
-              <Button 
-                className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
-                onClick={() => setIsAddModalOpen(true)}
-              >
-                <PlusIcon className="w-4 h-4 mr-2" />
-                {t('adminPage.add_user')}
-              </Button>
+              {permissions && hasPermission(permissions, 'users.create') && (
+                <Button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
+                >
+                  + Добавить пользователя
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <p className="text-vista-light/80 mb-4">
@@ -1151,18 +1159,18 @@ export default function AdminPage() {
                             {USER_ROLES.find(r => r.value === user.role)?.label || user.role}
                           </td>
                           <td className="px-4 py-3 text-right space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
-                              onClick={() => handleEditClick(user)}
-                            >
-                              <PencilIcon className="w-4 h-4 mr-1" />
-                              {t('adminPage.edit')}
-                            </Button>
-                            
-                            {/* Не показываем кнопку удаления для своего аккаунта */}
-                            {user.id !== session.user.id && (
+                            {permissions && hasPermission(permissions, 'users.create') && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
+                                onClick={() => handleEditClick(user)}
+                              >
+                                <PencilIcon className="w-4 h-4 mr-1" />
+                                {t('adminPage.edit')}
+                              </Button>
+                            )}
+                            {session?.user?.id && user.id !== session.user.id && permissions && hasPermission(permissions, 'users.delete') && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1173,6 +1181,16 @@ export default function AdminPage() {
                                 {t('adminPage.delete')}
                               </Button>
                             )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setPermissionsModalOpen(true);
+                              }}
+                            >
+                              Индивидуальные права
+                            </Button>
                           </td>
                         </tr>
                       ))}
@@ -2569,7 +2587,19 @@ export default function AdminPage() {
           {/* Управление подключением опросников для клуба */}
           <SurveyClubManagement />
         </TabsContent>
+
+        <TabsContent value="roles">
+          <RolesPermissionsTable />
+        </TabsContent>
       </Tabs>
+      {selectedUser && (
+        <UserPermissionsModal
+          userId={selectedUser.id}
+          userName={selectedUser.name}
+          open={permissionsModalOpen}
+          onClose={() => setPermissionsModalOpen(false)}
+        />
+      )}
     </div>
   );
 } 

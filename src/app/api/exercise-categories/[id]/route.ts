@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
@@ -9,7 +11,6 @@ import { getClubBySubdomain } from '@/services/user.service';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Добавляю тип Token
 type Token = { clubId: string; [key: string]: any };
@@ -71,7 +72,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exerciseCategories.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -119,7 +122,9 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exerciseCategories.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -139,15 +144,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    const role = token.role as string;
     const clubId = token.clubId as string;
-    
-    // Проверяем права (только админ или суперадмин)
-    if (!allowedRoles.includes(role)) {
-      console.log('Ошибка доступа: у пользователя недостаточно прав');
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-    
     const categoryId = params.id;
     
     // Получаем текущую категорию
@@ -204,7 +201,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exerciseCategories.delete')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -224,15 +223,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    const role = token.role as string;
     const clubId = token.clubId as string;
-    
-    // Проверяем права (только админ или суперадмин)
-    if (!allowedRoles.includes(role)) {
-      console.log('Ошибка доступа: у пользователя недостаточно прав');
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-    
     const categoryId = params.id;
     
     // Получаем текущую категорию

@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getToken } from 'next-auth/jwt';
@@ -13,7 +15,6 @@ import { v4 as uuidv4 } from 'uuid';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Функция для получения токена
 async function getTokenFromRequest(request: NextRequest) {
@@ -52,6 +53,10 @@ export async function GET(
     const token = await getTokenFromRequest(request);
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const permissions = await getUserPermissions(token.id);
+    if (!hasPermission(permissions, 'trainings.read')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const clubId = token.clubId as string;
     const trainingId = params.id;
@@ -121,6 +126,10 @@ export async function POST(
     const token = await getTokenFromRequest(request);
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const permissions = await getUserPermissions(token.id);
+    if (!hasPermission(permissions, 'trainings.attendance')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const clubId = token.clubId as string;
     const trainingId = params.id;

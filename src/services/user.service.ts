@@ -4,6 +4,7 @@ import { eq, asc } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
+import * as schema from '@/db/schema';
 
 export async function getUserById(id: string) {
   if (!id) return null;
@@ -185,4 +186,57 @@ export function generateBotServiceToken(userObj: any) {
     role: userObj.role,
     clubId: userObj.clubId,
   }, process.env.NEXTAUTH_SECRET, { expiresIn: '365d' });
+}
+
+// Получить итоговые права пользователя (учитывая overrides)
+export async function getUserPermissions(userId: string): Promise<Record<string, boolean>> {
+  // Получаем пользователя и его роль
+  const [usr] = await db.select().from(user).where(eq(user.id, userId));
+  if (!usr) return {};
+  const roleValue = usr.role;
+
+  // Получаем все права роли
+  const rolePerms = await db
+    .select({
+      permissionId: schema.rolePermission.permissionId,
+      allowed: schema.rolePermission.allowed,
+      code: schema.permission.code,
+    })
+    .from(schema.rolePermission)
+    .leftJoin(schema.permission, eq(schema.rolePermission.permissionId, schema.permission.id))
+    .where(eq(schema.rolePermission.role, roleValue));
+
+  // Получаем индивидуальные overrides
+  const userPerms = await db
+    .select({
+      permissionId: schema.userPermission.permissionId,
+      allowed: schema.userPermission.allowed,
+    })
+    .from(schema.userPermission)
+    .where(eq(schema.userPermission.userId, userId));
+  // Фильтрую rolePerms и userPerms, чтобы не было permissionId === null
+  const filteredRolePerms = rolePerms.filter(p => p.permissionId !== null && p.permissionId !== undefined);
+  const filteredUserPerms = userPerms.filter(p => p.permissionId !== null && p.permissionId !== undefined);
+  const userPermsMap = Object.fromEntries(filteredUserPerms.map(p => [String(p.permissionId), p.allowed]));
+
+  // Итоговые права: если есть override — используем его, иначе право роли
+  const finalPerms: Record<string, boolean> = {};
+  for (const p of rolePerms) {
+    if (p.code == null) continue;
+    if (p.permissionId == null) {
+      finalPerms[p.code] = p.allowed;
+    } else {
+      const permKey = String(p.permissionId);
+      finalPerms[p.code] = userPermsMap[permKey] !== undefined ? userPermsMap[permKey] : p.allowed;
+    }
+  }
+  // Добавляем индивидуальные права, которых нет в роли
+  for (const p of filteredUserPerms) {
+    const code = filteredRolePerms.find(rp => rp.permissionId === p.permissionId)?.code;
+    if (!code) continue;
+    if (!(code in finalPerms)) {
+      finalPerms[code] = p.allowed;
+    }
+  }
+  return finalPerms;
 } 

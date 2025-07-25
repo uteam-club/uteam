@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
-
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -11,7 +11,11 @@ export const revalidate = 0;
 // Получение всех клубов
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'clubs.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -29,7 +33,11 @@ export async function GET(request: NextRequest) {
 // Создание нового клуба
 export async function POST(request: NextRequest) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'clubs.create')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {

@@ -7,6 +7,8 @@ import * as jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { getSubdomain } from '@/lib/utils';
 import { getClubBySubdomain } from '@/services/user.service';
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -15,7 +17,6 @@ dayjs.extend(timezone);
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Добавляю тип Token
 type Token = { clubId: string; [key: string]: any };
@@ -66,6 +67,10 @@ export async function GET(request: NextRequest) {
   const token = (await getTokenFromRequest(request) as unknown) as Token | null;
   if (!token || typeof token.clubId !== 'string') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'trainings.read')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const hasAccess = await checkClubAccess(request, token);
   if (!hasAccess) {
@@ -131,6 +136,10 @@ export async function POST(request: NextRequest) {
   if (!token || typeof token.clubId !== 'string') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'trainings.create')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const hasAccess = await checkClubAccess(request, token);
   if (!hasAccess) {
     return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
@@ -141,9 +150,6 @@ export async function POST(request: NextRequest) {
     const role = token.role as string;
     const clubId = token.clubId as string;
     const userId = token.id as string;
-    if (!allowedRoles.includes(role)) {
-      return NextResponse.json({ error: 'Forbidden', debug }, { status: 403 });
-    }
     const data = await request.json();
     debug = { ...debug, incomingData: data };
     if (!data.title || !data.title.trim()) {
@@ -243,12 +249,13 @@ export async function PUT(request: NextRequest) {
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized', debug }, { status: 401 });
     }
+    const permissions = await getUserPermissions(token.id);
+    if (!hasPermission(permissions, 'trainings.update')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     const role = token.role as string;
     const clubId = token.clubId as string;
     const userId = token.id as string;
-    if (!allowedRoles.includes(role)) {
-      return NextResponse.json({ error: 'Forbidden', debug }, { status: 403 });
-    }
     const data = await request.json();
     debug = { ...debug, incomingData: data };
     if (!data.id) {

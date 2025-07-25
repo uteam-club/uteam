@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { rpeSurveyResponse, player, team } from '@/db/schema';
@@ -6,13 +8,14 @@ import { getToken } from 'next-auth/jwt';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // GET /api/surveys/rpe
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
-    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'surveys.rpe.read')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   
   try {
@@ -59,8 +62,10 @@ export async function GET(request: NextRequest) {
 // POST /api/surveys/rpe
 export async function POST(request: NextRequest) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
-    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'surveys.rpe.create')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   
   try {

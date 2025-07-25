@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 // Используется Telegram-бот @UTEAM_infoBot
 import { NextRequest, NextResponse } from 'next/server';
 import { Telegraf } from 'telegraf';
@@ -15,13 +17,16 @@ const bot = new Telegraf(botToken);
 
 const SURVEY_URL = 'https://fdcvista.uteam.club/survey';
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
 export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type') || 'morning';
   const token = await getToken({ req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'telegram.testBroadcast')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

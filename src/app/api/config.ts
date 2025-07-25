@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextResponse } from 'next/server';
 
 // Типы для заголовков кеширования

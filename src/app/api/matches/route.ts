@@ -12,6 +12,8 @@ import { getToken } from 'next-auth/jwt';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -34,7 +36,6 @@ const matchSchema = z.object({
   opponentGoals: z.number().int().min(0).nullable().default(null),
 });
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Проверка clubId пользователя и клуба по subdomain
 async function checkClubAccess(request: NextRequest, token: any) {
@@ -49,7 +50,11 @@ async function checkClubAccess(request: NextRequest, token: any) {
 // GET метод для получения матчей
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'matches.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const hasAccess = await checkClubAccess(request, token);
@@ -101,7 +106,11 @@ export async function GET(request: NextRequest) {
 // POST метод для создания нового матча
 export async function POST(request: NextRequest) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'matches.create')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const hasAccess = await checkClubAccess(request, token);

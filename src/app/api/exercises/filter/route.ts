@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
@@ -31,12 +33,15 @@ const FilterSchema = z.object({
   sortOrder: SortOrderSchema.optional().default('desc')
 });
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request });
   if (!token) {
     return createApiResponse({ error: 'Unauthorized' }, 401);
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exercises.read')) {
+    return createApiResponse({ error: 'Forbidden' }, 403);
   }
 
   try {

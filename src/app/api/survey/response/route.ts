@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { morningSurveyResponse, painArea, player } from '@/db/schema';
@@ -6,17 +8,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { getToken } from 'next-auth/jwt';
 import { rpeSurveyResponse } from '@/db/schema/rpeSurveyResponse';
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function POST(req: NextRequest) {
   const token = await getToken({ req });
-  let isAdmin = false;
-  if (token && allowedRoles.includes(token.role as string)) {
-    isAdmin = true;
-  }
+  // Удаляю isAdmin и allowedRoles
 
   let body: any;
   try {
@@ -49,8 +47,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Player not found', playerId }, { status: 404 });
   }
 
-  // Если не админ, разрешаем только если игрок найден (авторизация по пинкоду)
-  if (!isAdmin && !foundPlayer) {
+  // Если не найден игрок, запрещаем доступ
+  if (!foundPlayer) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

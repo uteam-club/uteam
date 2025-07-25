@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
@@ -11,7 +13,6 @@ export const revalidate = 0;
 
 
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Функция для чтения токена из заголовка Authorization
 async function getTokenFromRequest(request: NextRequest) {
@@ -70,9 +71,11 @@ export async function GET(
     // Получаем токен пользователя
     const token = await getTokenFromRequest(request);
     
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'trainingCategories.read')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
     
     const hasAccess = await checkClubAccess(request, token);
     if (!hasAccess) {
@@ -117,20 +120,13 @@ export async function PUT(
     // Получаем токен пользователя
     const token = await getTokenFromRequest(request);
     
-    if (!token) {
-      console.log('Ошибка аутентификации: пользователь не авторизован');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'trainingCategories.update')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
     
-    const role = token.role as string;
     const clubId = token.clubId as string;
-    
-    // Проверяем права (только админ или суперадмин)
-    if (!allowedRoles.includes(role)) {
-      console.log('Ошибка доступа: у пользователя недостаточно прав');
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-    
     const categoryId = params.id;
     
     // Получаем текущую категорию
@@ -194,20 +190,13 @@ export async function DELETE(
     // Получаем токен пользователя
     const token = await getTokenFromRequest(request);
     
-    if (!token) {
-      console.log('Ошибка аутентификации: пользователь не авторизован');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'trainingCategories.delete')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
     
-    const role = token.role as string;
     const clubId = token.clubId as string;
-    
-    // Проверяем права (только админ или суперадмин)
-    if (!allowedRoles.includes(role)) {
-      console.log('Ошибка доступа: у пользователя недостаточно прав');
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-    
     const categoryId = params.id;
     
     // Получаем текущую категорию

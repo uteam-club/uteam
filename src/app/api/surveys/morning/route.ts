@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextResponse, NextRequest } from "next/server";
 import { db } from '@/lib/db';
 import { morningSurveyResponse, player, team } from '@/db/schema';
@@ -10,13 +12,14 @@ import { getToken } from 'next-auth/jwt';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // GET /api/surveys/morning
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
-    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'surveys.morning.read')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
     const session = await getServerSession(authOptions);
@@ -71,8 +74,10 @@ export async function GET(request: NextRequest) {
 // POST /api/surveys/morning
 export async function POST(request: NextRequest) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
-    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'surveys.morning.create')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
     const { playerId, teamId, date } = await request.json();

@@ -85,12 +85,4 @@ export async function getTokenFromRequest(request: NextRequest) {
     console.error('Ошибка при получении/декодировании токена:', error);
     return null;
   }
-}
-
-/**
- * Проверка, имеет ли токен указанную роль
- */
-export function hasRole(token: any, allowedRoles: string[]) {
-  if (!token || !token.role) return false;
-  return allowedRoles.includes(token.role);
 } 

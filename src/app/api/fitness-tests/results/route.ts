@@ -8,6 +8,8 @@ import { eq, and } from 'drizzle-orm';
 import { getSubdomain } from '@/lib/utils';
 import { getClubBySubdomain } from '@/services/user.service';
 import { getToken } from 'next-auth/jwt';
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 
 const saveResultsSchema = z.object({
   testId: z.string(),
@@ -18,8 +20,6 @@ const saveResultsSchema = z.object({
     date: z.string().optional(),
   })),
 });
-
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Проверка clubId пользователя и клуба по subdomain
 async function checkClubAccess(request: NextRequest, session: any) {
@@ -37,7 +37,9 @@ async function checkClubAccess(request: NextRequest, session: any) {
 
 export async function GET(req: NextRequest) {
   const token = await getToken({ req: req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'fitnessTests.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const session = await getServerSession(authOptions);
@@ -69,7 +71,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const token = await getToken({ req: req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'fitnessTests.create')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const session = await getServerSession(authOptions);

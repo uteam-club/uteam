@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
@@ -9,7 +11,6 @@ import { getSubdomain } from '@/lib/utils';
 import { getClubBySubdomain } from '@/services/user.service';
 
 // Массив ролей, которым разрешено создавать категории
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Добавляю тип Token
 type Token = { clubId: string; [key: string]: any };
@@ -68,7 +69,9 @@ async function checkClubAccess(request: NextRequest, token: any) {
 
 export async function GET(req: NextRequest) {
   const token = await getToken({ req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exerciseCategories.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -125,7 +128,9 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exerciseCategories.create')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -141,12 +146,6 @@ export async function POST(request: NextRequest) {
     
     const role = token.role as string;
     const clubId = token.clubId as string;
-    
-    // Проверяем права (только админ или суперадмин)
-    if (!allowedRoles.includes(role)) {
-      console.log('Ошибка доступа: у пользователя недостаточно прав');
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
     
     // Парсим тело запроса
     const data = await request.json();

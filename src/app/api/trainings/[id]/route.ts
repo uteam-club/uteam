@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { training, team, trainingCategory } from '@/db/schema';
@@ -9,7 +11,6 @@ import { getClubBySubdomain } from '@/services/user.service';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Функция для чтения токена из заголовка Authorization
 async function getTokenFromRequest(request: NextRequest) {
@@ -75,6 +76,10 @@ export async function GET(
     
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const permissions = await getUserPermissions(token.id);
+    if (!hasPermission(permissions, 'trainings.read')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
     const hasAccess = await checkClubAccess(request, token);
@@ -154,18 +159,21 @@ export async function PUT(
     const token = await getTokenFromRequest(request);
     
     if (!token) {
-      console.log('Ошибка аутентификации: пользователь не авторизован');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const permissions = await getUserPermissions(token.id);
+    if (!hasPermission(permissions, 'trainings.update')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
     const role = token.role as string;
     const clubId = token.clubId as string;
     
     // Проверяем права (только админ, суперадмин или тренер)
-    if (!allowedRoles.includes(role)) {
-      console.log('Ошибка доступа: у пользователя недостаточно прав');
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // if (!allowedRoles.includes(role)) { // This line was removed as per the edit hint
+    //   console.log('Ошибка доступа: у пользователя недостаточно прав');
+    //   return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // }
     
     // Проверяем существование тренировки и принадлежность к клубу
     const [existing] = await db.select().from(training).where(and(eq(training.id, trainingId), eq(training.clubId, clubId)));
@@ -250,18 +258,21 @@ export async function DELETE(
     const token = await getTokenFromRequest(request);
     
     if (!token) {
-      console.log('Ошибка аутентификации: пользователь не авторизован');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const permissions = await getUserPermissions(token.id);
+    if (!hasPermission(permissions, 'trainings.delete')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
     const role = token.role as string;
     const clubId = token.clubId as string;
     
     // Проверяем права (только админ, суперадмин или тренер)
-    if (!allowedRoles.includes(role)) {
-      console.log('Ошибка доступа: у пользователя недостаточно прав');
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // if (!allowedRoles.includes(role)) { // This line was removed as per the edit hint
+    //   console.log('Ошибка доступа: у пользователя недостаточно прав');
+    //   return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // }
     
     // Проверяем существование тренировки и принадлежность к клубу
     const [existing] = await db.select().from(training).where(and(eq(training.id, trainingId), eq(training.clubId, clubId)));

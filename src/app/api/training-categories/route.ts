@@ -1,5 +1,7 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { getTokenFromRequest } from '@/lib/auth';
 import * as jwt from 'jsonwebtoken';
 import { db } from '@/lib/db';
 import { trainingCategory } from '@/db/schema';
@@ -12,21 +14,6 @@ export const revalidate = 0;
 
 
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
-
-// Вспомогательная функция для получения токена из запроса
-async function getTokenFromRequest(request: NextRequest) {
-  try {
-    const token = await getToken({ req: request });
-    if (!token) {
-      return null;
-    }
-    return token;
-  } catch (error) {
-    console.error('Error getting token:', error);
-    return null;
-  }
-}
 
 // Проверка clubId пользователя и клуба по subdomain
 async function checkClubAccess(request: NextRequest, token: any) {
@@ -54,9 +41,10 @@ export async function GET(request: NextRequest) {
     const token = await getTokenFromRequest(request);
     console.log('Token received:', token ? 'Yes' : 'No');
     
-    if (!token) {
-      console.log('No token found, returning 401');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permissions = await getUserPermissions(token.id);
+    if (!hasPermission(permissions, 'trainingCategories.read')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
     const hasAccess = await checkClubAccess(request, token);
@@ -102,19 +90,14 @@ export async function POST(request: NextRequest) {
     // Получаем токен пользователя
     const token = await getTokenFromRequest(request);
     
-    if (!token) {
-      console.log('Ошибка аутентификации: пользователь не авторизован');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permissions = await getUserPermissions(token.id);
+    if (!hasPermission(permissions, 'trainingCategories.create')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
     const role = token.role as string;
     const clubId = token.clubId as string;
-    
-    // Проверяем права (только админ или суперадмин)
-    if (!allowedRoles.includes(role)) {
-      console.log('Ошибка доступа: у пользователя недостаточно прав');
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
     
     // Парсим тело запроса
     const data = await request.json();

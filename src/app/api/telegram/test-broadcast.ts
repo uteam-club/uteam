@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 // Используется Telegram-бот @UTEAM_infoBot
 import { NextRequest, NextResponse } from 'next/server';
 import { Telegraf } from 'telegraf';

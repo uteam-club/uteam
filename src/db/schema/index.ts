@@ -27,3 +27,6 @@ export * from './surveySchedule';
 export * from './fitnessTest';
 export * from './fitnessTestResult';
 // Здесь будут экспортироваться схемы Drizzle для всех моделей 
+export * from './permission';
+export * from './rolePermission';
+export * from './userPermission'; 

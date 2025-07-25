@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/auth-options';
@@ -21,7 +23,6 @@ interface RouteParams {
   };
 }
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Проверка clubId пользователя и клуба по subdomain
 async function checkClubAccess(request: NextRequest, token: any) {
@@ -36,7 +37,9 @@ async function checkClubAccess(request: NextRequest, token: any) {
 // Обработчик PUT-запроса для обновления тега упражнений
 export async function PUT(req: NextRequest, { params }: RouteParams) {
   const token = await getToken({ req: req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exerciseTags.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -111,7 +114,9 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 // Обработчик DELETE-запроса для удаления тега упражнений
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   const token = await getToken({ req: req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exerciseTags.delete')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -163,7 +168,9 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
 // В каждом обработчике (пример для GET):
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'exerciseTags.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const hasAccess = await checkClubAccess(request, token);

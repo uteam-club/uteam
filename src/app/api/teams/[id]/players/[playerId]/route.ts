@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { player } from "@/db/schema";
@@ -5,7 +7,6 @@ import { team } from "@/db/schema/team";
 import { eq, and } from "drizzle-orm";
 import { getToken } from 'next-auth/jwt';
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 function toDateOrNull(val: any) {
   if (val === null || val === undefined || val === '') return null;
@@ -26,7 +27,11 @@ function toIntOrNull(val: any) {
 
 export async function GET(req: NextRequest, { params }: { params: { id: string, playerId: string } }) {
   const token = await getToken({ req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'teams.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const teamId = params.id;
@@ -46,7 +51,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string, 
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string, playerId: string } }) {
   const token = await getToken({ req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'teams.players.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -90,7 +99,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string, 
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string, playerId: string } }) {
   const token = await getToken({ req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'teams.players.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {

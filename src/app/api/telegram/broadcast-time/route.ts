@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { club } from '@/db/schema';
@@ -10,12 +12,15 @@ import { and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { getToken } from 'next-auth/jwt';
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH'];
 
 // GET: получить время рассылки для клуба
 export async function GET(req: NextRequest) {
   const token = await getToken({ req: req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'telegram.broadcastTime.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const session = await getServerSession(authOptions);
@@ -33,7 +38,11 @@ export async function GET(req: NextRequest) {
 // POST: сохранить время рассылки для команды (через SurveySchedule)
 export async function POST(req: NextRequest) {
   const token = await getToken({ req: req });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'telegram.broadcastTime.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {

@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { user, team, teamCoach } from '@/db/schema';
@@ -5,7 +7,6 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
 import * as z from 'zod';
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -26,9 +27,11 @@ const removeCoachesSchema = z.object({
 async function getTokenFromRequest(req: NextRequest) {
   try {
     const token = await getToken({ req });
-    if (!token || !allowedRoles.includes(token.role as string)) {
+    if (!token) {
       return null;
     }
+    const permissions = await getUserPermissions(token.id);
+    // Здесь не делаем проверку прав, она будет в каждом методе отдельно
     return token;
   } catch (error) {
     console.error('Error getting token:', error);
@@ -46,6 +49,10 @@ export async function GET(
 ) {
   const token = await getTokenFromRequest(request);
   if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'teams.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -102,7 +109,11 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   const token = await getTokenFromRequest(request);
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'teams.coaches.create')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -184,18 +195,17 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   const token = await getTokenFromRequest(request);
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'teams.coaches.delete')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   try {
-    // Получаем токен пользователя
-    const token = await getTokenFromRequest(request);
-    
-    if (!token) {
-      console.log('DELETE /team/coaches: Unauthorized access attempt');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permissions = await getUserPermissions(token.id);
     
     const clubId = token.clubId as string;
     const teamId = params.id;

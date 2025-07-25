@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 // Конфигурация для динамических роутов
 export const routeConfig = {
   api: {

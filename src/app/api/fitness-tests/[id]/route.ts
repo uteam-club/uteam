@@ -1,3 +1,5 @@
+import { getUserPermissions } from '@/services/user.service';
+import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { fitnessTest } from '@/db/schema/fitnessTest';
@@ -12,7 +14,6 @@ const updateDescriptionSchema = z.object({
   description: z.string().max(512)
 });
 
-const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COACH', 'DIRECTOR'];
 
 // Проверка clubId пользователя и клуба по subdomain
 async function checkClubAccess(request: NextRequest, token: any) {
@@ -26,7 +27,9 @@ async function checkClubAccess(request: NextRequest, token: any) {
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'fitnessTests.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { id } = params;
@@ -49,7 +52,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'fitnessTests.delete')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { id } = params;
@@ -62,7 +67,9 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const token = await getToken({ req: request });
-  if (!token || !allowedRoles.includes(token.role as string)) {
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'fitnessTests.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { id } = params;
