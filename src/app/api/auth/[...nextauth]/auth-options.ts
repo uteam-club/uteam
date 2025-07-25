@@ -98,7 +98,7 @@ export const authOptions: NextAuthOptions = {
     sessionToken: {
       name: `next-auth.session-token`,
       options: {
-        domain: '.localhost',
+        domain: process.env.NODE_ENV === 'production' ? '.uteam.club' : '.localhost',
         path: '/',
         httpOnly: true,
         sameSite: 'lax',
