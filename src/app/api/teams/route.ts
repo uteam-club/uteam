@@ -74,16 +74,18 @@ async function checkClubAccess(request: NextRequest, token: any) {
  */
 export async function GET(request: NextRequest) {
   try {
-    // Получаем токен пользователя
     const token = (await getTokenFromRequest(request) as unknown) as Token | null;
+    console.log('API /api/teams GET token:', token);
     if (!token || typeof token.clubId !== 'string') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const permissions = await getUserPermissions(token.id);
+    console.log('API /api/teams GET permissions:', permissions);
     if (!hasPermission(permissions, 'teams.read')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const hasAccess = await checkClubAccess(request, token);
+    console.log('API /api/teams GET club access:', hasAccess, 'token.clubId:', token.clubId);
     if (!hasAccess) {
       return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
     }

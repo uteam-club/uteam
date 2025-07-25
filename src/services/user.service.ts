@@ -238,5 +238,6 @@ export async function getUserPermissions(userId: string): Promise<Record<string,
       finalPerms[code] = p.allowed;
     }
   }
+  console.log('getUserPermissions:', { userId, role: roleValue, finalPerms });
   return finalPerms;
 } 
