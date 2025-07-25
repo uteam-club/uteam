@@ -25,13 +25,22 @@ async function checkClubAccess(request: NextRequest, session: any) {
 }
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
-  console.log('API /teams/[id]/players: headers', request.headers);
   const token = await getToken({ req: request });
-  console.log('API /teams/[id]/players: token', token);
+  const permissions = token ? await getUserPermissions(token.id) : null;
   if (!token) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-  const permissions = await getUserPermissions(token.id);
+  if (!permissions) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  console.log('SCOUT DEBUG', {
+    userId: token?.id,
+    role: token?.role,
+    clubId: token?.clubId,
+    permissions,
+    params,
+    headers: Object.fromEntries(request.headers.entries()),
+  });
   if (!hasPermission(permissions, 'teams.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
