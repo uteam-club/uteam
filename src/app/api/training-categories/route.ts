@@ -43,8 +43,8 @@ export async function GET(request: NextRequest) {
     
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const permissions = await getUserPermissions(token.id);
-    if (!hasPermission(permissions, 'trainingCategories.read')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!hasPermission(permissions, 'trainings.read')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
     const hasAccess = await checkClubAccess(request, token);
@@ -92,9 +92,9 @@ export async function POST(request: NextRequest) {
     
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const permissions = await getUserPermissions(token.id);
-    if (!hasPermission(permissions, 'trainingCategories.create')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+  if (!hasPermission(permissions, 'trainings.update')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
     
     const role = token.role as string;
     const clubId = token.clubId as string;

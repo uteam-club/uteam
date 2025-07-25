@@ -123,7 +123,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'teams.players.create')) {
+  // Проверка на создание игрока
+  if (!hasPermission(permissions, 'teams.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const teamId = params.id;
@@ -169,7 +170,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'teams.players.delete')) {
+  // Проверка на удаление игрока
+  if (!hasPermission(permissions, 'teams.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const teamId = params.id;

@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const token = await getTokenFromRequest(req);
   if (!token) return NextResponse.json({ error: 'No token' }, { status: 401 });
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'surveys.read')) {
+  if (!hasPermission(permissions, 'morningSurvey.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { searchParams } = new URL(req.url);
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   const token = await getTokenFromRequest(req);
   if (!token) return NextResponse.json({ error: 'No token' }, { status: 401 });
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'surveys.update')) {
+  if (!hasPermission(permissions, 'morningSurvey.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { teamId, enabled } = await req.json();

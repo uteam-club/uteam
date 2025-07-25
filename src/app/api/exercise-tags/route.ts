@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
   const token = await getToken({ req });
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'exerciseTags.read')) {
+  if (!hasPermission(permissions, 'exercises.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const hasAccess = await checkClubAccess(req, token);
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
   const token = await getToken({ req });
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'exerciseTags.create')) {
+  if (!hasPermission(permissions, 'exercises.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const hasAccess = await checkClubAccess(req, token);

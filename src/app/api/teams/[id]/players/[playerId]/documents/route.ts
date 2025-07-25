@@ -56,7 +56,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string,
   const token = await getToken({ req });
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'documents.read')) {
+  if (!hasPermission(permissions, 'documents.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -109,7 +109,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const token = await getToken({ req });
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'documents.read')) {
+  if (!hasPermission(permissions, 'documents.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const session = await getServerSession(authOptions);

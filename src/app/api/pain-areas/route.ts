@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'painAreas.create')) {
+  if (!hasPermission(permissions, 'adminPanel.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {

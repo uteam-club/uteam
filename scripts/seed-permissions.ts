@@ -1,100 +1,99 @@
-import { db } from '@/lib/db';
-import { permission, rolePermission } from '@/db/schema';
-import { roleEnum } from '@/db/schema/user';
+import { db } from '../src/lib/db.esm.ts';
+import { permission } from '../src/db/schema/permission.ts';
+import { rolePermission } from '../src/db/schema/rolePermission.ts';
+import { roleEnum } from '../src/db/schema/user.ts';
 
-// Новый полный список permissions (синхронизирован с кодом)
+// Новый минимальный список прав по разделам
 const permissions = [
-  { code: 'clubs.read', description: 'Просмотр клубов' },
-  { code: 'clubs.create', description: 'Создание клуба' },
-  { code: 'clubs.update', description: 'Редактирование клуба' },
-  { code: 'clubs.delete', description: 'Удаление клуба' },
-  { code: 'trainings.read', description: 'Просмотр тренировок' },
-  { code: 'trainings.create', description: 'Создание тренировки' },
-  { code: 'trainings.update', description: 'Редактирование тренировки' },
-  { code: 'trainings.delete', description: 'Удаление тренировки' },
-  { code: 'trainings.attendance', description: 'Отметка посещаемости' },
-  { code: 'exercises.read', description: 'Просмотр упражнений' },
-  { code: 'exercises.create', description: 'Создание упражнения' },
-  { code: 'exercises.update', description: 'Редактирование упражнения' },
-  { code: 'exercises.delete', description: 'Удаление упражнения' },
-  { code: 'files.read', description: 'Доступ к файлам' },
-  { code: 'surveys.morning.read', description: 'Просмотр утренних опросов' },
-  { code: 'surveys.morning.create', description: 'Создание утреннего опроса' },
-  { code: 'surveys.rpe.read', description: 'Просмотр RPE опросов' },
-  { code: 'surveys.rpe.create', description: 'Создание RPE опроса' },
-  { code: 'trainingCategories.read', description: 'Просмотр категорий тренировок' },
-  { code: 'trainingCategories.create', description: 'Создание категории тренировок' },
-  { code: 'trainingCategories.update', description: 'Редактирование категории тренировок' },
-  { code: 'trainingCategories.delete', description: 'Удаление категории тренировок' },
-  { code: 'fitnessTests.read', description: 'Просмотр фитнес-тестов' },
-  { code: 'fitnessTests.create', description: 'Создание фитнес-теста' },
-  { code: 'fitnessTests.update', description: 'Редактирование фитнес-теста' },
-  { code: 'fitnessTests.delete', description: 'Удаление фитнес-теста' },
-  { code: 'exerciseTags.read', description: 'Просмотр тегов упражнений' },
-  { code: 'exerciseTags.create', description: 'Создание тега упражнения' },
-  { code: 'exerciseTags.update', description: 'Редактирование тега упражнения' },
-  { code: 'exerciseTags.delete', description: 'Удаление тега упражнения' },
-  { code: 'exerciseCategories.read', description: 'Просмотр категорий упражнений' },
-  { code: 'exerciseCategories.create', description: 'Создание категории упражнений' },
-  { code: 'exerciseCategories.update', description: 'Редактирование категории упражнений' },
-  { code: 'exerciseCategories.delete', description: 'Удаление категории упражнений' },
-  { code: 'documents.read', description: 'Просмотр документов' },
-  { code: 'teams.read', description: 'Просмотр команд' },
-  { code: 'teams.create', description: 'Создание команды' },
-  { code: 'teams.update', description: 'Редактирование команды' },
-  { code: 'teams.delete', description: 'Удаление команды' },
-  { code: 'teams.players.create', description: 'Добавление игрока в команду' },
-  { code: 'teams.players.update', description: 'Редактирование игрока команды' },
-  { code: 'teams.players.delete', description: 'Удаление игрока из команды' },
-  { code: 'teams.players.uploadImage', description: 'Загрузка фото игрока' },
-  { code: 'teams.coaches.create', description: 'Добавление тренера в команду' },
-  { code: 'teams.coaches.delete', description: 'Удаление тренера из команды' },
-  { code: 'matches.read', description: 'Просмотр матчей' },
-  { code: 'matches.create', description: 'Создание матча' },
-  { code: 'matches.update', description: 'Редактирование матча' },
-  { code: 'matches.delete', description: 'Удаление матча' },
-  { code: 'matches.players.read', description: 'Просмотр состава на матч' },
-  { code: 'matches.players.update', description: 'Редактирование состава на матч' },
-  { code: 'matches.players.delete', description: 'Удаление игрока из матча' },
-  { code: 'users.read', description: 'Просмотр пользователей' },
-  { code: 'users.create', description: 'Создание пользователя' },
-  { code: 'users.delete', description: 'Удаление пользователя' },
-  { code: 'painAreas.create', description: 'Добавление зоны боли' },
-  { code: 'storage.init', description: 'Инициализация хранилища' },
-  { code: 'telegram.broadcastTime.read', description: 'Просмотр времени рассылки Telegram' },
-  { code: 'telegram.broadcastTime.update', description: 'Изменение времени рассылки Telegram' },
-  { code: 'telegram.testBroadcast', description: 'Тестовая рассылка Telegram' }
+  { code: 'teams.read', description: 'Команды (просмотр)' },
+  { code: 'teams.update', description: 'Команды (редактирование)' },
+  { code: 'exercises.read', description: 'Упражнения (просмотр)' },
+  { code: 'exercises.update', description: 'Упражнения (редактирование)' },
+  { code: 'trainings.read', description: 'Тренировки (просмотр)' },
+  { code: 'trainings.update', description: 'Тренировки (редактирование)' },
+  { code: 'matches.read', description: 'Матчи (просмотр)' },
+  { code: 'matches.update', description: 'Матчи (редактирование)' },
+  { code: 'attendance.read', description: 'Посещаемость (просмотр)' },
+  { code: 'attendance.update', description: 'Посещаемость (редактирование)' },
+  { code: 'fitnessTests.read', description: 'Фитнес тесты (просмотр)' },
+  { code: 'fitnessTests.update', description: 'Фитнес тесты (редактирование)' },
+  { code: 'calendar.read', description: 'Календарь (просмотр)' },
+  { code: 'calendar.update', description: 'Календарь (редактирование)' },
+  { code: 'morningSurvey.read', description: 'Утренний опрос (просмотр)' },
+  { code: 'morningSurvey.update', description: 'Утренний опрос (редактирование)' },
+  { code: 'rpeSurvey.read', description: 'Оценка RPE (просмотр)' },
+  { code: 'rpeSurvey.update', description: 'Оценка RPE (редактирование)' },
+  { code: 'documents.read', description: 'Документы (просмотр)' },
+  { code: 'documents.update', description: 'Документы (редактирование)' },
+  { code: 'adminPanel.read', description: 'Админка (просмотр)' },
+  { code: 'adminPanel.update', description: 'Админка (редактирование)' },
 ];
 
-// Используем тип ролей из enum
 const roles = roleEnum.enumValues;
 
+// Пример назначения прав ролям (можно скорректировать по пожеланиям)
 const rolePermissions: Record<string, string[]> = {
   SUPER_ADMIN: permissions.map(p => p.code),
-  // Остальные роли можно заполнить по необходимости, например:
   ADMIN: permissions.map(p => p.code),
   COACH: [
-    'teams.read', 'teams.players.create', 'teams.players.update', 'teams.players.delete',
-    'trainings.read', 'trainings.create', 'trainings.update',
-    'exercises.read', 'exercises.create',
-    'documents.read',
+    'teams.read', 'teams.update',
+    'exercises.read', 'exercises.update',
+    'trainings.read', 'trainings.update',
+    'matches.read', 'matches.update',
+    'attendance.read', 'attendance.update',
+    'fitnessTests.read', 'fitnessTests.update',
+    'calendar.read', 'calendar.update',
+    'morningSurvey.read', 'morningSurvey.update',
+    'rpeSurvey.read', 'rpeSurvey.update',
+    'documents.read', 'documents.update',
   ],
   MEMBER: [
-    'teams.read', 'trainings.read', 'exercises.read', 'documents.read'
+    'teams.read',
+    'exercises.read',
+    'trainings.read',
+    'matches.read',
+    'attendance.read',
+    'fitnessTests.read',
+    'calendar.read',
+    'morningSurvey.read',
+    'rpeSurvey.read',
+    'documents.read',
   ],
   SCOUT: [
-    'teams.read', 'trainings.read', 'exercises.read'
+    'teams.read',
+    'exercises.read',
+    'trainings.read',
+    'matches.read',
+    'attendance.read',
+    'fitnessTests.read',
+    'calendar.read',
+    'documents.read',
   ],
   DOCTOR: [
-    'teams.read', 'trainings.read', 'documents.read'
+    'teams.read',
+    'trainings.read',
+    'attendance.read',
+    'documents.read',
   ],
   DIRECTOR: [
-    'teams.read', 'trainings.read', 'matches.read', 'documents.read'
+    'teams.read',
+    'exercises.read',
+    'trainings.read',
+    'matches.read',
+    'attendance.read',
+    'fitnessTests.read',
+    'calendar.read',
+    'documents.read',
+    'adminPanel.read',
   ],
 };
 
 async function main() {
-  // 1. Добавить права
+  // 0. Очистить старые права и связи
+  await db.delete(rolePermission).execute();
+  await db.delete(permission).execute();
+
+  // 1. Добавить новые права
   for (const perm of permissions) {
     await db
       .insert(permission)
@@ -121,6 +120,6 @@ async function main() {
 }
 
 main().then(() => {
-  console.log('Seed complete');
+  console.log('Permissions seeded');
   process.exit(0);
 }); 

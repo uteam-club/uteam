@@ -39,7 +39,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
   const token = await getToken({ req: req });
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'exerciseTags.update')) {
+  if (!hasPermission(permissions, 'exercises.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -116,7 +116,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
   const token = await getToken({ req: req });
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'exerciseTags.delete')) {
+  if (!hasPermission(permissions, 'exercises.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -170,7 +170,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const token = await getToken({ req: request });
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'exerciseTags.read')) {
+  if (!hasPermission(permissions, 'exercises.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const hasAccess = await checkClubAccess(request, token);

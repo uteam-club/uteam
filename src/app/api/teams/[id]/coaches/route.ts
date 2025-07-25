@@ -113,7 +113,7 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'teams.coaches.create')) {
+  if (!hasPermission(permissions, 'teams.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -199,7 +199,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'teams.coaches.delete')) {
+  if (!hasPermission(permissions, 'teams.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

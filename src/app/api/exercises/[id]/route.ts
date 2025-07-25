@@ -214,7 +214,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'exercises.delete')) {
+  if (!hasPermission(permissions, 'exercises.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {

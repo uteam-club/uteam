@@ -61,7 +61,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'teams.delete')) {
+  if (!hasPermission(permissions, 'teams.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const teamId = params.id;

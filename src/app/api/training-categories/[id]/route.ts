@@ -73,7 +73,7 @@ export async function GET(
     
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'trainingCategories.read')) {
+  if (!hasPermission(permissions, 'trainings.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
     
@@ -122,7 +122,7 @@ export async function PUT(
     
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'trainingCategories.update')) {
+  if (!hasPermission(permissions, 'trainings.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
     
@@ -192,7 +192,7 @@ export async function DELETE(
     
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'trainingCategories.delete')) {
+  if (!hasPermission(permissions, 'trainings.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
     

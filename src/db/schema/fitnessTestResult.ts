@@ -1,8 +1,8 @@
 import { pgTable, uuid, timestamp, numeric } from 'drizzle-orm/pg-core';
-import { fitnessTest } from './fitnessTest';
-import { player } from './player';
-import { team } from './team';
-import { user } from './user';
+import { fitnessTest } from './fitnessTest.ts';
+import { player } from './player.ts';
+import { team } from './team.ts';
+import { user } from './user.ts';
 
 export const fitnessTestResult = pgTable('fitness_test_result', {
   id: uuid('id').primaryKey().defaultRandom(),

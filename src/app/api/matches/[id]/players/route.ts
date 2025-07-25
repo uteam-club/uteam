@@ -44,7 +44,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'matches.players.read')) {
+  if (!hasPermission(permissions, 'matches.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const session = await getServerSession(authOptions);
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'matches.players.update')) {
+  if (!hasPermission(permissions, 'matches.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -201,7 +201,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'matches.players.delete')) {
+  if (!hasPermission(permissions, 'matches.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {

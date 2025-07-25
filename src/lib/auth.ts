@@ -85,4 +85,4 @@ export async function getTokenFromRequest(request: NextRequest) {
     console.error('Ошибка при получении/декодировании токена:', error);
     return null;
   }
-} 
+}

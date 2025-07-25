@@ -14,7 +14,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string,
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'teams.players.uploadImage')) {
+  if (!hasPermission(permissions, 'teams.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

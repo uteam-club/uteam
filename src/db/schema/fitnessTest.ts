@@ -1,6 +1,6 @@
 import { pgTable, uuid, varchar, timestamp } from 'drizzle-orm/pg-core';
-import { club } from './club';
-import { user } from './user';
+import { club } from './club.ts';
+import { user } from './user.ts';
 
 export const fitnessTest = pgTable('fitness_test', {
   id: uuid('id').primaryKey().defaultRandom(),

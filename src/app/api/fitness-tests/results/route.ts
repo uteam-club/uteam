@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   const token = await getToken({ req: req });
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'fitnessTests.create')) {
+  if (!hasPermission(permissions, 'fitnessTests.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const session = await getServerSession(authOptions);

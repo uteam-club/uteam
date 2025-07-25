@@ -74,7 +74,7 @@ export async function GET(
   const token = await getToken({ req: request });
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'exerciseCategories.read')) {
+  if (!hasPermission(permissions, 'exercises.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -124,7 +124,7 @@ export async function PUT(
   const token = await getToken({ req: request });
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'exerciseCategories.update')) {
+  if (!hasPermission(permissions, 'exercises.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -203,7 +203,7 @@ export async function DELETE(
   const token = await getToken({ req: request });
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'exerciseCategories.delete')) {
+  if (!hasPermission(permissions, 'exercises.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {

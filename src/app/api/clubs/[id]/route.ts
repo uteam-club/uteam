@@ -20,7 +20,7 @@ export async function GET(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'clubs.read')) {
+  if (!hasPermission(permissions, 'adminPanel.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -51,7 +51,7 @@ export async function PUT(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'clubs.update')) {
+  if (!hasPermission(permissions, 'adminPanel.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -99,7 +99,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'clubs.delete')) {
+  if (!hasPermission(permissions, 'adminPanel.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {

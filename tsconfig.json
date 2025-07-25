@@ -5,7 +5,7 @@
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
-    "noEmit": false,
+    "noEmit": true,
     "outDir": "dist",
     "esModuleInterop": true,
     "module": "esnext",
@@ -21,7 +21,8 @@
     ],
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "allowImportingTsExtensions": true
   },
   "include": ["src", "next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]

@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'matches.create')) {
+  if (!hasPermission(permissions, 'matches.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const hasAccess = await checkClubAccess(request, token);

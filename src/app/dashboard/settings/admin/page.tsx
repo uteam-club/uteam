@@ -185,7 +185,7 @@ export default function AdminPage() {
   }, [session]);
 
   // Если нет сессии или роль не подходит, показываем заглушку загрузки
-  if (!permissions || !hasPermission(permissions, 'users.read')) {
+  if (!permissions || !hasPermission(permissions, 'adminPanel.read')) {
     return <div className="p-8 flex justify-center"><p className="text-vista-light/50">Загрузка...</p></div>;
   }
 
@@ -1119,7 +1119,7 @@ export default function AdminPage() {
           <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-vista-light">{t('adminPage.users')}</CardTitle>
-              {permissions && hasPermission(permissions, 'users.create') && (
+              {permissions && hasPermission(permissions, 'adminPanel.update') && (
                 <Button
                   onClick={() => setIsAddModalOpen(true)}
                   className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
@@ -1159,7 +1159,7 @@ export default function AdminPage() {
                             {USER_ROLES.find(r => r.value === user.role)?.label || user.role}
                           </td>
                           <td className="px-4 py-3 text-right space-x-2">
-                            {permissions && hasPermission(permissions, 'users.create') && (
+                            {permissions && hasPermission(permissions, 'adminPanel.update') && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1170,7 +1170,7 @@ export default function AdminPage() {
                                 {t('adminPage.edit')}
                               </Button>
                             )}
-                            {session?.user?.id && user.id !== session.user.id && permissions && hasPermission(permissions, 'users.delete') && (
+                            {session?.user?.id && user.id !== session.user.id && permissions && hasPermission(permissions, 'adminPanel.update') && (
                               <Button
                                 variant="outline"
                                 size="sm"

@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const permissions = await getUserPermissions(token.id);
-    if (!hasPermission(permissions, 'teams.create')) {
+    if (!hasPermission(permissions, 'teams.update')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const clubId = token.clubId as string;

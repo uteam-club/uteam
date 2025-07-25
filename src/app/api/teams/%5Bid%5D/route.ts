@@ -27,4 +27,4 @@ async function deleteAllTeamFiles(teamId: string, clubId: string) {
 }
 
 // ... existing code ...
-// В месте, где раньше было удаление из Supabase Storage, вызывайте deleteAllTeamFiles(teamId, clubId) 
+// В месте, где раньше было удаление из Supabase Storage, вызывайте deleteAllTeamFiles(teamId, clubId) export {};

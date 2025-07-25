@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'clubs.read')) {
+  if (!hasPermission(permissions, 'adminPanel.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { searchParams } = new URL(req.url);

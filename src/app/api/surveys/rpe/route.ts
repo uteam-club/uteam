@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   const token = await getToken({ req: request });
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'surveys.rpe.read')) {
+  if (!hasPermission(permissions, 'rpeSurvey.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
   const token = await getToken({ req: request });
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'surveys.rpe.create')) {
+  if (!hasPermission(permissions, 'rpeSurvey.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   

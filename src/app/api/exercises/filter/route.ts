@@ -9,6 +9,7 @@ import { db } from '@/lib/db';
 import { exercise, user, exerciseCategory, exerciseTag, mediaItem, exerciseTagToExercise } from '@/db/schema';
 import { eq, and, inArray, ilike, desc, sql } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
+import { NextResponse } from 'next/server';
 
 // Экспортируем конфигурацию для Next.js
 export const dynamic = 'force-dynamic';
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
   }
   const permissions = await getUserPermissions(token.id);
   if (!hasPermission(permissions, 'exercises.read')) {
-    return createApiResponse({ error: 'Forbidden' }, 403);
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   try {

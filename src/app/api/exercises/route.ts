@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
   const token = await getToken({ req });
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'exercises.create')) {
+  if (!hasPermission(permissions, 'exercises.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   console.log('[DEBUG] POST /api/exercises called');

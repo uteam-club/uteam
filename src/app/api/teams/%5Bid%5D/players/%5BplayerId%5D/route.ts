@@ -1,6 +1,7 @@
 import { getUserPermissions } from '@/services/user.service';
 import { hasPermission } from '@/lib/permissions';
 import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { NextResponse } from 'next/server';
 
 const s3 = new S3Client({
   region: process.env.YANDEX_STORAGE_REGION,
@@ -24,4 +25,4 @@ async function deleteAllPlayerFiles(teamId: string, playerId: string) {
       }
     }
   }
-} 
+} export {};

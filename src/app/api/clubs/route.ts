@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'clubs.read')) {
+  if (!hasPermission(permissions, 'adminPanel.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'clubs.create')) {
+  if (!hasPermission(permissions, 'adminPanel.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
