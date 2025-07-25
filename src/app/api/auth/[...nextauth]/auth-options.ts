@@ -18,6 +18,13 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials, req) {
         console.log('Authorize called', credentials);
+        let host = '';
+        if (typeof req.headers?.get === 'function') {
+          host = req.headers.get('host') || '';
+        } else if (req.headers && typeof req.headers === 'object') {
+          host = req.headers['host'] || req.headers.host || '';
+        }
+        console.log('Authorize: resolved host', host, 'req.headers:', req.headers);
         const email = credentials?.email || '';
         const password = credentials?.password || '';
         
@@ -41,7 +48,6 @@ export const authOptions: NextAuthOptions = {
         // Проверяем, что пользователь принадлежит к клубу поддомена (если это не супер-админ)
         if (user.role !== 'SUPER_ADMIN') {
           try {
-            const host = req.headers?.get('host') || '';
             const subdomain = getSubdomain(host);
             
             if (subdomain) {
