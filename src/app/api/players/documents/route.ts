@@ -97,11 +97,11 @@ export async function GET(request: NextRequest) {
 }
 
 // Проверка clubId пользователя и клуба по subdomain
-async function checkClubAccess(request: NextRequest, session: any) {
+async function checkClubAccess(request: NextRequest, token: any) {
   const host = request.headers.get('host') || '';
   const subdomain = getSubdomain(host);
   if (!subdomain) return false;
   const club = await getClubBySubdomain(subdomain);
   if (!club) return false;
-  return session.user.clubId === club.id;
+  return token.clubId === club.id;
 } 

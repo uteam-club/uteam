@@ -6,8 +6,7 @@ import { Telegraf } from 'telegraf';
 import { db } from '@/lib/db';
 import { player, team } from '@/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { getToken } from 'next-auth/jwt';
 
 // Токен должен быть от @UTEAM_infoBot
 const botToken = process.env.TELEGRAM_BOT_TOKEN || '7555689553:AAFSDvBcAC_PU7o5vq3vVoGy5DS8R9q5aPU';
@@ -16,12 +15,20 @@ const bot = new Telegraf(botToken);
 const SURVEY_URL = 'https://fdcvista.uteam.club/survey';
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.clubId) {
-    return NextResponse.json({ error: 'No clubId in session' }, { status: 400 });
+  const token = await getToken({ req });
+  if (!token) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'adminPanel.update')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  
+  if (!token.clubId) {
+    return NextResponse.json({ error: 'No clubId in token' }, { status: 400 });
   }
 
-  const clubId = session.user.clubId;
+  const clubId = token.clubId;
 
   try {
     // Выборка игроков с telegramId и clubId через join
