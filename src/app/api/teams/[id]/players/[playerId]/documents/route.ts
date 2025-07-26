@@ -16,13 +16,13 @@ export const dynamic = 'force-dynamic';
 
 
 // Проверка clubId пользователя и клуба по subdomain
-async function checkClubAccess(request: NextRequest, session: any) {
+async function checkClubAccess(request: NextRequest, token: any) {
   const host = request.headers.get('host') || '';
   const subdomain = getSubdomain(host);
   if (!subdomain) return false;
   const club = await getClubBySubdomain(subdomain);
   if (!club) return false;
-  return session.user.clubId === club.id;
+  return token.clubId === club.id;
 }
 
 export async function GET(req: NextRequest, { params }: { params: { id: string, playerId: string } }) {
@@ -37,11 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string, 
     return new Response(JSON.stringify({ error: 'playerId is required' }), { status: 400 });
   }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-    }
-    const hasAccess = await checkClubAccess(req, session);
+    const hasAccess = await checkClubAccess(req, token);
     if (!hasAccess) {
       return new Response(JSON.stringify({ error: 'Нет доступа к этому клубу' }), { status: 403 });
     }
@@ -62,12 +58,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string,
   try {
     const teamId = params.id;
     const playerId = params.playerId;
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-    }
-    const clubId = session.user.clubId;
-    const uploadedById = session.user.id;
+    const clubId = token.clubId;
+    const uploadedById = token.id;
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const type = formData.get('type') as string | null;
@@ -111,10 +103,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const permissions = await getUserPermissions(token.id);
   if (!hasPermission(permissions, 'documents.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   }
   const { playerId } = params;
   const { documentId } = await req.json();

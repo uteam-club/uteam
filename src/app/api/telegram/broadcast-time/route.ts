@@ -23,11 +23,7 @@ export async function GET(req: NextRequest) {
   if (!hasPermission(permissions, 'adminPanel.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  const clubId = session.user.clubId;
+  const clubId = token.clubId;
   if (!clubId) {
     return NextResponse.json({ error: 'No clubId' }, { status: 400 });
   }
@@ -46,13 +42,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const clubId = session.user.clubId;
+    const clubId = token.clubId;
     if (!clubId) {
-      return NextResponse.json({ error: 'No clubId in session', session }, { status: 400 });
+      return NextResponse.json({ error: 'No clubId in token', token }, { status: 400 });
     }
     const { teamId, time, enabled, type = 'morning' } = await req.json();
     if (!teamId || typeof teamId !== 'string') {

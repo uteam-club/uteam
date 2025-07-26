@@ -46,14 +46,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Получаем сессию пользователя
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return createApiResponse({ error: 'Unauthorized' }, 401);
-    }
-
     // Получаем ID клуба пользователя
-    const clubId = session.user.clubId;
+    const clubId = token.clubId;
     
     // Извлекаем параметры запроса
     const url = new URL(request.url);

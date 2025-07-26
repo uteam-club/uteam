@@ -45,20 +45,13 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
   try {
     const { id } = params;
     
-    // Получаем данные сессии пользователя
-    const session = await getServerSession(authOptions);
-    
-    // Проверяем аутентификацию и права доступа
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-    }
-    
-    if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'COACH') {
+    // Проверяем права доступа
+    if (token.role !== 'ADMIN' && token.role !== 'SUPER_ADMIN' && token.role !== 'COACH') {
       return NextResponse.json({ error: 'Нет прав доступа' }, { status: 403 });
     }
     
-    // Получаем ID клуба из сессии пользователя
-    const clubId = session.user.clubId;
+    // Получаем ID клуба из токена
+    const clubId = token.clubId;
     
     // Получаем данные из запроса
     const data = await req.json();
@@ -122,20 +115,13 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
     const { id } = params;
     
-    // Получаем данные сессии пользователя
-    const session = await getServerSession(authOptions);
-    
-    // Проверяем аутентификацию и права доступа
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-    }
-    
-    if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'COACH') {
+    // Проверяем права доступа
+    if (token.role !== 'ADMIN' && token.role !== 'SUPER_ADMIN' && token.role !== 'COACH') {
       return NextResponse.json({ error: 'Нет прав доступа' }, { status: 403 });
     }
     
-    // Получаем ID клуба из сессии пользователя
-    const clubId = session.user.clubId;
+    // Получаем ID клуба из токена
+    const clubId = token.clubId;
     
     // Проверяем существование тега и принадлежность к клубу
     const [tagToDelete]: any = await db.select().from(exerciseTag)

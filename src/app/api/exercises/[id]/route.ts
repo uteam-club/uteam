@@ -48,11 +48,7 @@ export async function GET(
     return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
   }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-    }
-    const clubId = session.user.clubId;
+    const clubId = token.clubId;
     if (!params.id) {
       return NextResponse.json({ error: 'ID упражнения не указан' }, { status: 400 });
     }
@@ -102,13 +98,9 @@ export async function PUT(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-    }
-    const clubId = session.user.clubId;
-    const userId = session.user.id;
-    const role = session.user.role;
+    const clubId = token.clubId;
+    const userId = token.id;
+    const role = token.role;
     if (!params.id) {
       return NextResponse.json({ error: 'ID упражнения не указан' }, { status: 400 });
     }
@@ -218,13 +210,9 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-    }
-    const clubId = session.user.clubId;
-    const userId = session.user.id;
-    const role = session.user.role;
+    const clubId = token.clubId;
+    const userId = token.id;
+    const role = token.role;
     if (!params.id) {
       return NextResponse.json({ error: 'ID упражнения не указан' }, { status: 400 });
     }

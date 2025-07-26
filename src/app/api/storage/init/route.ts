@@ -20,14 +20,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
-    // Проверка аутентификации и прав доступа (только администраторы)
-    const session = await getServerSession(authOptions);
-    
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-    }
-    
-    if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN') {
+    // Проверка прав доступа (только администраторы)
+    if (token.role !== 'ADMIN' && token.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 });
     }
     

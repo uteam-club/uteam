@@ -13,9 +13,9 @@ import { getToken } from 'next-auth/jwt';
 
 
 // Проверка clubId пользователя и клуба по subdomain
-async function checkClubAccess(request: NextRequest, session: any) {
+async function checkClubAccess(request: NextRequest, token: any) {
   // Если пользователь SUPER_ADMIN — разрешаем доступ ко всем клубам
-  if (session.user.role === 'SUPER_ADMIN') return true;
+  if (token.role === 'SUPER_ADMIN') return true;
   const host = request.headers.get('host') || '';
   const subdomain = getSubdomain(host);
   if (!subdomain) {
@@ -24,14 +24,14 @@ async function checkClubAccess(request: NextRequest, session: any) {
   }
   const club = await getClubBySubdomain(subdomain);
   console.log('CHECK CLUB ACCESS', {
-    userClubId: session.user.clubId,
+    userClubId: token.clubId,
     host,
     subdomain,
     foundClubId: club ? club.id : null,
     clubObj: club,
   });
   if (!club) return false;
-  return session.user.clubId === club.id;
+  return token.clubId === club.id;
 }
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     return new Response(JSON.stringify(players), { status: 200 });
   }
   // Для остальных — старая логика
-  const hasAccess = await checkClubAccess(request, { user: token });
+  const hasAccess = await checkClubAccess(request, token);
   if (!hasAccess) {
     console.log('RETURNING 403: Нет доступа к клубу', { userId: token?.id, role: token?.role, clubId: token?.clubId, permissions, params });
     return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
