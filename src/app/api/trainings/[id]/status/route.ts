@@ -24,13 +24,6 @@ export async function PATCH(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
     const data = await request.json();
     if (!data.status) {
       return NextResponse.json(
@@ -49,7 +42,7 @@ export async function PATCH(
         { status: 404 }
       );
     }
-    if (trainingRow.clubId !== session.user.clubId) {
+    if (trainingRow.clubId !== token.clubId) {
       return NextResponse.json(
         { error: 'Access denied' },
         { status: 403 }
