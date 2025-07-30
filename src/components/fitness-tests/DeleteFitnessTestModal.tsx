@@ -44,7 +44,7 @@ export default function DeleteFitnessTestModal({ open, onOpenChange, test, onSuc
         </div>
         <DialogFooter className="mt-6 flex flex-row gap-2 justify-end">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading} className="min-w-[100px]">{t('common.cancel')}</Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={loading} className="min-w-[100px]">
+          <Button variant="outline" onClick={handleDelete} disabled={loading} className="min-w-[100px] border-vista-error/50 text-vista-error hover:bg-vista-error/10">
             {loading ? <span className="animate-pulse">{t('common.deleting')}</span> : t('fitnessTest.page.delete_test_btn_confirm')}
           </Button>
         </DialogFooter>

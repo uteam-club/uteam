@@ -572,10 +572,10 @@ export default function TeamPage() {
             <PlusIcon className="w-4 h-4 mr-2" />
             {activeTab === 'squad' ? t('teamPage.add_player') : t('teamPage.add_coach')}
           </Button>
-          <Button 
-            variant="outline" 
+                    <Button 
+            variant="outline"
             size="sm"
-            className="bg-red-500/80 hover:bg-red-500 text-white border-none"
+            className="border-vista-error/50 text-vista-error hover:bg-vista-error/10"
             onClick={activeTab === 'squad' ? handleOpenDeletePlayersDialog : handleOpenDeleteCoachesDialog}
             disabled={activeTab === 'squad' ? players.length === 0 : coaches.length === 0}
           >

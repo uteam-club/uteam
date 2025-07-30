@@ -1172,7 +1172,7 @@ export default function MatchDetailsPage() {
                         {isEditingStats ? t('matchPage.save') : t('matchPage.edit')}
                       </Button>
                       <Button 
-                        className="w-full h-[33px] bg-red-400/80 hover:bg-red-500/60 text-white flex items-center justify-center mt-2 transition-colors"
+                        className="w-full h-[33px] border border-vista-error/50 text-vista-error hover:bg-vista-error/10 flex items-center justify-center mt-2 transition-colors"
                         onClick={() => setIsDeleteDialogOpen(true)}
                       >
                         {t('matchPage.delete_match')}

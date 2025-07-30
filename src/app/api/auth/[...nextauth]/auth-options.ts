@@ -1,9 +1,6 @@
-import { getUserPermissions } from '@/services/user.service';
-import { hasPermission } from '@/lib/permissions';
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { getUserByEmail, verifyPassword, getClubBySubdomain } from "@/services/user.service";
-import { headers } from "next/headers";
 import { getSubdomain } from "@/lib/utils";
 
 console.log('API /api/auth/[...nextauth]/auth-options.ts loaded');

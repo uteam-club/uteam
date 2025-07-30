@@ -416,7 +416,7 @@ export default function FitnessTestsPage() {
                       {t('fitnessTest.page.test_description_btn')}
                     </Button>
                     <Button size="sm" variant="outline" className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 ml-auto" onClick={() => { setSelectedTest(activeTest); setIsEditModalOpen(true); }}>{t('fitnessTest.page.edit_test_btn')}</Button>
-                    <Button size="sm" variant="destructive" onClick={() => { setSelectedTest(activeTest); setIsDeleteModalOpen(true); }}>{t('fitnessTest.page.delete_test_btn')}</Button>
+                    <Button size="sm" variant="outline" className="border-vista-error/50 text-vista-error hover:bg-vista-error/10" onClick={() => { setSelectedTest(activeTest); setIsDeleteModalOpen(true); }}>{t('fitnessTest.page.delete_test_btn')}</Button>
                   </div>
                   {/* Таблица результатов */}
                   {playersLoading || resultsLoading ? (

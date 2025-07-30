@@ -220,6 +220,7 @@ function TopBar({ userName, userRole }: TopBarProps) {
     },
     { key: 'fitness', label: t('topbar.fitness'), href: '/dashboard/fitness', hasDropdown: true, dropdownItems: [
       { key: 'fitness-tests', label: t('dropdown.fitness_tests'), href: '/dashboard/analytics/fitness-tests' },
+      { key: 'gps-reports', label: t('dropdown.gps_reports'), href: '/dashboard/fitness/gps-reports' },
     ] },
     { key: 'calendar', label: t('topbar.calendar'), href: '/dashboard/calendar' },
     { 

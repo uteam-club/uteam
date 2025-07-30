@@ -85,12 +85,12 @@ export default function DocumentUpload({
           disabled={disabled || isLoading || isDeleting}
           className={cn(
             "w-full h-10 flex items-center justify-center gap-2 border rounded-md transition-colors",
-            "border-green-500/30 bg-green-500/10 hover:bg-green-500/20 active:bg-green-500/30",
+            "border-vista-error/30 bg-vista-error/10 hover:bg-vista-error/20 active:bg-vista-error/30",
             (disabled || isLoading || isDeleting) ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
           )}
         >
-          <TrashIcon className="h-4 w-4 text-red-500" />
-          <span className="text-xs text-red-500 font-medium">
+          <TrashIcon className="h-4 w-4 text-vista-error" />
+          <span className="text-xs text-vista-error font-medium">
             {isDeleting ? 'Удаление...' : 'Удалить'}
           </span>
         </button>

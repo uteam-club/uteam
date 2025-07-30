@@ -1,0 +1,1 @@
+ALTER TABLE "GpsReport" ADD COLUMN "teamId" uuid NOT NULL;

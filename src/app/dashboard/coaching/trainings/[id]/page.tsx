@@ -758,9 +758,9 @@ export default function TrainingPage() {
               <Pencil className="h-4 w-4 mr-2 text-vista-light" /> {t('common.edit')}
             </Button>
             <Button 
-              variant="destructive" 
+              variant="outline" 
               onClick={handleDelete}
-              className="bg-red-600/70 hover:bg-red-700/70 text-white shadow-sm"
+              className="border-vista-error/50 text-vista-error hover:bg-vista-error/10"
             >
               <Trash className="mr-2 h-4 w-4" /> {t('common.delete')}
             </Button>
@@ -924,7 +924,7 @@ export default function TrainingPage() {
                     <div className="flex sm:flex-col items-center gap-2 p-4 border-t sm:border-t-0 sm:border-l border-vista-secondary/50">
                       {/* Кнопка удаления */}
                                               <button 
-                            className="bg-vista-dark/70 shadow-sm hover:bg-red-600/50 rounded-md p-2 text-vista-light"
+                            className="border border-vista-error/50 text-vista-error hover:bg-vista-error/10 rounded-md p-2 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
                               // ВРЕМЕННО: удаление только из локального состояния

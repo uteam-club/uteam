@@ -1174,7 +1174,7 @@ export default function AdminPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+                                className="border-vista-error/50 text-vista-error hover:bg-vista-error/10"
                                 onClick={() => handleDeleteClick(user)}
                               >
                                 <TrashIcon className="w-4 h-4 mr-1" />
@@ -1582,7 +1582,7 @@ export default function AdminPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+                              className="border-vista-error/50 text-vista-error hover:bg-vista-error/10"
                               onClick={() => handleDeleteTeamClick(team)}
                             >
                               <TrashIcon className="w-4 h-4 mr-1" />

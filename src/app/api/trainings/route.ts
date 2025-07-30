@@ -81,6 +81,8 @@ export async function GET(request: NextRequest) {
   const teamId = searchParams.get('teamId');
   const fromDate = searchParams.get('fromDate');
   const toDate = searchParams.get('toDate');
+  const forUpload = searchParams.get('forUpload') === 'true'; // Новый параметр для модалки загрузки
+  
   // Формируем where через массив условий (raw SQL)
   const whereArr = [sql`t."clubId" = ${clubId}::uuid`];
   if (teamId) {
@@ -94,24 +96,65 @@ export async function GET(request: NextRequest) {
     endDate.setHours(23, 59, 59, 999);
     whereArr.push(sql`t."date" <= ${endDate.toISOString()}`);
   }
-  // Выполняем raw SQL запрос
-  const result = await db.execute(sql`
-    SELECT 
-      t."id", t."title", t."teamId", t."date", t."time", t."categoryId", t."status", t."type", t."createdAt", t."updatedAt",
-      tm."name" as "teamName",
-      c."name" as "categoryName"
-    FROM "Training" t
-    LEFT JOIN "Team" tm ON t."teamId" = tm."id"
-    LEFT JOIN "TrainingCategory" c ON t."categoryId" = c."id"
-    WHERE ${sql.join(whereArr, sql` AND `)}
-    ORDER BY t."date" DESC
-  `);
+  
+  console.log('🔍 SQL условия:', whereArr.map(w => w.toString()));
+  console.log('📤 Для загрузки:', forUpload);
+  
+  let result;
+  
+  if (forUpload) {
+    // Для модалки загрузки - показываем тренировки БЕЗ отчетов
+    result = await db.execute(sql`
+      SELECT 
+        t."id", t."title", t."teamId", t."date", t."time", t."categoryId", t."status", t."type", t."createdAt", t."updatedAt",
+        tm."name" as "teamName",
+        c."name" as "categoryName",
+        NULL as "reportId",
+        NULL as "reportName"
+      FROM "Training" t
+      LEFT JOIN "Team" tm ON t."teamId" = tm."id"
+      LEFT JOIN "TrainingCategory" c ON t."categoryId" = c."id"
+      WHERE ${sql.join(whereArr, sql` AND `)}
+        AND NOT EXISTS (
+          SELECT 1 FROM "GpsReport" gr 
+          WHERE gr."eventId" = t."id" 
+            AND gr."eventType" = 'TRAINING' 
+            AND gr."clubId" = ${clubId}::uuid
+        )
+      ORDER BY t."date" DESC
+    `);
+  } else {
+    // Для просмотра - показываем тренировки С отчетами
+    const query = sql`
+      SELECT 
+        t."id", t."title", t."teamId", t."date", t."time", t."categoryId", t."status", t."type", t."createdAt", t."updatedAt",
+        tm."name" as "teamName",
+        c."name" as "categoryName",
+        gr."id" as "reportId",
+        gr."name" as "reportName"
+      FROM "Training" t
+      LEFT JOIN "Team" tm ON t."teamId" = tm."id"
+      LEFT JOIN "TrainingCategory" c ON t."categoryId" = c."id"
+      INNER JOIN "GpsReport" gr ON gr."eventId" = t."id" AND gr."eventType" = 'TRAINING'
+      WHERE ${sql.join(whereArr, sql` AND `)}
+      ORDER BY t."date" DESC
+    `;
+    
+          try {
+      result = await db.execute(query);
+    } catch (error) {
+      console.error('❌ Ошибка при выполнении SQL запроса:', error);
+      throw error;
+    }
+  }
+  
   const rows = (result as any).rows || [];
+  
   // Форматируем ответ
   const formatted = rows.map((row: any) => {
-    return {
+    const formattedRow = {
       id: row.id,
-      title: row.title,
+      name: row.title,
       teamId: row.teamid,
       team: row.teamName,
       date: row.date,
@@ -121,8 +164,12 @@ export async function GET(request: NextRequest) {
       status: row.status || 'SCHEDULED',
       type: row.type || 'TRAINING',
       createdAt: row.createdat,
-      updatedAt: row.updatedat
+      updatedAt: row.updatedat,
+      reportId: row.reportid || row.reportId,
+      reportName: row.reportname || row.reportName
     };
+    
+    return formattedRow;
   });
   return NextResponse.json(formatted);
 }

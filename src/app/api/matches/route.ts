@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { match, team } from '@/db/schema';
-import { eq, and, gte, lte, desc } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
@@ -66,10 +66,16 @@ export async function GET(request: NextRequest) {
     const teamId = searchParams.get('teamId');
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
+    const forUpload = searchParams.get('forUpload') === 'true'; // Новый параметр для модалки загрузки
+    
     const whereArr = [eq(match.clubId, token.clubId)];
     if (teamId) whereArr.push(eq(match.teamId, teamId));
     if (fromDate) whereArr.push(gte(match.date, fromDate));
     if (toDate) whereArr.push(lte(match.date, toDate));
+    console.log('🔍 Получаем матчи для команды:', teamId);
+    console.log('📤 Для загрузки:', forUpload);
+    
+    // Получаем все матчи
     const rows = await db.select({
       id: match.id,
       competitionType: match.competitionType,
@@ -96,7 +102,41 @@ export async function GET(request: NextRequest) {
       .leftJoin(team, eq(match.teamId, team.id))
       .where(and(...whereArr))
       .orderBy(desc(match.date));
-    return NextResponse.json(rows);
+
+    // Проверяем наличие GPS отчетов для каждого матча
+    const matchesWithReportInfo = await Promise.all(rows.map(async (row) => {
+      const report = await db.select({ 
+        id: sql`gr."id"`,
+        name: sql`gr."name"`
+      })
+        .from(sql`"GpsReport" gr`)
+        .where(sql`gr."eventId" = ${row.id} AND gr."eventType" = 'MATCH' AND gr."clubId" = ${token.clubId}::uuid`)
+        .limit(1);
+      
+      const hasReport = report.length > 0;
+      
+      return {
+        ...row,
+        name: row.teamName,
+        opponent: row.opponentName,
+        reportId: hasReport ? report[0].id : null,
+        reportName: hasReport ? report[0].name : null,
+        hasReport
+      };
+    }));
+
+    // Фильтруем в зависимости от параметра forUpload
+    let filteredMatches;
+    if (forUpload) {
+      // Для модалки загрузки - показываем матчи БЕЗ отчетов
+      filteredMatches = matchesWithReportInfo.filter(match => !match.hasReport);
+    } else {
+      // Для просмотра - показываем матчи С отчетами
+      filteredMatches = matchesWithReportInfo.filter(match => match.hasReport);
+    }
+    
+    console.log('📊 Результат запроса матчей:', filteredMatches.length, 'записей');
+    return NextResponse.json(filteredMatches);
   } catch (error) {
     console.error('Ошибка при получении матчей:', error);
     return NextResponse.json({ error: 'Ошибка при получении матчей' }, { status: 500 });

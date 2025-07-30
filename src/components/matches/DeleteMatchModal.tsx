@@ -27,7 +27,7 @@ const DeleteMatchModal: React.FC<DeleteMatchModalProps> = ({
       </DialogHeader>
       <DialogFooter>
         <Button variant="outline" onClick={onCancel} disabled={isDeleting} className="focus:outline-none focus:ring-0">Отмена</Button>
-        <Button className="bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-0" onClick={onDelete} disabled={isDeleting}>
+        <Button className="border-vista-error/50 text-vista-error hover:bg-vista-error/10 focus:outline-none focus:ring-0" onClick={onDelete} disabled={isDeleting}>
           {isDeleting ? 'Удаление...' : 'Удалить матч'}
         </Button>
       </DialogFooter>
