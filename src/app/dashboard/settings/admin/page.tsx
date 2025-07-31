@@ -176,7 +176,7 @@ export default function AdminPage() {
   // Функция для получения списка пользователей
   const fetchUsers = useCallback(async () => {
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/users', { credentials: 'include' });
       if (!response.ok) {
         throw new Error('Ошибка при загрузке пользователей');
       }
@@ -191,7 +191,7 @@ export default function AdminPage() {
   // Функция для получения списка команд
   const fetchTeams = useCallback(async () => {
     try {
-      const response = await fetch('/api/teams');
+      const response = await fetch('/api/teams', { credentials: 'include' });
       if (!response.ok) {
         throw new Error('Ошибка при загрузке команд');
       }
@@ -206,11 +206,18 @@ export default function AdminPage() {
   // Функция для получения списка категорий тренировок
   const fetchTrainingCategories = useCallback(async () => {
     try {
+      console.log('Загружаем категории тренировок...');
       const response = await fetch('/api/training-categories', { credentials: 'include' });
+      console.log('Ответ от API категорий тренировок:', response.status, response.statusText);
+      
       if (!response.ok) {
-        throw new Error('Ошибка при загрузке категорий тренировок');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Ошибка API категорий тренировок:', errorData);
+        throw new Error(`Ошибка при загрузке категорий тренировок: ${response.status} ${response.statusText}`);
       }
+      
       const data = await response.json();
+      console.log('Получены категории тренировок:', data);
       setTrainingCategories(data);
     } catch (error: any) {
       console.error('Ошибка при загрузке категорий тренировок:', error);
@@ -221,19 +228,23 @@ export default function AdminPage() {
   // Функция для получения списка категорий упражнений
   const fetchExerciseCategories = useCallback(async () => {
     try {
+      console.log('Загружаем категории упражнений...');
       const response = await fetch('/api/exercise-categories', {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
       });
+      console.log('Ответ от API категорий упражнений:', response.status, response.statusText);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Ошибка при загрузке категорий упражнений');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Ошибка API категорий упражнений:', errorData);
+        throw new Error(`Ошибка при загрузке категорий упражнений: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('Получены категории упражнений:', data);
       setExerciseCategories(data);
     } catch (error: any) {
       console.error('Ошибка при загрузке категорий упражнений:', error);
@@ -244,11 +255,18 @@ export default function AdminPage() {
   // Функция для получения списка тегов упражнений
   const fetchExerciseTags = useCallback(async () => {
     try {
-      const response = await fetch('/api/exercise-tags');
+      console.log('Загружаем теги упражнений...');
+      const response = await fetch('/api/exercise-tags', { credentials: 'include' });
+      console.log('Ответ от API тегов упражнений:', response.status, response.statusText);
+      
       if (!response.ok) {
-        throw new Error('Ошибка при загрузке тегов упражнений');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Ошибка API тегов упражнений:', errorData);
+        throw new Error(`Ошибка при загрузке тегов упражнений: ${response.status} ${response.statusText}`);
       }
+      
       const data = await response.json();
+      console.log('Получены теги упражнений:', data);
       setExerciseTags(data);
     } catch (error: any) {
       console.error('Ошибка при загрузке тегов упражнений:', error);
@@ -256,14 +274,22 @@ export default function AdminPage() {
     }
   }, []);
 
-  // Загружаем пользователей при загрузке страницы
+  // Загружаем данные при загрузке страницы
   useEffect(() => {
+    console.log('useEffect: проверяем сессию и загружаем данные');
+    console.log('Сессия:', session);
+    console.log('Пользователь:', session?.user);
+    console.log('Роль пользователя:', session?.user?.role);
+    
     if (session?.user) {
+      console.log('Пользователь авторизован, загружаем данные...');
       fetchUsers();
       fetchTeams();
       fetchTrainingCategories();
       fetchExerciseCategories();
       fetchExerciseTags();
+    } else {
+      console.log('Пользователь не авторизован');
     }
   }, [session, fetchUsers, fetchTeams, fetchTrainingCategories, fetchExerciseCategories, fetchExerciseTags]);
 
@@ -1108,9 +1134,9 @@ export default function AdminPage() {
         <TabsList className="mb-4">
           <TabsTrigger value="users">Пользователи</TabsTrigger>
           <TabsTrigger value="teams">Команды</TabsTrigger>
-          <TabsTrigger value="trainingCategories">Категории тренировок</TabsTrigger>
-          <TabsTrigger value="exerciseCategories">Категории упражнений</TabsTrigger>
-          <TabsTrigger value="exerciseTags">Теги упражнений</TabsTrigger>
+          <TabsTrigger value="training-categories">Категории тренировок</TabsTrigger>
+          <TabsTrigger value="exercise-categories">Категории упражнений</TabsTrigger>
+          <TabsTrigger value="exercise-tags">Теги упражнений</TabsTrigger>
           <TabsTrigger value="surveys">Опросники</TabsTrigger>
           <TabsTrigger value="roles">Роли</TabsTrigger>
         </TabsList>
