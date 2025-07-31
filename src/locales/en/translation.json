@@ -17,11 +17,13 @@
     "attendance": "Attendance",
     "fitness_tests": "Fitness tests",
     "gps_reports": "GPS Reports",
+    "gps_profiles": "GPS Profiles",
     "morning_survey": "Morning survey",
     "rpe_survey": "RPE rating",
     "test_admin": "Test admin",
     "account": "Account",
     "admin": "Admin",
+    "admin_panel": "Admin Panel",
     "loading": "Loading...",
     "no_teams": "No teams",
     "teams": "Teams"
@@ -785,6 +787,28 @@
     "survey_morning_title": "Morning condition",
     "survey_morning_desc": "Survey for daily monitoring of players' condition",
     "survey_rpe_title": "RPE assessment",
-    "survey_rpe_desc": "Survey for perceived exertion assessment (RPE)"
+    "survey_rpe_desc": "Survey for perceived exertion assessment (RPE)",
+    "role_super_admin": "Super Admin"
+  },
+  "rolesPermissions": {
+    "title": "Role Permissions",
+    "management_title": "Role Permissions Management",
+    "description": "Configure access rights for each role in the system",
+    "permissions": "Permissions",
+    "loading": "Loading permissions...",
+    "save_all": "Save All",
+    "saving_changes": "Saving changes...",
+    "save_hint": "Click \"Save All\" to apply changes",
+    "success_save": "Role permissions updated",
+    "error_loading": "Failed to load role and permission data",
+    "error_saving": "Failed to save changes"
+  },
+  "common": {
+    "error": "Error",
+    "success": "Success",
+    "saving": "Saving...",
+    "error_loading_data": "Error loading data",
+    "error_saving": "Error saving",
+    "try_refresh": "Try refreshing the page"
   }
 } 

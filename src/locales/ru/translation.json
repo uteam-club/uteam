@@ -17,11 +17,13 @@
     "attendance": "Посещаемость",
     "fitness_tests": "Фитнес тесты",
     "gps_reports": "GPS Отчеты",
+    "gps_profiles": "GPS Профили",
     "morning_survey": "Утренний опрос",
     "rpe_survey": "Оценка RPE",
     "test_admin": "Тест админ",
     "account": "Аккаунт",
     "admin": "Админка",
+    "admin_panel": "Админка",
     "loading": "Загрузка...",
     "no_teams": "Нет команд",
     "teams": "Команды"
@@ -785,6 +787,28 @@
     "survey_morning_title": "Состояние утро",
     "survey_morning_desc": "Опросник для ежедневного мониторинга состояния игроков",
     "survey_rpe_title": "Оценка RPE",
-    "survey_rpe_desc": "Опросник для оценки воспринимаемой нагрузки (RPE)"
+    "survey_rpe_desc": "Опросник для оценки воспринимаемой нагрузки (RPE)",
+    "role_super_admin": "Супер Админ"
+  },
+  "rolesPermissions": {
+    "title": "Права ролей",
+    "management_title": "Управление правами ролей",
+    "description": "Настройте права доступа для каждой роли в системе",
+    "permissions": "Права доступа",
+    "loading": "Загрузка прав доступа...",
+    "save_all": "Сохранить все",
+    "saving_changes": "Сохранение изменений...",
+    "save_hint": "Нажмите \"Сохранить все\" для применения изменений",
+    "success_save": "Права ролей обновлены",
+    "error_loading": "Не удалось загрузить данные о ролях и разрешениях",
+    "error_saving": "Не удалось сохранить изменения"
+  },
+  "common": {
+    "error": "Ошибка",
+    "success": "Успешно",
+    "saving": "Сохранение...",
+    "error_loading_data": "Ошибка загрузки данных",
+    "error_saving": "Ошибка сохранения",
+    "try_refresh": "Попробуйте обновить страницу"
   }
 } 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -173,24 +173,8 @@ export default function AdminPage() {
     }
   }, [session, router]);
 
-  // Загружаем пользователей при загрузке страницы
-  useEffect(() => {
-    if (session?.user) {
-      fetchUsers();
-      fetchTeams();
-      fetchTrainingCategories();
-      fetchExerciseCategories();
-      fetchExerciseTags();
-    }
-  }, [session]);
-
-  // Если нет сессии или роль не подходит, показываем заглушку загрузки
-  if (!permissions || !hasPermission(permissions, 'adminPanel.read')) {
-    return <div className="p-8 flex justify-center"><p className="text-vista-light/50">Загрузка...</p></div>;
-  }
-
   // Функция для получения списка пользователей
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const response = await fetch('/api/users');
       if (!response.ok) {
@@ -202,10 +186,10 @@ export default function AdminPage() {
       console.error('Ошибка при загрузке пользователей:', error);
       setError('Не удалось загрузить список пользователей');
     }
-  };
+  }, []);
 
   // Функция для получения списка команд
-  const fetchTeams = async () => {
+  const fetchTeams = useCallback(async () => {
     try {
       const response = await fetch('/api/teams');
       if (!response.ok) {
@@ -217,10 +201,10 @@ export default function AdminPage() {
       console.error('Ошибка при загрузке команд:', error);
       setError('Не удалось загрузить список команд');
     }
-  };
+  }, []);
 
   // Функция для получения списка категорий тренировок
-  const fetchTrainingCategories = async () => {
+  const fetchTrainingCategories = useCallback(async () => {
     try {
       const response = await fetch('/api/training-categories', { credentials: 'include' });
       if (!response.ok) {
@@ -232,10 +216,10 @@ export default function AdminPage() {
       console.error('Ошибка при загрузке категорий тренировок:', error);
       setError('Не удалось загрузить список категорий тренировок');
     }
-  };
+  }, []);
 
   // Функция для получения списка категорий упражнений
-  const fetchExerciseCategories = async () => {
+  const fetchExerciseCategories = useCallback(async () => {
     try {
       const response = await fetch('/api/exercise-categories', {
         credentials: 'include',
@@ -255,10 +239,10 @@ export default function AdminPage() {
       console.error('Ошибка при загрузке категорий упражнений:', error);
       setError('Не удалось загрузить список категорий упражнений');
     }
-  };
+  }, []);
 
   // Функция для получения списка тегов упражнений
-  const fetchExerciseTags = async () => {
+  const fetchExerciseTags = useCallback(async () => {
     try {
       const response = await fetch('/api/exercise-tags');
       if (!response.ok) {
@@ -270,7 +254,23 @@ export default function AdminPage() {
       console.error('Ошибка при загрузке тегов упражнений:', error);
       setError('Не удалось загрузить список тегов упражнений');
     }
-  };
+  }, []);
+
+  // Загружаем пользователей при загрузке страницы
+  useEffect(() => {
+    if (session?.user) {
+      fetchUsers();
+      fetchTeams();
+      fetchTrainingCategories();
+      fetchExerciseCategories();
+      fetchExerciseTags();
+    }
+  }, [session, fetchUsers, fetchTeams, fetchTrainingCategories, fetchExerciseCategories, fetchExerciseTags]);
+
+  // Если нет сессии или роль не подходит, показываем заглушку загрузки
+  if (!permissions || !hasPermission(permissions, 'adminPanel.read')) {
+    return <div className="p-8 flex justify-center"><p className="text-vista-light/50">Загрузка...</p></div>;
+  }
 
   // Обработчик изменения полей формы при добавлении
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
