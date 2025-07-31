@@ -235,7 +235,7 @@ export default function PublicGpsReportPage({ params }: { params: { token: strin
 
   return (
     <div className="min-h-screen bg-vista-dark p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="w-full max-w-[1400px] mx-auto space-y-6">
         {/* Заголовок */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-vista-light mb-2">
@@ -284,7 +284,7 @@ export default function PublicGpsReportPage({ params }: { params: { token: strin
         </div>
 
         {/* Информационные блоки */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-5 gap-4">
           <div className="bg-vista-dark/30 p-4 rounded-lg">
             <div className="flex items-center gap-2 text-vista-light/60 mb-2">
               <Activity className="w-4 h-4" />
@@ -336,8 +336,8 @@ export default function PublicGpsReportPage({ params }: { params: { token: strin
             <CardTitle className="text-vista-light">Детальные данные игроков</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="w-full">
+              <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-vista-secondary/30">
                     {profile.columnMapping?.map((col: any) => {
@@ -349,7 +349,7 @@ export default function PublicGpsReportPage({ params }: { params: { token: strin
                       return (
                         <th 
                           key={columnName}
-                          className={`p-3 text-left text-vista-light/70 font-medium ${
+                          className={`p-2 text-center text-vista-light/70 font-medium ${
                             isNumeric ? 'cursor-pointer hover:text-vista-light transition-colors' : ''
                           }`}
                           onClick={() => isNumeric && handleSort(columnName)}
@@ -388,18 +388,18 @@ export default function PublicGpsReportPage({ params }: { params: { token: strin
                           const totalMinutes = Math.round(hours * 60 + minutes + seconds / 60);
                           
                           return (
-                            <td key={columnName} className="p-3 text-center">
-                              <span className="text-vista-light">{totalMinutes}</span>
+                            <td key={columnName} className="p-2 text-center">
+                              <span className="text-vista-light text-xs">{totalMinutes}</span>
                             </td>
                           );
                         }
                         
                         if (isNumeric) {
                           return (
-                            <td key={columnName} className="p-3 text-center">
+                            <td key={columnName} className="p-2 text-center">
                               <div className="relative">
-                                <div className={`h-8 rounded-md bg-gradient-to-r ${getBarColor(columnName)} flex items-center justify-center`}>
-                                  <span className="text-white font-semibold text-sm">
+                                <div className={`h-6 rounded-md bg-gradient-to-r ${getBarColor(columnName)} flex items-center justify-center`}>
+                                  <span className="text-white font-semibold text-xs">
                                     {typeof value === 'number' ? value.toLocaleString() : value}
                                   </span>
                                 </div>
@@ -409,8 +409,8 @@ export default function PublicGpsReportPage({ params }: { params: { token: strin
                         }
                         
                         return (
-                          <td key={columnName} className="p-3 text-center">
-                            <span className="text-vista-light">{value}</span>
+                          <td key={columnName} className="p-2 text-center">
+                            <span className="text-vista-light text-xs">{value}</span>
                           </td>
                         );
                       })}
@@ -420,7 +420,7 @@ export default function PublicGpsReportPage({ params }: { params: { token: strin
                   {/* Строка со средними значениями */}
                   <tr className="border-t-2 border-vista-secondary/50 bg-vista-dark/30">
                     {/* Объединенная ячейка для заголовка */}
-                    <td colSpan={3} className="p-3 text-center">
+                    <td colSpan={3} className="p-2 text-center">
                       <div className="text-vista-light/70 text-xs font-medium">
                         Средние значения команды
                       </div>
@@ -441,8 +441,8 @@ export default function PublicGpsReportPage({ params }: { params: { token: strin
                         const averageValue = averageValues[columnName] || 0;
                         
                         return (
-                          <td key={columnName} className="p-3 text-center">
-                            <div className="text-vista-light/50 text-sm">
+                          <td key={columnName} className="p-2 text-center">
+                            <div className="text-vista-light/50 text-xs">
                               {averageValue.toLocaleString()}
                             </div>
                           </td>
@@ -473,13 +473,16 @@ export default function PublicGpsReportPage({ params }: { params: { token: strin
             });
 
             return (
-              <PlayerTiles
-                gpsData={data}
-                teamId={report.teamId}
-                profileId={profile.id}
-                currentMatchMinutes={currentMatchMinutes}
-                profile={profile}
-              />
+              <div className="w-full">
+                <PlayerTiles
+                  gpsData={data}
+                  teamId={report.teamId}
+                  profileId={profile.id}
+                  currentMatchMinutes={currentMatchMinutes}
+                  profile={profile}
+                  isPublic={true}
+                />
+              </div>
             );
           })()
         )}

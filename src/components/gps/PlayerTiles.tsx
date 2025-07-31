@@ -37,9 +37,10 @@ interface PlayerTilesProps {
   profileId: string;
   currentMatchMinutes: Record<string, number>; // Время игроков в текущем матче
   profile: any; // GPS профиль для получения метрик
+  isPublic?: boolean; // Флаг для публичной страницы
 }
 
-export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMinutes, profile }: PlayerTilesProps) {
+export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMinutes, profile, isPublic = false }: PlayerTilesProps) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [playerGameModels, setPlayerGameModels] = useState<Record<string, PlayerGameModel>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -48,7 +49,8 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
   useEffect(() => {
     const fetchPlayers = async () => {
       try {
-        const response = await fetch(`/api/teams/${teamId}/players`);
+        const apiUrl = isPublic ? `/api/public/teams/${teamId}/players` : `/api/teams/${teamId}/players`;
+        const response = await fetch(apiUrl);
         if (response.ok) {
           const playersData = await response.json();
           setPlayers(playersData);
@@ -81,9 +83,10 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
 
         if (player) {
           try {
-            const response = await fetch(
-              `/api/players/${player.id}/game-model?profileId=${profileId}&teamId=${teamId}`
-            );
+            const apiUrl = isPublic 
+              ? `/api/public/players/${player.id}/game-model?profileId=${profileId}&teamId=${teamId}`
+              : `/api/players/${player.id}/game-model?profileId=${profileId}&teamId=${teamId}`;
+            const response = await fetch(apiUrl);
             if (response.ok) {
               const gameModel = await response.json();
               models[player.id] = gameModel;
