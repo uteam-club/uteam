@@ -127,7 +127,10 @@ export default function GpsReportsTab() {
       const response = await fetch(`/api/trainings?teamId=${teamId}&forUpload=false`);
       if (response.ok) {
         const data = await response.json();
-        setTrainings(data);
+        // Фильтруем только тренировки с GPS отчетами
+        const trainingsWithReports = data.filter((training: any) => training.reportId);
+        console.log(`📊 Тренировки: ${data.length} всего, ${trainingsWithReports.length} с GPS отчетами`);
+        setTrainings(trainingsWithReports);
       }
     } catch (error) {
       console.error('Ошибка при получении тренировок:', error);
@@ -142,7 +145,10 @@ export default function GpsReportsTab() {
       const response = await fetch(`/api/matches?teamId=${teamId}&forUpload=false`);
       if (response.ok) {
         const data = await response.json();
-        setMatches(data);
+        // Фильтруем только матчи с GPS отчетами
+        const matchesWithReports = data.filter((match: any) => match.reportId);
+        console.log(`📊 Матчи: ${data.length} всего, ${matchesWithReports.length} с GPS отчетами`);
+        setMatches(matchesWithReports);
       }
     } catch (error) {
       console.error('Ошибка при получении матчей:', error);
@@ -485,17 +491,29 @@ export default function GpsReportsTab() {
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
                   {selectedEventType === 'TRAINING' ? (
-                    trainings.map(training => (
-                      <SelectItem key={training.id} value={training.id}>
-                        {new Date(training.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' })} {training.name}
-                      </SelectItem>
-                    ))
+                    trainings.length > 0 ? (
+                      trainings.map(training => (
+                        <SelectItem key={training.id} value={training.id}>
+                          {new Date(training.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' })} {training.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="px-2 py-1 text-sm text-vista-light/50">
+                        Нет тренировок с GPS отчетами
+                      </div>
+                    )
                   ) : selectedEventType === 'MATCH' ? (
-                    matches.map(match => (
-                      <SelectItem key={match.id} value={match.id}>
-                        {new Date(match.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' })} {match.name} {match.teamGoals}:{match.opponentGoals} {match.opponent}
-                      </SelectItem>
-                    ))
+                    matches.length > 0 ? (
+                      matches.map(match => (
+                        <SelectItem key={match.id} value={match.id}>
+                          {new Date(match.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' })} {match.name} {match.teamGoals}:{match.opponentGoals} {match.opponent}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="px-2 py-1 text-sm text-vista-light/50">
+                        Нет матчей с GPS отчетами
+                      </div>
+                    )
                   ) : null}
                 </SelectContent>
               </Select>
@@ -578,6 +596,7 @@ export default function GpsReportsTab() {
               eventDate={selectedReport.createdAt}
               teamName={selectedTeamName}
               reportId={selectedReport.id}
+              teamId={selectedTeam}
             />
           );
         })()

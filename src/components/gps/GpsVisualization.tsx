@@ -39,6 +39,7 @@ import {
   Target as TargetIcon,
   Trash2
 } from 'lucide-react';
+import PlayerTiles from './PlayerTiles';
 
 interface GpsDataPoint {
   [key: string]: any; // Динамические поля из профиля
@@ -82,6 +83,7 @@ interface GpsVisualizationProps {
   eventDate: string;
   teamName?: string;
   reportId?: string;
+  teamId?: string;
 }
 
 const COLORS = {
@@ -96,7 +98,7 @@ const COLORS = {
 
 const ZONE_COLORS = ['#F59E0B', '#EF4444', '#8B5CF6'];
 
-export default function GpsVisualization({ data, profile, eventName, eventDate, teamName, reportId }: GpsVisualizationProps) {
+export default function GpsVisualization({ data, profile, eventName, eventDate, teamName, reportId, teamId }: GpsVisualizationProps) {
   // Дополнительная проверка данных
   if (!data || data.length === 0) {
     return (
@@ -271,21 +273,8 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
   };
 
   const getBarColor = (field: string) => {
-    if (!field) return 'from-slate-400 to-slate-400/10';
-    
-    const lowerField = field.toLowerCase();
-    if (lowerField.includes('distance') || lowerField.includes('total')) return 'from-blue-400 to-blue-400/10';
-    if (lowerField.includes('zone3')) return 'from-amber-400 to-amber-400/10';
-    if (lowerField.includes('zone4')) return 'from-orange-400 to-orange-400/10';
-    if (lowerField.includes('zone5')) return 'from-red-400 to-red-400/10';
-    if (lowerField.includes('zone')) return 'from-orange-400 to-orange-400/10';
-    if (lowerField.includes('sprint')) return 'from-emerald-400 to-emerald-400/10';
-    if (lowerField.includes('speed')) return 'from-rose-400 to-rose-400/10';
-    if (lowerField.includes('acc')) return 'from-teal-400 to-teal-400/10';
-    if (lowerField.includes('dec')) return 'from-cyan-400 to-cyan-400/10';
-    if (lowerField.includes('hsr')) return 'from-indigo-400 to-indigo-400/10';
-    if (lowerField.includes('m/min')) return 'from-sky-400 to-sky-400/10';
-    return 'from-slate-400 to-slate-400/10';
+    // Все показатели одного цвета - градиент с разной прозрачностью (40% слева, 5% справа)
+    return 'from-cyan-500/40 to-blue-500/5';
   };
 
   // Функция сортировки
@@ -621,7 +610,34 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
         </CardContent>
       </Card>
 
+      {/* Плитки игроков */}
+      {teamId && profile.id && (
+        (() => {
+          // Извлекаем время игроков из данных
+          const currentMatchMinutes: Record<string, number> = {};
+          
+          data.forEach(player => {
+            const timeValue = player['Time'] || player['time'] || '00:00:00';
+            const timeParts = timeValue.split(':');
+            const hours = parseInt(timeParts[0]) || 0;
+            const minutes = parseInt(timeParts[1]) || 0;
+            const seconds = parseInt(timeParts[2]) || 0;
+            const totalMinutes = Math.round(hours * 60 + minutes + seconds / 60);
+            
+            currentMatchMinutes[player.name] = totalMinutes;
+          });
 
+          return (
+            <PlayerTiles
+              gpsData={data}
+              teamId={teamId}
+              profileId={profile.id}
+              currentMatchMinutes={currentMatchMinutes}
+              profile={profile}
+            />
+          );
+        })()
+      )}
 
     </div>
   );

@@ -26,7 +26,8 @@ import {
   Zap,
   Dumbbell,
   StretchHorizontal,
-  Shuffle
+  Shuffle,
+  BarChart3
 } from 'lucide-react';
 import {
   Select,
@@ -52,6 +53,7 @@ import { formatResult } from '@/lib/utils';
 import { countries as countriesList, countryCodeToEmoji } from '@/lib/countries';
 import { useTranslation } from 'react-i18next';
 import type { SupportedLang } from '@/types/i18n';
+import PlayerGameModelModal from '@/components/players/PlayerGameModelModal';
 
 interface Country {
   code: string;
@@ -225,6 +227,7 @@ export default function PlayerProfilePage() {
   const [fitnessTests, setFitnessTests] = useState<any[]>([]);
   const [isLoadingTests, setIsLoadingTests] = useState(false);
   const [fitnessTestResults, setFitnessTestResults] = useState<Record<string, any>>({});
+  const [isGameModelModalOpen, setIsGameModelModalOpen] = useState(false);
 
   const competitionTypeLabels: Record<string, string> = {
     FRIENDLY: 'товарищеский',
@@ -1176,7 +1179,24 @@ export default function PlayerProfilePage() {
             })}
           </div>
         </div>
-        <div className="w-[420px] h-[480px] bg-vista-dark/40 rounded-md shadow-md flex items-center justify-center" />
+        <div className="w-[420px] h-[480px] bg-vista-dark/40 rounded-md shadow-md flex flex-col p-6 relative">
+          <div className="flex flex-row justify-between items-start mb-4">
+            <span className="text-xl font-semibold text-vista-light tracking-tight">Игровая модель</span>
+            <button 
+              onClick={() => setIsGameModelModalOpen(true)}
+              className="bg-vista-primary text-vista-dark rounded-md px-4 py-1.5 text-sm font-medium shadow hover:bg-vista-primary/90 transition"
+            >
+              Анализ
+            </button>
+          </div>
+          <div className="flex flex-col items-center justify-center flex-1 text-center">
+            <BarChart3 className="w-16 h-16 text-vista-light/30 mb-4" />
+            <p className="text-vista-light/50 text-sm mb-2">Анализ игровой модели</p>
+            <p className="text-vista-light/40 text-xs">
+              На основе GPS данных из матчей
+            </p>
+          </div>
+        </div>
       </div>
 
       <EditPlayerModal
@@ -1188,6 +1208,13 @@ export default function PlayerProfilePage() {
         onSave={handleEditSave}
         onDocumentUpload={handleDocumentUpload as (file: File, type: string) => Promise<{ imageUrl?: string }>}
         onDocumentDelete={handleDocumentDelete}
+      />
+
+      <PlayerGameModelModal
+        isOpen={isGameModelModalOpen}
+        onClose={() => setIsGameModelModalOpen(false)}
+        playerId={playerId}
+        teamId={teamId}
       />
     </div>
   );
