@@ -147,7 +147,7 @@ export default function PlayerMappingModal({
           selectedPlayerId: playerId,
           suggestedPlayer: selectedPlayer || null,
           confidence: selectedPlayer ? 1.0 : 0,
-          action: 'manual',
+          action: 'manual', // Для отсутствующих игроков меняем статус на manual
           isConfirmed: false // Не подтверждаем автоматически
         };
       }
@@ -157,13 +157,16 @@ export default function PlayerMappingModal({
 
   // Удаляем функцию создания игрока - больше не нужна
 
-  const handleSkipPlayer = (reportName: string) => {
+  const handleResetPlayer = (reportName: string) => {
     setMappings(prev => prev.map(mapping => {
       if (mapping.reportName === reportName) {
         return {
           ...mapping,
-          action: 'skip',
-          isConfirmed: true
+          selectedPlayerId: undefined,
+          suggestedPlayer: null,
+          confidence: 0,
+          action: 'manual',
+          isConfirmed: false
         };
       }
       return mapping;
@@ -175,7 +178,7 @@ export default function PlayerMappingModal({
     try {
       // Сохраняем маппинги в базу данных
       const savePromises = mappings
-        .filter(mapping => mapping.action !== 'skip' && mapping.selectedPlayerId)
+        .filter(mapping => mapping.selectedPlayerId)
         .map(async (mapping) => {
           // Сохраняем маппинг через API
           await fetch('/api/player-mappings', {
@@ -198,8 +201,11 @@ export default function PlayerMappingModal({
       await Promise.all(savePromises);
       
       // Преобразуем маппинги в нужный формат для API
+      // Включаем только игроков с подтвержденным маппингом (не отсутствующих без выбора)
       const apiMappings = mappings
-        .filter(mapping => mapping.action !== 'skip' && mapping.selectedPlayerId)
+        .filter(mapping => 
+          mapping.selectedPlayerId
+        )
         .map(mapping => ({
           reportName: mapping.reportName,
           selectedPlayerId: mapping.selectedPlayerId!
@@ -217,31 +223,43 @@ export default function PlayerMappingModal({
     }
   };
 
-  const getConfidenceColor = (confidence: number) => {
+  const getConfidenceColor = (confidence: number, selectedPlayerId?: string) => {
+    if (!selectedPlayerId) {
+      return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    }
+    
     if (confidence >= 0.8) return 'bg-green-500/20 text-green-400 border-green-500/30';
     if (confidence >= 0.6) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
     return 'bg-red-500/20 text-red-400 border-red-500/30';
   };
 
-  const getActionIcon = (action: string) => {
+  const getActionIcon = (action: string, selectedPlayerId?: string) => {
+    if (!selectedPlayerId) {
+      return <AlertCircle className="w-4 h-4 text-yellow-400" />;
+    }
+    
     switch (action) {
       case 'confirm':
         return <CheckCircle className="w-4 h-4 text-green-400" />;
-      case 'skip':
-        return <XCircle className="w-4 h-4 text-gray-400" />;
+      case 'create':
+        return <UserPlus className="w-4 h-4 text-red-400" />;
       default:
-        return <AlertCircle className="w-4 h-4 text-yellow-400" />;
+        return <CheckCircle className="w-4 h-4 text-blue-400" />;
     }
   };
 
-  const getActionText = (action: string) => {
+  const getActionText = (action: string, selectedPlayerId?: string) => {
+    if (!selectedPlayerId) {
+      return 'Не выбран';
+    }
+    
     switch (action) {
       case 'confirm':
         return 'Подтверждено';
-      case 'skip':
-        return 'Пропустить';
+      case 'create':
+        return 'Игрок отсутствует';
       default:
-        return 'Требует внимания';
+        return 'Выбран вручную';
     }
   };
 
@@ -276,27 +294,27 @@ export default function PlayerMappingModal({
                       <CardTitle className="text-vista-light text-lg flex items-center justify-between">
                         <span>{mapping.reportName}</span>
                         <div className="flex items-center gap-2">
-                          <Badge className={getConfidenceColor(mapping.confidence)}>
-                            {Math.round(mapping.confidence * 100)}%
+                          <Badge className={getConfidenceColor(mapping.confidence, mapping.selectedPlayerId)}>
+                            {mapping.selectedPlayerId ? `${Math.round(mapping.confidence * 100)}%` : '0%'}
                           </Badge>
                           <div className="flex items-center gap-1">
-                            {getActionIcon(mapping.action)}
-                            <span className="text-sm">{getActionText(mapping.action)}</span>
+                            {getActionIcon(mapping.action, mapping.selectedPlayerId)}
+                            <span className="text-sm">{getActionText(mapping.action, mapping.selectedPlayerId)}</span>
                           </div>
                         </div>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                                             {/* Предлагаемый игрок */}
-                       {mapping.suggestedPlayer && (
+                                             {/* Предлагаемый игрок - показываем только если игрок еще не выбран */}
+                       {mapping.suggestedPlayer && !mapping.selectedPlayerId && (
                          <div className="bg-vista-dark/30 p-3 rounded-lg">
                            <p className="text-vista-light/70 text-sm mb-2">Предлагаемый игрок:</p>
                            <p className="text-vista-light font-medium">{`${mapping.suggestedPlayer.firstName || ''} ${mapping.suggestedPlayer.lastName || ''}`.trim() || mapping.suggestedPlayer.id}</p>
                          </div>
                        )}
 
-                      {/* Альтернативы */}
-                      {mapping.alternatives.length > 0 && (
+                      {/* Альтернативы - показываем только если игрок еще не выбран */}
+                      {mapping.alternatives.length > 0 && !mapping.selectedPlayerId && (
                         <div>
                           <p className="text-vista-light/70 text-sm mb-2">Альтернативы:</p>
                           <div className="space-y-2">
@@ -317,38 +335,68 @@ export default function PlayerMappingModal({
                         </div>
                       )}
 
-                      {/* Выбор игрока */}
-                      <div>
-                        <p className="text-vista-light/70 text-sm mb-2">Выберите игрока:</p>
-                        <Select
-                          value={mapping.selectedPlayerId || ''}
-                          onValueChange={(value) => handleMappingChange(mapping.reportName, value)}
-                        >
-                          <SelectTrigger className="bg-vista-dark border-vista-secondary/50 text-vista-light">
-                            <SelectValue placeholder="Выберите игрока из команды" />
-                          </SelectTrigger>
-                                                     <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light">
-                             {teamPlayers.map((player) => (
-                               <SelectItem key={player.id} value={player.id}>
-                                 {`${player.firstName || ''} ${player.lastName || ''}`.trim() || player.id}
-                               </SelectItem>
-                             ))}
-                           </SelectContent>
-                        </Select>
-                      </div>
+                                            {/* Выбор игрока */}
+                      {!mapping.suggestedPlayer ? (
+                        <div className="space-y-3">
+                          <div className="bg-red-500/20 border border-red-500/30 p-3 rounded-lg">
+                            <p className="text-red-400 text-sm">
+                              Игрок отсутствует в системе. Для включения в отчет выберите существующего игрока из списка ниже.
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-vista-light/70 text-sm mb-2">Выберите игрока для привязки:</p>
+                            <Select
+                              value={mapping.selectedPlayerId || ''}
+                              onValueChange={(value) => handleMappingChange(mapping.reportName, value)}
+                            >
+                              <SelectTrigger className="bg-vista-dark border-vista-secondary/50 text-vista-light">
+                                <SelectValue placeholder="Выберите игрока из команды" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light">
+                                {teamPlayers.map((player) => (
+                                  <SelectItem key={player.id} value={player.id}>
+                                    {`${player.firstName || ''} ${player.lastName || ''}`.trim() || player.id}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-vista-light/70 text-sm mb-2">Выберите игрока:</p>
+                          <Select
+                            value={mapping.selectedPlayerId || ''}
+                            onValueChange={(value) => handleMappingChange(mapping.reportName, value)}
+                          >
+                            <SelectTrigger className="bg-vista-dark border-vista-secondary/50 text-vista-light">
+                              <SelectValue placeholder="Выберите игрока из команды" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light">
+                              {teamPlayers.map((player) => (
+                                <SelectItem key={player.id} value={player.id}>
+                                  {`${player.firstName || ''} ${player.lastName || ''}`.trim() || player.id}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
 
                       {/* Действия */}
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="bg-vista-dark border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20"
-                          onClick={() => handleSkipPlayer(mapping.reportName)}
-                        >
-                          <XCircle className="w-4 h-4 mr-1" />
-                          Пропустить
-                        </Button>
-                      </div>
+                      {mapping.selectedPlayerId && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="bg-vista-dark border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20"
+                            onClick={() => handleResetPlayer(mapping.reportName)}
+                          >
+                            <XCircle className="w-4 h-4 mr-1" />
+                            Сбросить выбор
+                          </Button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -368,7 +416,7 @@ export default function PlayerMappingModal({
                   onClick={handleConfirmAll}
                   disabled={loading}
                 >
-                  {loading ? 'Сохранение...' : 'Подтвердить все'}
+                  {loading ? 'Сохранение...' : 'Подтвердить'}
                 </Button>
               </div>
             </>

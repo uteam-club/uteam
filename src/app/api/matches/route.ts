@@ -131,8 +131,8 @@ export async function GET(request: NextRequest) {
       // Для модалки загрузки - показываем матчи БЕЗ отчетов
       filteredMatches = matchesWithReportInfo.filter(match => !match.hasReport);
     } else {
-      // Для просмотра - показываем матчи С отчетами
-      filteredMatches = matchesWithReportInfo.filter(match => match.hasReport);
+      // Для просмотра - показываем ВСЕ матчи
+      filteredMatches = matchesWithReportInfo;
     }
     
     console.log('📊 Результат запроса матчей:', filteredMatches.length, 'записей');

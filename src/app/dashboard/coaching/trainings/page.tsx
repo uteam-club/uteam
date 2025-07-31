@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { X, Search, Plus, Calendar, Filter, CalendarIcon, Clock } from 'lucide-react';
+import { X, Search, Plus, Calendar, Filter, CalendarIcon, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTrainingCategories } from '@/hooks/useExerciseData';
 import { CreateTrainingModal } from '@/components/training/CreateTrainingModal';
@@ -40,7 +40,7 @@ interface Category {
 
 interface Training {
   id: string;
-  title: string;
+  name: string;
   teamId: string;
   team: string;
   date: string;
@@ -64,7 +64,10 @@ export default function TrainingsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  
+  // Состояние для пагинации
   const [currentPage, setCurrentPage] = useState(1);
+  const trainingsPerPage = 15;
   
   // Состояние для данных
   const [teams, setTeams] = useState<Team[]>([]);
@@ -114,7 +117,6 @@ export default function TrainingsPage() {
         setTeams(data);
       } catch (error) {
         console.error('Ошибка при загрузке команд:', error);
-        // Можно добавить toast или другое уведомление для пользователя
       } finally {
         setIsLoadingTeams(false);
       }
@@ -134,18 +136,14 @@ export default function TrainingsPage() {
         if (!response.ok) throw new Error('Не удалось загрузить тренировки');
         const data = await response.json();
         
-        // Используем статус из API вместо localStorage
         const trainingsWithData = data.map((training: Training) => {
-          // Проверяем, является ли тренировка завершенной по статусу из API
           const isCompleted = training.status === 'COMPLETED';
-          
           return {
             ...training,
             isCompleted
           };
         });
         
-        // Сортируем тренировки по дате в порядке убывания (самые новые сверху)
         const sortedTrainings = trainingsWithData.sort((a: Training, b: Training) => {
           return new Date(b.date).getTime() - new Date(a.date).getTime();
         });
@@ -153,7 +151,6 @@ export default function TrainingsPage() {
         setTrainings(sortedTrainings);
       } catch (error) {
         console.error('Ошибка при загрузке тренировок:', error);
-        // Если API еще не реализован, продолжаем работать с пустым массивом
         setTrainings([]);
       } finally {
         setIsLoading(false);
@@ -168,38 +165,40 @@ export default function TrainingsPage() {
   // Фильтрация тренировок
   const filteredTrainings = useMemo(() => {
     return trainings.filter(training => {
-      // Фильтр по поисковому запросу
-      if (searchQuery && !training.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+      if (searchQuery && !training.name.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
       }
       
-      // Фильтр по команде
       if (selectedTeam && training.teamId !== selectedTeam) {
         return false;
       }
       
-      // Фильтр по категории
       if (selectedCategory && training.categoryId !== selectedCategory) {
         return false;
       }
       
-      // Фильтр по дате начала
-      if (startDate) {
-        if (training.date < startDate) {
-          return false;
-        }
+      if (startDate && training.date < startDate) {
+        return false;
       }
       
-      // Фильтр по дате окончания
-      if (endDate) {
-        if (training.date > endDate) {
-          return false;
-        }
+      if (endDate && training.date > endDate) {
+        return false;
       }
       
       return true;
     });
   }, [trainings, searchQuery, selectedTeam, selectedCategory, startDate, endDate]);
+
+  // Пагинация
+  const totalPages = Math.ceil(filteredTrainings.length / trainingsPerPage);
+  const startIndex = (currentPage - 1) * trainingsPerPage;
+  const endIndex = startIndex + trainingsPerPage;
+  const paginatedTrainings = filteredTrainings.slice(startIndex, endIndex);
+
+  // Сброс страницы при изменении фильтров
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedTeam, selectedCategory, startDate, endDate]);
   
   // Проверка наличия активных фильтров
   const hasActiveFilters = searchQuery || selectedTeam || selectedCategory || startDate || endDate;
@@ -211,7 +210,6 @@ export default function TrainingsPage() {
       [field]: value
     }));
     
-    // Очищаем ошибку для поля при вводе
     if (errors[field as keyof typeof errors]) {
       setErrors(prev => ({
         ...prev,
@@ -233,7 +231,6 @@ export default function TrainingsPage() {
   
   // Обработчик отправки формы
   const handleSubmit = async () => {
-    // Валидация
     const newErrors = {
       title: !newTraining.title ? t('trainingsPage.validation_title_required') : '',
       teamId: !newTraining.teamId ? t('trainingsPage.validation_team_required') : '',
@@ -243,22 +240,19 @@ export default function TrainingsPage() {
     
     setErrors(newErrors);
     
-    // Проверка наличия ошибок
     const hasErrors = Object.values(newErrors).some(error => error !== '');
     if (hasErrors) return;
     
     try {
-      // Формируем данные для отправки
       const trainingData = {
         title: newTraining.title,
         teamId: newTraining.teamId,
-        date: newTraining.date, // YYYY-MM-DD
-        time: newTraining.time, // HH:mm
+        date: newTraining.date,
+        time: newTraining.time,
         categoryId: newTraining.categoryId,
         type: newTraining.type
       };
       
-      // Отправляем запрос на создание тренировки
       const response = await fetch('/api/trainings', {
         method: 'POST',
         headers: {
@@ -271,17 +265,14 @@ export default function TrainingsPage() {
         throw new Error(t('trainingsPage.error_creating_training'));
       }
       
-      // Получаем созданную тренировку
       const createdTraining = await response.json();
       
-      // Добавляем созданную тренировку в список
       setTrainings(prev => [...prev, {
         ...createdTraining,
         team: teams.find(t => t.id === createdTraining.teamId)?.name || '',
         category: categories.find((c: Category) => c.id === createdTraining.categoryId)?.name || ''
       }]);
       
-      // Сбрасываем форму и закрываем диалог
       setNewTraining({
         title: '',
         teamId: '',
@@ -310,7 +301,7 @@ export default function TrainingsPage() {
   
   // Проверка: одна команда или несколько
   const isSingleTeam = teams.length === 1;
-  
+
   return (
     <div className="space-y-6">
       <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
@@ -517,9 +508,9 @@ export default function TrainingsPage() {
               <div className="flex justify-center py-8">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-vista-primary"></div>
               </div>
-            ) : filteredTrainings.length > 0 ? (
+            ) : paginatedTrainings.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredTrainings.map((training) => (
+                {paginatedTrainings.map((training) => (
                   <div 
                     key={training.id} 
                     className="rounded-lg border border-vista-secondary/50 bg-vista-dark/70 hover:bg-vista-dark/90 transition-all overflow-hidden flex flex-col cursor-pointer shadow-md hover:shadow-xl hover:ring-1 hover:ring-vista-primary hover:ring-offset-0 hover:ring-offset-gray-800/20"
@@ -533,7 +524,7 @@ export default function TrainingsPage() {
                     <div className="p-5">
                       {/* Заголовок и статус */}
                       <div className="flex justify-between items-start mb-3">
-                        <h3 className="text-lg font-medium text-vista-light">{training.title}</h3>
+                        <h3 className="text-lg font-medium text-vista-light">{training.name}</h3>
                         <Badge className={`${training.isCompleted ? 'bg-green-500/20 text-green-400' : 'bg-vista-primary/20 text-vista-primary'}`}>
                           {training.isCompleted ? t('trainingsPage.completed_status') : t('trainingsPage.planned_status')}
                         </Badge>
@@ -568,6 +559,59 @@ export default function TrainingsPage() {
                     ? t('trainingsPage.no_trainings_found_filters')
                     : t('trainingsPage.no_trainings_found')}
                 </p>
+              </div>
+            )}
+            
+            {/* Информация о количестве и пагинация */}
+            {paginatedTrainings.length > 0 && (
+              <div className="flex flex-col items-center gap-4 mt-6">
+                {/* Информация о количестве */}
+                <div className="text-vista-light/70 text-sm">
+                  Показано {startIndex + 1}-{Math.min(endIndex, filteredTrainings.length)} из {filteredTrainings.length} тренировок
+                </div>
+                
+                {/* Пагинация */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="bg-vista-dark border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className={`${
+                            currentPage === page 
+                              ? 'bg-vista-primary text-vista-dark' 
+                              : 'bg-vista-dark border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20'
+                          }`}
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="bg-vista-dark border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>

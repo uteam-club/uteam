@@ -507,7 +507,7 @@ export default function GpsReportsTab() {
                 className="flex-1 bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
               >
                 <Upload className="w-4 h-4 mr-2" />
-                Загрузить отчет
+                Загрузить
               </Button>
               {selectedReport && (
                 <>

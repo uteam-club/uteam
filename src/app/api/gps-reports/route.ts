@@ -304,7 +304,9 @@ async function processDataAccordingToProfile(
       const playerNameLower = playerName.toLowerCase();
       
       // Проверяем, есть ли этот игрок в маппингах
+      // Если игрок не найден в маппингах, пропускаем его (не включаем в отчет)
       if (!mappedPlayerNames.has(playerNameLower)) {
+        console.log(`❌ Игрок "${playerName}" не найден в маппингах - пропускаем`);
         return null;
       }
       

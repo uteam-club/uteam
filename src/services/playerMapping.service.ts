@@ -88,7 +88,7 @@ export class PlayerMappingService {
         suggestedPlayer: null,
         confidence: 0,
         alternatives: [],
-        action: 'create'
+        action: 'create' // Игрок отсутствует в системе
       };
     }
 

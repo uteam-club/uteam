@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
       ORDER BY t."date" DESC
     `);
   } else {
-    // Для просмотра - показываем тренировки С отчетами
+    // Для просмотра - показываем ВСЕ тренировки
     const query = sql`
       SELECT 
         t."id", t."title", t."teamId", t."date", t."time", t."categoryId", t."status", t."type", t."createdAt", t."updatedAt",
@@ -135,12 +135,12 @@ export async function GET(request: NextRequest) {
       FROM "Training" t
       LEFT JOIN "Team" tm ON t."teamId" = tm."id"
       LEFT JOIN "TrainingCategory" c ON t."categoryId" = c."id"
-      INNER JOIN "GpsReport" gr ON gr."eventId" = t."id" AND gr."eventType" = 'TRAINING'
+      LEFT JOIN "GpsReport" gr ON gr."eventId" = t."id" AND gr."eventType" = 'TRAINING' AND gr."clubId" = ${clubId}::uuid
       WHERE ${sql.join(whereArr, sql` AND `)}
       ORDER BY t."date" DESC
     `;
     
-          try {
+    try {
       result = await db.execute(query);
     } catch (error) {
       console.error('❌ Ошибка при выполнении SQL запроса:', error);

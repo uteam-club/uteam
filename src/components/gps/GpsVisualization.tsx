@@ -442,7 +442,7 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
         
         <div className="bg-vista-dark/30 p-4 rounded-lg">
           <div className="flex items-center gap-2 text-vista-light/60 mb-2">
-            <Activity className="w-4 h-4" />
+            <Users className="w-4 h-4" />
             <span className="text-sm">Игроков</span>
           </div>
           <p className="text-vista-light font-medium">{data.length}</p>
