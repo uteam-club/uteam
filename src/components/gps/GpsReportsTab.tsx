@@ -597,6 +597,7 @@ export default function GpsReportsTab() {
               teamName={selectedTeamName}
               reportId={selectedReport.id}
               teamId={selectedTeam}
+              eventType={selectedReport.eventType}
             />
           );
         })()

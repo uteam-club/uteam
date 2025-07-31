@@ -15,12 +15,34 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import PlayerTiles from '@/components/gps/PlayerTiles';
 
 interface GpsProfile {
   id: string;
   name: string;
   gpsSystem: string;
   columnMapping: any[];
+}
+
+interface Team {
+  id: string;
+  name: string;
+}
+
+interface Match {
+  id: string;
+  name: string;
+  date: string;
+  opponentName: string;
+  teamGoals: number;
+  opponentGoals: number;
+}
+
+interface Training {
+  id: string;
+  name: string;
+  date: string;
+  title: string;
 }
 
 interface GpsReport {
@@ -39,6 +61,8 @@ interface GpsReport {
   isProcessed: boolean;
   clubId: string;
   uploadedById: string;
+  team?: Team;
+  event?: Match | Training;
 }
 
 interface GpsDataPoint {
@@ -156,21 +180,8 @@ export default function PublicGpsReportPage({ params }: { params: { token: strin
   };
 
   const getBarColor = (columnName: string) => {
-    const colors: Record<string, string> = {
-      'Total distance': 'from-blue-500 to-blue-500/10',
-      'Zone 3': 'from-amber-500 to-amber-500/10',
-      'Zone 4': 'from-orange-500 to-orange-500/10',
-      'Zone 5': 'from-red-500 to-red-500/10',
-      'HSR': 'from-purple-500 to-purple-500/10',
-      'HSR%': 'from-purple-400 to-purple-400/10',
-      'Sprints': 'from-emerald-500 to-emerald-500/10',
-      'm/min': 'from-cyan-500 to-cyan-500/10',
-      'Acc': 'from-green-500 to-green-500/10',
-      'Dec': 'from-green-400 to-green-400/10',
-      'Max speed': 'from-rose-500 to-rose-500/10'
-    };
-    
-    return colors[columnName] || 'from-gray-500 to-gray-500/10';
+    // Все показатели одного цвета - градиент с разной прозрачностью (40% слева, 5% справа)
+    return 'from-cyan-500/40 to-blue-500/5';
   };
 
   const getMetricUnit = (columnName: string) => {
@@ -230,9 +241,46 @@ export default function PublicGpsReportPage({ params }: { params: { token: strin
           <h1 className="text-3xl font-bold text-vista-light mb-2">
             GPS Отчет
           </h1>
-          <p className="text-vista-light/70">
-            {report.name}
-          </p>
+          {(() => {
+            if (report.event) {
+              if (report.eventType === 'MATCH') {
+                const match = report.event as Match;
+                return (
+                  <div>
+                    <p className="text-sm text-vista-light/50 mb-1">
+                      {formatDate(match.date)}
+                    </p>
+                    <p className="text-vista-light/70">
+                      {report.team?.name || 'Команда'} {match.teamGoals}:{match.opponentGoals} {match.opponentName}
+                    </p>
+                  </div>
+                );
+              } else if (report.eventType === 'TRAINING') {
+                const training = report.event as Training;
+                return (
+                  <div>
+                    <p className="text-sm text-vista-light/50 mb-1">
+                      {formatDate(training.date)}
+                    </p>
+                    <p className="text-vista-light/70">
+                      {training.title || 'Тренировка'}
+                    </p>
+                  </div>
+                );
+              }
+            }
+            // Fallback если нет данных о событии
+            return (
+              <div>
+                <p className="text-sm text-vista-light/50 mb-1">
+                  {formatDate(report.createdAt)}
+                </p>
+                <p className="text-vista-light/70">
+                  {getEventTypeText(report.eventType)}
+                </p>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Информационные блоки */}
@@ -267,7 +315,7 @@ export default function PublicGpsReportPage({ params }: { params: { token: strin
               <span className="text-sm">Команда</span>
             </div>
             <p className="text-vista-light font-medium">
-              {report.name.split(' ')[0] || 'Неизвестно'}
+              {report.team?.name || report.name.split(' ')[0] || 'Неизвестно'}
             </p>
           </div>
           
@@ -406,6 +454,35 @@ export default function PublicGpsReportPage({ params }: { params: { token: strin
             </div>
           </CardContent>
         </Card>
+
+        {/* Плитки игроков */}
+        {report.teamId && profile.id && (
+          (() => {
+            // Извлекаем время игроков из данных
+            const currentMatchMinutes: Record<string, number> = {};
+            
+            data.forEach(player => {
+              const timeValue = player['Time'] || player['time'] || '00:00:00';
+              const timeParts = timeValue.split(':');
+              const hours = parseInt(timeParts[0]) || 0;
+              const minutes = parseInt(timeParts[1]) || 0;
+              const seconds = parseInt(timeParts[2]) || 0;
+              const totalMinutes = Math.round(hours * 60 + minutes + seconds / 60);
+              
+              currentMatchMinutes[player.name] = totalMinutes;
+            });
+
+            return (
+              <PlayerTiles
+                gpsData={data}
+                teamId={report.teamId}
+                profileId={profile.id}
+                currentMatchMinutes={currentMatchMinutes}
+                profile={profile}
+              />
+            );
+          })()
+        )}
       </div>
     </div>
   );

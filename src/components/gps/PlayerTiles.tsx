@@ -128,6 +128,19 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
     }
   };
 
+  // Функция для получения цвета фона плитки метрики
+  const getMetricCardBackground = (currentValue: number, averageValue: number) => {
+    const percentage = averageValue > 0 ? ((currentValue - averageValue) / averageValue) * 100 : 0;
+    
+    if (Math.abs(percentage) < 5) {
+      return 'bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-cyan-500/30';
+    } else if (percentage > 0) {
+      return 'bg-gradient-to-br from-green-500/20 to-emerald-500/10 border-green-500/30';
+    } else {
+      return 'bg-gradient-to-br from-red-500/20 to-rose-500/10 border-red-500/30';
+    }
+  };
+
   // Функция для получения единиц измерения
   const getMetricUnit = (metricName: string) => {
     // Ищем метрику в профиле для получения единиц измерения
@@ -293,9 +306,10 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
                         : averageMetric.average;
 
                       const comparison = getComparisonIndicator(currentValue, normalizedAverage);
+                      const cardBackground = getMetricCardBackground(currentValue, normalizedAverage);
 
                                              return (
-                         <Card key={metricName} className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-cyan-500/30 hover:scale-[1.02] transition-transform duration-200">
+                         <Card key={metricName} className={`${cardBackground} hover:scale-[1.02] transition-transform duration-200`}>
                            <CardContent className="p-4">
                              <div className="text-center">
                                <div className="w-16 h-7 rounded-md flex items-center justify-center text-cyan-300 bg-cyan-500/20 mx-auto mb-2 px-1">

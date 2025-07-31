@@ -84,6 +84,7 @@ interface GpsVisualizationProps {
   teamName?: string;
   reportId?: string;
   teamId?: string;
+  eventType?: 'TRAINING' | 'MATCH';
 }
 
 const COLORS = {
@@ -98,7 +99,7 @@ const COLORS = {
 
 const ZONE_COLORS = ['#F59E0B', '#EF4444', '#8B5CF6'];
 
-export default function GpsVisualization({ data, profile, eventName, eventDate, teamName, reportId, teamId }: GpsVisualizationProps) {
+export default function GpsVisualization({ data, profile, eventName, eventDate, teamName, reportId, teamId, eventType }: GpsVisualizationProps) {
   // Дополнительная проверка данных
   if (!data || data.length === 0) {
     return (
@@ -453,7 +454,9 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
             <span className="text-sm">Событие</span>
           </div>
           <p className="text-vista-light font-medium">
-            {eventName.toLowerCase().includes('тренировка') ? 'Тренировка' : 
+            {eventType === 'TRAINING' ? 'Тренировка' : 
+             eventType === 'MATCH' ? 'Матч' : 
+             eventName.toLowerCase().includes('тренировка') ? 'Тренировка' : 
              eventName.toLowerCase().includes('матч') ? 'Матч' : 
              'Событие'}
           </p>

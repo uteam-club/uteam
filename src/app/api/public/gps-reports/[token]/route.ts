@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { gpsReport, gpsProfile, player } from '@/db/schema';
+import { gpsReport, gpsProfile, player, team, match, training } from '@/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 
 // GET - получение публичного GPS отчета по токену
@@ -37,16 +37,46 @@ export async function GET(
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
+    // Получаем информацию о команде
+    const [teamData] = await db
+      .select()
+      .from(team)
+      .where(eq(team.id, report.teamId));
+
+    // Получаем информацию о событии (матч или тренировка)
+    let eventData = null;
+    if (report.eventType === 'MATCH') {
+      const [matchData] = await db
+        .select()
+        .from(match)
+        .where(eq(match.id, report.eventId));
+      eventData = matchData;
+    } else if (report.eventType === 'TRAINING') {
+      const [trainingData] = await db
+        .select()
+        .from(training)
+        .where(eq(training.id, report.eventId));
+      eventData = trainingData;
+    }
+
+    // Добавляем информацию о команде и событии к отчету
+    const reportWithTeam = {
+      ...report,
+      team: teamData || null,
+      event: eventData || null
+    };
+
     console.log('✅ Публичный GPS отчет найден:', {
       id: report.id,
       name: report.name,
       eventType: report.eventType,
       eventId: report.eventId,
-      processedDataLength: Array.isArray(report.processedData) ? report.processedData.length : 0
+      processedDataLength: Array.isArray(report.processedData) ? report.processedData.length : 0,
+      eventData: eventData
     });
 
     // Обрабатываем имена игроков для отображения
-    const processedReport = await processPlayerNames(report, report.clubId);
+    const processedReport = await processPlayerNames(reportWithTeam, report.clubId);
 
     return NextResponse.json({
       report: processedReport,
