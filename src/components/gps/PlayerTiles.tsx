@@ -216,8 +216,8 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
 
   return (
     <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
-      <CardContent className="p-6">
-        <h3 className="text-xl font-semibold text-vista-light mb-6">Плитки игроков</h3>
+      <CardContent className="p-3 sm:p-6">
+        <h3 className="text-lg sm:text-xl font-semibold text-vista-light mb-4 sm:mb-6">Плитки игроков</h3>
         
         <div className="grid grid-cols-1 gap-6">
           {gpsData.map((gpsPlayer, index) => {
@@ -249,35 +249,35 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
 
             return (
               <Card key={player.id} className="bg-vista-dark/30 border-vista-secondary/30">
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   {/* Заголовок игрока */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-vista-secondary/20 flex items-center justify-center">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 sm:mb-4 gap-2 sm:gap-0">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-vista-secondary/20 flex items-center justify-center">
                         {player.imageUrl ? (
                           <img 
                             src={player.imageUrl} 
                             alt={`${player.firstName} ${player.lastName}`}
-                            className="w-12 h-12 rounded-full object-cover"
+                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover"
                           />
                         ) : (
-                          <span className="text-vista-light font-semibold">
+                          <span className="text-vista-light font-semibold text-sm sm:text-base">
                             {player.firstName?.[0]}{player.lastName?.[0]}
                           </span>
                         )}
                       </div>
                       <div>
-                        <h4 className="text-vista-light font-semibold">
+                        <h4 className="text-vista-light font-semibold text-sm sm:text-base">
                           {player.firstName} {player.lastName}
                         </h4>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 sm:gap-2">
                           {player.position && (
-                            <Badge className="text-xs bg-cyan-500/20 text-cyan-300 border-cyan-500/30">
+                            <Badge className="text-[10px] sm:text-xs bg-cyan-500/20 text-cyan-300 border-cyan-500/30">
                               {player.position}
                             </Badge>
                           )}
                           {player.number && (
-                            <Badge className="text-xs bg-blue-500/20 text-blue-300 border-blue-500/30">
+                            <Badge className="text-[10px] sm:text-xs bg-blue-500/20 text-blue-300 border-blue-500/30">
                               #{player.number}
                             </Badge>
                           )}
@@ -287,17 +287,17 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
                     
                     {/* Информация о времени на поле */}
                     <div className="text-right">
-                      <div className="text-xs text-vista-light/50">
+                      <div className="text-[10px] sm:text-xs text-vista-light/50">
                         Время на поле: {currentMinutes} мин
                       </div>
-                      <div className="text-xs text-vista-light/50">
+                      <div className="text-[10px] sm:text-xs text-vista-light/50">
                         Проанализировано матчей: {gameModel.matchesCount}
                       </div>
                     </div>
                   </div>
 
                   {/* Метрики */}
-                  <div className="grid grid-cols-6 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
                     {Object.entries(currentMetrics).map(([metricName, currentValue]) => {
                       const averageMetric = gameModel.averageMetrics[metricName];
                       if (!averageMetric) return null;
@@ -313,26 +313,26 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
 
                                              return (
                          <Card key={metricName} className={`${cardBackground} hover:scale-[1.02] transition-transform duration-200`}>
-                           <CardContent className="p-4">
+                           <CardContent className="p-2 sm:p-4">
                              <div className="text-center">
-                               <div className="w-16 h-7 rounded-md flex items-center justify-center text-cyan-300 bg-cyan-500/20 mx-auto mb-2 px-1">
-                                 <h4 className="text-[9px] font-semibold leading-tight">
+                               <div className="w-12 sm:w-16 h-6 sm:h-7 rounded-md flex items-center justify-center text-cyan-300 bg-cyan-500/20 mx-auto mb-1 sm:mb-2 px-1">
+                                 <h4 className="text-[8px] sm:text-[9px] font-semibold leading-tight">
                                    {metricName}
                                  </h4>
                                </div>
                                <div className="flex items-center justify-center gap-1 mb-1">
                                  <div className={`flex items-center gap-1 ${comparison.color}`}>
                                    {comparison.icon}
-                                   <span className="text-xs font-medium">{comparison.percentage}%</span>
+                                   <span className="text-[10px] sm:text-xs font-medium">{comparison.percentage}%</span>
                                  </div>
                                </div>
-                               <p className="text-xl font-bold text-vista-light mb-1">
+                               <p className="text-lg sm:text-xl font-bold text-vista-light mb-1">
                                  {normalizedAverage.toFixed(1)}
-                                 <span className="text-sm text-vista-light/50 ml-1">
+                                 <span className="text-xs sm:text-sm text-vista-light/50 ml-1">
                                    {getMetricUnit(metricName)}
                                  </span>
                                </p>
-                               <p className="text-[8px] text-vista-light/60">текущий: {currentValue.toFixed(1)}</p>
+                               <p className="text-[7px] sm:text-[8px] text-vista-light/60">текущий: {currentValue.toFixed(1)}</p>
                              </div>
                            </CardContent>
                          </Card>
