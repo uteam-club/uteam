@@ -247,6 +247,14 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
               }
             });
 
+            // Отладочная информация
+            console.log('Available metrics for', player.firstName, player.lastName, ':', Object.keys(currentMetrics));
+            console.log('Profile columnMapping:', profile?.columnMapping?.map((col: any) => ({
+              name: col.name || col.internalField,
+              isVisible: col.isVisible,
+              mappedColumn: col.mappedColumn
+            })));
+
             return (
               <Card key={player.id} className="bg-vista-dark/30 border-vista-secondary/30">
                 <CardContent className="p-3 sm:p-4">
@@ -266,32 +274,36 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
                           </span>
                         )}
                       </div>
-                      <div>
-                        <h4 className="text-vista-light font-semibold text-sm sm:text-base">
-                          {player.firstName} {player.lastName}
-                        </h4>
-                        <div className="flex items-center gap-1 sm:gap-2">
-                          {player.position && (
-                            <Badge className="text-[10px] sm:text-xs bg-cyan-500/20 text-cyan-300 border-cyan-500/30">
-                              {player.position}
-                            </Badge>
-                          )}
-                          {player.number && (
-                            <Badge className="text-[10px] sm:text-xs bg-blue-500/20 text-blue-300 border-blue-500/30">
-                              #{player.number}
-                            </Badge>
-                          )}
+                      <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4">
+                          <div>
+                            <h4 className="text-vista-light font-semibold text-sm sm:text-base">
+                              {player.firstName} {player.lastName}
+                            </h4>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              {player.position && (
+                                <Badge className="text-[10px] sm:text-xs bg-cyan-500/20 text-cyan-300 border-cyan-500/30">
+                                  {player.position}
+                                </Badge>
+                              )}
+                              {player.number && (
+                                <Badge className="text-[10px] sm:text-xs bg-blue-500/20 text-blue-300 border-blue-500/30">
+                                  #{player.number}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Информация о времени на поле */}
+                          <div className="text-right">
+                            <div className="text-[10px] sm:text-xs text-vista-light/50">
+                              Время на поле: {currentMinutes} мин
+                            </div>
+                            <div className="text-[10px] sm:text-xs text-vista-light/50">
+                              Проанализировано матчей: {gameModel.matchesCount}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    
-                    {/* Информация о времени на поле */}
-                    <div className="text-right">
-                      <div className="text-[10px] sm:text-xs text-vista-light/50">
-                        Время на поле: {currentMinutes} мин
-                      </div>
-                      <div className="text-[10px] sm:text-xs text-vista-light/50">
-                        Проанализировано матчей: {gameModel.matchesCount}
                       </div>
                     </div>
                   </div>
@@ -300,7 +312,10 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
                     {Object.entries(currentMetrics).map(([metricName, currentValue]) => {
                       const averageMetric = gameModel.averageMetrics[metricName];
-                      if (!averageMetric) return null;
+                      if (!averageMetric) {
+                        console.log('No average metric found for:', metricName, 'in gameModel:', Object.keys(gameModel.averageMetrics));
+                        return null;
+                      }
 
                       // Динамическая нормализация: если игрок сыграл 70 минут, 
                       // то сравниваем с его средними показателями за 70 минут
