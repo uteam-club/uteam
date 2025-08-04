@@ -402,8 +402,6 @@ const displayKey = column.name;
 - Нет мобильной адаптации
 - **Плитки игроков со средними показателями не отображались**
 - **Плитки игроков накладывались друг на друга на мобильных устройствах**
-- **Информация о времени и матчах располагалась ниже имени игрока**
-- **Отображалось только 5 метрик вместо всех доступных**
 
 ### **Решение:**
 Полностью переработана публичная страница для использования того же компонента `GpsVisualization`, что и в приложении.
@@ -520,8 +518,6 @@ export default function GpsVisualization({
 - Не передавался флаг `isPublic`
 - Компонент использовал разные API endpoints для публичной и приватной страниц
 - **На мобильных устройствах плитки накладывались друг на друга**
-- **Информация о времени и матчах располагалась ниже имени игрока**
-- **Отображалось только 5 метрик вместо всех доступных**
 
 #### **Решение:**
 ```typescript
@@ -550,34 +546,11 @@ isPublic={isPublic}
 <CardContent className="p-3 sm:p-4">
 ```
 
-#### **2. Исправление расположения информации игрока:**
+#### **2. Адаптивный заголовок игрока:**
 ```typescript
-// Было: Вертикальное расположение (информация о времени снизу)
-// Стало: Горизонтальное расположение на одном уровне
-<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4">
-  <div>
-    <h4 className="text-vista-light font-semibold text-sm sm:text-base">
-      {player.firstName} {player.lastName}
-    </h4>
-    <div className="flex items-center gap-1 sm:gap-2">
-      {/* Бейджи позиции и номера */}
-    </div>
-  </div>
-  
-  {/* Информация о времени на поле */}
-  <div className="text-right">
-    <div className="text-[10px] sm:text-xs text-vista-light/50">
-      Время на поле: {currentMinutes} мин
-    </div>
-    <div className="text-[10px] sm:text-xs text-vista-light/50">
-      Проанализировано матчей: {gameModel.matchesCount}
-    </div>
-  </div>
-</div>
-```
+// Изменение layout с flex-row на flex-col на мобильных
+<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 sm:mb-4 gap-2 sm:gap-0">
 
-#### **3. Адаптивные размеры:**
-```typescript
 // Адаптивные размеры аватара
 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full ...">
 <img className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover">
@@ -586,20 +559,20 @@ isPublic={isPublic}
 <h4 className="text-vista-light font-semibold text-sm sm:text-base">
 ```
 
-#### **4. Адаптивные бейджи:**
+#### **3. Адаптивные бейджи:**
 ```typescript
 // Уменьшенные размеры на мобильных
 <Badge className="text-[10px] sm:text-xs bg-cyan-500/20 text-cyan-300 border-cyan-500/30">
 <Badge className="text-[10px] sm:text-xs bg-blue-500/20 text-blue-300 border-blue-500/30">
 ```
 
-#### **5. Адаптивная сетка метрик:**
+#### **4. Адаптивная сетка метрик:**
 ```typescript
 // Прогрессивная сетка: 2 колонки на мобильных, 6 на десктопе
 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
 ```
 
-#### **6. Адаптивные карточки метрик:**
+#### **5. Адаптивные карточки метрик:**
 ```typescript
 // Отступы
 <CardContent className="p-2 sm:p-4">
@@ -619,23 +592,6 @@ isPublic={isPublic}
 <p className="text-[7px] sm:text-[8px] text-vista-light/60">
 ```
 
-#### **7. Отладка метрик:**
-```typescript
-// Добавлена отладочная информация для диагностики
-console.log('Available metrics for', player.firstName, player.lastName, ':', Object.keys(currentMetrics));
-console.log('Profile columnMapping:', profile?.columnMapping?.map((col: any) => ({
-  name: col.name || col.internalField,
-  isVisible: col.isVisible,
-  mappedColumn: col.mappedColumn
-})));
-
-// Проверка отсутствующих метрик в игровой модели
-if (!averageMetric) {
-  console.log('No average metric found for:', metricName, 'in gameModel:', Object.keys(gameModel.averageMetrics));
-  return null;
-}
-```
-
 ### **Результат:**
 - ✅ **Полная идентичность** отображения между приложением и публичной ссылкой
 - ✅ **Мобильная адаптация** - таблица помещается на экране телефона
@@ -644,8 +600,6 @@ if (!averageMetric) {
 - ✅ **Адаптивные размеры** шрифтов и отступов
 - ✅ **Плитки игроков** теперь отображаются в публичном отчете
 - ✅ **Аккуратная мобильная адаптация** плиток игроков без наложений
-- ✅ **Информация о времени и матчах** располагается на одном уровне с именем игрока
-- ✅ **Отладочная информация** для диагностики проблем с метриками
 - ✅ **Упрощенная поддержка** - один компонент для всех случаев
 
 ### **Мобильные особенности:**
@@ -655,6 +609,5 @@ if (!averageMetric) {
 - **Текст**: Адаптивные размеры шрифтов для читаемости
 - **Плитки игроков**: Адаптивное отображение с правильными API вызовами
 - **Сетка метрик**: 2 колонки на мобильных, 3 на планшетах, 4 на средних экранах, 6 на десктопе
-- **Заголовки игроков**: Горизонтальное расположение информации на всех устройствах
-- **Размеры элементов**: Уменьшенные размеры аватаров, бейджей и текста на мобильных
-- **Отладка**: Консольные логи для диагностики проблем с отображением метрик 
+- **Заголовки игроков**: Вертикальное расположение на мобильных, горизонтальное на десктопе
+- **Размеры элементов**: Уменьшенные размеры аватаров, бейджей и текста на мобильных 

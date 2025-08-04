@@ -254,6 +254,7 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
               isVisible: col.isVisible,
               mappedColumn: col.mappedColumn
             })));
+            console.log('GameModel averageMetrics:', Object.keys(gameModel?.averageMetrics || {}));
 
             return (
               <Card key={player.id} className="bg-vista-dark/30 border-vista-secondary/30">
@@ -274,36 +275,32 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
                           </span>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4">
-                          <div>
-                            <h4 className="text-vista-light font-semibold text-sm sm:text-base">
-                              {player.firstName} {player.lastName}
-                            </h4>
-                            <div className="flex items-center gap-1 sm:gap-2">
-                              {player.position && (
-                                <Badge className="text-[10px] sm:text-xs bg-cyan-500/20 text-cyan-300 border-cyan-500/30">
-                                  {player.position}
-                                </Badge>
-                              )}
-                              {player.number && (
-                                <Badge className="text-[10px] sm:text-xs bg-blue-500/20 text-blue-300 border-blue-500/30">
-                                  #{player.number}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          
-                          {/* Информация о времени на поле */}
-                          <div className="text-right">
-                            <div className="text-[10px] sm:text-xs text-vista-light/50">
-                              Время на поле: {currentMinutes} мин
-                            </div>
-                            <div className="text-[10px] sm:text-xs text-vista-light/50">
-                              Проанализировано матчей: {gameModel.matchesCount}
-                            </div>
-                          </div>
+                      <div>
+                        <h4 className="text-vista-light font-semibold text-sm sm:text-base">
+                          {player.firstName} {player.lastName}
+                        </h4>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          {player.position && (
+                            <Badge className="text-[10px] sm:text-xs bg-cyan-500/20 text-cyan-300 border-cyan-500/30">
+                              {player.position}
+                            </Badge>
+                          )}
+                          {player.number && (
+                            <Badge className="text-[10px] sm:text-xs bg-blue-500/20 text-blue-300 border-blue-500/30">
+                              #{player.number}
+                            </Badge>
+                          )}
                         </div>
+                      </div>
+                    </div>
+                    
+                    {/* Информация о времени на поле */}
+                    <div className="text-right">
+                      <div className="text-[10px] sm:text-xs text-vista-light/50">
+                        Время на поле: {currentMinutes} мин
+                      </div>
+                      <div className="text-[10px] sm:text-xs text-vista-light/50">
+                        Проанализировано матчей: {gameModel.matchesCount}
                       </div>
                     </div>
                   </div>
