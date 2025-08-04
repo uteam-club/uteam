@@ -236,7 +236,9 @@ export default function PlayerGameModelModal({
                    {selectedProfileData.columnMapping
                      .filter(column => column.isVisible && !['Player', 'Position', 'Time'].includes(column.name))
                      .map((column, index) => {
-                       const metricData = averageMetrics[column.name];
+                       // Используем name для поиска данных
+                       const displayKey = column.name;
+                       const metricData = averageMetrics[displayKey];
                                                const colorClass = 'from-cyan-500/10 to-blue-500/10 border-cyan-500/30';
                         const iconColor = 'text-cyan-300 bg-cyan-500/20';
                        

@@ -336,7 +336,9 @@ export async function GET(
                 const rawValue = parseFloat(playerData[column.mappedColumn]) || 0;
                 // Нормализуем на 90 минут
                 const normalizedValue = minutesPlayed > 0 ? (rawValue / minutesPlayed) * 90 : 0;
-                metrics[column.name] = normalizedValue;
+                // Используем name для ключа метрики
+                const displayKey = column.name;
+                metrics[displayKey] = normalizedValue;
                 
                 // Детальные логи для Total Distance
                 if (column.name === 'Total distance' || column.mappedColumn === 'Total distance') {
@@ -348,7 +350,7 @@ export async function GET(
                   console.log(`   - Формула: ${rawValue} / ${minutesPlayed} * 90 = ${normalizedValue}`);
                 }
                 
-                console.log(`   ✅ Добавлена метрика "${column.name}": ${rawValue} -> ${normalizedValue} (нормализовано)`);
+                console.log(`   ✅ Добавлена метрика "${displayKey}": ${rawValue} -> ${normalizedValue} (нормализовано)`);
               } else {
                 console.log(`   ❌ Метрика "${column.name}" пропущена`);
               }
@@ -381,13 +383,14 @@ export async function GET(
       // Для каждой метрики из профиля
       columnMapping.forEach(column => {
         if (column.isVisible) {
+          const displayKey = column.name;
           const values = playerMatchData
-            .map(match => match.metrics[column.name])
+            .map(match => match.metrics[displayKey])
             .filter(value => value !== undefined && !isNaN(value));
           
           if (values.length > 0) {
             const average = values.reduce((sum, value) => sum + value, 0) / values.length;
-            averageMetrics[column.name] = {
+            averageMetrics[displayKey] = {
               average,
               matchesCount: values.length,
               totalMinutes

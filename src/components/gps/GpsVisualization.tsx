@@ -191,23 +191,21 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
       const isNumeric = dataType === 'number';
       const isVisible = col.isVisible !== false;
       const hasName = col.name || col.internalField;
-      const isNotPlayerName = !(col.name === 'Player' || col.name === 'name' || col.internalField === 'name' || 
-                               (col.displayName && col.displayName.toLowerCase().includes('игрок')));
+      const isNotPlayerName = !(col.name === 'Player' || col.name === 'name' || col.internalField === 'name');
       
       // Исключаем Time из числовых метрик, так как это строка времени
-      const isNotTime = !(col.name === 'Time' || col.internalField === 'Time' || 
-                         (col.displayName && col.displayName.toLowerCase().includes('время')));
+      const isNotTime = !(col.name === 'Time' || col.internalField === 'Time');
       
       return isNumeric && isVisible && hasName && isNotPlayerName && isNotTime;
     });
 
     const result = filteredMetrics.map(col => {
       const key = col.name || col.internalField || '';
-      const displayName = col.displayName || col.mappedColumn || col.name || col.internalField || '';
+      const label = col.name || col.internalField || '';
       
       return {
         key,
-        label: displayName,
+        label: label,
         icon: getMetricIcon(key),
         color: profile.visualizationConfig?.colors?.[key] || COLORS.total
       };
@@ -294,7 +292,12 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
 
   // Обработчик клика по заголовку
   const handleSort = (columnName: string) => {
-    const dataKey = (columnName === 'Player') ? 'name' : columnName;
+    // Находим колонку в профиле для получения правильного dataKey
+    const column = profile?.columnMapping?.find(col => 
+      (col.name || col.internalField) === columnName
+    );
+    
+    const dataKey = (columnName === 'Player') ? 'name' : (column?.mappedColumn || columnName);
     
     setSortConfig(prevConfig => {
       if (prevConfig?.key === dataKey) {
@@ -325,7 +328,7 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
     profile?.columnMapping?.forEach(col => {
       const columnName = col.name || col.internalField || '';
       if (columnName !== 'Player' && columnName !== 'Position' && columnName !== 'Time') {
-        const dataKey = col.name || col.internalField || columnName;
+        const dataKey = col.mappedColumn || col.name || col.internalField || columnName;
         const values = data.map(player => parseFloat(player[dataKey]) || 0);
         const sum = values.reduce((acc, val) => acc + val, 0);
         averages[columnName] = Math.round((sum / values.length) * 100) / 100;
@@ -342,19 +345,22 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
     
     const numericFields = profile.columnMapping
       .filter(col => (col.name || col.internalField) && col.dataType === 'number' && col.isVisible)
-      .map(col => col.name || col.internalField || '');
+      .map(col => ({
+        name: col.name || col.internalField || '',
+        dataKey: col.mappedColumn || col.name || col.internalField || ''
+      }));
 
     const totals = data.reduce((acc, item) => {
       numericFields.forEach(field => {
-        if (!acc[field]) acc[field] = 0;
-        acc[field] += parseFloat(item[field] || 0);
+        if (!acc[field.name]) acc[field.name] = 0;
+        acc[field.name] += parseFloat(item[field.dataKey] || 0);
       });
       return acc;
     }, {} as { [key: string]: number });
 
     const averages: { [key: string]: number } = {};
     numericFields.forEach(field => {
-      averages[field] = Math.round((totals[field] / data.length) * 100) / 100;
+      averages[field.name] = Math.round((totals[field.name] / data.length) * 100) / 100;
     });
 
     return averages;
@@ -365,13 +371,16 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
     
     const zoneFields = profile.columnMapping
       .filter(col => (col.name || col.internalField) && (col.name || col.internalField)?.toLowerCase().includes('zone') && col.isVisible)
-      .slice(0, 3); // Берем только первые 3 зоны
+      .slice(0, 3) // Берем только первые 3 зоны
+      .map(col => ({
+        name: col.name || col.internalField || '',
+        dataKey: col.mappedColumn || col.name || col.internalField || ''
+      }));
     
     return zoneFields.map((col, index) => {
-      const fieldName = col.name || col.internalField || '';
       return {
-        name: col.displayName || fieldName || 'Неизвестная зона',
-        value: averageMetrics[fieldName] || 0,
+        name: col.name || 'Неизвестная зона',
+        value: averageMetrics[col.name] || 0,
         color: ZONE_COLORS[index] || ZONE_COLORS[0]
       };
     });
@@ -392,7 +401,7 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
       const maxValue = Math.max(...data.map(item => parseFloat(item[field] || 0)));
       
       return {
-        metric: col?.displayName || field,
+        metric: col?.name || col?.internalField || field,
         value: value,
         fullMark: maxValue * 1.2 // 20% больше максимального значения
       };
@@ -488,7 +497,7 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
                           onClick={() => handleSort(columnName)}
                         >
                           <div className="flex items-center justify-center gap-1">
-                            <span>{col.displayName || columnName}</span>
+                            <span>{col.name || col.internalField || columnName}</span>
                             {isSorted && (
                               <span className="text-vista-primary">
                                 {sortDirection === 'asc' ? '↑' : '↓'}
@@ -507,7 +516,7 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
                       ?.filter(col => (col.name || col.internalField) && (col.isVisible !== false))
                       .map(col => {
                         const columnName = col.name || col.internalField || '';
-                        const dataKey = (col.name === 'Player' || col.internalField === 'Player') ? 'name' : (col.name || col.internalField || columnName);
+                        const dataKey = (col.name === 'Player' || col.internalField === 'Player') ? 'name' : (col.mappedColumn || col.name || col.internalField || columnName);
                         const value = parseFloat(player[dataKey]) || 0;
                         
                         // Для числовых метрик создаем горизонтальные полосы

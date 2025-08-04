@@ -2,7 +2,7 @@ import { getUserPermissions } from '@/services/user.service';
 import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { match, team, playerMatchStat, player } from '@/db/schema';
+import { match, team, playerMatchStat, player, gpsReport } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -175,9 +175,17 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     if (!existing) {
       return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
     }
-    // Каскадное удаление: сначала удаляем playerMatchStat
+    // Каскадное удаление: сначала удаляем связанные GPS отчеты
+    await db.delete(gpsReport).where(
+      and(
+        eq(gpsReport.eventId, matchId),
+        eq(gpsReport.eventType, 'MATCH')
+      )
+    );
+    
+    // Удаляем playerMatchStat
     await db.delete(playerMatchStat).where(eq(playerMatchStat.matchId, matchId));
-    // TODO: добавить удаление других связанных сущностей, если появятся
+    
     // Удаляем сам матч
     await db.delete(match).where(eq(match.id, matchId));
     return NextResponse.json({ success: true });

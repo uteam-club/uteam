@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, FileSpreadsheet, CheckCircle, Plus, Trash2, MoveUp, MoveDown } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle, Plus, Trash2, MoveUp, MoveDown, AlertCircle, Info } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CreateGpsProfileModalProps {
   isOpen: boolean;
@@ -29,13 +30,134 @@ interface Column {
   };
 }
 
+interface ValidationError {
+  field: string;
+  message: string;
+}
+
 export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: CreateGpsProfileModalProps) {
   const [profileName, setProfileName] = useState('');
   const [columns, setColumns] = useState<Column[]>([]);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [excelHeaders, setExcelHeaders] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const { toast } = useToast();
+
+  // Загрузка стандартных шаблонов
+  const loadTemplate = async (gpsSystem: string) => {
+    try {
+      const response = await fetch('/api/gps-profiles/templates');
+      if (!response.ok) {
+        throw new Error('Ошибка при загрузке шаблонов');
+      }
+
+      const templates = await response.json();
+      const template = templates[gpsSystem];
+
+      if (!template) {
+        toast({
+          title: "Ошибка",
+          description: `Шаблон для ${gpsSystem} не найден`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Загружаем шаблон
+      setProfileName(template.name);
+      setColumns(template.columns.map((col: any, index: number) => ({
+        id: Date.now().toString() + index,
+        name: col.name,
+        mappedColumn: col.mappedColumn,
+        order: col.order,
+        type: col.type
+      })));
+
+      toast({
+        title: "Шаблон загружен",
+        description: `Загружен шаблон ${template.name}`,
+      });
+
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось загрузить шаблон",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Валидация на фронтенде
+  const validateForm = (): ValidationError[] => {
+    const errors: ValidationError[] = [];
+
+    // Валидация названия профиля
+    if (!profileName.trim()) {
+      errors.push({ field: 'name', message: 'Название профиля обязательно' });
+    } else if (profileName.trim().length < 3) {
+      errors.push({ field: 'name', message: 'Название профиля должно содержать минимум 3 символа' });
+    }
+
+    // Валидация колонок
+    if (columns.length === 0) {
+      errors.push({ field: 'columns', message: 'Добавьте хотя бы одну колонку' });
+    } else {
+      columns.forEach((column, index) => {
+        if (!column.name.trim()) {
+          errors.push({ field: `column-${index}-name`, message: `Колонка #${index + 1}: название обязательно` });
+        }
+        
+        if (!column.mappedColumn?.trim()) {
+          errors.push({ field: `column-${index}-mapped`, message: `Колонка "${column.name}": маппинг обязателен` });
+        } else {
+          // Проверка на русские символы
+          const russianPattern = /[а-яё]/i;
+          if (russianPattern.test(column.mappedColumn)) {
+            // Убираем эту проверку - разрешаем русские названия в mappedColumn
+            // errors.push({ 
+            //   field: `column-${index}-mapped`, 
+            //   message: `Колонка "${column.name}": используйте английские названия вместо "${column.mappedColumn}"` 
+            // });
+          }
+
+          // Проверка на специальные символы
+          const specialCharsPattern = /[^a-zA-Z0-9\s\-_]/;
+          if (specialCharsPattern.test(column.mappedColumn)) {
+            // Убираем эту проверку - разрешаем любые символы в mappedColumn
+            // errors.push({ 
+            //   field: `column-${index}-mapped`, 
+            //   message: `Колонка "${column.name}": избегайте специальных символов в названии колонки` 
+            // });
+          }
+        }
+      });
+
+      // Проверка дублирования mappedColumn
+      const mappedColumns = columns.map(col => col.mappedColumn).filter(Boolean);
+      const duplicates = mappedColumns.filter((item, index) => mappedColumns.indexOf(item) !== index);
+      if (duplicates.length > 0) {
+        errors.push({ 
+          field: 'columns', 
+          message: `Дублирующиеся маппинги колонок: ${duplicates.join(', ')}` 
+        });
+      }
+
+      // Проверка обязательных полей
+      const columnNames = columns.map(col => col.name);
+      const requiredFields = ['Player', 'Time', 'TD'];
+      const missingRequired = requiredFields.filter(field => !columnNames.includes(field));
+      
+      if (missingRequired.length > 0) {
+        errors.push({ 
+          field: 'required', 
+          message: `Отсутствуют обязательные поля: ${missingRequired.join(', ')}` 
+        });
+      }
+    }
+
+    return errors;
+  };
 
   const addColumn = () => {
     const newColumn: Column = {
@@ -45,6 +167,7 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
       type: 'column'
     };
     setColumns([...columns, newColumn]);
+    setValidationErrors([]); // Очищаем ошибки при добавлении колонки
   };
 
   const removeColumn = (id: string) => {
@@ -54,6 +177,7 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
       ...col,
       order: index + 1
     })));
+    setValidationErrors([]); // Очищаем ошибки при удалении колонки
   };
 
   const moveColumn = (id: string, direction: 'up' | 'down') => {
@@ -79,6 +203,7 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
     setColumns(prev => prev.map(col => 
       col.id === id ? { ...col, [field]: value } : col
     ));
+    setValidationErrors([]); // Очищаем ошибки при изменении колонки
   };
 
   const handleFileUpload = async (file: File) => {
@@ -99,25 +224,28 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
       }
 
       const data = await response.json();
-      
-      // Дополнительная проверка заголовков
-      const validHeaders = data.headers.filter((header: string) => header && header.trim() !== '');
-      
-      if (validHeaders.length === 0) {
-        throw new Error('Не найдено валидных заголовков в файле');
-      }
-      
-      setExcelHeaders(validHeaders);
+      setExcelHeaders(data.headers || []);
       setUploadedFile(file);
+      
+      // Автоматически создаем колонки из заголовков Excel
+      const newColumns: Column[] = data.headers.map((header: string, index: number) => ({
+        id: Date.now().toString() + index,
+        name: header,
+        mappedColumn: header, // По умолчанию используем то же название
+        order: index + 1,
+        type: 'column'
+      }));
+      
+      setColumns(newColumns);
+      
       toast({
         title: "Файл загружен",
-        description: `Найдено ${validHeaders.length} столбцов`,
+        description: `Найдено ${data.headers.length} колонок`,
       });
-    } catch (error: any) {
-      const errorMessage = error.message || "Не удалось загрузить файл";
+    } catch (error) {
       toast({
         title: "Ошибка",
-        description: errorMessage,
+        description: "Не удалось загрузить файл",
         variant: "destructive"
       });
     } finally {
@@ -126,19 +254,16 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
   };
 
   const handleSave = async () => {
-    if (!profileName.trim()) {
-      toast({
-        title: "Ошибка",
-        description: "Введите название профиля",
-        variant: "destructive"
-      });
-      return;
-    }
+    // Валидация на фронтенде
+    const errors = validateForm();
+    setValidationErrors(errors);
 
-    if (columns.length === 0) {
+    if (errors.length > 0) {
+      // Показываем первую ошибку
+      const firstError = errors[0];
       toast({
-        title: "Ошибка",
-        description: "Добавьте хотя бы один столбец",
+        title: "Ошибка валидации",
+        description: firstError.message,
         variant: "destructive"
       });
       return;
@@ -163,13 +288,31 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
         })
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Ошибка при сохранении профиля');
+        // Обработка ошибок от сервера
+        if (data.details && Array.isArray(data.details)) {
+          const serverErrors: ValidationError[] = data.details.map((error: string, index: number) => ({
+            field: `server-error-${index}`,
+            message: error
+          }));
+          setValidationErrors(serverErrors);
+          
+          toast({
+            title: "Ошибки валидации",
+            description: data.details[0],
+            variant: "destructive"
+          });
+        } else {
+          throw new Error(data.error || 'Ошибка при сохранении профиля');
+        }
+        return;
       }
 
       toast({
         title: "Успешно",
-        description: "Профиль создан",
+        description: data.message || "Профиль создан",
       });
 
       onCreated();
@@ -178,6 +321,7 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
       setColumns([]);
       setUploadedFile(null);
       setExcelHeaders([]);
+      setValidationErrors([]);
     } catch (error) {
       toast({
         title: "Ошибка",
@@ -189,6 +333,10 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
     }
   };
 
+  const getFieldError = (field: string): string | undefined => {
+    return validationErrors.find(error => error.field === field)?.message;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-4xl max-h-[90vh] overflow-y-auto backdrop-blur-xl">
@@ -197,15 +345,67 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Информационное сообщение */}
+          <Alert className="bg-blue-900/20 border-blue-500/30">
+            <Info className="h-4 w-4 text-blue-400" />
+            <AlertDescription className="text-blue-200">
+              Обязательные поля: Player, Time, TD. Вы можете использовать русские названия колонок из файла.
+            </AlertDescription>
+          </Alert>
+
+          {/* Стандартные шаблоны */}
+          <Card className="bg-vista-dark/30 border-vista-secondary/30">
+            <CardHeader>
+              <CardTitle className="text-vista-light">Стандартные шаблоны</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Button
+                  onClick={() => loadTemplate('B-SIGHT')}
+                  variant="outline"
+                  className="border-vista-primary/50 text-vista-primary hover:bg-vista-primary/20"
+                >
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  B-SIGHT Стандартный
+                </Button>
+                <Button
+                  onClick={() => loadTemplate('Polar')}
+                  variant="outline"
+                  className="border-vista-primary/50 text-vista-primary hover:bg-vista-primary/20"
+                >
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Polar Стандартный
+                </Button>
+                <Button
+                  onClick={() => loadTemplate('Catapult')}
+                  variant="outline"
+                  className="border-vista-primary/50 text-vista-primary hover:bg-vista-primary/20"
+                >
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Catapult Стандартный
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Название профиля */}
           <div className="space-y-2">
+            <Label htmlFor="profileName" className="text-vista-light">Название профиля</Label>
             <Input
               id="profileName"
               value={profileName}
               onChange={(e) => setProfileName(e.target.value)}
-              placeholder="Название профиля"
-              className="bg-vista-dark/70 border-vista-primary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
+              placeholder="Например: B-SIGHT Стандартный"
+              className={`bg-vista-dark/70 border-vista-primary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 ${
+                getFieldError('name') ? 'border-red-500' : ''
+              }`}
             />
+            {getFieldError('name') && (
+              <p className="text-red-400 text-sm flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {getFieldError('name')}
+              </p>
+            )}
           </div>
 
           {/* Столбцы */}
@@ -256,8 +456,16 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
                         value={column.name}
                         onChange={(e) => updateColumn(column.id, 'name', e.target.value)}
                         placeholder="Например: Время, Дистанция"
-                        className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
+                        className={`bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 ${
+                          getFieldError(`column-${index}-name`) ? 'border-red-500' : ''
+                        }`}
                       />
+                      {getFieldError(`column-${index}-name`) && (
+                        <p className="text-red-400 text-sm flex items-center mt-1">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          {getFieldError(`column-${index}-name`)}
+                        </p>
+                      )}
                     </div>
 
                     {/* Тип столбца */}
@@ -289,99 +497,110 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
                             <SelectValue placeholder="Выберите столбец" />
                           </SelectTrigger>
                           <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
-                            {excelHeaders
-                              .filter(header => header && header.trim() !== '')
-                              .map(header => (
-                                <SelectItem key={header} value={header}>
-                                  {header}
-                                </SelectItem>
-                              ))}
+                            {excelHeaders.map((header: string) => (
+                              <SelectItem key={header} value={header}>
+                                {header}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
+                      </div>
+                    )}
+
+                    {column.type === 'column' && excelHeaders.length === 0 && (
+                      <div className="w-48">
+                        <Label className="text-vista-light/40 font-normal">Маппинг колонки</Label>
+                        <Input
+                          value={column.mappedColumn || ''}
+                          onChange={(e) => updateColumn(column.id, 'mappedColumn', e.target.value)}
+                          placeholder="Например: Player, Time, TD или русские названия"
+                          className={`bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 ${
+                            getFieldError(`column-${index}-mapped`) ? 'border-red-500' : ''
+                          }`}
+                        />
+                        {getFieldError(`column-${index}-mapped`) && (
+                          <p className="text-red-400 text-sm flex items-center mt-1">
+                            <AlertCircle className="w-3 h-3 mr-1" />
+                            {getFieldError(`column-${index}-mapped`)}
+                          </p>
+                        )}
                       </div>
                     )}
 
                     {column.type === 'formula' && (
                       <div className="w-48">
                         <Label className="text-vista-light/40 font-normal">Формула</Label>
-                        <Select
-                          value={column.formula?.operation || undefined}
-                          onValueChange={(value) => updateColumn(column.id, 'formula', { 
-                            operation: value, 
-                            operand1: '', 
-                            operand2: '' 
-                          })}
-                        >
-                                                  <SelectTrigger className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
-                          <SelectValue placeholder="Выберите операцию" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
-                          <SelectItem value="divide">Деление (A / B)</SelectItem>
-                          <SelectItem value="multiply">Умножение (A * B)</SelectItem>
-                          <SelectItem value="add">Сложение (A + B)</SelectItem>
-                          <SelectItem value="subtract">Вычитание (A - B)</SelectItem>
-                        </SelectContent>
-                        </Select>
+                        <Input
+                          value={column.formula?.operation || ''}
+                          onChange={(e) => updateColumn(column.id, 'formula', { ...column.formula, operation: e.target.value })}
+                          placeholder="Например: +, -, *, /"
+                          className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
+                        />
                       </div>
                     )}
 
-                    {/* Удаление */}
-                    <div className="w-10 flex flex-col">
-                      <div className="h-5"></div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeColumn(column.id)}
-                        className="border-vista-error/50 text-vista-error hover:bg-vista-error/10"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+                    {/* Кнопка удаления */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeColumn(column.id)}
+                      className="border-red-500/50 text-red-400 hover:bg-red-500/20"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 ))}
 
                 {columns.length === 0 && (
-                  <div className="text-center py-8 text-vista-light/50">
-                    Нажмите "Добавить столбец" чтобы создать первый столбец
+                  <div className="text-center py-8 text-vista-light/60">
+                    <FileSpreadsheet className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Добавьте столбцы для создания профиля</p>
+                    <p className="text-sm">Или загрузите Excel файл для автоматического создания</p>
                   </div>
                 )}
               </div>
             </CardContent>
           </Card>
 
+          {/* Общие ошибки валидации */}
+          {getFieldError('columns') && (
+            <Alert className="bg-red-900/20 border-red-500/30">
+              <AlertCircle className="h-4 w-4 text-red-400" />
+              <AlertDescription className="text-red-200">
+                {getFieldError('columns')}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Загрузка файла */}
           <Card className="bg-vista-dark/30 border-vista-secondary/30">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-vista-light">
-                <FileSpreadsheet className="w-5 h-5" />
-                Загрузка файла для маппинга
-              </CardTitle>
+              <CardTitle className="text-vista-light">Загрузить Excel файл (опционально)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="border-2 border-dashed border-vista-secondary/30 rounded-lg p-6 text-center hover:border-vista-primary/50 transition-colors">
-                  <Upload className="w-8 h-8 mx-auto mb-2 text-vista-light/40" />
+                <div className="border-2 border-dashed border-vista-secondary/30 rounded-lg p-6 text-center">
+                  <Upload className="w-8 h-8 mx-auto mb-4 text-vista-light/60" />
+                  <p className="text-vista-light/60 mb-2">Перетащите Excel файл сюда или нажмите для выбора</p>
                   <input
                     type="file"
                     accept=".xlsx,.xls,.csv"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleFileUpload(file);
-                    }}
+                    onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
                     className="hidden"
                     id="file-upload"
                   />
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <span className="text-vista-primary hover:text-vista-primary/80 transition-colors">
-                      Выберите Excel или CSV файл
-                    </span>
+                  <label
+                    htmlFor="file-upload"
+                    className="cursor-pointer bg-vista-primary hover:bg-vista-primary/90 text-vista-dark px-4 py-2 rounded-lg inline-block"
+                  >
+                    Выбрать файл
                   </label>
                 </div>
 
                 {uploadedFile && (
-                  <div className="flex items-center gap-2 text-vista-success">
-                    <CheckCircle className="w-4 h-4" />
-                    <span>{uploadedFile.name} загружен</span>
+                  <div className="flex items-center gap-2 text-vista-light/80">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    <span>{uploadedFile.name}</span>
                   </div>
                 )}
               </div>
@@ -390,19 +609,19 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
 
           {/* Кнопки */}
           <div className="flex justify-end gap-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={onClose}
               className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20"
             >
               Отмена
             </Button>
-            <Button 
-              onClick={handleSave} 
-              disabled={isLoading}
-              className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
+            <Button
+              onClick={handleSave}
+              disabled={isLoading || columns.length === 0}
+              className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark disabled:opacity-50"
             >
-              {isLoading ? 'Сохранение...' : 'Сохранить профиль'}
+              {isLoading ? 'Создание...' : 'Создать профиль'}
             </Button>
           </div>
         </div>

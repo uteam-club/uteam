@@ -18,6 +18,84 @@ async function checkClubAccess(request: NextRequest, token: any) {
   return token.clubId === club.id;
 }
 
+// Валидация columnMapping
+function validateColumnMapping(columns: any[]): { isValid: boolean; errors: string[]; validatedColumns: any[] } {
+  const errors: string[] = [];
+  const validatedColumns: any[] = [];
+
+  if (!Array.isArray(columns) || columns.length === 0) {
+    errors.push('Должна быть добавлена хотя бы одна колонка');
+    return { isValid: false, errors, validatedColumns };
+  }
+
+  // Обязательные поля для B-SIGHT системы
+  const requiredFields = ['Player', 'Time', 'TD'];
+  const requiredFieldNames = ['Игрок', 'Время', 'Общая дистанция'];
+
+  for (let i = 0; i < columns.length; i++) {
+    const column = columns[i];
+    const columnErrors: string[] = [];
+
+    // Проверка обязательных полей
+    if (!column.name || typeof column.name !== 'string') {
+      columnErrors.push('Название колонки обязательно');
+    }
+
+    if (!column.mappedColumn || typeof column.mappedColumn !== 'string') {
+      columnErrors.push('Маппинг колонки обязателен');
+    }
+
+    // Проверка на русские названия в mappedColumn
+    const russianPattern = /[а-яё]/i;
+    if (russianPattern.test(column.mappedColumn)) {
+      // Убираем эту проверку - разрешаем русские названия в mappedColumn
+      // columnErrors.push(`Колонка "${column.name}": используйте английские названия вместо "${column.mappedColumn}"`);
+    }
+
+    // Проверка на специальные символы
+    const specialCharsPattern = /[^a-zA-Z0-9\s\-_]/;
+    if (specialCharsPattern.test(column.mappedColumn)) {
+      // Убираем эту проверку - разрешаем любые символы в mappedColumn
+      // columnErrors.push(`Колонка "${column.name}": избегайте специальных символов в названии колонки`);
+    }
+
+    // Проверка дублирования mappedColumn
+    const duplicateIndex = validatedColumns.findIndex(col => col.mappedColumn === column.mappedColumn);
+    if (duplicateIndex !== -1) {
+      columnErrors.push(`Колонка "${column.name}": дублирует маппинг колонки "${validatedColumns[duplicateIndex].name}"`);
+    }
+
+    if (columnErrors.length > 0) {
+      errors.push(`Колонка "${column.name || `#${i + 1}`}": ${columnErrors.join(', ')}`);
+    } else {
+      // Создаем валидированную колонку с правильной структурой
+      validatedColumns.push({
+        name: column.name,
+        type: column.type || 'column',
+        order: column.order || i + 1,
+        mappedColumn: column.mappedColumn,
+        displayName: column.displayName || column.name,
+        dataType: column.dataType || 'string',
+        isVisible: column.isVisible !== undefined ? column.isVisible : true
+      });
+    }
+  }
+
+  // Проверка наличия обязательных полей
+  const columnNames = validatedColumns.map(col => col.name);
+  const missingRequired = requiredFields.filter(field => !columnNames.includes(field));
+  
+  if (missingRequired.length > 0) {
+    errors.push(`Отсутствуют обязательные поля: ${missingRequired.join(', ')}`);
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    validatedColumns
+  };
+}
+
 // GET - получение списка GPS профилей
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request });
@@ -68,49 +146,91 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, columns } = body;
+    const { name, columns, gpsSystem = 'B-SIGHT' } = body;
 
-    if (!name) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    // Валидация названия профиля
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return NextResponse.json({ 
+        error: 'Название профиля обязательно',
+        field: 'name'
+      }, { status: 400 });
     }
 
-    // Преобразуем columns в columnMapping
-    const columnMapping = columns || [];
-    const gpsSystem = 'B-SIGHT'; // По умолчанию
-    const visualizationConfig = {}; // Пустая конфигурация по умолчанию
-    const metricsConfig = {}; // Пустая конфигурация по умолчанию
-    const description = ''; // Пустое описание по умолчанию
-    const isDefault = false; // По умолчанию не является профилем по умолчанию
-    const customFormulas = null; // Пустые формулы по умолчанию
-    const dataFilters = null; // Пустые фильтры по умолчанию
-
-    // Если устанавливаем профиль по умолчанию, сбрасываем другие
-    if (isDefault) {
-      await db
-        .update(gpsProfile)
-        .set({ isDefault: false })
-        .where(eq(gpsProfile.clubId, token.clubId));
+    if (name.trim().length < 3) {
+      return NextResponse.json({ 
+        error: 'Название профиля должно содержать минимум 3 символа',
+        field: 'name'
+      }, { status: 400 });
     }
+
+    // Валидация columnMapping
+    const validation = validateColumnMapping(columns || []);
+    
+    if (!validation.isValid) {
+      return NextResponse.json({ 
+        error: 'Ошибки валидации колонок',
+        details: validation.errors,
+        field: 'columns'
+      }, { status: 400 });
+    }
+
+    // Проверка на дублирование названия профиля
+    const existingProfile = await db
+      .select()
+      .from(gpsProfile)
+      .where(and(
+        eq(gpsProfile.clubId, token.clubId),
+        eq(gpsProfile.name, name.trim())
+      ));
+
+    if (existingProfile.length > 0) {
+      return NextResponse.json({ 
+        error: 'Профиль с таким названием уже существует',
+        field: 'name'
+      }, { status: 400 });
+    }
+
+    // Создание профиля с валидированными данными
+    const visualizationConfig = {
+      charts: [
+        {
+          type: 'bar',
+          title: 'Дистанция по игрокам',
+          metric: 'distance',
+          color: '#3B82F6'
+        }
+      ]
+    };
+
+    const metricsConfig = {
+      distance: { aggregation: 'sum', unit: 'м' },
+      time: { aggregation: 'sum', unit: 'мин' },
+      maxSpeed: { aggregation: 'max', unit: 'км/ч' }
+    };
 
     const [newProfile] = await db
       .insert(gpsProfile)
       .values({
-        name,
-        description,
+        name: name.trim(),
+        description: `Профиль для системы ${gpsSystem}`,
         gpsSystem,
-        isDefault: isDefault || false,
+        isDefault: false,
         isActive: true,
         visualizationConfig,
         metricsConfig,
-        customFormulas,
-        columnMapping,
-        dataFilters,
+        customFormulas: null,
+        columnMapping: validation.validatedColumns,
+        dataFilters: null,
         clubId: token.clubId,
         createdById: token.id,
       })
       .returning();
 
-    return NextResponse.json(newProfile);
+    return NextResponse.json({
+      ...newProfile,
+      message: 'Профиль успешно создан'
+    });
+
   } catch (error) {
     console.error('Ошибка при создании GPS профиля:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
