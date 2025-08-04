@@ -44,33 +44,27 @@ export async function GET(
       return NextResponse.json({ error: 'GPS profile not found' }, { status: 404 });
     }
 
-    // Получаем матчи команды с GPS данными
-    const matchesWithGps = await db
-      .select({
-        matchId: match.id,
-        matchDate: match.date,
-        reportId: gpsReport.id,
-        reportName: gpsReport.name,
-        processedData: gpsReport.processedData,
-        eventType: gpsReport.eventType
-      })
-      .from(match)
-      .leftJoin(gpsReport, and(
-        eq(gpsReport.eventId, match.id),
-        eq(gpsReport.eventType, 'MATCH'),
-        eq(gpsReport.profileId, profileId),
-        eq(gpsReport.teamId, teamId),
-        eq(gpsReport.isProcessed, true)
-      ))
-      .where(
-        and(
-          eq(match.teamId, teamId),
-          sql`${gpsReport.id} IS NOT NULL`
-        )
-      )
-      .orderBy(desc(match.date));
+    // Получаем матчи команды с GPS данными (используем ту же логику что и основной API)
+    const matchesWithGps = await db.execute(sql`
+      SELECT 
+        m."id" as "matchid",
+        m."date",
+        gr."id" as "reportid",
+        gr."processedData" as "processeddata"
+      FROM "Match" m
+      INNER JOIN "GpsReport" gr ON gr."eventId" = m."id" 
+        AND gr."eventType" = 'MATCH' 
+        AND gr."profileId" = ${profileId}::uuid
+        AND gr."teamId" = ${teamId}::uuid
+        AND gr."isProcessed" = true
+      WHERE m."teamId" = ${teamId}::uuid
+      ORDER BY m."date" DESC
+    `);
 
-    if (matchesWithGps.length === 0) {
+    const matches = (matchesWithGps as any).rows || [];
+    console.log(`📊 Найдено ${matches.length} матчей с GPS отчетами для профиля ${profileId}`);
+    
+    if (matches.length === 0) {
       return NextResponse.json({
         averageMetrics: {},
         matchesCount: 0,
@@ -78,16 +72,20 @@ export async function GET(
       });
     }
 
+    // Обрабатываем только последние 10 матчей (как в основном API)
+    const recentMatches = matches.slice(0, 10);
+    console.log(`📊 Анализируем последние ${recentMatches.length} матчей`);
+
     // Обрабатываем данные для расчета средних показателей
     const playerMetrics: Record<string, { values: number[]; totalMinutes: number }> = {};
     let totalMatches = 0;
     let totalMinutes = 0;
 
-    for (const matchData of matchesWithGps) {
-      if (!matchData.processedData || !Array.isArray(matchData.processedData)) continue;
+    for (const matchData of recentMatches) {
+      if (!matchData.processeddata || !Array.isArray(matchData.processeddata)) continue;
 
       // Ищем игрока в данных отчета
-      const playerRow = matchData.processedData.find((row: any) => 
+      const playerRow = matchData.processeddata.find((row: any) => 
         row.playerId === playerId || 
         row.name === `${playerData.firstName} ${playerData.lastName}` ||
         row.name === `${playerData.lastName} ${playerData.firstName}`
