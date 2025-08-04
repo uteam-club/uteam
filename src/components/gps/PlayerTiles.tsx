@@ -248,13 +248,13 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
             });
 
             // Отладочная информация
-            console.log('Available metrics for', player.firstName, player.lastName, ':', Object.keys(currentMetrics));
-            console.log('Profile columnMapping:', profile?.columnMapping?.map((col: any) => ({
-              name: col.name || col.internalField,
-              isVisible: col.isVisible,
-              mappedColumn: col.mappedColumn
-            })));
-            console.log('GameModel averageMetrics:', Object.keys(gameModel?.averageMetrics || {}));
+            console.log('🔍 PlayerTiles Debug:', {
+              player: `${player.firstName} ${player.lastName}`,
+              availableMetrics: Object.keys(currentMetrics),
+              gameModelMetrics: Object.keys(gameModel?.averageMetrics || {}),
+              matchesCount: gameModel?.matchesCount,
+              currentMetricsCount: Object.keys(currentMetrics).length
+            });
 
             return (
               <Card key={player.id} className="bg-vista-dark/30 border-vista-secondary/30">
@@ -306,11 +306,11 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
                   </div>
 
                   {/* Метрики */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1 sm:gap-2 md:gap-4">
                     {Object.entries(currentMetrics).map(([metricName, currentValue]) => {
                       const averageMetric = gameModel.averageMetrics[metricName];
                       if (!averageMetric) {
-                        console.log('No average metric found for:', metricName, 'in gameModel:', Object.keys(gameModel.averageMetrics));
+                        console.log('❌ No average metric found for:', metricName, 'in gameModel for', player.firstName, player.lastName);
                         return null;
                       }
 
@@ -325,10 +325,10 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
 
                                              return (
                          <Card key={metricName} className={`${cardBackground} hover:scale-[1.02] transition-transform duration-200`}>
-                           <CardContent className="p-2 sm:p-4">
+                           <CardContent className="p-1 sm:p-2 md:p-4">
                              <div className="text-center">
-                               <div className="w-12 sm:w-16 h-6 sm:h-7 rounded-md flex items-center justify-center text-cyan-300 bg-cyan-500/20 mx-auto mb-1 sm:mb-2 px-1">
-                                 <h4 className="text-[8px] sm:text-[9px] font-semibold leading-tight">
+                               <div className="w-10 sm:w-12 md:w-16 h-5 sm:h-6 md:h-7 rounded-md flex items-center justify-center text-cyan-300 bg-cyan-500/20 mx-auto mb-1 sm:mb-2 px-1">
+                                 <h4 className="text-[7px] sm:text-[8px] md:text-[9px] font-semibold leading-tight">
                                    {metricName}
                                  </h4>
                                </div>
@@ -338,9 +338,9 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
                                    <span className="text-[10px] sm:text-xs font-medium">{comparison.percentage}%</span>
                                  </div>
                                </div>
-                               <p className="text-lg sm:text-xl font-bold text-vista-light mb-1">
+                               <p className="text-sm sm:text-lg md:text-xl font-bold text-vista-light mb-1">
                                  {normalizedAverage.toFixed(1)}
-                                 <span className="text-xs sm:text-sm text-vista-light/50 ml-1">
+                                 <span className="text-[10px] sm:text-xs md:text-sm text-vista-light/50 ml-1">
                                    {getMetricUnit(metricName)}
                                  </span>
                                </p>
