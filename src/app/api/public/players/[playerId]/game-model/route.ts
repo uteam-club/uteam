@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { gpsReport, player } from '@/db/schema';
-import { eq, and, gte } from 'drizzle-orm';
+import { gpsReport, gpsProfile, match, playerMapping, playerMatchStat, player } from '@/db/schema';
+import { eq, and, gte, desc, sql } from 'drizzle-orm';
 
 // GET - получение игровой модели игрока для публичного доступа
 export async function GET(
@@ -34,19 +34,43 @@ export async function GET(
       return NextResponse.json({ error: 'Player not found' }, { status: 404 });
     }
 
-    // Получаем GPS отчеты для игрока с данным профилем
-    const reports = await db
+    // Получаем GPS профиль
+    const [profile] = await db
       .select()
-      .from(gpsReport)
+      .from(gpsProfile)
+      .where(eq(gpsProfile.id, profileId));
+
+    if (!profile) {
+      return NextResponse.json({ error: 'GPS profile not found' }, { status: 404 });
+    }
+
+    // Получаем матчи команды с GPS данными
+    const matchesWithGps = await db
+      .select({
+        matchId: match.id,
+        matchDate: match.date,
+        reportId: gpsReport.id,
+        reportName: gpsReport.name,
+        processedData: gpsReport.processedData,
+        eventType: gpsReport.eventType
+      })
+      .from(match)
+      .leftJoin(gpsReport, and(
+        eq(gpsReport.eventId, match.id),
+        eq(gpsReport.eventType, 'MATCH'),
+        eq(gpsReport.profileId, profileId),
+        eq(gpsReport.teamId, teamId),
+        eq(gpsReport.isProcessed, true)
+      ))
       .where(
         and(
-          eq(gpsReport.profileId, profileId),
-          eq(gpsReport.teamId, teamId),
-          eq(gpsReport.isProcessed, true)
+          eq(match.teamId, teamId),
+          sql`${gpsReport.id} IS NOT NULL`
         )
-      );
+      )
+      .orderBy(desc(match.date));
 
-    if (reports.length === 0) {
+    if (matchesWithGps.length === 0) {
       return NextResponse.json({
         averageMetrics: {},
         matchesCount: 0,
@@ -59,11 +83,11 @@ export async function GET(
     let totalMatches = 0;
     let totalMinutes = 0;
 
-    for (const report of reports) {
-      if (!report.processedData || !Array.isArray(report.processedData)) continue;
+    for (const matchData of matchesWithGps) {
+      if (!matchData.processedData || !Array.isArray(matchData.processedData)) continue;
 
       // Ищем игрока в данных отчета
-      const playerRow = report.processedData.find((row: any) => 
+      const playerRow = matchData.processedData.find((row: any) => 
         row.playerId === playerId || 
         row.name === `${playerData.firstName} ${playerData.lastName}` ||
         row.name === `${playerData.lastName} ${playerData.firstName}`
@@ -84,21 +108,25 @@ export async function GET(
         totalMatches++;
         totalMinutes += playerMinutes;
 
-        // Обрабатываем метрики
-        Object.keys(playerRow).forEach(key => {
-          if (key !== 'playerId' && key !== 'name' && key !== 'Time' && key !== 'time') {
-            const value = parseFloat(playerRow[key]);
+        // Обрабатываем метрики из профиля
+        if (profile.columnMapping && Array.isArray(profile.columnMapping)) {
+          profile.columnMapping.forEach((col: any) => {
+          const columnName = col.name || col.internalField || '';
+          if (columnName && col.isVisible && columnName !== 'Player' && columnName !== 'Position' && columnName !== 'Time') {
+            const dataKey = col.mappedColumn || columnName;
+            const value = parseFloat(playerRow[dataKey]) || 0;
             if (!isNaN(value)) {
-              if (!playerMetrics[key]) {
-                playerMetrics[key] = { values: [], totalMinutes: 0 };
+              if (!playerMetrics[columnName]) {
+                playerMetrics[columnName] = { values: [], totalMinutes: 0 };
               }
               // Нормализуем к 90 минутам
               const normalizedValue = (value / playerMinutes) * 90;
-              playerMetrics[key].values.push(normalizedValue);
-              playerMetrics[key].totalMinutes += playerMinutes;
+              playerMetrics[columnName].values.push(normalizedValue);
+              playerMetrics[columnName].totalMinutes += playerMinutes;
             }
           }
         });
+        }
       }
     }
 
@@ -117,7 +145,7 @@ export async function GET(
       }
     });
 
-    console.log('✅ Игровая модель рассчитана:', {
+    console.log('✅ Игровая модель рассчитана для публичного доступа:', {
       playerId,
       matchesCount: totalMatches,
       metricsCount: Object.keys(averageMetrics).length
