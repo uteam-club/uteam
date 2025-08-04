@@ -223,6 +223,7 @@ export default function PublicGpsReportPage({ params }: { params: { token: strin
           reportId={report.id}
           teamId={report.teamId}
           eventType={report.eventType}
+          isPublic={true}
         />
       </div>
     </div>

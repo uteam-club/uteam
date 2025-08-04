@@ -85,6 +85,7 @@ interface GpsVisualizationProps {
   reportId?: string;
   teamId?: string;
   eventType?: 'TRAINING' | 'MATCH';
+  isPublic?: boolean;
 }
 
 const COLORS = {
@@ -99,7 +100,7 @@ const COLORS = {
 
 const ZONE_COLORS = ['#F59E0B', '#EF4444', '#8B5CF6'];
 
-export default function GpsVisualization({ data, profile, eventName, eventDate, teamName, reportId, teamId, eventType }: GpsVisualizationProps) {
+export default function GpsVisualization({ data, profile, eventName, eventDate, teamName, reportId, teamId, eventType, isPublic = false }: GpsVisualizationProps) {
   // Дополнительная проверка данных
   if (!data || data.length === 0) {
     return (
@@ -671,6 +672,7 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
               profileId={profile.id}
               currentMatchMinutes={currentMatchMinutes}
               profile={profile}
+              isPublic={isPublic}
             />
           );
         })()

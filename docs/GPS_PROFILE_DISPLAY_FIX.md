@@ -400,6 +400,7 @@ const displayKey = column.name;
 - Неправильные названия столбцов (русские вместо английских)
 - Данные съехали в сторону
 - Нет мобильной адаптации
+- **Плитки игроков со средними показателями не отображались**
 
 ### **Решение:**
 Полностью переработана публичная страница для использования того же компонента `GpsVisualization`, что и в приложении.
@@ -419,6 +420,7 @@ const displayKey = column.name;
   reportId={report.id}
   teamId={report.teamId}
   eventType={report.eventType}
+  isPublic={true} // Добавлен флаг для публичной страницы
 />
 ```
 
@@ -439,9 +441,34 @@ interface GpsProfile {
 }
 ```
 
-### **Мобильная адаптация в `src/components/gps/GpsVisualization.tsx`:**
+### **Исправления в `src/components/gps/GpsVisualization.tsx`:**
 
-#### **1. Адаптивные отступы:**
+#### **1. Добавление поддержки публичной страницы:**
+```typescript
+// Добавлен параметр isPublic в интерфейс
+interface GpsVisualizationProps {
+  // ... существующие поля
+  isPublic?: boolean;
+}
+
+// Обновлена функция компонента
+export default function GpsVisualization({ 
+  data, profile, eventName, eventDate, teamName, 
+  reportId, teamId, eventType, isPublic = false 
+}: GpsVisualizationProps) {
+
+// Передача флага в PlayerTiles
+<PlayerTiles
+  gpsData={data}
+  teamId={teamId}
+  profileId={profile.id}
+  currentMatchMinutes={currentMatchMinutes}
+  profile={profile}
+  isPublic={isPublic} // Передается флаг из пропсов
+/>
+```
+
+#### **2. Адаптивные отступы:**
 ```typescript
 // Контейнер
 <div className="min-h-screen bg-vista-dark p-2 sm:p-6">
@@ -451,7 +478,7 @@ interface GpsProfile {
 <h1 className="text-xl sm:text-3xl font-bold text-vista-light mb-2">
 ```
 
-#### **2. Адаптивная таблица:**
+#### **3. Адаптивная таблица:**
 ```typescript
 // Размер шрифта
 <table className="w-full text-xs sm:text-sm">
@@ -469,7 +496,7 @@ interface GpsProfile {
 <span className="text-white/80 text-[8px] sm:text-xs">
 ```
 
-#### **3. Адаптивные информационные блоки:**
+#### **4. Адаптивные информационные блоки:**
 ```typescript
 // Сетка
 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-4">
@@ -483,16 +510,40 @@ interface GpsProfile {
 <p className="text-vista-light font-medium text-xs sm:text-sm">
 ```
 
+### **Исправление плиток игроков:**
+
+#### **Проблема:**
+Компонент `PlayerTiles` не отображался в публичном отчете, потому что:
+- Не передавался флаг `isPublic`
+- Компонент использовал разные API endpoints для публичной и приватной страниц
+
+#### **Решение:**
+```typescript
+// В PlayerTiles.tsx уже была логика для публичной страницы
+const apiUrl = isPublic ? `/api/public/teams/${teamId}/players` : `/api/teams/${teamId}/players`;
+
+// Добавлен флаг isPublic в GpsVisualization
+isPublic={isPublic}
+
+// Передача флага из публичной страницы
+<GpsVisualization
+  // ... другие пропсы
+  isPublic={true}
+/>
+```
+
 ### **Результат:**
 - ✅ **Полная идентичность** отображения между приложением и публичной ссылкой
 - ✅ **Мобильная адаптация** - таблица помещается на экране телефона
 - ✅ **Правильные названия** колонок (английские как в профиле)
 - ✅ **Корректное выравнивание** данных и средних значений
 - ✅ **Адаптивные размеры** шрифтов и отступов
+- ✅ **Плитки игроков** теперь отображаются в публичном отчете
 - ✅ **Упрощенная поддержка** - один компонент для всех случаев
 
 ### **Мобильные особенности:**
 - **Таблица**: Полная ширина экрана, мелкий шрифт, компактные отступы
 - **Информационные блоки**: 2 колонки на мобильных, 3 на планшетах, 5 на десктопе
 - **Полосы прогресса**: Уменьшенная высота на мобильных
-- **Текст**: Адаптивные размеры шрифтов для читаемости 
+- **Текст**: Адаптивные размеры шрифтов для читаемости
+- **Плитки игроков**: Адаптивное отображение с правильными API вызовами 
