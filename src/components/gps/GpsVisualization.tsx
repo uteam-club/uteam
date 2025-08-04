@@ -327,11 +327,27 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
     
     profile?.columnMapping?.forEach(col => {
       const columnName = col.name || col.internalField || '';
-      if (columnName !== 'Player' && columnName !== 'Position' && columnName !== 'Time') {
+      if (columnName !== 'Player' && columnName !== 'Position') {
         const dataKey = col.mappedColumn || col.name || col.internalField || columnName;
-        const values = data.map(player => parseFloat(player[dataKey]) || 0);
-        const sum = values.reduce((acc, val) => acc + val, 0);
-        averages[columnName] = Math.round((sum / values.length) * 100) / 100;
+        
+        if (columnName === 'Time') {
+          // Для времени парсим из формата HH:MM:SS в минуты
+          const timeValues = data.map(player => {
+            const timeString = player[dataKey] || '00:00:00';
+            const timeParts = timeString.split(':');
+            const hours = parseInt(timeParts[0]) || 0;
+            const minutes = parseInt(timeParts[1]) || 0;
+            const seconds = parseInt(timeParts[2]) || 0;
+            return hours * 60 + minutes + seconds / 60;
+          });
+          const sum = timeValues.reduce((acc, val) => acc + val, 0);
+          averages[columnName] = Math.round(sum / timeValues.length);
+        } else {
+          // Для остальных числовых полей
+          const values = data.map(player => parseFloat(player[dataKey]) || 0);
+          const sum = values.reduce((acc, val) => acc + val, 0);
+          averages[columnName] = Math.round((sum / values.length) * 100) / 100;
+        }
       }
     });
     
@@ -420,49 +436,49 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
   return (
     <div className="space-y-6">
       {/* Заголовок и информация */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="bg-vista-dark/30 p-4 rounded-lg">
-          <div className="flex items-center gap-2 text-vista-light/60 mb-2">
-            <Activity className="w-4 h-4" />
-            <span className="text-sm">GPS профиль</span>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-4">
+        <div className="bg-vista-dark/30 p-2 sm:p-4 rounded-lg">
+          <div className="flex items-center gap-1 sm:gap-2 text-vista-light/60 mb-1 sm:mb-2">
+            <Activity className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="text-xs sm:text-sm">GPS профиль</span>
           </div>
-          <p className="text-vista-light font-medium">{profile.name}</p>
+          <p className="text-vista-light font-medium text-xs sm:text-sm">{profile.name}</p>
         </div>
         
-        <div className="bg-vista-dark/30 p-4 rounded-lg">
-          <div className="flex items-center gap-2 text-vista-light/60 mb-2">
-            <Clock className="w-4 h-4" />
-            <span className="text-sm">Дата события</span>
+        <div className="bg-vista-dark/30 p-2 sm:p-4 rounded-lg">
+          <div className="flex items-center gap-1 sm:gap-2 text-vista-light/60 mb-1 sm:mb-2">
+            <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="text-xs sm:text-sm">Дата события</span>
           </div>
-          <p className="text-vista-light font-medium">
+          <p className="text-vista-light font-medium text-xs sm:text-sm">
             {new Date(eventDate).toLocaleDateString()}
           </p>
         </div>
         
-        <div className="bg-vista-dark/30 p-4 rounded-lg">
-          <div className="flex items-center gap-2 text-vista-light/60 mb-2">
-            <Users className="w-4 h-4" />
-            <span className="text-sm">Игроков</span>
+        <div className="bg-vista-dark/30 p-2 sm:p-4 rounded-lg">
+          <div className="flex items-center gap-1 sm:gap-2 text-vista-light/60 mb-1 sm:mb-2">
+            <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="text-xs sm:text-sm">Игроков</span>
           </div>
-          <p className="text-vista-light font-medium">{data.length}</p>
+          <p className="text-vista-light font-medium text-xs sm:text-sm">{data.length}</p>
         </div>
         
-        <div className="bg-vista-dark/30 p-4 rounded-lg">
-          <div className="flex items-center gap-2 text-vista-light/60 mb-2">
-            <Users className="w-4 h-4" />
-            <span className="text-sm">Команда</span>
+        <div className="bg-vista-dark/30 p-2 sm:p-4 rounded-lg">
+          <div className="flex items-center gap-1 sm:gap-2 text-vista-light/60 mb-1 sm:mb-2">
+            <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="text-xs sm:text-sm">Команда</span>
           </div>
-          <p className="text-vista-light font-medium">
+          <p className="text-vista-light font-medium text-xs sm:text-sm">
             {teamName || 'Неизвестно'}
           </p>
         </div>
         
-        <div className="bg-vista-dark/30 p-4 rounded-lg">
-          <div className="flex items-center gap-2 text-vista-light/60 mb-2">
-            <Target className="w-4 h-4" />
-            <span className="text-sm">Событие</span>
+        <div className="bg-vista-dark/30 p-2 sm:p-4 rounded-lg">
+          <div className="flex items-center gap-1 sm:gap-2 text-vista-light/60 mb-1 sm:mb-2">
+            <Target className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="text-xs sm:text-sm">Событие</span>
           </div>
-          <p className="text-vista-light font-medium">
+          <p className="text-vista-light font-medium text-xs sm:text-sm">
             {eventType === 'TRAINING' ? 'Тренировка' : 
              eventType === 'MATCH' ? 'Матч' : 
              eventName.toLowerCase().includes('тренировка') ? 'Тренировка' : 
@@ -479,7 +495,7 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-vista-secondary/30">
                   {profile?.columnMapping
@@ -493,7 +509,7 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
                       return (
                         <th 
                           key={columnName} 
-                          className="text-center p-3 text-vista-light/70 font-medium cursor-pointer hover:bg-vista-dark/30 transition-colors"
+                          className="text-center p-1 sm:p-3 text-vista-light/70 font-medium cursor-pointer hover:bg-vista-dark/30 transition-colors"
                           onClick={() => handleSort(columnName)}
                         >
                           <div className="flex items-center justify-center gap-1">
@@ -534,17 +550,17 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
 
                           
                           return (
-                            <td key={columnName} className="p-3">
+                            <td key={columnName} className="p-1 sm:p-3">
                               <div className="relative">
-                                <div className="w-full rounded-md h-8 relative overflow-hidden">
+                                <div className="w-full rounded-md h-6 sm:h-8 relative overflow-hidden">
                                   <div 
-                                    className={`h-8 rounded-md transition-all duration-300 bg-gradient-to-r ${getBarColor(columnName)} flex items-center justify-between px-3`}
+                                    className={`h-6 sm:h-8 rounded-md transition-all duration-300 bg-gradient-to-r ${getBarColor(columnName)} flex items-center justify-between px-1 sm:px-3`}
                                     style={{ width: `${percentage}%` }}
                                   >
-                                    <span className="text-white text-xs font-medium">
+                                    <span className="text-white text-[10px] sm:text-xs font-medium">
                                       {value.toLocaleString()}
                                     </span>
-                                    <span className="text-white/80 text-xs">
+                                    <span className="text-white/80 text-[8px] sm:text-xs">
                                       {getMetricUnit(columnName)}
                                     </span>
                                   </div>
@@ -565,8 +581,8 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
                           const totalMinutes = Math.round(hours * 60 + minutes + seconds / 60);
                           
                           return (
-                            <td key={columnName} className="p-3 text-center">
-                              <span className="text-vista-light">
+                            <td key={columnName} className="p-1 sm:p-3 text-center">
+                              <span className="text-vista-light text-[10px] sm:text-sm">
                                 {totalMinutes}
                               </span>
                             </td>
@@ -574,8 +590,8 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
                         }
                         
                         return (
-                          <td key={columnName} className="p-3 text-center">
-                            <span className="text-vista-light">
+                          <td key={columnName} className="p-1 sm:p-3 text-center">
+                            <span className="text-vista-light text-[10px] sm:text-sm">
                               {player[dataKey]} {getMetricUnit(columnName)}
                             </span>
                           </td>
@@ -586,34 +602,43 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
                 
                 {/* Строка со средними значениями */}
                 <tr className="border-t-2 border-vista-secondary/50 bg-vista-dark/30">
-                  {/* Объединенная ячейка для заголовка */}
-                  <td colSpan={3} className="p-3 text-center">
-                    <div className="text-vista-light/70 text-xs font-medium">
-                      Средние значения команды
-                    </div>
-                  </td>
-                  
-                  {/* Средние значения для числовых метрик */}
                   {profile?.columnMapping
-                    ?.filter(col => {
-                      const columnName = col.name || col.internalField || '';
-                      return (col.name || col.internalField) && 
-                             (col.isVisible !== false) &&
-                             columnName !== 'Player' && 
-                             columnName !== 'Position' && 
-                             columnName !== 'Time';
-                    })
+                    ?.filter(col => (col.name || col.internalField) && (col.isVisible !== false))
                     .map(col => {
                       const columnName = col.name || col.internalField || '';
-                      const averageValue = averageValues[columnName] || 0;
                       
-                      return (
-                        <td key={columnName} className="p-3 text-center">
-                          <div className="text-vista-light/50 text-sm">
-                            {averageValue.toLocaleString()}
-                          </div>
-                        </td>
-                      );
+                                               // Для Player показываем заголовок "Средние значения команды"
+                         if (columnName === 'Player') {
+                           return (
+                             <td key={columnName} className="p-1 sm:p-3 text-center">
+                               <div className="text-vista-light/70 text-[8px] sm:text-xs font-medium">
+                                 Средние значения команды
+                               </div>
+                             </td>
+                           );
+                         }
+                      
+                                               // Для Time показываем среднее время
+                         if (columnName === 'Time') {
+                           const averageTime = averageValues[columnName] || 0;
+                           return (
+                             <td key={columnName} className="p-1 sm:p-3 text-center">
+                               <div className="text-vista-light/50 text-[10px] sm:text-sm">
+                                 {Math.round(averageTime)}
+                               </div>
+                             </td>
+                           );
+                         }
+                      
+                                               // Для остальных числовых метрик показываем средние значения
+                         const averageValue = averageValues[columnName] || 0;
+                         return (
+                           <td key={columnName} className="p-1 sm:p-3 text-center">
+                             <div className="text-vista-light/50 text-[10px] sm:text-sm">
+                               {averageValue.toLocaleString()}
+                             </div>
+                           </td>
+                         );
                     })}
                 </tr>
               </tbody>
