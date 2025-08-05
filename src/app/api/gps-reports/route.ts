@@ -243,14 +243,47 @@ async function processDataAccordingToProfile(
   gpsSystem: string,
   customPlayerMappings: any[] = []
 ) {
+
+
   if (!columnMapping || !Array.isArray(columnMapping)) {
     console.log('⚠️ columnMapping пустой, возвращаем исходные данные');
     return data;
   }
 
+  // Для B-SIGHT системы используем фиксированный маппинг
+  if (gpsSystem === 'B-SIGHT') {
+    console.log('🔧 Используем фиксированный маппинг для B-SIGHT');
+    return data.map((row, rowIndex) => {
+      // Пропускаем строки "Среднее" и "Сумма"
+      if (row[0] === 'Среднее' || row[0] === 'Сумма') {
+        return null;
+      }
+
+      const processedRow: any = {
+        name: row[0], // Игрок
+        Time: row[1], // Время
+        TD: row[2], // Общая дистанция
+        'Z-3 Tempo': row[3], // Зона 3
+        'Z-4 HIR': row[4], // Зона 4
+        'Z-5 Sprint': row[5], // Зона 5
+                Acc: row[6], // Ускорения
+        Dec: row[7], // Торможения
+        'Max Speed': row[8], // Максимальная скорость
+        HSR: row[9], // HSR
+        'HSR%': row[10] // HSR %
+      };
+
+      console.log(`✅ Обработана строка ${rowIndex}:`, Object.keys(processedRow));
+      return processedRow;
+    }).filter(row => row !== null);
+  }
+
   // Находим колонку с именами игроков
   const nameColumnIndex = findPlayerNameColumn(headers);
   console.log('👤 Колонка имен:', nameColumnIndex >= 0 ? headers[nameColumnIndex] : 'не найдена');
+  console.log('📋 Заголовки файла:', headers);
+  console.log('📊 Первая строка данных:', data[0]);
+  console.log('🔧 Маппинг колонок:', JSON.stringify(columnMapping, null, 2));
   
   // Используем переданные маппинги или получаем из базы
   let finalPlayerMappings = customPlayerMappings;
@@ -292,9 +325,15 @@ async function processDataAccordingToProfile(
     console.log('🔍 Найдено игроков в БД:', playersData.length, 'шт');
   }
 
-  // Фильтруем данные - обрабатываем только тех игроков, которые прошли маппинг
+  // Обрабатываем данные всех игроков (включая тех, у кого нет маппингов)
   const processedData = data
     .map((row, rowIndex) => {
+      // Отладочная информация для первой строки
+      if (rowIndex === 0) {
+        console.log('🔍 Первая строка данных:', row);
+        console.log('🔍 Индекс колонки с именем:', nameColumnIndex);
+      }
+      
       // Проверяем, есть ли имя игрока в этой строке
       if (nameColumnIndex === -1 || !row[nameColumnIndex]) {
         return null;
@@ -304,10 +343,9 @@ async function processDataAccordingToProfile(
       const playerNameLower = playerName.toLowerCase();
       
       // Проверяем, есть ли этот игрок в маппингах
-      // Если игрок не найден в маппингах, пропускаем его (не включаем в отчет)
-      if (!mappedPlayerNames.has(playerNameLower)) {
-        console.log(`❌ Игрок "${playerName}" не найден в маппингах - пропускаем`);
-        return null;
+      const hasMapping = mappedPlayerNames.has(playerNameLower);
+      if (!hasMapping) {
+        console.log(`⚠️ Игрок "${playerName}" не найден в маппингах - обрабатываем без маппинга`);
       }
       
       const processedRow: any = {};
@@ -323,8 +361,8 @@ async function processDataAccordingToProfile(
         processedRow.name = appPlayerName || playerName; // Используем имя из приложения или из отчета как fallback
         console.log(`✅ "${playerName}" -> "${processedRow.name}" (ID: ${playerId})`);
       } else {
-        processedRow.name = playerName; // Fallback на имя из отчета
-        console.log(`⚠️ Нет маппинга для "${playerName}"`);
+        processedRow.name = playerName; // Используем имя из отчета
+        console.log(`⚠️ Нет маппинга для "${playerName}" - используем имя из отчета`);
       }
     
       columnMapping.forEach((column: any, colIndex: number) => {
@@ -333,12 +371,58 @@ async function processDataAccordingToProfile(
         const mappedColumn = column.mappedColumn || column.excelColumn;
         const columnType = column.type || 'column';
         
+        console.log(`🔍 Обрабатываем колонку: ${columnName} -> ${mappedColumn} (тип: ${columnType})`);
+        
         if (columnType === 'column' && mappedColumn) {
           // Находим индекс столбца в заголовках
-          const columnIndex = headers.findIndex(header => header === mappedColumn);
+          const columnIndex = headers.findIndex(header => {
+            const headerLower = header.toLowerCase().trim();
+            const mappedLower = mappedColumn.toLowerCase().trim();
+            return headerLower === mappedLower || headerLower.includes(mappedLower) || mappedLower.includes(headerLower);
+          });
           
           if (columnIndex !== -1 && row[columnIndex] !== undefined) {
             processedRow[columnName] = row[columnIndex];
+            console.log(`✅ Маппинг: "${headers[columnIndex]}" (индекс ${columnIndex}) -> "${columnName}" = ${row[columnIndex]}`);
+          } else {
+            console.log(`⚠️ Колонка "${mappedColumn}" не найдена в заголовках для "${columnName}"`);
+            console.log(`🔍 Доступные заголовки:`, headers);
+            
+            // Попробуем найти колонку по позиции (для B-SIGHT системы)
+            if (columnName === 'Player' && row[0]) {
+              processedRow[columnName] = row[0];
+              console.log(`🔧 Fallback маппинг: колонка 0 -> "${columnName}" = ${row[0]}`);
+            } else if (columnName === 'Time' && row[1]) {
+              processedRow[columnName] = row[1];
+              console.log(`🔧 Fallback маппинг: колонка 1 -> "${columnName}" = ${row[1]}`);
+            } else if (columnName === 'TD' && row[2]) {
+              processedRow[columnName] = row[2];
+              console.log(`🔧 Fallback маппинг: колонка 2 -> "${columnName}" = ${row[2]}`);
+            } else if (columnName === 'Zone 3' && row[3]) {
+              processedRow[columnName] = row[3];
+              console.log(`🔧 Fallback маппинг: колонка 3 -> "${columnName}" = ${row[3]}`);
+            } else if (columnName === 'Zone 4' && row[4]) {
+              processedRow[columnName] = row[4];
+              console.log(`🔧 Fallback маппинг: колонка 4 -> "${columnName}" = ${row[4]}`);
+            } else if (columnName === 'Zone 5' && row[5]) {
+              processedRow[columnName] = row[5];
+              console.log(`🔧 Fallback маппинг: колонка 5 -> "${columnName}" = ${row[5]}`);
+            } else if (columnName === 'Acc' && row[6]) {
+              processedRow[columnName] = row[6];
+              console.log(`🔧 Fallback маппинг: колонка 6 -> "${columnName}" = ${row[6]}`);
+            } else if (columnName === 'Dec' && row[7]) {
+                              processedRow[columnName] = row[7];
+                console.log(`🔧 Fallback маппинг: колонка 7 -> "${columnName}" = ${row[7]}`);
+            } else if (columnName === 'Max Speed' && row[8]) {
+                processedRow[columnName] = row[8];
+                console.log(`🔧 Fallback маппинг: колонка 8 -> "${columnName}" = ${row[8]}`);
+            } else if (columnName === 'HSR' && row[9]) {
+            processedRow[columnName] = row[9];
+            console.log(`🔧 Fallback маппинг: колонка 9 -> "${columnName}" = ${row[9]}`);
+        } else if (columnName === 'HSR%' && row[10]) {
+            processedRow[columnName] = row[10];
+            console.log(`🔧 Fallback маппинг: колонка 10 -> "${columnName}" = ${row[10]}`);
+            }
           }
         } else if (columnType === 'formula' && column.formula) {
           // Обрабатываем формулы
@@ -349,11 +433,22 @@ async function processDataAccordingToProfile(
         }
       });
       
+      console.log(`🎯 Обработанная строка для "${processedRow.name}":`, JSON.stringify(processedRow, null, 2));
+      
       return processedRow;
     })
     .filter(row => row !== null); // Убираем null значения (строки без маппинга)
 
   console.log('🎯 Обработано:', processedData.length, 'из', data.length, 'записей');
+  
+  // Отладочная информация о результате
+  if (processedData.length > 0) {
+    console.log('🔍 Образец обработанных данных:', {
+      firstRecord: processedData[0],
+      firstRecordKeys: Object.keys(processedData[0]),
+      sampleValues: Object.entries(processedData[0]).slice(0, 5)
+    });
+  }
   
   return processedData;
 }

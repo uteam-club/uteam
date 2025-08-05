@@ -62,13 +62,7 @@ export async function GET(
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
-    console.log('✅ GPS отчет найден:', {
-      id: report.id,
-      name: report.name,
-      eventType: report.eventType,
-      eventId: report.eventId,
-      processedDataLength: Array.isArray(report.processedData) ? report.processedData.length : 0
-    });
+ 
 
     // Обрабатываем имена игроков для отображения
     const processedReport = await processPlayerNames(report, token.clubId);
@@ -117,7 +111,7 @@ async function processPlayerNames(report: any, clubId: string) {
     }
 
     // Обрабатываем данные отчета
-    const processedData = report.processedData.map((row: any) => {
+    const processedData = report.processedData.map((row: any, index: number) => {
       if (row.name && row.playerId) {
         const appPlayerName = playerDataMap.get(row.playerId);
         if (appPlayerName) {
@@ -132,7 +126,7 @@ async function processPlayerNames(report: any, clubId: string) {
       processedData
     };
   } catch (error) {
-    console.error('Ошибка при обработке имен игроков:', error);
+    console.error('❌ Ошибка при обработке имен игроков:', error);
     return report; // Возвращаем исходный отчет при ошибке
   }
 }

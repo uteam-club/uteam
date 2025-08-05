@@ -267,9 +267,15 @@ export async function GET(
           console.log(`📊 Обрабатываем метрики для игрока в матче ${matchData.matchid}:`);
           console.log(`📋 Доступные данные игрока:`, Object.keys(playerData));
           
-          // Извлекаем метрики из профиля (используем ту же логику что и основной API)
+          // Извлекаем метрики из профиля (исключаем Max Speed из игровой модели)
           if (profile.columnMapping && Array.isArray(profile.columnMapping)) {
             profile.columnMapping.forEach((column: any) => {
+              // Пропускаем Max Speed - не включаем в игровую модель
+              if (column.name === 'Max speed' || column.mappedColumn === 'Max Speed') {
+                console.log(`🔍 Пропускаем метрику "${column.name}" - исключена из игровой модели`);
+                return;
+              }
+              
               console.log(`🔍 Проверяем метрику "${column.name}" (колонка "${column.mappedColumn}"):`);
               console.log(`   - isVisible: ${column.isVisible}`);
               console.log(`   - mappedColumn в данных: ${playerData[column.mappedColumn] !== undefined}`);
@@ -313,9 +319,14 @@ export async function GET(
     if (playerMatchData.length > 0) {
       const totalMinutes = playerMatchData.reduce((sum, match) => sum + match.minutesPlayed, 0);
       
-      // Для каждой метрики из профиля (используем ту же логику что и основной API)
+      // Для каждой метрики из профиля (исключаем Max Speed из игровой модели)
       if (profile.columnMapping && Array.isArray(profile.columnMapping)) {
         profile.columnMapping.forEach((column: any) => {
+          // Пропускаем Max Speed - не включаем в игровую модель
+          if (column.name === 'Max speed' || column.mappedColumn === 'Max Speed') {
+            return;
+          }
+          
           if (column.isVisible) {
             const displayKey = column.name;
             const values = playerMatchData

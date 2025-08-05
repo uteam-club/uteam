@@ -324,10 +324,10 @@ export function createDefaultBSightProfile(clubId: string, createdById: string) 
     },
     columnMapping: {
       playerName: 'Player Name',
-      distance: 'Total Distance (m)',
-      time: 'Time (min)',
-      maxSpeed: 'Max Speed (km/h)',
-      averageSpeed: 'Average Speed (km/h)',
+              distance: 'Total Distance (m)',
+        time: 'Time (min)',
+        maxSpeed: 'Max Speed (km/h)',
+        averageSpeed: 'Average Speed (km/h)',
       sprints: 'Sprints',
       highIntensityDistance: 'High Intensity Distance (m)'
     },

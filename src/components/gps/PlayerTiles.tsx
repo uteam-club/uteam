@@ -166,10 +166,10 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
       'HSR%': '%',
       'Sprints': '',
       'm/min': 'м/мин',
-      'Acc': '',
-      'Dec': '',
-      'Max speed': 'км/ч'
-    };
+              'Acc': '',
+        'Dec': '',
+        'Max speed': 'км/ч'
+      };
     return units[metricName] || '';
   };
 
@@ -195,10 +195,10 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
       'HSR%': 'bg-purple-500',
       'Sprints': 'bg-green-500',
       'm/min': 'bg-green-500',
-      'Acc': 'bg-green-500',
-      'Dec': 'bg-green-500',
-      'Max speed': 'bg-red-500'
-    };
+              'Acc': 'bg-green-500',
+        'Dec': 'bg-green-500',
+        'Max speed': 'bg-red-500'
+      };
     return colors[metricName] || 'bg-gray-500';
   };
 
@@ -306,7 +306,7 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
                   </div>
 
                   {/* Метрики */}
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1 sm:gap-2 md:gap-4">
+                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-8 gap-1 sm:gap-2 md:gap-3">
                     {Object.entries(currentMetrics).map(([metricName, currentValue]) => {
                       const averageMetric = gameModel.averageMetrics[metricName];
                       if (!averageMetric) {
@@ -325,26 +325,28 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
 
                                              return (
                          <Card key={metricName} className={`${cardBackground} hover:scale-[1.02] transition-transform duration-200`}>
-                           <CardContent className="p-1 sm:p-2 md:p-4">
+                           <CardContent className="p-1 sm:p-1.5 md:p-2">
                              <div className="text-center">
-                               <div className="w-10 sm:w-12 md:w-16 h-5 sm:h-6 md:h-7 rounded-md flex items-center justify-center text-cyan-300 bg-cyan-500/20 mx-auto mb-1 sm:mb-2 px-1">
-                                 <h4 className="text-[7px] sm:text-[8px] md:text-[9px] font-semibold leading-tight">
+                               <div className="w-8 sm:w-10 md:w-12 h-4 sm:h-5 md:h-6 rounded-md flex items-center justify-center text-cyan-300 bg-cyan-500/20 mx-auto mb-1 px-1">
+                                 <h4 className="text-[6px] sm:text-[7px] md:text-[8px] font-semibold leading-tight">
                                    {metricName}
                                  </h4>
                                </div>
-                               <div className="flex items-center justify-center gap-1 mb-1">
-                                 <div className={`flex items-center gap-1 ${comparison.color}`}>
-                                   {comparison.icon}
-                                   <span className="text-[10px] sm:text-xs font-medium">{comparison.percentage}%</span>
+                               <div className="flex items-center justify-center gap-0.5 mb-1">
+                                 <div className={`flex items-center gap-0.5 ${comparison.color}`}>
+                                   <div className="w-3 h-3 sm:w-4 sm:h-4">
+                                     {comparison.icon}
+                                   </div>
+                                   <span className="text-[8px] sm:text-[9px] md:text-[10px] font-medium">{comparison.percentage}%</span>
                                  </div>
                                </div>
-                               <p className="text-sm sm:text-lg md:text-xl font-bold text-vista-light mb-1">
+                               <p className="text-xs sm:text-sm md:text-base font-bold text-vista-light mb-1">
                                  {normalizedAverage.toFixed(1)}
-                                 <span className="text-[10px] sm:text-xs md:text-sm text-vista-light/50 ml-1">
+                                 <span className="text-[8px] sm:text-[9px] md:text-[10px] text-vista-light/50 ml-1">
                                    {getMetricUnit(metricName)}
                                  </span>
                                </p>
-                               <p className="text-[7px] sm:text-[8px] text-vista-light/60">текущий: {currentValue.toFixed(1)}</p>
+                               <p className="text-[6px] sm:text-[7px] md:text-[8px] text-vista-light/60">текущий: {currentValue.toFixed(1)}</p>
                              </div>
                            </CardContent>
                          </Card>

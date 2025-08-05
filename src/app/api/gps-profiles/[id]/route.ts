@@ -138,12 +138,6 @@ export async function GET(
     }
 
     const profileData = profile[0];
-    console.log('📋 Профиль загружен:', {
-      id: profileData.id,
-      name: profileData.name,
-      columnMappingLength: Array.isArray(profileData.columnMapping) ? profileData.columnMapping.length : 0
-    });
-    
     return NextResponse.json(profileData);
   } catch (error) {
     console.error('❌ Ошибка при получении профиля:', error);

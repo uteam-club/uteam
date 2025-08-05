@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
-import { Upload, BarChart3, Activity, MapPin, Clock, Users, Trash2, Share2, Copy, Check } from 'lucide-react';
+import { Upload, BarChart3, Activity, MapPin, Clock, Users, Trash2, Share2, Copy, Check, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import UploadGpsReportModal from './UploadGpsReportModal';
 import GpsVisualization from './GpsVisualization';
@@ -129,7 +129,6 @@ export default function GpsReportsTab() {
         const data = await response.json();
         // Фильтруем только тренировки с GPS отчетами
         const trainingsWithReports = data.filter((training: any) => training.reportId);
-        console.log(`📊 Тренировки: ${data.length} всего, ${trainingsWithReports.length} с GPS отчетами`);
         setTrainings(trainingsWithReports);
       }
     } catch (error) {
@@ -147,7 +146,6 @@ export default function GpsReportsTab() {
         const data = await response.json();
         // Фильтруем только матчи с GPS отчетами
         const matchesWithReports = data.filter((match: any) => match.reportId);
-        console.log(`📊 Матчи: ${data.length} всего, ${matchesWithReports.length} с GPS отчетами`);
         setMatches(matchesWithReports);
       }
     } catch (error) {
@@ -160,42 +158,29 @@ export default function GpsReportsTab() {
 
 
   const deleteReport = async (reportId: string, reportName: string) => {
-    console.log('🗑️ Попытка удаления отчета:', { reportId, reportName });
-    
     // Подтверждение удаления
     if (!confirm(`Вы уверены, что хотите удалить отчет "${reportName}"? Это действие нельзя отменить.`)) {
-      console.log('❌ Удаление отменено пользователем');
       return;
     }
 
     try {
-      console.log('📡 Отправляем запрос на удаление:', `/api/gps-reports/${reportId}`);
       const response = await fetch(`/api/gps-reports/${reportId}`, {
         method: 'DELETE'
       });
       
-      console.log('📊 Ответ сервера:', { status: response.status, ok: response.ok });
-      
       if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Успешное удаление:', result);
-        
         toast({
           title: "Успешно",
           description: `Отчет "${reportName}" удален`,
         });
         
-
-        
         // Если удаляемый отчет был выбран, очищаем выбор
         if (selectedReport?.id === reportId) {
-          console.log('🧹 Очищаем выбранный отчет');
           setSelectedReport(null);
           setSelectedProfile(null);
         }
       } else {
         const errorData = await response.json();
-        console.error('❌ Ошибка сервера:', errorData);
         
         toast({
           title: "Ошибка",
@@ -215,24 +200,17 @@ export default function GpsReportsTab() {
 
   const fetchReportById = async (reportId: string) => {
     if (!reportId) {
-      console.error('❌ ReportId не передан');
       setSelectedReport(null);
       return;
     }
 
     try {
       setIsLoading(true);
-      console.log('🔍 Запрашиваем отчет:', reportId);
       
       const response = await fetch(`/api/gps-reports/${reportId}`);
       
       if (response.ok) {
         const report = await response.json();
-        logImportant('Найден отчет', { 
-          name: report.name, 
-          processedDataLength: Array.isArray(report.processedData) ? report.processedData.length : 0,
-          eventId: report.eventId 
-        });
         setSelectedReport(report);
         
         // Загружаем профиль для отчета
@@ -242,7 +220,6 @@ export default function GpsReportsTab() {
           setSelectedProfile(createDemoProfile());
         }
       } else {
-        console.error('❌ Ошибка API:', response.status, response.statusText);
         setSelectedReport(null);
       }
     } catch (error) {
@@ -258,19 +235,12 @@ export default function GpsReportsTab() {
       const response = await fetch(`/api/gps-profiles/${profileId}`);
       if (response.ok) {
         const profile = await response.json();
-        logImportant('Профиль загружен', { 
-          id: profile.id, 
-          name: profile.name,
-          columnMappingLength: Array.isArray(profile.columnMapping) ? profile.columnMapping.length : 0
-        });
         setSelectedProfile(profile);
       } else {
-        console.log('⚠️ Профиль не найден, создаем демо профиль');
         setSelectedProfile(createDemoProfile());
       }
     } catch (error) {
       console.error('❌ Ошибка при получении профиля:', error);
-      console.log('🔧 Создаем демо профиль из-за ошибки');
       setSelectedProfile(createDemoProfile());
     }
   };
@@ -285,7 +255,7 @@ export default function GpsReportsTab() {
         { type: 'column', name: 'zone3', mappedColumn: 'ZONE 3', displayName: 'Зона 3', dataType: 'number', isVisible: true },
         { type: 'column', name: 'zone4', mappedColumn: 'ZONE 4', displayName: 'Зона 4', dataType: 'number', isVisible: true },
         { type: 'column', name: 'zone5', mappedColumn: 'ZONE 5', displayName: 'Зона 5', dataType: 'number', isVisible: true },
-        { type: 'column', name: 'sprints', mappedColumn: 'SPRINTS', displayName: 'Спринты', dataType: 'number', isVisible: true },
+                { type: 'column', name: 'sprints', mappedColumn: 'SPRINTS', displayName: 'Спринты', dataType: 'number', isVisible: true },
         { type: 'column', name: 'maxSpeed', mappedColumn: 'MAX SPEED', displayName: 'Макс. скорость', dataType: 'number', isVisible: true },
         { type: 'column', name: 'mPerMin', mappedColumn: 'M/MIN', displayName: 'М/мин', dataType: 'number', isVisible: true },
         { type: 'column', name: 'minutes', mappedColumn: 'MIN', displayName: 'Время', dataType: 'number', isVisible: true }
@@ -426,12 +396,6 @@ export default function GpsReportsTab() {
       return transformedRow;
     });
     
-    logImportant('Данные трансформированы', { 
-      inputLength: processedData.length, 
-      outputLength: transformed.length,
-      firstRecordKeys: transformed[0] ? Object.keys(transformed[0]) : []
-    });
-    
     return transformed;
   };
 
@@ -543,6 +507,37 @@ export default function GpsReportsTab() {
                   </Button>
                   <Button
                     variant="outline"
+                    onClick={() => {
+                      console.log('🔄 Перезагружаем отчет...');
+                      fetchReportById(selectedReport.id);
+                    }}
+                    className="border-vista-primary/50 text-vista-primary hover:bg-vista-primary/10"
+                    title="Перезагрузить отчет"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      console.log('🔍 Тестируем отладочную информацию...');
+                      const debugResponse = await fetch(`/api/debug-gps-reports?eventId=${selectedEvent}`);
+                      if (debugResponse.ok) {
+                        const debugInfo = await debugResponse.json();
+                        console.log('🔍 Отладочная информация:', debugInfo);
+                        toast({
+                          title: "Отладочная информация",
+                          description: `Отчетов: ${debugInfo.summary.totalReports}, С данными: ${debugInfo.summary.reportsWithData}`,
+                        });
+                      }
+                    }}
+                    className="border-vista-secondary/50 text-vista-secondary hover:bg-vista-secondary/10"
+                    title="Отладочная информация"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
                     onClick={() => deleteReport(selectedReport.id, selectedReport.name)}
                     className="border-vista-error/50 text-vista-error hover:bg-vista-error/10"
                     title="Удалить отчет"
@@ -563,10 +558,6 @@ export default function GpsReportsTab() {
       {selectedReport && selectedProfile ? (
         (() => {
           const transformedData = transformGpsData(selectedReport.processedData);
-          console.log('🎨 Рендерим визуализацию с данными:', transformedData);
-          console.log('📊 Профиль:', selectedProfile);
-          console.log('📋 Структура профиля:', selectedProfile ? Object.keys(selectedProfile) : 'нет профиля');
-          console.log('🔧 columnMapping:', selectedProfile?.columnMapping);
           
           if (transformedData.length === 0) {
             return (

@@ -131,15 +131,7 @@ export async function GET(request: NextRequest) {
           dataType: 'number',
           isVisible: true
         },
-        {
-          name: 'Max speed',
-          type: 'column',
-          order: 14,
-          mappedColumn: 'Max Speed',
-          displayName: 'Максимальная скорость',
-          dataType: 'number',
-          isVisible: true
-        }
+
       ]
     },
     'Polar': {
@@ -183,15 +175,7 @@ export async function GET(request: NextRequest) {
           dataType: 'number',
           isVisible: true
         },
-        {
-          name: 'Max speed',
-          type: 'column',
-          order: 5,
-          mappedColumn: 'Max Speed',
-          displayName: 'Максимальная скорость',
-          dataType: 'number',
-          isVisible: true
-        },
+
         {
           name: 'Sprints',
           type: 'column',

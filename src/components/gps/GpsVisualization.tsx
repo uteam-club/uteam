@@ -129,25 +129,7 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
     direction: 'asc' | 'desc';
   } | null>(null);
 
-  // 🔍 КРИТИЧЕСКАЯ ОТЛАДКА: Проверяем только данные и маппинг
-  console.log('🔍 КРИТИЧЕСКАЯ ОТЛАДКА:', {
-    dataLength: data.length,
-    firstDataKeys: data[0] ? Object.keys(data[0]) : [],
-    firstDataValues: data[0] ? Object.entries(data[0]).slice(0, 5).map(([key, value]) => `${key}: ${value}`) : [],
-    profileName: profile?.name,
-    columnMappingLength: profile?.columnMapping?.length,
-    ALL_KEYS: data[0] ? Object.keys(data[0]) : []
-  });
-  
-  // 🔍 РАЗВЕРНУТЫЕ ДАННЫЕ
-  if (data[0]) {
-    console.log('🔍 РАЗВЕРНУТЫЕ ДАННЫЕ:', JSON.stringify(data[0], null, 2));
-  }
-  
-  // 🔍 МАППИНГ КОЛОНОК В ПРОФИЛЕ
-  if (profile?.columnMapping) {
-    console.log('🔍 МАППИНГ КОЛОНОК:', JSON.stringify(profile.columnMapping, null, 2));
-  }
+
 
   const getMetricIcon = (field: string) => {
     if (!field) return Activity; // Возвращаем иконку по умолчанию если поле пустое
