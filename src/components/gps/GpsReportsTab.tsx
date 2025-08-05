@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
-import { Upload, BarChart3, Activity, MapPin, Clock, Users, Trash2, Share2, Copy, Check, RefreshCw } from 'lucide-react';
+import { Upload, BarChart3, Activity, MapPin, Clock, Users, Trash2, Share2, Copy, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import UploadGpsReportModal from './UploadGpsReportModal';
 import GpsVisualization from './GpsVisualization';
@@ -505,37 +505,7 @@ export default function GpsReportsTab() {
                       <Share2 className="w-4 h-4" />
                     )}
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      console.log('🔄 Перезагружаем отчет...');
-                      fetchReportById(selectedReport.id);
-                    }}
-                    className="border-vista-primary/50 text-vista-primary hover:bg-vista-primary/10"
-                    title="Перезагрузить отчет"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </Button>
 
-                  <Button
-                    variant="outline"
-                    onClick={async () => {
-                      console.log('🔍 Тестируем отладочную информацию...');
-                      const debugResponse = await fetch(`/api/debug-gps-reports?eventId=${selectedEvent}`);
-                      if (debugResponse.ok) {
-                        const debugInfo = await debugResponse.json();
-                        console.log('🔍 Отладочная информация:', debugInfo);
-                        toast({
-                          title: "Отладочная информация",
-                          description: `Отчетов: ${debugInfo.summary.totalReports}, С данными: ${debugInfo.summary.reportsWithData}`,
-                        });
-                      }
-                    }}
-                    className="border-vista-secondary/50 text-vista-secondary hover:bg-vista-secondary/10"
-                    title="Отладочная информация"
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                  </Button>
                   <Button
                     variant="outline"
                     onClick={() => deleteReport(selectedReport.id, selectedReport.name)}

@@ -234,7 +234,7 @@ export default function PlayerGameModelModal({
                 ) : hasData ? (
                                    <div className="grid grid-cols-4 gap-4">
                    {selectedProfileData.columnMapping
-                     .filter(column => column.isVisible && !['Player', 'Position', 'Time'].includes(column.name))
+                     .filter(column => column.isVisible && !['Player', 'Position', 'Time', 'Max speed'].includes(column.name))
                      .map((column, index) => {
                        // Используем name для поиска данных
                        const displayKey = column.name;
