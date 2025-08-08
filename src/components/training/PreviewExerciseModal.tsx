@@ -5,6 +5,7 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { useTranslation } from 'react-i18next';
+import OptimizedImage from '../ui/OptimizedImage';
 
 interface User { id: string; name: string; }
 interface Category { id: string; name: string; }
@@ -157,12 +158,19 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
                 {/* Медиафайл сверху */}
                 <div className="mb-4 flex justify-center">
                   {exercise.mediaItems && exercise.mediaItems.length > 0 ? (
-                    <img
-                      src={exercise.mediaItems[0].publicUrl}
-                      alt={exercise.title}
-                      className="max-w-2xl w-full max-h-96 object-contain rounded-md bg-vista-dark/70 mx-auto"
-                      style={{ display: 'block' }}
-                    />
+                    <div className="max-w-2xl w-full max-h-96 rounded-md bg-vista-dark/70 mx-auto relative" style={{ aspectRatio: '16/9' }}>
+                      <OptimizedImage
+                        src={exercise.mediaItems[0].publicUrl}
+                        alt={exercise.title}
+                        fill
+                        className="w-full h-full rounded-md"
+                        objectFit="contain"
+                        quality={85}
+                        sizes="(max-width: 768px) 100vw, 768px"
+                        showSkeleton={true}
+                        priority={true}
+                      />
+                    </div>
                   ) : (
                     <div className="w-full h-64 flex items-center justify-center bg-vista-dark/70 rounded-md text-vista-light/40">
                         {t('exercisesPage.no_media')}

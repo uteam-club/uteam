@@ -49,6 +49,7 @@ import {
 import { mutate } from 'swr';
 import CreateExerciseModal from '@/components/training/CreateExerciseModal';
 import PreviewExerciseModal from '@/components/training/PreviewExerciseModal';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';
 import type { SupportedLang } from '@/types/i18n';
 
@@ -1003,24 +1004,16 @@ export default function ExercisesPage() {
                     <div className="h-48 relative bg-vista-secondary/10">
                       {exercise.mediaItems && exercise.mediaItems.length > 0 ? (
                         exercise.mediaItems[0].type === 'IMAGE' ? (
-                          <img 
-                            src={exercise.mediaItems[0].publicUrl} 
+                          <OptimizedImage
+                            src={exercise.mediaItems[0].publicUrl}
                             alt={exercise.title}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            decoding="async"
-                            width={300} 
-                            height={200}
-                            onError={(e) => {
-                              // При ошибке загрузки показываем заглушку
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              target.parentElement?.classList.add('flex', 'items-center', 'justify-center');
-                              const fallback = document.createElement('div');
-                              fallback.className = 'text-vista-light/30';
-                              fallback.innerHTML = '<svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
-                              target.parentElement?.appendChild(fallback);
-                            }}
+                            fill
+                            className="w-full h-full"
+                            objectFit="cover"
+                            quality={85}
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                            showSkeleton={true}
+                            fallbackSrc={`https://picsum.photos/seed/ex${exercise.id}/300/200`}
                           />
                         ) : exercise.mediaItems[0].type === 'VIDEO' ? (
                           <div className="relative w-full h-full">

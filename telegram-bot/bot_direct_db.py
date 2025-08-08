@@ -498,6 +498,53 @@ async def handle_send_morning_survey(request):
     except Exception as e:
         return web.json_response({'error': str(e)}, status=500)
 
+async def handle_send_rpe_survey(request):
+    """HTTP endpoint для ручной отправки RPE опросника"""
+    data = await request.json()
+    telegram_id = data.get('telegramId')
+    club_id = data.get('clubId')
+    pin_code = data.get('pinCode', '------')
+    lang = data.get('language', 'ru')
+    date = data.get('date')
+    
+    if not telegram_id or not club_id:
+        return web.json_response({'error': 'telegramId и clubId обязательны'}, status=400)
+    
+    # Формируем ссылку с типом rpe
+    link = f"https://api.uteam.club/survey?tenantId={club_id}&type=rpe"
+    
+    if lang == 'en':
+        text = (
+            f"Please rate how hard your training was (RPE) for {date}.\n\n"
+            "Your pin code for login:\n"
+            f"<code>{pin_code}</code>"
+        )
+        button_text = f"📝 Rate RPE for {date}"
+    else:
+        text = (
+            f"Пожалуйста, оцени, насколько тяжёлой была твоя тренировка (RPE) за {date}.\n\n"
+            "Твой пинкод для входа:\n"
+            f"<code>{pin_code}</code>"
+        )
+        button_text = f"📝 Оценить RPE за {date}"
+    
+    keyboard = None
+    if link:
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text=button_text, url=link)]
+        ])
+    
+    try:
+        await bot.send_message(
+            telegram_id,
+            text,
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+        return web.json_response({'success': True})
+    except Exception as e:
+        return web.json_response({'error': str(e)}, status=500)
+
 async def send_survey_success_message(telegram_id, lang='ru', survey_date=None):
     """Отправляет сообщение об успешном прохождении опроса"""
     if not survey_date:
@@ -528,6 +575,7 @@ async def main():
     # Запуск HTTP сервера
     app = web.Application()
     app.router.add_post('/send-morning-survey', handle_send_morning_survey)
+    app.router.add_post('/send-rpe-survey', handle_send_rpe_survey)
     app.router.add_post('/send-survey-success', handle_send_survey_success)
     runner = web.AppRunner(app)
     await runner.setup()

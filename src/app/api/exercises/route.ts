@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/auth-options';
 import { uploadFile, getFileUrl } from '@/lib/yandex-storage';
 import { db } from '@/lib/db';
+import { optimizeImage, generateThumbnail, generatePreview } from '@/lib/image-optimization';
 import { exercise, user, exerciseCategory, exerciseTag, mediaItem, exerciseTagToExercise } from '@/db/schema';
 import { eq, and, inArray, desc, ilike } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -180,25 +181,80 @@ export async function POST(req: NextRequest) {
       if (file.type.startsWith('image/')) mediaType = 'IMAGE';
       else if (file.type.startsWith('video/')) mediaType = 'VIDEO';
       else if (file.type.includes('pdf') || file.type.includes('document')) mediaType = 'DOCUMENT';
-      const storagePath = `clubs/${token.clubId}/exercises/${createdExercise.id}/${file.name}`;
+      
       // Преобразуем File в Buffer
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
+      
+      // Сохраняем оригинальный файл
+      const storagePath = `clubs/${token.clubId}/exercises/${createdExercise.id}/${file.name}`;
       await uploadFile(buffer, storagePath, file.type);
       const publicUrl = getFileUrl(storagePath);
-      [createdMediaItem] = await db.insert(mediaItem).values({
-        id: uuidv4(),
-        name: file.name,
-        type: mediaType,
-        url: storagePath,
-        publicUrl,
-        size: file.size,
-        clubId: token.clubId,
-        exerciseId: createdExercise.id,
-        uploadedById: token.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }).returning();
+      
+      // Если это изображение, создаем оптимизированные версии
+      if (mediaType === 'IMAGE') {
+        try {
+          // Создаем thumbnail (300x200)
+          const thumbnailBuffer = await generateThumbnail(buffer, 300, 200);
+          const thumbnailPath = `clubs/${token.clubId}/exercises/${createdExercise.id}/thumb_${file.name}`;
+          await uploadFile(thumbnailBuffer, thumbnailPath, 'image/jpeg');
+          const thumbnailUrl = getFileUrl(thumbnailPath);
+          
+          // Создаем preview (800x600)
+          const previewBuffer = await generatePreview(buffer, 800, 600);
+          const previewPath = `clubs/${token.clubId}/exercises/${createdExercise.id}/preview_${file.name}`;
+          await uploadFile(previewBuffer, previewPath, 'image/jpeg');
+          const previewUrl = getFileUrl(previewPath);
+          
+          // Сохраняем в базу с дополнительными URL
+          [createdMediaItem] = await db.insert(mediaItem).values({
+            id: uuidv4(),
+            name: file.name,
+            type: mediaType,
+            url: storagePath,
+            publicUrl,
+            thumbnailUrl,
+            previewUrl,
+            size: file.size,
+            clubId: token.clubId,
+            exerciseId: createdExercise.id,
+            uploadedById: token.id,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }).returning();
+        } catch (error) {
+          console.error('Ошибка при создании оптимизированных версий:', error);
+          // Если не удалось создать оптимизированные версии, сохраняем оригинал
+          [createdMediaItem] = await db.insert(mediaItem).values({
+            id: uuidv4(),
+            name: file.name,
+            type: mediaType,
+            url: storagePath,
+            publicUrl,
+            size: file.size,
+            clubId: token.clubId,
+            exerciseId: createdExercise.id,
+            uploadedById: token.id,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }).returning();
+        }
+      } else {
+        // Для не-изображений сохраняем как обычно
+        [createdMediaItem] = await db.insert(mediaItem).values({
+          id: uuidv4(),
+          name: file.name,
+          type: mediaType,
+          url: storagePath,
+          publicUrl,
+          size: file.size,
+          clubId: token.clubId,
+          exerciseId: createdExercise.id,
+          uploadedById: token.id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }).returning();
+      }
     }
     // Возвращаем упражнение с тегами и mediaItem и категорией
     const exerciseTags = tagIdsArray.length > 0 ? tags : [];

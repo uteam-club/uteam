@@ -227,17 +227,54 @@ export async function GET(
 
                     // Если не найден по ID, ищем по маппингу имен
                     if (!playerData && playerMappings.length > 0) {
+                      console.log(`🔍 Ищем по маппингу имен. Доступные маппинги:`, playerMappings.map(m => ({
+                        reportName: m.reportName,
+                        playerId: m.playerId
+                      })));
+                      
                       for (const mapping of playerMappings) {
                         // Ищем по имени из отчета
                         playerData = processedData.find((player: any) => {
                           const playerNameInData = player.name || player.Name || player.NAME || player.playerName;
-                          return playerNameInData === mapping.reportName;
+                          const isMatch = playerNameInData === mapping.reportName;
+                          if (isMatch) {
+                            console.log(`✅ Найдено совпадение: "${playerNameInData}" === "${mapping.reportName}"`);
+                          }
+                          return isMatch;
                         });
                         
                         if (playerData) {
                           console.log(`✅ Найден игрок по маппингу: ${mapping.reportName} -> ${playerId}`);
                           break;
                         }
+                      }
+                    }
+                    
+                    // Если все еще не найден, попробуем найти по частичному совпадению имени
+                    if (!playerData) {
+                      console.log(`🔍 Пробуем найти по частичному совпадению имени для игрока ${playerId}`);
+                      
+                      // Получаем имя игрока из базы данных
+                      const playerResult = await db.execute(sql`
+                        SELECT "firstName", "lastName" FROM "Player" WHERE "id" = ${playerId}::uuid
+                      `);
+                      
+                      if (playerResult.rows && playerResult.rows.length > 0) {
+                        const player = playerResult.rows[0] as any;
+                        const playerFullName = `${player.firstName} ${player.lastName}`;
+                        console.log(`🔍 Ищем игрока с именем: "${playerFullName}"`);
+                        
+                        // Ищем по частичному совпадению
+                        playerData = processedData.find((player: any) => {
+                          const playerNameInData = player.name || player.Name || player.NAME || player.playerName;
+                          const isMatch = playerNameInData.toLowerCase().includes(playerFullName.toLowerCase()) ||
+                                        playerFullName.toLowerCase().includes(playerNameInData.toLowerCase());
+                          
+                          if (isMatch) {
+                            console.log(`✅ Найдено частичное совпадение: "${playerNameInData}" ~ "${playerFullName}"`);
+                          }
+                          return isMatch;
+                        });
                       }
                     }
 
@@ -421,7 +458,7 @@ export async function GET(
       });
     }
 
-    return NextResponse.json({
+    const result = {
       averageMetrics,
       matchesCount: playerMatchData.length,
       totalMinutes: playerMatchData.reduce((sum, match) => sum + match.minutesPlayed, 0),
@@ -430,7 +467,16 @@ export async function GET(
         date: match.date,
         minutesPlayed: match.minutesPlayed
       }))
+    };
+    
+    console.log(`🎯 ИТОГОВЫЙ РЕЗУЛЬТАТ для игрока ${playerId}:`, {
+      matchesCount: result.matchesCount,
+      totalMinutes: result.totalMinutes,
+      averageMetricsKeys: Object.keys(result.averageMetrics),
+      analyzedMatches: result.analyzedMatches
     });
+    
+    return NextResponse.json(result);
 
   } catch (error) {
     console.error('Ошибка при получении игровой модели игрока:', error);

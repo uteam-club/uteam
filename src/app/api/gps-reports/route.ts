@@ -317,10 +317,10 @@ async function processDataAccordingToProfile(
       .from(player)
       .where(inArray(player.id, playerIds));
     
-    playersData.forEach(p => {
-      const fullName = `${p.firstName || ''} ${p.lastName || ''}`.trim();
-      playerDataMap.set(p.id, fullName || 'Неизвестный игрок');
-    });
+          playersData.forEach(p => {
+        const fullName = `${p.lastName || ''} ${p.firstName || ''}`.trim(); // Фамилия Имя
+        playerDataMap.set(p.id, fullName || 'Неизвестный игрок');
+      });
     
     console.log('🔍 Найдено игроков в БД:', playersData.length, 'шт');
   }
@@ -356,7 +356,7 @@ async function processDataAccordingToProfile(
       if (playerId) {
         processedRow.playerId = playerId;
         
-        // Получаем имя игрока из приложения
+        // Получаем имя игрока из приложения (формат: Фамилия Имя для консистентности)
         const appPlayerName = playerDataMap.get(playerId);
         processedRow.name = appPlayerName || playerName; // Используем имя из приложения или из отчета как fallback
         console.log(`✅ "${playerName}" -> "${processedRow.name}" (ID: ${playerId})`);

@@ -24,6 +24,7 @@ import { Label } from '@/components/ui/label';
 import AttendanceModal from '@/components/training/AttendanceModal';
 import SelectExercisesModal from '@/components/training/SelectExercisesModal';
 import { CreateTrainingModal } from '@/components/training/CreateTrainingModal';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 
@@ -873,15 +874,17 @@ export default function TrainingPage() {
                             return imageUrl ? (
                               <div className="w-full h-full flex items-center justify-center p-1">
                                 <div className="relative w-full h-full flex items-center justify-center">
-                                                                      <img 
-                                      src={imageUrl}
-                                      alt={exercise.title}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).src = `https://picsum.photos/seed/ex${exercise.id}/400/300`;
-                                        (e.target as HTMLImageElement).onerror = null;
-                                      }}
-                                    />
+                                  <OptimizedImage
+                                    src={imageUrl}
+                                    alt={exercise.title}
+                                    fill
+                                    className="w-full h-full"
+                                    objectFit="cover"
+                                    quality={85}
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                    showSkeleton={true}
+                                    fallbackSrc={`https://picsum.photos/seed/ex${exercise.id}/400/300`}
+                                  />
                                     
                                     {/* Кнопка воспроизведения видео (только для видео) */}
                                     {exercise.mediaItems && 

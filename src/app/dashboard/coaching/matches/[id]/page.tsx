@@ -560,6 +560,10 @@ export default function MatchDetailsPage() {
 
   // Handle opening squad selection modal
   const handleSquadModalOpen = () => {
+    // Очищаем предыдущие данные
+    setTeamPlayers([]);
+    setSquadPlayers({});
+    // Загружаем игроков для текущей команды матча
     fetchTeamPlayers();
     setSquadModalOpen(true);
   };
@@ -844,6 +848,9 @@ export default function MatchDetailsPage() {
   const handleEditSave = async () => {
     setSavingEdit(true);
     try {
+      // Проверяем, меняется ли команда
+      const isTeamChanging = match && editForm.teamId !== match.teamId;
+      
       const res = await fetch(`/api/matches/${matchId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -852,7 +859,19 @@ export default function MatchDetailsPage() {
       if (res.ok) {
         await fetchMatchDetails();
         setEditModalOpen(false);
-        toast({ title: 'Данные матча обновлены' });
+        
+        // Если команда изменилась, сбрасываем позиции игроков на поле
+        if (isTeamChanging) {
+          setPlayerPositions([]);
+          setPositionAssignments({});
+          setSquadPlayers({});
+          toast({ 
+            title: 'Команда изменена', 
+            description: 'Данные матча сброшены. Выберите новую команду для составления состава.' 
+          });
+        } else {
+          toast({ title: 'Данные матча обновлены' });
+        }
       } else {
         const err = await res.json();
         toast({ title: 'Ошибка', description: err.error || 'Не удалось обновить данные', variant: 'destructive' });
@@ -1172,7 +1191,7 @@ export default function MatchDetailsPage() {
                         {isEditingStats ? t('matchPage.save') : t('matchPage.edit')}
                       </Button>
                       <Button 
-                        className="w-full h-[33px] border border-vista-error/50 text-vista-error hover:bg-vista-error/10 flex items-center justify-center mt-2 transition-colors"
+                        className="w-full h-[33px] bg-vista-error/10 border border-vista-error/50 text-vista-error hover:bg-vista-error/20 flex items-center justify-center mt-2 transition-colors"
                         onClick={() => setIsDeleteDialogOpen(true)}
                       >
                         {t('matchPage.delete_match')}

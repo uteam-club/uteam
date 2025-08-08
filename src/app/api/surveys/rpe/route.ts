@@ -80,6 +80,9 @@ export async function POST(request: NextRequest) {
     
     const telegramId = playerRow.telegramId;
     const playerTeamId = playerRow.teamId;
+    const pinCode = playerRow.pinCode;
+    const language = playerRow.language || 'ru';
+    
     if (!telegramId || !playerTeamId) {
       return NextResponse.json({ error: 'У игрока не указан telegramId или teamId' }, { status: 400 });
     }
@@ -100,7 +103,14 @@ export async function POST(request: NextRequest) {
     const botRes = await fetch('http://158.160.189.99:8080/send-rpe-survey', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telegramId, clubId, teamId: playerTeamId, date })
+      body: JSON.stringify({ 
+        telegramId, 
+        clubId, 
+        teamId: playerTeamId, 
+        date,
+        pinCode: pinCode || '------',
+        language
+      })
     });
     
     const botData = await botRes.json();

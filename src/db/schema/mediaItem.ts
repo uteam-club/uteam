@@ -14,4 +14,6 @@ export const mediaItem = pgTable('MediaItem', {
   uploadedById: uuid('uploadedById').notNull(),
   exerciseId: uuid('exerciseId'),
   publicUrl: text('publicUrl'),
+  thumbnailUrl: text('thumbnailUrl'),
+  previewUrl: text('previewUrl'),
 }); 

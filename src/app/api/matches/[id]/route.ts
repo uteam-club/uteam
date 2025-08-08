@@ -124,12 +124,17 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (!existing) {
       return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
     }
+
+    // Проверяем, меняется ли команда
+    const isTeamChanging = 'teamId' in body && body.teamId !== existing.teamId;
+
     // Подготавливаем данные для обновления
     const updateData: any = {};
     if ('date' in body) updateData.date = typeof body.date === 'string' ? body.date.slice(0, 10) : undefined;
     if ('time' in body) updateData.time = body.time;
     if ('competitionType' in body) updateData.competitionType = body.competitionType;
     if ('isHome' in body) updateData.isHome = body.isHome;
+    if ('teamId' in body) updateData.teamId = body.teamId;
     if ('teamGoals' in body) updateData.teamGoals = body.teamGoals;
     if ('opponentGoals' in body) updateData.opponentGoals = body.opponentGoals;
     if ('opponentName' in body) updateData.opponentName = body.opponentName;
@@ -137,13 +142,32 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if ('formation' in body) updateData.formation = body.formation;
     if ('markerColor' in body) updateData.markerColor = body.markerColor;
     if ('notes' in body) updateData.notes = body.notes;
-    if ('playerPositions' in body) updateData.playerPositions = JSON.stringify(body.playerPositions);
-    if ('positionAssignments' in body) updateData.positionAssignments = JSON.stringify(body.positionAssignments);
     if ('status' in body) updateData.status = body.status;
+
+    // Если команда меняется, сбрасываем данные матча
+    if (isTeamChanging) {
+      // Сбрасываем позиции игроков и привязки
+      updateData.playerPositions = null;
+      updateData.positionAssignments = null;
+      // Сбрасываем счет, если матч еще не завершен
+      if (existing.status !== 'FINISHED') {
+        updateData.teamGoals = 0;
+        updateData.opponentGoals = 0;
+      }
+      
+      // Удаляем все статистики игроков для старой команды
+      await db.delete(playerMatchStat).where(eq(playerMatchStat.matchId, matchId));
+    } else {
+      // Если команда не меняется, сохраняем позиции и привязки
+      if ('playerPositions' in body) updateData.playerPositions = JSON.stringify(body.playerPositions);
+      if ('positionAssignments' in body) updateData.positionAssignments = JSON.stringify(body.positionAssignments);
+    }
+
     const [updated] = await db.update(match)
       .set(updateData)
       .where(eq(match.id, matchId))
       .returning();
+    
     return NextResponse.json(updated);
   } catch (error) {
     console.error('Ошибка при обновлении матча:', error);

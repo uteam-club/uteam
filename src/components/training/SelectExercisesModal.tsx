@@ -7,6 +7,7 @@ import { Badge } from '../ui/badge';
 import { Checkbox } from '../ui/checkbox';
 import { X, Check, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import OptimizedImage from '../ui/OptimizedImage';
 
 interface Author { id: string; name: string; }
 interface Category { id: string; name: string; }
@@ -235,14 +236,16 @@ const SelectExercisesModal: React.FC<SelectExercisesModalProps> = (props) => {
                     {/* Медиа изображение */}
                     <div className="relative overflow-hidden bg-vista-dark/30" style={{ aspectRatio: '4/3' }}>
                       {exercise.mediaItems && exercise.mediaItems.length > 0 ? (
-                        <img
+                        <OptimizedImage
                           src={exercise.mediaItems[0].publicUrl || exercise.mediaItems[0].url}
                           alt={exercise.title}
-                          className="max-h-full max-w-full object-contain"
-                          onError={e => {
-                            (e.target as HTMLImageElement).src = `https://picsum.photos/seed/ex${exercise.id}/300/200`;
-                            (e.target as HTMLImageElement).onerror = null;
-                          }}
+                          fill
+                          className="w-full h-full"
+                          objectFit="contain"
+                          quality={85}
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          showSkeleton={true}
+                          fallbackSrc={`https://picsum.photos/seed/ex${exercise.id}/300/200`}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-vista-light/50">
