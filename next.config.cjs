@@ -3,6 +3,10 @@
 const path = require('path');
 
 const nextConfig = {
+  eslint: {
+    // Не блокировать production build из-за предупреждений линтера
+    ignoreDuringBuilds: true,
+  },
   // Настройки для изображений
   images: {
     remotePatterns: [

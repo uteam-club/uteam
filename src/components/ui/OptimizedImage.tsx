@@ -152,7 +152,7 @@ function OptimizedImage({
           src={currentSrc}
           alt={alt}
           className={cn(
-            'transition-opacity duration-300',
+            'block transition-opacity duration-300',
             isLoading ? 'opacity-0' : 'opacity-100',
             objectFit === 'contain' ? 'object-contain' : 
             objectFit === 'cover' ? 'object-cover' : 
@@ -203,7 +203,7 @@ function OptimizedImage({
         placeholder={blur && blurDataURL ? 'blur' : 'empty'}
         blurDataURL={blur ? blurDataURL : undefined}
         className={cn(
-          'transition-opacity duration-300',
+          'block transition-opacity duration-300',
           isLoading ? 'opacity-0' : 'opacity-100',
           objectFit === 'contain' ? 'object-contain' : 
           objectFit === 'cover' ? 'object-cover' : 

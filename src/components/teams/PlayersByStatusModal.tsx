@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { UserIcon } from 'lucide-react';
 import React from 'react';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 interface Player {
   id: string;
@@ -38,7 +39,7 @@ export function PlayersByStatusModal({
       <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-hidden backdrop-blur-xl">
         <DialogHeader>
           <DialogTitle className="text-vista-light text-xl">
-            Игроки со статусом "{statusTitle}"
+            Игроки со статусом &quot;{statusTitle}&quot;
           </DialogTitle>
         </DialogHeader>
         <div className="py-4 max-h-[350px] overflow-y-auto">
@@ -48,10 +49,13 @@ export function PlayersByStatusModal({
                 <div key={player.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-vista-dark/70">
                   {player.imageUrl ? (
                     <div className="w-10 h-10 rounded-full overflow-hidden mr-3 relative bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
-                      <img
+                      <OptimizedImage
                         src={player.imageUrl}
                         alt={`${player.firstName} ${player.lastName}`}
-                        className="w-full h-full object-cover"
+                        width={40}
+                        height={40}
+                        objectFit="cover"
+                        showSkeleton={false}
                       />
                     </div>
                   ) : (

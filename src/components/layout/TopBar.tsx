@@ -2,6 +2,7 @@
 
 import { useState, memo, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { usePathname } from 'next/navigation';
 import { useClub } from '@/providers/club-provider';
 import { 
@@ -255,14 +256,44 @@ function TopBar({ userName, userRole }: TopBarProps) {
     <nav className="bg-vista-dark border-b-[2px] border-vista-secondary fixed top-0 right-0 left-0 z-[99999]" ref={dropdownRef}>
       <div className="container mx-auto px-4">
         <div className="h-16 flex items-center justify-between">
-          <div className="flex-shrink-0">
-            <Link href="/dashboard">
+          <div className="flex-shrink-0 flex items-center h-16">
+            <Link href="/dashboard" className="flex items-center h-full pl-4 pr-2">
               {club && club.logoUrl && club.logoUrl !== 'null' && club.logoUrl !== 'undefined' && club.logoUrl.trim() !== '' ? (
-                <img src={club.logoUrl} alt={club?.name || 'Логотип клуба'} className="h-8 w-auto" />
+                <div className="flex items-center justify-center w-12 h-10">
+                  <OptimizedImage 
+                    src={club.logoUrl} 
+                    alt={club?.name || 'Логотип клуба'} 
+                    height={24} 
+                    width={36} 
+                    objectFit="contain" 
+                    className="max-w-full max-h-full" 
+                    showSkeleton={false} 
+                  />
+                </div>
               ) : club?.subdomain === 'fdcvista' ? (
-                <img src="/vista.png" alt="FDC Vista" className="h-8 w-auto" />
+                <div className="flex items-center justify-center w-12 h-10">
+                  <OptimizedImage 
+                    src="/vista.png" 
+                    alt="FDC Vista" 
+                    height={24} 
+                    width={36} 
+                    objectFit="contain" 
+                    className="max-w-full max-h-full" 
+                    showSkeleton={false} 
+                  />
+                </div>
               ) : club?.subdomain === 'van' ? (
-                <img src="/van.png" alt="FC VAN" className="h-8 w-auto" />
+                <div className="flex items-center justify-center w-12 h-10">
+                  <OptimizedImage 
+                    src="/van.png" 
+                    alt="FC VAN" 
+                    height={24} 
+                    width={36} 
+                    objectFit="contain" 
+                    className="max-w-full max-h-full" 
+                    showSkeleton={false} 
+                  />
+                </div>
               ) : null}
             </Link>
           </div>

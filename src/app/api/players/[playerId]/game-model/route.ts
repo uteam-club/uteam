@@ -377,11 +377,16 @@ export async function GET(
               
               if (column.isVisible && playerData[column.mappedColumn] !== undefined) {
                 const rawValue = parseFloat(playerData[column.mappedColumn]) || 0;
-                // Нормализуем на 90 минут
-                const normalizedValue = minutesPlayed > 0 ? (rawValue / minutesPlayed) * 90 : 0;
-                // Используем name для ключа метрики
                 const displayKey = column.name;
-                metrics[displayKey] = normalizedValue;
+
+                // Для процентных/скоростных метрик нормализацию не применяем
+                const isRateOrPercent = displayKey === 'HSR%' || displayKey === 'm/min' || displayKey?.toLowerCase()?.includes('/min');
+
+                const valueForModel = isRateOrPercent
+                  ? rawValue
+                  : (minutesPlayed > 0 ? (rawValue / minutesPlayed) * 90 : 0);
+
+                metrics[displayKey] = valueForModel;
                 
                 // Детальные логи для Total Distance
                 if (column.name === 'Total distance' || column.mappedColumn === 'Total distance') {
@@ -389,11 +394,11 @@ export async function GET(
                   console.log(`   - Сырое значение из GPS: ${playerData[column.mappedColumn]}`);
                   console.log(`   - Парсированное значение: ${rawValue}`);
                   console.log(`   - Время на поле: ${minutesPlayed} минут`);
-                  console.log(`   - Нормализация: (${rawValue} / ${minutesPlayed}) * 90 = ${normalizedValue}`);
-                  console.log(`   - Формула: ${rawValue} / ${minutesPlayed} * 90 = ${normalizedValue}`);
+                  console.log(`   - Нормализация: (${rawValue} / ${minutesPlayed}) * 90 = ${(minutesPlayed > 0 ? (rawValue / minutesPlayed) * 90 : 0)}`);
+                  console.log(`   - Формула: ${rawValue} / ${minutesPlayed} * 90`);
                 }
                 
-                console.log(`   ✅ Добавлена метрика "${displayKey}": ${rawValue} -> ${normalizedValue} (нормализовано)`);
+                console.log(`   ✅ Добавлена метрика "${displayKey}": ${rawValue} -> ${valueForModel} (${isRateOrPercent ? 'без нормализации' : 'нормализовано per90'})`);
               } else {
                 console.log(`   ❌ Метрика "${column.name}" пропущена`);
               }
