@@ -1,10 +1,10 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
-console.log('YANDEX_STORAGE_BUCKET', process.env.YANDEX_STORAGE_BUCKET);
-console.log('YANDEX_STORAGE_REGION', process.env.YANDEX_STORAGE_REGION);
-console.log('YANDEX_STORAGE_ENDPOINT', process.env.YANDEX_STORAGE_ENDPOINT);
-console.log('YANDEX_STORAGE_ACCESS_KEY', process.env.YANDEX_STORAGE_ACCESS_KEY);
-console.log('YANDEX_STORAGE_SECRET_KEY', process.env.YANDEX_STORAGE_SECRET_KEY);
+if (process.env.NODE_ENV !== 'production') {
+  console.log('YANDEX_STORAGE_BUCKET', process.env.YANDEX_STORAGE_BUCKET);
+  console.log('YANDEX_STORAGE_REGION', process.env.YANDEX_STORAGE_REGION);
+  console.log('YANDEX_STORAGE_ENDPOINT', process.env.YANDEX_STORAGE_ENDPOINT);
+}
 
 const s3 = new S3Client({
   region: process.env.YANDEX_STORAGE_REGION,

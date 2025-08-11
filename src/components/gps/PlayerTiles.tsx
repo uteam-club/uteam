@@ -314,11 +314,11 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
                         return null;
                       }
 
-                      // Динамическая нормализация: если игрок сыграл 70 минут, 
-                      // то сравниваем с его средними показателями за 70 минут
-                      const normalizedAverage = currentMinutes > 0 
-                        ? (averageMetric.average / 90) * currentMinutes 
-                        : averageMetric.average;
+                      // Если метрика процент/скорость — сравниваем без масштабирования по минутам
+                      const isRateOrPercent = metricName === 'HSR%' || metricName === 'm/min' || metricName.toLowerCase().includes('/min');
+                      const normalizedAverage = isRateOrPercent
+                        ? averageMetric.average
+                        : (currentMinutes > 0 ? (averageMetric.average / 90) * currentMinutes : averageMetric.average);
 
                       const comparison = getComparisonIndicator(currentValue, normalizedAverage);
                       const cardBackground = getMetricCardBackground(currentValue, normalizedAverage);

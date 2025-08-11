@@ -101,22 +101,8 @@ const COLORS = {
 const ZONE_COLORS = ['#F59E0B', '#EF4444', '#8B5CF6'];
 
 export default function GpsVisualization({ data, profile, eventName, eventDate, teamName, reportId, teamId, eventType, isPublic = false }: GpsVisualizationProps) {
-  // Дополнительная проверка данных
-  if (!data || data.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-vista-light">Нет данных для визуализации</p>
-      </div>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-vista-light">Профиль не загружен</p>
-      </div>
-    );
-  }
+  const hasNoData = !Array.isArray(data) || data.length === 0;
+  const hasNoProfile = !profile;
 
   const columnMapping = profile.columnMapping;
   
@@ -208,11 +194,11 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
   }, [metrics, selectedMetric]);
 
   // Устанавливаем тип графика из профиля
-  useMemo(() => {
+  useEffect(() => {
     if (profile?.visualizationConfig?.defaultChartType) {
       setChartType(profile.visualizationConfig.defaultChartType);
     }
-  }, [profile]);
+  }, [profile?.visualizationConfig?.defaultChartType]);
 
   const getMetricUnit = (field: string) => {
     if (!field) return '';
@@ -407,11 +393,20 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
     });
   }, [averageMetrics, profile, data]);
 
-  if (!data.length) {
+  if (hasNoData) {
     return (
       <div className="text-center py-12 text-vista-light/50">
         <BarChart3 className="w-16 h-16 mx-auto mb-4 opacity-50" />
         <p>Нет данных для визуализации</p>
+      </div>
+    );
+  }
+
+  if (hasNoProfile) {
+    return (
+      <div className="text-center py-12 text-vista-light/50">
+        <BarChart3 className="w-16 h-16 mx-auto mb-4 opacity-50" />
+        <p>Профиль не загружен</p>
       </div>
     );
   }
@@ -645,6 +640,14 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
             const totalMinutes = Math.round(hours * 60 + minutes + seconds / 60);
             
             currentMatchMinutes[player.name] = totalMinutes;
+          });
+
+          console.log('🔍 GpsVisualization - Passing data to PlayerTiles:', {
+            dataLength: data.length,
+            teamId,
+            profileId: profile.id,
+            currentMatchMinutes,
+            isPublic
           });
 
           return (

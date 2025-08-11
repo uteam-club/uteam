@@ -227,17 +227,54 @@ export async function GET(
 
                     // Если не найден по ID, ищем по маппингу имен
                     if (!playerData && playerMappings.length > 0) {
+                      console.log(`🔍 Ищем по маппингу имен. Доступные маппинги:`, playerMappings.map(m => ({
+                        reportName: m.reportName,
+                        playerId: m.playerId
+                      })));
+                      
                       for (const mapping of playerMappings) {
                         // Ищем по имени из отчета
                         playerData = processedData.find((player: any) => {
                           const playerNameInData = player.name || player.Name || player.NAME || player.playerName;
-                          return playerNameInData === mapping.reportName;
+                          const isMatch = playerNameInData === mapping.reportName;
+                          if (isMatch) {
+                            console.log(`✅ Найдено совпадение: "${playerNameInData}" === "${mapping.reportName}"`);
+                          }
+                          return isMatch;
                         });
                         
                         if (playerData) {
                           console.log(`✅ Найден игрок по маппингу: ${mapping.reportName} -> ${playerId}`);
                           break;
                         }
+                      }
+                    }
+                    
+                    // Если все еще не найден, попробуем найти по частичному совпадению имени
+                    if (!playerData) {
+                      console.log(`🔍 Пробуем найти по частичному совпадению имени для игрока ${playerId}`);
+                      
+                      // Получаем имя игрока из базы данных
+                      const playerResult = await db.execute(sql`
+                        SELECT "firstName", "lastName" FROM "Player" WHERE "id" = ${playerId}::uuid
+                      `);
+                      
+                      if (playerResult.rows && playerResult.rows.length > 0) {
+                        const player = playerResult.rows[0] as any;
+                        const playerFullName = `${player.firstName} ${player.lastName}`;
+                        console.log(`🔍 Ищем игрока с именем: "${playerFullName}"`);
+                        
+                        // Ищем по частичному совпадению
+                        playerData = processedData.find((player: any) => {
+                          const playerNameInData = player.name || player.Name || player.NAME || player.playerName;
+                          const isMatch = playerNameInData.toLowerCase().includes(playerFullName.toLowerCase()) ||
+                                        playerFullName.toLowerCase().includes(playerNameInData.toLowerCase());
+                          
+                          if (isMatch) {
+                            console.log(`✅ Найдено частичное совпадение: "${playerNameInData}" ~ "${playerFullName}"`);
+                          }
+                          return isMatch;
+                        });
                       }
                     }
 
@@ -340,11 +377,16 @@ export async function GET(
               
               if (column.isVisible && playerData[column.mappedColumn] !== undefined) {
                 const rawValue = parseFloat(playerData[column.mappedColumn]) || 0;
-                // Нормализуем на 90 минут
-                const normalizedValue = minutesPlayed > 0 ? (rawValue / minutesPlayed) * 90 : 0;
-                // Используем name для ключа метрики
                 const displayKey = column.name;
-                metrics[displayKey] = normalizedValue;
+
+                // Для процентных/скоростных метрик нормализацию не применяем
+                const isRateOrPercent = displayKey === 'HSR%' || displayKey === 'm/min' || displayKey?.toLowerCase()?.includes('/min');
+
+                const valueForModel = isRateOrPercent
+                  ? rawValue
+                  : (minutesPlayed > 0 ? (rawValue / minutesPlayed) * 90 : 0);
+
+                metrics[displayKey] = valueForModel;
                 
                 // Детальные логи для Total Distance
                 if (column.name === 'Total distance' || column.mappedColumn === 'Total distance') {
@@ -352,11 +394,11 @@ export async function GET(
                   console.log(`   - Сырое значение из GPS: ${playerData[column.mappedColumn]}`);
                   console.log(`   - Парсированное значение: ${rawValue}`);
                   console.log(`   - Время на поле: ${minutesPlayed} минут`);
-                  console.log(`   - Нормализация: (${rawValue} / ${minutesPlayed}) * 90 = ${normalizedValue}`);
-                  console.log(`   - Формула: ${rawValue} / ${minutesPlayed} * 90 = ${normalizedValue}`);
+                  console.log(`   - Нормализация: (${rawValue} / ${minutesPlayed}) * 90 = ${(minutesPlayed > 0 ? (rawValue / minutesPlayed) * 90 : 0)}`);
+                  console.log(`   - Формула: ${rawValue} / ${minutesPlayed} * 90`);
                 }
                 
-                console.log(`   ✅ Добавлена метрика "${displayKey}": ${rawValue} -> ${normalizedValue} (нормализовано)`);
+                console.log(`   ✅ Добавлена метрика "${displayKey}": ${rawValue} -> ${valueForModel} (${isRateOrPercent ? 'без нормализации' : 'нормализовано per90'})`);
               } else {
                 console.log(`   ❌ Метрика "${column.name}" пропущена`);
               }
@@ -421,7 +463,7 @@ export async function GET(
       });
     }
 
-    return NextResponse.json({
+    const result = {
       averageMetrics,
       matchesCount: playerMatchData.length,
       totalMinutes: playerMatchData.reduce((sum, match) => sum + match.minutesPlayed, 0),
@@ -430,7 +472,16 @@ export async function GET(
         date: match.date,
         minutesPlayed: match.minutesPlayed
       }))
+    };
+    
+    console.log(`🎯 ИТОГОВЫЙ РЕЗУЛЬТАТ для игрока ${playerId}:`, {
+      matchesCount: result.matchesCount,
+      totalMinutes: result.totalMinutes,
+      averageMetricsKeys: Object.keys(result.averageMetrics),
+      analyzedMatches: result.analyzedMatches
     });
+    
+    return NextResponse.json(result);
 
   } catch (error) {
     console.error('Ошибка при получении игровой модели игрока:', error);
