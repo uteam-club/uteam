@@ -89,34 +89,17 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🔍 PUT /api/exercises/[id] - Начало обработки');
-  
   const token = await getToken({ req: req });
-  console.log('🔍 Токен получен:', { 
-    hasToken: !!token, 
-    userId: token?.id, 
-    role: token?.role, 
-    clubId: token?.clubId 
-  });
   
   if (!token) {
-    console.log('❌ Токен отсутствует');
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   
   const permissions = await getUserPermissions(token.id);
-  console.log('🔍 Права пользователя получены:', { 
-    permissions, 
-    hasExercisesUpdate: permissions['exercises.update'],
-    allPermissionCodes: Object.keys(permissions)
-  });
   
   if (!hasPermission(permissions, 'exercises.update')) {
-    console.log('❌ У пользователя нет права exercises.update');
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-  
-  console.log('✅ Право exercises.update подтверждено');
   try {
     const clubId = token.clubId;
     const userId = token.id;
