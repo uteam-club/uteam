@@ -313,14 +313,19 @@ export default function ExercisesPage() {
   // Обработчик загрузки файла для редактирования
   const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
+    console.log('📁 handleEditFileChange вызван, файл:', file ? `${file.name} (${file.size} байт, ${file.type})` : 'null');
+    
     setEditExerciseForm((prev) => ({ ...prev, file }));
     
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
+        console.log('🖼️ FileReader завершен, результат:', reader.result ? 'data URL получен' : 'ошибка');
         setFilePreviewEdit(reader.result as string);
       };
       reader.readAsDataURL(file);
+    } else {
+      setFilePreviewEdit(null);
     }
   };
 
@@ -399,8 +404,21 @@ export default function ExercisesPage() {
       });
       
       if (editExerciseForm.file) {
+        console.log('📁 Отправляем файл для замены:', editExerciseForm.file.name, 'Размер:', editExerciseForm.file.size, 'Тип:', editExerciseForm.file.type);
         formData.append('file', editExerciseForm.file);
+      } else {
+        console.log('ℹ️ Файл для замены не выбран');
       }
+      
+      console.log('📤 Отправляем данные формы:', {
+        title: editExerciseForm.title,
+        description: editExerciseForm.description,
+        categoryId: editExerciseForm.categoryId,
+        length: editExerciseForm.length,
+        width: editExerciseForm.width,
+        tags: editExerciseForm.tags,
+        hasFile: !!editExerciseForm.file
+      });
       
       // Создаем "предполагаемое" обновленное упражнение для оптимистичного обновления
       const optimisticExercise = {
@@ -414,6 +432,15 @@ export default function ExercisesPage() {
         ).filter(Boolean) as Tag[],
         length: editExerciseForm.length ? parseFloat(editExerciseForm.length) : previewExercise.length,
         width: editExerciseForm.width ? parseFloat(editExerciseForm.width) : previewExercise.width,
+        // Обновляем mediaItems если загружен новый файл
+        mediaItems: editExerciseForm.file ? [{
+          id: 'temp-' + Date.now(),
+          name: editExerciseForm.file.name,
+          type: editExerciseForm.file.type?.startsWith('image/') ? 'IMAGE' : (editExerciseForm.file.type?.startsWith('video/') ? 'VIDEO' : 'OTHER'),
+          url: 'temp',
+          publicUrl: filePreviewEdit || '',
+          size: editExerciseForm.file.size
+        }] : (previewExercise.mediaItems || [])
       };
       
       // Закрываем режим редактирования сразу
@@ -450,6 +477,8 @@ export default function ExercisesPage() {
       
       // Получаем обновленные данные
       const updatedExercise = await response.json();
+      console.log('📥 Получен ответ от сервера:', updatedExercise);
+      console.log('🖼️ MediaItems в ответе:', updatedExercise.mediaItems);
       
       // Используем временную метку для предотвращения кеширования
       const timestamp = Date.now();
@@ -487,7 +516,9 @@ export default function ExercisesPage() {
             // Добавляем данные, которые могут отсутствовать в ответе API
             author: prevState.author,
             category: categoriesData.find((c: Category) => c.id === updatedExercise.categoryId) || prevState.category,
-            tags: updatedExercise.tags || prevState.tags
+            tags: updatedExercise.tags || prevState.tags,
+            // Обновляем mediaItems из ответа сервера
+            mediaItems: updatedExercise.mediaItems || prevState.mediaItems
           };
         }
         return null;
@@ -1196,6 +1227,22 @@ export default function ExercisesPage() {
         onCancel={() => setIsEditMode(false)}
         editForm={editExerciseForm}
         onEditChange={handleEditInputChange}
+        filteredEditTags={filteredEditTags}
+        onEditTagToggle={(tagId) => {
+          if (tagId === 'clear') {
+            setEditExerciseForm((prev) => ({ ...prev, tags: [] }));
+            return;
+          }
+          setEditExerciseForm((prev) => {
+            const isSelected = prev.tags.includes(tagId);
+            return {
+              ...prev,
+              tags: isSelected ? prev.tags.filter((id) => id !== tagId) : [...prev.tags, tagId]
+            };
+          });
+        }}
+        onEditFileChange={handleEditFileChange}
+        filePreviewEdit={filePreviewEdit}
         editErrors={editErrors}
         loading={false}
         categories={categoriesData}

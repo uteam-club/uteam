@@ -43,6 +43,11 @@ interface PreviewExerciseModalProps {
     file: File | null;
   };
   onEditChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  // Новые пропсы для редактирования тегов и картинки
+  filteredEditTags?: { id: string; name: string }[];
+  onEditTagToggle?: (tagId: string) => void;
+  onEditFileChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  filePreviewEdit?: string | null;
   editErrors: {
     title?: string;
     description?: string;
@@ -64,6 +69,10 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
   onCancel,
   editForm,
   onEditChange,
+  filteredEditTags = [],
+  onEditTagToggle,
+  onEditFileChange,
+  filePreviewEdit,
   editErrors,
   loading = false,
   categories = [],
@@ -150,6 +159,58 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
                     ))}
                   </select>
                   {editErrors.categoryId && <p className="text-red-400 text-sm">{editErrors.categoryId}</p>}
+                </div>
+                {/* Теги упражнения */}
+                <div className="space-y-2 mb-4">
+                    <Label className="text-vista-light/40 font-normal">{t('exercisesPage.tags_label')}</Label>
+                  {filteredEditTags && filteredEditTags.length > 0 ? (
+                    <div className="max-h-60 overflow-y-auto p-2 rounded-md border border-vista-secondary/30 bg-vista-dark/40 space-y-1">
+                      <button
+                        type="button"
+                        className="mb-1 w-full text-left text-xs text-vista-light/60 hover:text-vista-primary"
+                        onClick={() => onEditTagToggle && onEditTagToggle('clear')}
+                        disabled={loading}
+                      >
+                        {t('exercisesPage.clear_selection')}
+                      </button>
+                      {filteredEditTags.map(tag => (
+                        <div key={tag.id} className="flex items-center gap-2 py-1">
+                          <input
+                            type="checkbox"
+                            checked={editForm.tags.includes(tag.id)}
+                            onChange={() => onEditTagToggle && onEditTagToggle(tag.id)}
+                            className="accent-vista-primary"
+                            id={`edit-tag-${tag.id}`}
+                            disabled={loading}
+                          />
+                          <label htmlFor={`edit-tag-${tag.id}`} className="text-sm cursor-pointer">
+                            {tag.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-vista-light/50 text-sm">{t('exercisesPage.no_tags_for_category')}</div>
+                  )}
+                </div>
+
+                {/* Замена изображения */}
+                <div className="space-y-2 mb-2">
+                    <Label htmlFor="edit-file" className="text-vista-light/40 font-normal">{t('exercisesPage.media_label')}</Label>
+                  <Input
+                    id="edit-file"
+                    name="file"
+                    type="file"
+                    accept="image/*,video/*"
+                    onChange={onEditFileChange}
+                    className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
+                    disabled={loading}
+                  />
+                  {filePreviewEdit && (
+                    <div className="mt-2">
+                        <img src={filePreviewEdit} alt={t('exercisesPage.media_preview_alt')} className="max-h-40 rounded-md border border-vista-secondary/30" />
+                    </div>
+                  )}
                 </div>
               </>
             ) : (

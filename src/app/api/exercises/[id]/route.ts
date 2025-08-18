@@ -3,7 +3,7 @@ import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
-import { uploadFile, getFileUrl } from '@/lib/yandex-storage';
+import { uploadFile, getFileUrl, deleteFile } from '@/lib/yandex-storage';
 import { db } from '@/lib/db';
 import { exercise, user, exerciseCategory, exerciseTag, mediaItem, exerciseTagToExercise } from '@/db/schema';
 import { eq, and, inArray, ilike } from 'drizzle-orm';
@@ -149,23 +149,54 @@ export async function PUT(
       // Обновляем упражнение
       await tx.update(exercise).set({ title, description, categoryId, length, width }).where(eq(exercise.id, params.id));
     });
-    // Если есть файл, сохраняем
+    // Если есть файл, заменяем старый: удаляем из S3 и БД, затем загружаем новый
     if (file) {
+      console.log('🔄 Заменяем изображение упражнения:', params.id, 'Новый файл:', file.name, 'Размер:', file.size);
+      
+      // Находим старые mediaItems упражнения
+      const oldMedia = await db.select().from(mediaItem).where(eq(mediaItem.exerciseId, params.id));
+      console.log('📁 Найдено старых mediaItems:', oldMedia.length);
+      
+      if (oldMedia.length > 0) {
+        // Пытаемся удалить файлы из хранилища, игнорируем ошибки удаления отдельных файлов
+        for (const m of oldMedia) {
+          try {
+            if (m.url) {
+              console.log('🗑️ Удаляем файл из хранилища:', m.url);
+              await deleteFile(m.url);
+            }
+          } catch (e) {
+            console.warn('⚠️ Не удалось удалить файл из хранилища:', m.url, e);
+          }
+        }
+        // Удаляем записи из БД
+        console.log('🗑️ Удаляем записи mediaItems из БД');
+        await db.delete(mediaItem).where(eq(mediaItem.exerciseId, params.id));
+      }
+      
       const storagePath = `clubs/${clubId}/exercises/${params.id}/${file.name}`;
+      console.log('💾 Сохраняем новый файл по пути:', storagePath);
+      
       // Преобразуем File в Buffer
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       await uploadFile(buffer, storagePath, file.type);
-      await db.insert(mediaItem).values({
+      console.log('✅ Файл загружен в хранилище');
+      
+      const newMediaItem = await db.insert(mediaItem).values({
         name: file.name,
-        type: 'OTHER',
+        type: file.type?.startsWith('image/') ? 'IMAGE' : (file.type?.startsWith('video/') ? 'VIDEO' : 'OTHER'),
         url: storagePath,
         publicUrl: getFileUrl(storagePath),
         size: file.size,
         clubId,
         exerciseId: params.id,
         uploadedById: userId,
-      });
+      }).returning();
+      
+      console.log('💾 Создана запись mediaItem в БД:', newMediaItem[0]?.id);
+    } else {
+      console.log('ℹ️ Новый файл не загружен, изображение не меняется');
     }
     // После обновления возвращаем полный объект упражнения
     // Получаем упражнение
