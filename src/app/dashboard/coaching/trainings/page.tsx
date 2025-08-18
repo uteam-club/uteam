@@ -26,6 +26,7 @@ import { useRouter } from 'next/navigation';
 import { useTrainingCategories } from '@/hooks/useExerciseData';
 import { CreateTrainingModal } from '@/components/training/CreateTrainingModal';
 import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
 
 // Типы данных
 interface Team {
@@ -114,6 +115,7 @@ export default function TrainingsPage() {
         }
         
         const data = await response.json();
+        console.log('🔍 Загруженные команды:', data);
         setTeams(data);
       } catch (error) {
         console.error('Ошибка при загрузке команд:', error);
@@ -136,6 +138,10 @@ export default function TrainingsPage() {
         if (!response.ok) throw new Error('Не удалось загрузить тренировки');
         const data = await response.json();
         
+        console.log('🔍 Полученные тренировки:', data);
+        console.log('🔍 Пример первой тренировки:', data[0]);
+        console.log('🔍 Поля тренировки:', data[0] ? Object.keys(data[0]) : 'Нет данных');
+        
         const trainingsWithData = data.map((training: Training) => {
           const isCompleted = training.status === 'COMPLETED';
           return {
@@ -143,6 +149,8 @@ export default function TrainingsPage() {
             isCompleted
           };
         });
+        
+        console.log('🔍 Обработанные тренировки:', trainingsWithData);
         
         const sortedTrainings = trainingsWithData.sort((a: Training, b: Training) => {
           return new Date(b.date).getTime() - new Date(a.date).getTime();
@@ -164,30 +172,73 @@ export default function TrainingsPage() {
   
   // Фильтрация тренировок
   const filteredTrainings = useMemo(() => {
-    return trainings.filter(training => {
+    console.log('🔍 Фильтрация тренировок:');
+    console.log('🔍 Поиск:', searchQuery);
+    console.log('🔍 Команда:', selectedTeam);
+    console.log('🔍 Категория:', selectedCategory);
+    console.log('🔍 Дата начала:', startDate);
+    console.log('🔍 Дата окончания:', endDate);
+    console.log('🔍 Всего тренировок:', trainings.length);
+    console.log('🔍 Доступные команды:', teams.map(t => ({ id: t.id, name: t.name })));
+    console.log('🔍 Доступные категории:', categories.map((c: Category) => ({ id: c.id, name: c.name })));
+    
+    const filtered = trainings.filter(training => {
+      console.log('🔍 Проверяем тренировку:', {
+        name: training.name,
+        teamId: training.teamId,
+        team: training.team,
+        categoryId: training.categoryId,
+        category: training.category
+      });
+      
       if (searchQuery && !training.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        console.log('❌ Отфильтровано по поиску');
         return false;
       }
       
-      if (selectedTeam && training.teamId !== selectedTeam) {
-        return false;
+      if (selectedTeam) {
+        // Находим команду по ID и сравниваем название
+        const selectedTeamName = teams.find(t => t.id === selectedTeam)?.name;
+        if (selectedTeamName && training.team !== selectedTeamName) {
+          console.log('❌ Отфильтровано по команде:', {
+            trainingTeamName: training.team,
+            selectedTeamName: selectedTeamName,
+            isEqual: training.team === selectedTeamName
+          });
+          return false;
+        }
       }
       
-      if (selectedCategory && training.categoryId !== selectedCategory) {
-        return false;
+      if (selectedCategory) {
+        // Находим категорию по ID и сравниваем название
+        const selectedCategoryName = categories.find((c: Category) => c.id === selectedCategory)?.name;
+        if (selectedCategoryName && training.category !== selectedCategoryName) {
+          console.log('❌ Отфильтровано по категории:', {
+            trainingCategoryName: training.category,
+            selectedCategoryName: selectedCategoryName,
+            isEqual: training.category === selectedCategoryName
+          });
+          return false;
+        }
       }
       
       if (startDate && training.date < startDate) {
+        console.log('❌ Отфильтровано по дате начала');
         return false;
       }
       
       if (endDate && training.date > endDate) {
+        console.log('❌ Отфильтровано по дате окончания');
         return false;
       }
       
+      console.log('✅ Тренировка прошла фильтрацию');
       return true;
     });
-  }, [trainings, searchQuery, selectedTeam, selectedCategory, startDate, endDate]);
+    
+    console.log('🔍 Результат фильтрации:', filtered.length, 'тренировок');
+    return filtered;
+  }, [trainings, searchQuery, selectedTeam, selectedCategory, startDate, endDate, teams, categories]);
 
   // Пагинация
   const totalPages = Math.ceil(filteredTrainings.length / trainingsPerPage);
@@ -197,6 +248,13 @@ export default function TrainingsPage() {
 
   // Сброс страницы при изменении фильтров
   useEffect(() => {
+    console.log('🔍 Сброс страницы при изменении фильтров:', {
+      searchQuery,
+      selectedTeam,
+      selectedCategory,
+      startDate,
+      endDate
+    });
     setCurrentPage(1);
   }, [searchQuery, selectedTeam, selectedCategory, startDate, endDate]);
   
@@ -256,23 +314,16 @@ export default function TrainingsPage() {
       const response = await fetch('/api/trainings', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(trainingData)
+        body: JSON.stringify(trainingData),
       });
       
       if (!response.ok) {
-        throw new Error(t('trainingsPage.error_creating_training'));
+        throw new Error('Не удалось создать тренировку');
       }
       
-      const createdTraining = await response.json();
-      
-      setTrainings(prev => [...prev, {
-        ...createdTraining,
-        team: teams.find(t => t.id === createdTraining.teamId)?.name || '',
-        category: categories.find((c: Category) => c.id === createdTraining.categoryId)?.name || ''
-      }]);
-      
+      // Сброс формы и закрытие модального окна
       setNewTraining({
         title: '',
         teamId: '',
@@ -281,16 +332,24 @@ export default function TrainingsPage() {
         categoryId: '',
         type: 'TRAINING'
       });
+      setErrors({
+        title: '',
+        teamId: '',
+        date: '',
+        categoryId: ''
+      });
       setIsCreateDialogOpen(false);
       
+      // Обновление списка тренировок
+      window.location.reload();
     } catch (error) {
-      console.error(t('trainingsPage.error_creating_training'), error);
-      alert(t('trainingsPage.error_creating_training_alert'));
+      console.error('Ошибка при создании тренировки:', error);
     }
   };
   
-  // Функция сброса фильтров
+  // Сброс всех фильтров
   const resetFilters = useCallback(() => {
+    console.log('🔍 Сброс всех фильтров');
     setSearchQuery('');
     setSelectedTeam(null);
     setSelectedCategory(null);
@@ -325,7 +384,10 @@ export default function TrainingsPage() {
                 <Input 
                   placeholder={t('trainingsPage.search_placeholder')}
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    console.log('🔍 Изменение поиска:', e.target.value);
+                    setSearchQuery(e.target.value);
+                  }}
                   className="pl-10 bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary focus:ring-vista-primary/50"
                 />
                 {searchQuery && (
@@ -342,7 +404,16 @@ export default function TrainingsPage() {
               {!isSingleTeam && (
                 <Select
                   value={selectedTeam === null ? 'all' : selectedTeam}
-                  onValueChange={(value) => setSelectedTeam(value === "all" ? null : value)}
+                  onValueChange={(value) => {
+                    console.log('🔍 Изменение фильтра команды:', {
+                      value: value,
+                      willSetTo: value === "all" ? null : value,
+                      currentSelectedTeam: selectedTeam,
+                      availableTeams: teams.map(t => ({ id: t.id, name: t.name })),
+                      selectedTeamName: value === "all" ? null : teams.find(t => t.id === value)?.name
+                    });
+                    setSelectedTeam(value === "all" ? null : value);
+                  }}
                   disabled={isLoadingTeams}
                 >
                   <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
@@ -362,7 +433,10 @@ export default function TrainingsPage() {
               {/* Фильтр по категории */}
               <Select
                 value={selectedCategory === null ? 'all' : selectedCategory}
-                onValueChange={(value) => setSelectedCategory(value === "all" ? null : value)}
+                onValueChange={(value) => {
+                  console.log('🔍 Изменение фильтра категории:', value);
+                  setSelectedCategory(value === "all" ? null : value);
+                }}
                 disabled={isLoadingCategories}
               >
                 <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
@@ -400,7 +474,10 @@ export default function TrainingsPage() {
                     id="filter-start-date"
                     type="date"
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(e) => {
+                      console.log('🔍 Изменение даты начала:', e.target.value);
+                      setStartDate(e.target.value);
+                    }}
                     className="pl-10 bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
                     placeholder="С"
                     onClick={(e) => {
@@ -433,7 +510,10 @@ export default function TrainingsPage() {
                     id="filter-end-date"
                     type="date"
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={(e) => {
+                      console.log('🔍 Изменение даты окончания:', e.target.value);
+                      setEndDate(e.target.value);
+                    }}
                     className="pl-10 bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
                     placeholder="По"
                     onClick={(e) => {
@@ -509,7 +589,7 @@ export default function TrainingsPage() {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-vista-primary"></div>
               </div>
             ) : paginatedTrainings.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 {paginatedTrainings.map((training) => (
                   <div 
                     key={training.id} 
@@ -522,31 +602,38 @@ export default function TrainingsPage() {
                     <div className={`h-1 w-full ${training.isCompleted ? 'bg-green-500' : 'bg-vista-primary'}`}></div>
                     
                     <div className="p-5">
-                      {/* Заголовок и статус */}
-                      <div className="flex justify-between items-start mb-3">
+                      {/* Заголовок и статус в одну строку */}
+                      <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-medium text-vista-light">{training.name}</h3>
                         <Badge className={`${training.isCompleted ? 'bg-green-500/20 text-green-400' : 'bg-vista-primary/20 text-vista-primary'}`}>
                           {training.isCompleted ? t('trainingsPage.completed_status') : t('trainingsPage.planned_status')}
                         </Badge>
                       </div>
                       
-                      {/* Дата и время */}
-                      <div className="flex items-center mb-4 text-vista-light/80">
-                        <Calendar className="h-4 w-4 mr-2 text-vista-primary" />
-                        <span>{training.time}</span>
-                      </div>
-                      
-                      {/* Теги в нижней части */}
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <Badge className="bg-vista-secondary/20 text-vista-light border border-vista-secondary/50 shadow-md font-normal">
-                          {!isSingleTeam && training.team}
-                        </Badge>
-                        <Badge className="bg-vista-dark text-vista-primary border border-vista-primary/30 font-normal">
-                          {training.category}
-                        </Badge>
-                        <Badge className={`${training.type === 'GYM' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'} border font-normal`}>
-                          {getTrainingTypeDisplay(training.type)}
-                        </Badge>
+                      {/* Дата, время и теги в одну строку */}
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        {/* Дата и время */}
+                        <div className="flex items-center text-vista-light/80">
+                          <Calendar className="h-4 w-4 mr-2 text-vista-primary" />
+                          <span className="mr-4">{training.date ? dayjs(training.date).format('DD.MM.YYYY') : 'Дата не указана'}</span>
+                          <Clock className="h-4 w-4 mr-2 text-vista-primary" />
+                          <span>{training.time}</span>
+                        </div>
+                        
+                        {/* Теги в правой части */}
+                        <div className="flex items-center gap-2">
+                          {!isSingleTeam && (
+                            <Badge className="bg-vista-secondary/20 text-vista-light border border-vista-secondary/50 shadow-md font-normal">
+                              {training.team}
+                            </Badge>
+                          )}
+                          <Badge className="bg-vista-dark text-vista-primary border border-vista-primary/30 font-normal">
+                            {training.category}
+                          </Badge>
+                          <Badge className={`${training.type === 'GYM' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'} border font-normal`}>
+                            {getTrainingTypeDisplay(training.type)}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -629,4 +716,4 @@ export default function TrainingsPage() {
       />
     </div>
   );
-} 
+}

@@ -864,8 +864,8 @@ export default function TrainingPage() {
                     key={exercise.id} 
                     className="flex flex-col sm:flex-row rounded-md border overflow-hidden bg-vista-dark/50 border-vista-secondary/50 shadow-md"
                   >
-                    {/* Медиа изображение (слева) */}
-                    <div className="sm:w-[300px] overflow-hidden bg-vista-dark/30">
+                    {/* Медиа изображение (слева) - фиксированный размер */}
+                    <div className="w-full h-[200px] sm:w-[300px] sm:h-[200px] flex-shrink-0 overflow-hidden bg-vista-dark/30">
                       {exercise.mediaItems && exercise.mediaItems.length > 0 ? (
                         <>
                           {(() => {
@@ -873,51 +873,56 @@ export default function TrainingPage() {
                             return imageUrl ? (
                               <div className="w-full h-full flex items-center justify-center p-1">
                                 <div className="relative w-full h-full flex items-center justify-center">
-                                                                      <img 
-                                      src={imageUrl}
-                                      alt={exercise.title}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).src = `https://picsum.photos/seed/ex${exercise.id}/400/300`;
-                                        (e.target as HTMLImageElement).onerror = null;
-                                      }}
-                                    />
-                                    
-                                    {/* Кнопка воспроизведения видео (только для видео) */}
-                                    {exercise.mediaItems && 
-                                     exercise.mediaItems[0] && 
-                                     exercise.mediaItems[0].type === "VIDEO" && (
-                                      <div className="absolute inset-0 flex items-center justify-center">
-                                        <div className="bg-vista-dark/40 rounded-full p-3 hover:bg-vista-primary/70 transition cursor-pointer">
-                                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                                        </div>
+                                  <img 
+                                    src={imageUrl}
+                                    alt={exercise.title}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = `https://picsum.photos/seed/ex${exercise.id}/400/300`;
+                                      (e.target as HTMLImageElement).onerror = null;
+                                    }}
+                                  />
+                                  
+                                  {/* Кнопка воспроизведения видео (только для видео) */}
+                                  {exercise.mediaItems && 
+                                   exercise.mediaItems[0] && 
+                                   exercise.mediaItems[0].type === "VIDEO" && (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <div className="bg-vista-dark/40 rounded-full p-3 hover:bg-vista-primary/70 transition cursor-pointer">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                                       </div>
-                                    )}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-vista-light/50 min-h-[200px]">
+                              <div className="w-full h-full flex items-center justify-center text-vista-light/50">
                                 <span>{t('trainingsPage.image_unavailable')}</span>
                               </div>
                             );
                           })()}
                         </>
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-vista-light/50 min-h-[200px]">
+                        <div className="w-full h-full flex items-center justify-center text-vista-light/50">
                           <span>{t('trainingsPage.no_image')}</span>
                         </div>
                       )}
                     </div>
                     
-                    {/* Информация об упражнении (в центре) */}
-                    <div className="flex-grow p-4">
-                      <h4 className="font-medium text-vista-primary text-lg">
+                    {/* Информация об упражнении (в центре) - фиксированная высота с скроллом */}
+                    <div className="flex-grow p-4 flex flex-col min-h-0">
+                      <h4 className="font-medium text-vista-primary text-lg mb-3 flex-shrink-0">
                         {exercise.title}
                       </h4>
                       
-                      <p className="text-vista-light/80 mt-1">
-                        {exercise.description || "Без описания"}
-                      </p>
+                      {/* Контейнер описания с фиксированной высотой и скроллом */}
+                      <div className="flex-1 min-h-0">
+                        <div className="h-[120px] sm:h-[120px] overflow-y-auto pr-2 custom-scrollbar">
+                          <div className="text-vista-light/80 whitespace-pre-line text-xs leading-relaxed">
+                            {exercise.description || "Без описания"}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     
                     {/* Кнопки управления (справа) */}

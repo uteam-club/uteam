@@ -190,10 +190,22 @@ export function generateBotServiceToken(userObj: any) {
 
 // Получить итоговые права пользователя (учитывая overrides)
 export async function getUserPermissions(userId: string): Promise<Record<string, boolean>> {
+  console.log('🔍 getUserPermissions вызвана для userId:', userId);
+  
   // Получаем пользователя и его роль
   const [usr] = await db.select().from(user).where(eq(user.id, userId));
-  if (!usr) return {};
+  if (!usr) {
+    console.log('❌ Пользователь не найден в базе данных');
+    return {};
+  }
+  
   const roleValue = usr.role;
+  console.log('🔍 Пользователь найден:', { 
+    id: usr.id, 
+    role: roleValue, 
+    clubId: usr.clubId,
+    email: usr.email 
+  });
 
   // Получаем все права роли
   const rolePerms = await db
@@ -206,6 +218,16 @@ export async function getUserPermissions(userId: string): Promise<Record<string,
     .leftJoin(schema.permission, eq(schema.rolePermission.permissionId, schema.permission.id))
     .where(eq(schema.rolePermission.role, roleValue));
 
+  console.log('🔍 Права роли получены:', {
+    role: roleValue,
+    rolePermissionsCount: rolePerms.length,
+    rolePermissions: rolePerms.map(rp => ({ 
+      permissionId: rp.permissionId, 
+      allowed: rp.allowed, 
+      code: rp.code 
+    }))
+  });
+
   // Получаем индивидуальные overrides
   const userPerms = await db
     .select({
@@ -214,6 +236,15 @@ export async function getUserPermissions(userId: string): Promise<Record<string,
     })
     .from(schema.userPermission)
     .where(eq(schema.userPermission.userId, userId));
+    
+  console.log('🔍 Индивидуальные права пользователя получены:', {
+    userId: userId,
+    userPermissionsCount: userPerms.length,
+    userPermissions: userPerms.map(up => ({ 
+      permissionId: up.permissionId, 
+      allowed: up.allowed 
+    }))
+  });
   // Фильтрую rolePerms и userPerms, чтобы не было permissionId === null
   const filteredRolePerms = rolePerms.filter(p => p.permissionId !== null && p.permissionId !== undefined);
   const filteredUserPerms = userPerms.filter(p => p.permissionId !== null && p.permissionId !== undefined);
@@ -238,6 +269,14 @@ export async function getUserPermissions(userId: string): Promise<Record<string,
       finalPerms[code] = p.allowed;
     }
   }
-  console.log('getUserPermissions:', { userId, role: roleValue, finalPerms });
+  
+  console.log('🔍 Итоговые права пользователя:', { 
+    userId, 
+    role: roleValue, 
+    finalPerms,
+    exercisesUpdate: finalPerms['exercises.update'],
+    exercisesRead: finalPerms['exercises.read']
+  });
+  
   return finalPerms;
 } 
