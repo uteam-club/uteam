@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [clubLogo, setClubLogo] = useState('/light.svg'); // По умолчанию — общий логотип
+  const [clubLogo, setClubLogo] = useState('/light.svg');
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -34,7 +34,6 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('submit', email, password); // debug log
     
     if (!email || !password) {
       setError(t('login.fill_all_fields'));
@@ -45,16 +44,20 @@ export default function LoginPage() {
       setError('');
       setIsLoading(true);
       
-      const result = await signIn('credentials', {
+            const result = await signIn('credentials', {
         redirect: false,
         email,
         password,
       });
-
+  
       if (result?.error) {
         setError(t('login.invalid_credentials'));
       } else {
-        router.push('/dashboard');
+        // Очищаем форму и переходим в дашборд
+        setEmail('');
+        setPassword('');
+        // Используем полную перезагрузку страницы для гарантированной смены сессии
+        window.location.href = '/dashboard';
       }
     } catch (error) {
       console.error('Login error:', error);

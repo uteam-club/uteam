@@ -45,6 +45,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = user.role;
         token.clubId = user.clubId;
+        token.email = user.email;
       }
       return token;
     },
@@ -53,6 +54,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
         session.user.clubId = token.clubId as string;
+        session.user.email = token.email as string;
       }
       return session;
     }
@@ -63,13 +65,13 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 24 * 60 * 60, // 24 часа
+    updateAge: 60 * 60, // 1 час
   },
   cookies: {
     sessionToken: {
       name: `next-auth.session-token`,
       options: {
-        domain: '.localhost',
         path: '/',
         httpOnly: true,
         sameSite: 'lax',

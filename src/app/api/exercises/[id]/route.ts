@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
 import { uploadFile, getFileUrl, deleteFile } from '@/lib/yandex-storage';
 import { db } from '@/lib/db';
-import { exercise, user, exerciseCategory, exerciseTag, mediaItem, exerciseTagToExercise } from '@/db/schema';
+import { exercise, user, exerciseCategory, exerciseTag, mediaItem, exerciseTagToExercise, trainingExercise } from '@/db/schema';
 import { eq, and, inArray, ilike } from 'drizzle-orm';
 import { getSubdomain } from '@/lib/utils';
 import { getClubBySubdomain } from '@/services/user.service';
@@ -240,7 +240,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'exercises.update')) {
+  if (!hasPermission(permissions, 'exercises.delete')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -250,26 +250,43 @@ export async function DELETE(
     if (!params.id) {
       return NextResponse.json({ error: 'ID упражнения не указан' }, { status: 400 });
     }
+    
     // Получаем упражнение и mediaItems
     const exerciseRows = await db.select().from(exercise).where(and(eq(exercise.id, params.id), eq(exercise.clubId, clubId)));
     if (!exerciseRows.length) {
       return NextResponse.json({ error: 'Упражнение не найдено' }, { status: 404 });
     }
+    
     const ex = exerciseRows[0];
-    if (ex.authorId !== userId && !['ADMIN', 'SUPERADMIN'].includes(role)) {
+    if (ex.authorId !== userId && !['ADMIN', 'SUPER_ADMIN'].includes(role)) {
       return NextResponse.json({ error: 'Нет прав на удаление' }, { status: 403 });
     }
+    
     const mediaItems = await db.select().from(mediaItem).where(eq(mediaItem.exerciseId, ex.id));
-    // Транзакция удаления
+    
+    // Транзакция удаления с каскадным удалением
     await db.transaction(async (tx) => {
+      // 1. Удаляем упражнение из всех тренировок
+      await tx.delete(trainingExercise).where(eq(trainingExercise.exerciseId, params.id));
+      
+      // 2. Удаляем связанные mediaItems
       if (mediaItems.length > 0) {
         await tx.delete(mediaItem).where(inArray(mediaItem.id, mediaItems.map(m => m.id)));
       }
+      
+      // 3. Удаляем связи с тегами
       await tx.delete(exerciseTagToExercise).where(eq(exerciseTagToExercise.exerciseId, params.id));
+      
+      // 4. Удаляем само упражнение
       await tx.delete(exercise).where(eq(exercise.id, params.id));
     });
-    return NextResponse.json({ success: true, message: 'Упражнение и все связанные файлы успешно удалены' });
+    
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Упражнение и все связанные файлы успешно удалены из всех тренировок' 
+    });
   } catch (error) {
+    console.error('Ошибка при удалении упражнения:', error);
     return NextResponse.json({ error: 'Ошибка при удалении упражнения' }, { status: 500 });
   }
 }

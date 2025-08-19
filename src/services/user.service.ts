@@ -221,6 +221,7 @@ export async function getUserPermissions(userId: string): Promise<Record<string,
     .where(eq(schema.userPermission.userId, userId));
     
 
+
   // Фильтрую rolePerms и userPerms, чтобы не было permissionId === null
   const filteredRolePerms = rolePerms.filter(p => p.permissionId !== null && p.permissionId !== undefined);
   const filteredUserPerms = userPerms.filter(p => p.permissionId !== null && p.permissionId !== undefined);

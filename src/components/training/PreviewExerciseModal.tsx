@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
@@ -80,13 +80,19 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
   const { t } = useTranslation();
   return (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className={`bg-vista-dark border-vista-secondary/30 text-vista-light max-h-[90vh] overflow-y-auto focus:outline-none focus:ring-0 mt-8 ${exercise && exercise.mediaItems && exercise.mediaItems.length > 0 ? 'max-w-2xl' : 'max-w-lg'}`}>
+    <DialogContent 
+      className={`bg-vista-dark border-vista-secondary/30 text-vista-light max-h-[90vh] overflow-y-auto focus:outline-none focus:ring-0 mt-8 ${exercise && exercise.mediaItems && exercise.mediaItems.length > 0 ? 'max-w-2xl' : 'max-w-lg'}`}
+      aria-describedby="exercise-description"
+    >
       {exercise && (
         <>
           <DialogHeader>
             <DialogTitle className="text-xl text-vista-light">
                 {isEditMode ? t('exercisesPage.edit_modal_title') : exercise.title}
             </DialogTitle>
+            <DialogDescription id="exercise-description" className="sr-only">
+              {isEditMode ? t('exercisesPage.edit_modal_title') : (exercise.description || exercise.title)}
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             {isEditMode ? (
