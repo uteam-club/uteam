@@ -24,6 +24,7 @@ import DeleteFitnessTestModal from '@/components/fitness-tests/DeleteFitnessTest
 import { Sparklines, SparklinesLine } from 'react-sparklines';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart } from 'recharts';
 import { useTranslation } from 'react-i18next';
+import { formatDate } from '@/lib/date-utils';
 // @ts-ignore
 // eslint-disable-next-line
 declare module 'react-sparklines';
@@ -95,10 +96,10 @@ function PlayerResultsHistoryModal({ open, onOpenChange, player, results }: Play
             </AreaChart>
           </ResponsiveContainer>
         </div>
-        <div className="space-y-2 max-h-64 overflow-y-auto">
+        <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
           {results.sort((a: FitnessTestResult, b: FitnessTestResult) => (b.date > a.date ? 1 : -1)).map((r: FitnessTestResult) => (
             <div key={r.id} className="flex justify-between text-sm border-b border-vista-secondary/20 py-1">
-              <span>{r.date}</span>
+              <span>{formatDate(r.date)}</span>
               <span className="font-semibold">{formatResult(r.value)}</span>
             </div>
           ))}
@@ -114,11 +115,7 @@ function formatResult(value: string) {
   return value;
 }
 
-function formatDate(date: string) {
-  if (!date) return '';
-  const d = new Date(date);
-  return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
+
 
 export default function FitnessTestsPage() {
   const { t } = useTranslation();
@@ -388,7 +385,7 @@ export default function FitnessTestsPage() {
                 </TabsList>
               </Tabs>
               {/* Горизонтальный список тестов внутри типа */}
-              <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
+              <div className="flex gap-2 mt-4 overflow-x-auto pb-2 custom-scrollbar">
                 {testsOfType.length === 0 ? (
                   <div className="text-vista-light/70 text-center py-8 w-full">{t('fitnessTest.page.no_tests_of_type')}</div>
                 ) : (
@@ -424,7 +421,7 @@ export default function FitnessTestsPage() {
                   ) : players.length === 0 ? (
                     <div className="text-vista-light/70 text-center py-8">{t('fitnessTest.page.no_players')}</div>
                   ) : (
-                    <div className="mt-6 overflow-x-auto rounded-2xl bg-vista-dark/80 border border-vista-secondary/30">
+                    <div className="mt-6 overflow-x-auto rounded-2xl bg-vista-dark/80 border border-vista-secondary/30 custom-scrollbar">
                       <table className="min-w-full text-sm">
                         <thead>
                           <tr className="border-b border-vista-secondary/40 h-14">
@@ -461,7 +458,7 @@ export default function FitnessTestsPage() {
                                   {lastResult ? (
                                     <>
                                       <div className="text-vista-light/90 text-base font-semibold">{formatResult(lastResult.value)}</div>
-                                      <div className="text-xs text-vista-light/40 mt-1">{lastResult.date}</div>
+                                      <div className="text-xs text-vista-light/40 mt-1">{formatDate(lastResult.date)}</div>
                                     </>
                                   ) : (
                                     <span className="text-vista-light/40">—</span>
@@ -509,7 +506,7 @@ export default function FitnessTestsPage() {
                                           const y = 24 - (Number(r.value) / Math.max(...arr.map(rr => Number(rr.value))) * 20);
                                           return (
                                             <circle key={i} cx={x} cy={y} r={5} fill="#00bcd4" stroke="#222b3a" strokeWidth={2}>
-                                              <title>{formatResult(r.value)} ({r.date})</title>
+                                              <title>{formatResult(r.value)} ({formatDate(r.date)})</title>
                                             </circle>
                                           );
                                         })}

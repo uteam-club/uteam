@@ -1166,7 +1166,7 @@ export default function AdminPage() {
               )}
               
               {users.length > 0 ? (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto custom-scrollbar">
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b border-vista-secondary/30">
@@ -1565,7 +1565,7 @@ export default function AdminPage() {
               )}
               
               {teams.length > 0 ? (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto custom-scrollbar">
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b border-vista-secondary/30">
@@ -1882,7 +1882,7 @@ export default function AdminPage() {
               )}
               
               {trainingCategories.length > 0 ? (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto custom-scrollbar">
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b border-vista-secondary/30">
@@ -2117,7 +2117,7 @@ export default function AdminPage() {
               )}
               
               {exerciseCategories.length > 0 ? (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto custom-scrollbar">
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b border-vista-secondary/30">
@@ -2352,7 +2352,7 @@ export default function AdminPage() {
               )}
               
               {exerciseTags.length > 0 ? (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto custom-scrollbar">
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b border-vista-secondary/30">
@@ -2713,7 +2713,7 @@ function SurveyClubManagement() {
       </CardHeader>
       <CardContent>
         <p className="text-vista-light/80 mb-4">{t('adminPage.surveys_description')}</p>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-vista-secondary/30">

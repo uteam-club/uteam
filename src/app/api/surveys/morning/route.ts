@@ -6,8 +6,10 @@ import { morningSurveyResponse, player, team } from '@/db/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import fetch from 'node-fetch';
 import { getToken } from 'next-auth/jwt';
+
+// Для совместимости с Node.js
+const fetch = globalThis.fetch || require('node-fetch');
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -69,49 +71,73 @@ export async function GET(request: NextRequest) {
 
 // POST /api/surveys/morning
 export async function POST(request: NextRequest) {
-  const token = await getToken({ req: request });
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'morningSurvey.update')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
   try {
+    const token = await getToken({ req: request });
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const permissions = await getUserPermissions(token.id);
+    if (!hasPermission(permissions, 'morningSurvey.update')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    
     const { playerId, teamId, date } = await request.json();
     if (!playerId || !teamId || !date) {
       return NextResponse.json({ error: 'playerId, teamId и date обязательны' }, { status: 400 });
     }
+    
     // Получаем игрока из базы (чтобы узнать telegramId и teamId)
     const players = await db.select().from(player).where(eq(player.id, playerId));
     const playerRow = players[0];
     if (!playerRow) {
       return NextResponse.json({ error: 'Игрок не найден' }, { status: 404 });
     }
+    
     const telegramId = playerRow.telegramId;
     const playerTeamId = playerRow.teamId;
     if (!telegramId || !playerTeamId) {
       return NextResponse.json({ error: 'У игрока не указан telegramId или teamId' }, { status: 400 });
     }
+    
     // Получаем команду, чтобы узнать clubId
     const teams = await db.select().from(team).where(eq(team.id, playerTeamId));
     const teamRow = teams[0];
     if (!teamRow) {
       return NextResponse.json({ error: 'Команда не найдена' }, { status: 404 });
     }
+    
     const clubId = teamRow.clubId;
     if (!clubId) {
       return NextResponse.json({ error: 'У команды не указан clubId' }, { status: 400 });
     }
+    
     // Отправляем запрос на сервер бота
-    const botRes = await fetch('http://158.160.189.99:8080/send-morning-survey', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telegramId, clubId, teamId: playerTeamId, date })
-    });
-    const botData = await botRes.json();
-    if (!botRes.ok || !botData.success) {
-      return NextResponse.json({ error: botData.error || 'Ошибка при отправке через бота' }, { status: 500 });
+    try {
+      const botRes = await fetch('http://158.160.189.99:8080/send-morning-survey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          telegramId, 
+          clubId, 
+          teamId: playerTeamId, 
+          date,
+          surveyType: 'morning' // Указываем тип опросника
+        })
+      });
+      
+      const botData = await botRes.json();
+      if (!botRes.ok || !botData.success) {
+        return NextResponse.json({ error: botData.error || 'Ошибка при отправке через бота' }, { status: 500 });
+      }
+      
+      return NextResponse.json({ success: true });
+      
+    } catch (botError) {
+      console.error('MORNING: Error calling bot server:', botError);
+      return NextResponse.json({ error: 'Ошибка при обращении к серверу бота', details: String(botError) }, { status: 500 });
     }
-    return NextResponse.json({ success: true });
+    
   } catch (error) {
     return NextResponse.json({ error: 'Ошибка при повторной отправке', details: String(error) }, { status: 500 });
   }

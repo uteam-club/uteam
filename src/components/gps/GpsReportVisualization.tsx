@@ -235,7 +235,7 @@ export default function GpsReportVisualization({ reportId }: GpsReportVisualizat
           <CardTitle>Детальные данные по игрокам</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, Clock, MapPin, Users, Trash, Save, CheckSquare, Plus, ArrowLeft, FileText, Tag, Search, Check, X, ClipboardCheck, Pencil } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Trash, Save, CheckSquare, Plus, ArrowLeft, FileText, Tag, Search, Check, X, ClipboardCheck, Pencil, Timer } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,8 @@ import { Label } from '@/components/ui/label';
 import AttendanceModal from '@/components/training/AttendanceModal';
 import SelectExercisesModal from '@/components/training/SelectExercisesModal';
 import { CreateTrainingModal } from '@/components/training/CreateTrainingModal';
+import ExerciseTimingModal from '@/components/training/ExerciseTimingModal';
+import ExerciseTimingDisplay from '@/components/training/ExerciseTimingDisplay';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 
@@ -70,6 +72,12 @@ interface Exercise {
   position?: number;
   trainingExerciseId?: string;
   notes?: string;
+  // Поля для таймингов
+  series?: number;
+  repetitions?: number;
+  repetitionTime?: number;
+  pauseBetweenRepetitions?: number;
+  pauseBetweenSeries?: number;
 }
 
 interface ExerciseCategory {
@@ -126,6 +134,11 @@ export default function TrainingPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [filteredTags, setFilteredTags] = useState<ExerciseTag[]>([]);
   
+  // Состояния для модального окна таймингов
+  const [isTimingModalOpen, setIsTimingModalOpen] = useState(false);
+  const [selectedExerciseForTiming, setSelectedExerciseForTiming] = useState<Exercise | null>(null);
+  const [isSavingTiming, setIsSavingTiming] = useState(false);
+  
   // Состояние для пагинации
   const [currentPage, setCurrentPage] = useState(1);
   const exercisesPerPage = 12;
@@ -141,6 +154,52 @@ export default function TrainingPage() {
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  
+  // Функции для работы с таймингами
+  const handleOpenTimingModal = (exercise: Exercise) => {
+    setSelectedExerciseForTiming(exercise);
+    setIsTimingModalOpen(true);
+  };
+  
+  const handleSaveTiming = async (timing: {
+    series: number;
+    repetitions: number;
+    repetitionTime: number;
+    pauseBetweenRepetitions: number;
+    pauseBetweenSeries: number;
+  }) => {
+    if (!selectedExerciseForTiming?.trainingExerciseId) return;
+    
+    setIsSavingTiming(true);
+    try {
+      const response = await fetch(`/api/trainings/${trainingId}/exercises/${selectedExerciseForTiming.trainingExerciseId}/timing`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(timing),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Ошибка при сохранении таймингов');
+      }
+      
+      // Обновляем локальное состояние
+      setExercises(prev => prev.map(ex => 
+        ex.trainingExerciseId === selectedExerciseForTiming.trainingExerciseId
+          ? { ...ex, ...timing }
+          : ex
+      ));
+      
+      setIsTimingModalOpen(false);
+      setSelectedExerciseForTiming(null);
+    } catch (error) {
+      console.error('Ошибка при сохранении таймингов:', error);
+      alert('Ошибка при сохранении таймингов');
+    } finally {
+      setIsSavingTiming(false);
+    }
+  };
   const [editTraining, setEditTraining] = useState<any>(null);
 
   const [teams, setTeams] = useState<Team[]>([]);
@@ -911,9 +970,19 @@ export default function TrainingPage() {
                     
                     {/* Информация об упражнении (в центре) - фиксированная высота с скроллом */}
                     <div className="flex-grow p-4 flex flex-col min-h-0">
-                      <h4 className="font-medium text-vista-primary text-lg mb-3 flex-shrink-0">
-                        {exercise.title}
-                      </h4>
+                      <div className="flex items-start justify-between mb-3 flex-shrink-0">
+                        <h4 className="font-medium text-vista-primary text-lg">
+                          {exercise.title}
+                        </h4>
+                        {/* Отображение таймингов */}
+                        <ExerciseTimingDisplay
+                          series={exercise.series}
+                          repetitions={exercise.repetitions}
+                          repetitionTime={exercise.repetitionTime}
+                          pauseBetweenRepetitions={exercise.pauseBetweenRepetitions}
+                          pauseBetweenSeries={exercise.pauseBetweenSeries}
+                        />
+                      </div>
                       
                       {/* Контейнер описания с фиксированной высотой и скроллом */}
                       <div className="flex-1 min-h-0">
@@ -927,17 +996,29 @@ export default function TrainingPage() {
                     
                     {/* Кнопки управления (справа) */}
                     <div className="flex sm:flex-col items-center gap-2 p-4 border-t sm:border-t-0 sm:border-l border-vista-secondary/50">
+                      {/* Кнопка таймингов */}
+                      <button 
+                        className="bg-vista-primary/20 text-vista-primary hover:bg-vista-primary/30 rounded-md p-2 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenTimingModal(exercise);
+                        }}
+                        title="Настроить тайминги"
+                      >
+                        <Timer className="h-[18px] w-[18px]" />
+                      </button>
+                      
                       {/* Кнопка удаления */}
-                                              <button 
-                            className="border border-vista-error/50 text-vista-error hover:bg-vista-error/10 rounded-md p-2 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // ВРЕМЕННО: удаление только из локального состояния
-                              handleDeleteExercise(exercise.trainingExerciseId || '');
-                            }}
-                          >
-                            <Trash className="h-[18px] w-[18px]" />
-                          </button>
+                      <button 
+                        className="border border-vista-error/50 text-vista-error hover:bg-vista-error/10 rounded-md p-2 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // ВРЕМЕННО: удаление только из локального состояния
+                          handleDeleteExercise(exercise.trainingExerciseId || '');
+                        }}
+                      >
+                        <Trash className="h-[18px] w-[18px]" />
+                      </button>
                       
                       {/* Кнопки перемещения вверх/вниз */}
                       {exercises.length > 1 && (
@@ -1014,6 +1095,21 @@ export default function TrainingPage() {
         setCurrentPage={setCurrentPage}
         exercisesPerPage={exercisesPerPage}
         filteredExercises={filteredExercises}
+      />
+      
+      {/* Модальное окно настройки таймингов */}
+      <ExerciseTimingModal
+        isOpen={isTimingModalOpen}
+        onClose={() => setIsTimingModalOpen(false)}
+        exerciseTitle={selectedExerciseForTiming?.title || ''}
+        initialTiming={selectedExerciseForTiming ? {
+          series: selectedExerciseForTiming.series || 1,
+          repetitions: selectedExerciseForTiming.repetitions || 1,
+          repetitionTime: selectedExerciseForTiming.repetitionTime || 30,
+          pauseBetweenRepetitions: selectedExerciseForTiming.pauseBetweenRepetitions || 15,
+          pauseBetweenSeries: selectedExerciseForTiming.pauseBetweenSeries || 30
+        } : undefined}
+        onSave={handleSaveTiming}
       />
 
       {/* Модальное окно посещаемости */}

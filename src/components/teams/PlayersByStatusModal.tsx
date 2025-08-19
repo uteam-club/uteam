@@ -42,7 +42,7 @@ export function PlayersByStatusModal({
             Игроки со статусом &quot;{statusTitle}&quot;
           </DialogTitle>
         </DialogHeader>
-        <div className="py-4 max-h-[350px] overflow-y-auto">
+        <div className="py-4 max-h-[350px] overflow-y-auto custom-scrollbar">
           {filteredPlayers.length > 0 ? (
             <div className="space-y-2">
               {filteredPlayers.map(player => (

@@ -53,7 +53,7 @@ const DeleteCoachesModal: React.FC<DeleteCoachesModalProps> = ({
           {deleteCoachError}
         </div>
       )}
-      <div className="py-4 max-h-[300px] overflow-y-auto">
+      <div className="py-4 max-h-[300px] overflow-y-auto custom-scrollbar">
         {coaches.length > 0 ? (
           <div className="space-y-2">
             {coaches.map(coach => (

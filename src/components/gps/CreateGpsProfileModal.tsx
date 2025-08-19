@@ -339,7 +339,7 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-4xl max-h-[90vh] overflow-y-auto backdrop-blur-xl">
+      <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-4xl max-h-[90vh] overflow-y-auto backdrop-blur-xl custom-scrollbar">
         <DialogHeader>
           <DialogTitle className="text-vista-light text-xl">Создать профиль GPS отчета</DialogTitle>
         </DialogHeader>

@@ -51,6 +51,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { FITNESS_TEST_TYPES } from '@/lib/constants';
 import { formatResult } from '@/lib/utils';
 import { countries as countriesList, countryCodeToEmoji } from '@/lib/countries';
+import { formatDate } from '@/lib/date-utils';
 import { useTranslation } from 'react-i18next';
 import type { SupportedLang } from '@/types/i18n';
 import PlayerGameModelModal from '@/components/players/PlayerGameModelModal';
@@ -1162,7 +1163,7 @@ export default function PlayerProfilePage() {
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  <div className="flex flex-row flex-nowrap gap-2 items-start overflow-x-auto overflow-y-hidden scrollbar-hide w-full max-w-full">
+                  <div className="flex flex-row flex-nowrap gap-2 items-start overflow-x-auto overflow-y-hidden custom-scrollbar w-full max-w-full">
                     {tests.map((test: any) => (
                       <div key={test.id} className="h-[40px] min-w-fit px-4 flex flex-col items-center justify-center bg-cyan-100/10 rounded-md">
                         <span className="text-cyan-400 text-[11px] font-normal leading-tight text-center w-full">{test.name}</span>

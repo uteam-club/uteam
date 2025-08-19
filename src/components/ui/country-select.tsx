@@ -62,7 +62,7 @@ export function CountrySelect({
       >
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent className="bg-vista-dark border-vista-secondary/30 max-h-72 overflow-y-auto" hideScrollButtons={true}>
+      <SelectContent className="bg-vista-dark border-vista-secondary/30 max-h-72 overflow-y-auto custom-scrollbar" hideScrollButtons={true}>
         {countries.map((country) => (
           <SelectItem
             key={country.code}

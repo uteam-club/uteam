@@ -255,24 +255,47 @@ function TopBar({ userName, userRole }: TopBarProps) {
   return (
     <nav className="bg-vista-dark border-b-[2px] border-vista-secondary fixed top-0 right-0 left-0 z-[99999]" ref={dropdownRef}>
       <div className="container mx-auto px-4">
-        <div className="h-16 flex items-center justify-between">
-          <div className="flex-shrink-0 flex items-center h-16">
-            <Link href="/dashboard" className="flex items-center h-full">
+                <div className="h-16 flex items-center justify-between">
+          {/* Логотип клуба */}
+          <div className="flex-shrink-0 flex items-center">
+            <Link href="/dashboard" className="flex items-center">
               {club && club.logoUrl && club.logoUrl !== 'null' && club.logoUrl !== 'undefined' && club.logoUrl.trim() !== '' ? (
-                <div className="h-6 max-h-6 flex items-center">
-                  <OptimizedImage src={club.logoUrl} alt={club?.name || 'Логотип клуба'} height={20} width={60} objectFit="contain" showSkeleton={false} />
+                <div className="h-12 w-12 flex items-center justify-center overflow-hidden">
+                  <OptimizedImage 
+                    src={club.logoUrl} 
+                    alt={club?.name || 'Логотип клуба'} 
+                    height={48} 
+                    width={48} 
+                    objectFit="contain" 
+                    showSkeleton={false} 
+                  />
                 </div>
               ) : club?.subdomain === 'fdcvista' ? (
-                <div className="h-6 max-h-6 flex items-center">
-                  <OptimizedImage src="/vista.png" alt="FDC Vista" height={20} width={60} objectFit="contain" showSkeleton={false} />
+                <div className="h-12 w-12 flex items-center justify-center overflow-hidden">
+                  <OptimizedImage 
+                    src="/vista.png" 
+                    alt="FDC Vista" 
+                    height={48} 
+                    width={48} 
+                    objectFit="contain" 
+                    showSkeleton={false} 
+                  />
                 </div>
               ) : club?.subdomain === 'van' ? (
-                <div className="h-6 max-h-6 flex items-center">
-                  <OptimizedImage src="/van.png" alt="FC VAN" height={20} width={60} objectFit="contain" showSkeleton={false} />
+                <div className="h-12 w-12 flex items-center justify-center overflow-hidden">
+                  <OptimizedImage 
+                    src="/van.png" 
+                    alt="FC VAN" 
+                    height={48} 
+                    width={48} 
+                    objectFit="contain" 
+                    showSkeleton={false} 
+                  />
                 </div>
               ) : null}
             </Link>
           </div>
+
           <div className="hidden md:flex h-full">
             {navItems.map((item, index) => {
               const itemIsActive = isActive(item);

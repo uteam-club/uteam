@@ -56,7 +56,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
   const { t } = useTranslation();
   return (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-y-auto max-h-[80vh] backdrop-blur-xl focus:outline-none focus:ring-0">
+    <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-y-auto max-h-[80vh] backdrop-blur-xl focus:outline-none focus:ring-0 custom-scrollbar">
       <DialogHeader>
           <DialogTitle className="text-vista-light text-xl">{t('exercisesPage.create_modal_title')}</DialogTitle>
       </DialogHeader>
@@ -127,7 +127,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
             <SelectTrigger className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light rounded-md px-3 py-2 focus:outline-none focus:ring-0">
                 <SelectValue placeholder={t('exercisesPage.select_category_placeholder')} />
             </SelectTrigger>
-            <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light shadow-lg max-h-60 overflow-y-auto">
+            <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
               {categories.map((cat) => (
                 <SelectItem key={cat.id} value={cat.id} className="text-vista-light">
                   {cat.name}
@@ -153,7 +153,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
                     : t('exercisesPage.select_tags')}
               </SelectValue>
             </SelectTrigger>
-            <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light shadow-lg max-h-60 overflow-y-auto min-w-[220px]">
+            <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light shadow-lg max-h-60 overflow-y-auto min-w-[220px] custom-scrollbar">
               {filteredTags.length === 0 ? (
                   <div className="px-3 py-2 text-vista-light/50 text-sm">{t('exercisesPage.no_tags_for_category')}</div>
               ) : (

@@ -133,6 +133,8 @@ export default function ExercisesPage() {
   const { users, isLoading: usersLoading } = useUsers();
   const { categories, isLoading: categoriesLoading } = useCategories();
   const { tags: tagsData, isLoading: isLoadingTags, isError: isTagsError, mutate: mutateTags } = useTags();
+  
+
   const { exercises, pagination, isLoading: exercisesLoading, mutate: mutateExercises } = useFilteredExercises(filterParams);
   
   // Объединяем флаг загрузки и эффективно храним данные
@@ -254,6 +256,13 @@ export default function ExercisesPage() {
       : [];
   }, [newExercise.categoryId, tagsData]);
 
+  // Фильтрация тегов для основного фильтра по выбранной категории
+  const filteredTagsForFilter = useMemo(() => {
+    return selectedCategory
+      ? tagsData.filter((tag: Tag) => tag.exerciseCategoryId === selectedCategory)
+      : tagsData;
+  }, [selectedCategory, tagsData]);
+
   // Обработчик выбора тегов для создания
   const handleTagToggle = (tagId: string) => {
     if (tagId === 'clear') {
@@ -313,14 +322,12 @@ export default function ExercisesPage() {
   // Обработчик загрузки файла для редактирования
   const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
-    console.log('📁 handleEditFileChange вызван, файл:', file ? `${file.name} (${file.size} байт, ${file.type})` : 'null');
     
     setEditExerciseForm((prev) => ({ ...prev, file }));
     
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        console.log('🖼️ FileReader завершен, результат:', reader.result ? 'data URL получен' : 'ошибка');
         setFilePreviewEdit(reader.result as string);
       };
       reader.readAsDataURL(file);
@@ -404,21 +411,8 @@ export default function ExercisesPage() {
       });
       
       if (editExerciseForm.file) {
-        console.log('📁 Отправляем файл для замены:', editExerciseForm.file.name, 'Размер:', editExerciseForm.file.size, 'Тип:', editExerciseForm.file.type);
         formData.append('file', editExerciseForm.file);
-      } else {
-        console.log('ℹ️ Файл для замены не выбран');
       }
-      
-      console.log('📤 Отправляем данные формы:', {
-        title: editExerciseForm.title,
-        description: editExerciseForm.description,
-        categoryId: editExerciseForm.categoryId,
-        length: editExerciseForm.length,
-        width: editExerciseForm.width,
-        tags: editExerciseForm.tags,
-        hasFile: !!editExerciseForm.file
-      });
       
       // Создаем "предполагаемое" обновленное упражнение для оптимистичного обновления
       const optimisticExercise = {
@@ -477,8 +471,6 @@ export default function ExercisesPage() {
       
       // Получаем обновленные данные
       const updatedExercise = await response.json();
-      console.log('📥 Получен ответ от сервера:', updatedExercise);
-      console.log('🖼️ MediaItems в ответе:', updatedExercise.mediaItems);
       
       // Используем временную метку для предотвращения кеширования
       const timestamp = Date.now();
@@ -695,15 +687,20 @@ export default function ExercisesPage() {
       );
     }
 
-    if (!tagsData || tagsData.length === 0) {
+    if (!filteredTagsForFilter || filteredTagsForFilter.length === 0) {
       return (
-        <div className="text-center p-4 text-vista-secondary">{t('exercisesPage.no_tags_available')}</div>
+        <div className="text-center p-4 text-vista-secondary">
+          {selectedCategory 
+            ? t('exercisesPage.no_tags_for_category')
+            : t('exercisesPage.no_tags_available')
+          }
+        </div>
       );
     }
 
     return (
-      <div className="max-h-[300px] overflow-y-auto space-y-1 pr-1">
-        {tagsData.map((tag: Tag) => {
+      <div className="max-h-[300px] overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+        {filteredTagsForFilter.map((tag: Tag) => {
           const isSelected = selectedTags.includes(tag.id);
           return (
             <div 
@@ -888,7 +885,14 @@ export default function ExercisesPage() {
               {/* Фильтр по категории */}
               <Select
                 value={selectedCategory === null ? 'all' : selectedCategory}
-                onValueChange={(value) => setSelectedCategory(value === "all" ? null : value)}
+                onValueChange={(value) => {
+                  const newCategory = value === "all" ? null : value;
+                  setSelectedCategory(newCategory);
+                  // Очищаем выбранные теги при смене категории, так как они могут не принадлежать новой категории
+                  if (newCategory !== selectedCategory) {
+                    setSelectedTags([]);
+                  }
+                }}
               >
                 <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
                   <SelectValue placeholder={t('exercisesPage.select_category_placeholder')} />
@@ -925,7 +929,7 @@ export default function ExercisesPage() {
                         />
                       </div>
                       
-                      <div className="max-h-[300px] overflow-y-auto space-y-1 pr-1">
+                      <div className="max-h-[300px] overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                         <TagsSection />
                       </div>
                       

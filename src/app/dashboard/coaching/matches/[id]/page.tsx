@@ -1127,7 +1127,7 @@ export default function MatchDetailsPage() {
                         align="start"
                         sideOffset={4}
                       >
-                        <div className="max-h-[300px] overflow-y-auto py-1">
+                        <div className="max-h-[300px] overflow-y-auto py-1 custom-scrollbar">
                           {markerColors.map((color) => (
                             <button
                               key={color.value}
@@ -1191,7 +1191,7 @@ export default function MatchDetailsPage() {
         <CardContent className="p-4">
           <h3 className="text-xl font-semibold text-vista-light mb-4">{t('matchPage.squad_on_match')}</h3>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left">
               <thead>
                 <tr className="text-vista-light/70 border-b border-vista-secondary/30">

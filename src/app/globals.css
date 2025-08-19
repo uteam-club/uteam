@@ -10,31 +10,47 @@
   .custom-scrollbar {
     /* Firefox */
     scrollbar-width: thin;
-    scrollbar-color: var(--vista-primary) var(--vista-dark);
+    scrollbar-color: rgba(90, 204, 229, 0.3) transparent;
   }
 
   /* WebKit (Chrome, Safari, Edge) */
   .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 4px;
+    height: 4px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(24, 32, 38, 0.7); /* bg-vista-dark/70 */
+    background: transparent;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #5acce5; /* var(--vista-primary) */
-    border-radius: 6px;
+    background-color: rgba(90, 204, 229, 0.2);
+    border-radius: 2px;
+    transition: background-color 0.2s ease;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: #3fc1d3; /* чуть темнее бирюзового */
+    background-color: rgba(90, 204, 229, 0.4);
   }
 
   .custom-scrollbar::-webkit-scrollbar-button {
     display: none;
     height: 0;
+  }
+
+  /* Специальные стили для горизонтальных скроллбаров */
+  .custom-scrollbar::-webkit-scrollbar:horizontal {
+    height: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:horizontal {
+    background-color: rgba(90, 204, 229, 0.2);
+    border-radius: 2px;
+    transition: background-color 0.2s ease;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:horizontal:hover {
+    background-color: rgba(90, 204, 229, 0.4);
   }
 
   .scrollbar-hide {

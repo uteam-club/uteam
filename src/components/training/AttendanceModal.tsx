@@ -172,11 +172,11 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-2xl overflow-hidden backdrop-blur-xl flex flex-col max-h-[80vh] overflow-y-auto">
+      <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-4xl backdrop-blur-xl flex flex-col max-h-[80vh] overflow-y-auto custom-scrollbar">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-vista-light">{t('attendanceModal.title')}</DialogTitle>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
           {loading ? (
             <div className="flex items-center justify-center h-40">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vista-primary"></div>

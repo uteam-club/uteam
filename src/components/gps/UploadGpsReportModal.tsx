@@ -309,7 +309,7 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent 
-        className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-4xl max-h-[85vh] overflow-y-auto backdrop-blur-xl mt-8"
+        className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-4xl max-h-[85vh] overflow-y-auto backdrop-blur-xl mt-8 custom-scrollbar"
         aria-describedby="upload-gps-description"
       >
         <DialogHeader>

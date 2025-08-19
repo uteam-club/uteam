@@ -511,7 +511,7 @@ export default function AttendanceAnalyticsPage() {
               {/* Содержимое вкладок - таблица с данными */}
               <TabsContent value={currentTab} className="mt-0">
                 <div className="rounded-md border border-vista-secondary/50 overflow-hidden shadow-md">
-                  <div className="overflow-x-auto w-full" style={{ minWidth: "100%" }}>
+                  <div className="overflow-x-auto w-full custom-scrollbar" style={{ minWidth: "100%" }}>
                     <Table className="relative w-auto">
                       <TableHeader>
                         <UITableRow className="bg-vista-dark/70 hover:bg-vista-dark/70 border-b border-vista-secondary/50 shadow-md">

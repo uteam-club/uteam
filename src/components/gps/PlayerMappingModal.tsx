@@ -266,7 +266,7 @@ export default function PlayerMappingModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
-        className="bg-vista-dark/95 border-vista-secondary/30 text-vista-light max-w-4xl max-h-[85vh] overflow-y-auto mt-8"
+        className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-4xl max-h-[85vh] overflow-y-auto mt-8 custom-scrollbar"
         aria-describedby="player-mapping-description"
       >
         <DialogHeader>

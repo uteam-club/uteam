@@ -47,7 +47,7 @@ const AddCoachModal: React.FC<AddCoachModalProps> = ({
           {addCoachError}
         </div>
       )}
-      <div className="py-4 max-h-[300px] overflow-y-auto">
+      <div className="py-4 max-h-[300px] overflow-y-auto custom-scrollbar">
         {availableCoaches.length > 0 ? (
           <div className="space-y-2">
             {availableCoaches.map(coach => (

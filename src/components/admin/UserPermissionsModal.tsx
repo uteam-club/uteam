@@ -88,7 +88,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ userId, use
         ) : error ? (
           <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-md text-red-500 text-sm">{error}</div>
         ) : (
-          <div className="space-y-2 max-h-96 overflow-y-auto py-2">
+          <div className="space-y-2 max-h-96 overflow-y-auto py-2 custom-scrollbar">
             {permissions.map(p => (
               <div key={p.permissionId} className="flex items-center gap-3 border-b border-vista-secondary/20 py-1 px-1">
                 <label className="flex items-center gap-2 cursor-pointer w-full">

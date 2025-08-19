@@ -472,7 +472,7 @@ export default function GpsVisualization({ data, profile, eventName, eventDate, 
           <CardTitle className="text-vista-light">Детальные данные игроков</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-vista-secondary/30">

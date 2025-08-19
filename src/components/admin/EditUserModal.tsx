@@ -132,7 +132,7 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-vista-dark border-vista-secondary/30 text-vista-light max-w-xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="bg-vista-dark border-vista-secondary/30 text-vista-light max-w-xl max-h-[80vh] overflow-y-auto custom-scrollbar">
         <DialogHeader>
           <DialogTitle className="text-vista-light text-lg">{t('playerProfile.editModal.title')}</DialogTitle>
         </DialogHeader>

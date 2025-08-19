@@ -314,7 +314,7 @@ export default function DocumentsPage() {
             <CardTitle className="text-vista-light">{t('documentsPage.player_documents')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto custom-scrollbar">
               <Skeleton className="h-64 w-full bg-vista-dark/70" />
             </div>
           </CardContent>
@@ -385,7 +385,7 @@ export default function DocumentsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto custom-scrollbar">
             <Table>
               <TableHeader>
                 <TableRow className="bg-vista-dark/70 hover:bg-vista-dark/70 border-b border-vista-secondary/50 shadow-md">

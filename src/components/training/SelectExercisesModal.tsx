@@ -194,7 +194,7 @@ const SelectExercisesModal: React.FC<SelectExercisesModalProps> = (props) => {
           )}
         </div>
         {/* Список упражнений */}
-        <div className="overflow-y-auto flex-grow" style={{ maxHeight: 'calc(75vh - 200px)' }}>
+        <div className="overflow-y-auto flex-grow custom-scrollbar" style={{ maxHeight: 'calc(75vh - 200px)' }}>
           {props.isLoading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-vista-primary"></div>

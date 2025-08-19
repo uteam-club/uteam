@@ -51,7 +51,7 @@ export function DeletePlayersModal({
             {deleteError}
           </div>
         )}
-        <div className="py-4 max-h-[300px] overflow-y-auto">
+        <div className="py-4 max-h-[300px] overflow-y-auto custom-scrollbar">
           {players.length > 0 ? (
             <div className="space-y-2">
               {players.map(player => (

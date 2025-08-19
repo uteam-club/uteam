@@ -70,7 +70,7 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = ({ value, onChange,
         <SelectTrigger className="bg-vista-dark border-vista-secondary/50 text-vista-light">
           <SelectValue placeholder={placeholder || 'Выберите часовой пояс'} />
         </SelectTrigger>
-        <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light max-h-60 overflow-y-auto">
+        <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light max-h-60 overflow-y-auto custom-scrollbar">
           <div className="p-2">
             <Input
               value={search}

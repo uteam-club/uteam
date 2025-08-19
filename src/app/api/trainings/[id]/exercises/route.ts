@@ -20,8 +20,19 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
   try {
     const trainingId = params.id;
-    // Получаем все связи training-exercise
-    const links = await db.select().from(trainingExercise)
+    // Получаем все связи training-exercise с таймингами
+    const links = await db.select({
+      id: trainingExercise.id,
+      position: trainingExercise.position,
+      trainingId: trainingExercise.trainingId,
+      exerciseId: trainingExercise.exerciseId,
+      notes: trainingExercise.notes,
+      series: trainingExercise.series,
+      repetitions: trainingExercise.repetitions,
+      repetitionTime: trainingExercise.repetitionTime,
+      pauseBetweenRepetitions: trainingExercise.pauseBetweenRepetitions,
+      pauseBetweenSeries: trainingExercise.pauseBetweenSeries,
+    }).from(trainingExercise)
       .where(eq(trainingExercise.trainingId, trainingId))
       .orderBy(asc(trainingExercise.position));
     if (!links.length) return NextResponse.json([]);
@@ -64,6 +75,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         position: link.position,
         trainingExerciseId: link.id,
         notes: link.notes,
+        // Добавляем тайминги из связи trainingExercise
+        series: link.series,
+        repetitions: link.repetitions,
+        repetitionTime: link.repetitionTime,
+        pauseBetweenRepetitions: link.pauseBetweenRepetitions,
+        pauseBetweenSeries: link.pauseBetweenSeries,
         tags: tagsByExercise[ex.id] || [],
         mediaItems: mediaByExercise[ex.id] || [],
         category: categoryMap[ex.categoryId] || { id: '', name: 'Без категории' },

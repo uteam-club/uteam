@@ -38,7 +38,7 @@ export function TeamSelect({
       <SelectTrigger className={cn('w-full bg-vista-dark/70 border-vista-secondary/30 text-vista-light', className)}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent className="bg-vista-dark border-vista-secondary/30 max-h-72 overflow-y-auto">
+      <SelectContent className="bg-vista-dark border-vista-secondary/30 max-h-72 overflow-y-auto custom-scrollbar">
         {teams.map(team => (
           <SelectItem
             key={team.id}

@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FITNESS_TEST_UNITS } from '@/lib/constants';
 import { useTranslation } from 'react-i18next';
+import { formatDate } from '@/lib/date-utils';
 
 interface Team {
   id: string;
@@ -145,7 +146,7 @@ const EnterResultsModal: React.FC<EnterResultsModalProps> = ({ open, onOpenChang
           ) : players.length === 0 ? (
             <div className="text-vista-light/70 text-center py-8">{t('fitnessTest.no_players')}</div>
           ) : (
-            <div className="overflow-y-auto max-h-[50vh] flex flex-col gap-2">
+            <div className="overflow-y-auto max-h-[50vh] flex flex-col gap-2 custom-scrollbar">
               {players.map((player) => (
                 <div key={player.id} className="flex items-center gap-2">
                   <div className="w-32 truncate text-vista-light/80">{player.lastName} {player.firstName}</div>

@@ -399,7 +399,7 @@ export default function EditGpsProfileModal({ isOpen, profileId, onClose, onUpda
   if (isLoadingProfile) {
     return (
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-4xl max-h-[90vh] overflow-y-auto backdrop-blur-xl">
+        <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-4xl max-h-[90vh] overflow-y-auto backdrop-blur-xl custom-scrollbar">
           <div className="text-center py-8 text-vista-light/60">
             Загрузка профиля...
           </div>
@@ -410,7 +410,7 @@ export default function EditGpsProfileModal({ isOpen, profileId, onClose, onUpda
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-4xl max-h-[90vh] overflow-y-auto backdrop-blur-xl">
+      <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-4xl max-h-[90vh] overflow-y-auto backdrop-blur-xl custom-scrollbar">
         <DialogHeader>
           <DialogTitle className="text-vista-light text-xl">Редактировать профиль GPS отчета</DialogTitle>
         </DialogHeader>

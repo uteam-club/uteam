@@ -81,7 +81,7 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
   return (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent 
-      className={`bg-vista-dark border-vista-secondary/30 text-vista-light max-h-[90vh] overflow-y-auto focus:outline-none focus:ring-0 mt-8 ${exercise && exercise.mediaItems && exercise.mediaItems.length > 0 ? 'max-w-2xl' : 'max-w-lg'}`}
+      className={`bg-vista-dark border-vista-secondary/30 text-vista-light max-h-[90vh] overflow-y-auto focus:outline-none focus:ring-0 mt-8 custom-scrollbar ${exercise && exercise.mediaItems && exercise.mediaItems.length > 0 ? 'max-w-2xl' : 'max-w-lg'}`}
       aria-describedby="exercise-description"
     >
       {exercise && (
@@ -170,7 +170,7 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
                 <div className="space-y-2 mb-4">
                     <Label className="text-vista-light/40 font-normal">{t('exercisesPage.tags_label')}</Label>
                   {filteredEditTags && filteredEditTags.length > 0 ? (
-                    <div className="max-h-60 overflow-y-auto p-2 rounded-md border border-vista-secondary/30 bg-vista-dark/40 space-y-1">
+                    <div className="max-h-60 overflow-y-auto p-2 rounded-md border border-vista-secondary/30 bg-vista-dark/40 space-y-1 custom-scrollbar">
                       <button
                         type="button"
                         className="mb-1 w-full text-left text-xs text-vista-light/60 hover:text-vista-primary"

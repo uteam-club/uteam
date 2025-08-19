@@ -318,7 +318,7 @@ export const RolesPermissionsTable: React.FC = () => {
         </p>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto custom-scrollbar">
           <div className="min-w-full">
             {/* Заголовок таблицы */}
             <div className="sticky top-0 z-10 bg-vista-dark/90 backdrop-blur-sm border-b border-vista-secondary/50">
