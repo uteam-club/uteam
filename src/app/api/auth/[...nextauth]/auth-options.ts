@@ -108,11 +108,10 @@ export const authOptions: NextAuthOptions = {
         ? '__Secure-next-auth.session-token'
         : 'next-auth.session-token',
       options: {
-        domain: process.env.NODE_ENV === 'production' ? '.uteam.club' : '.localhost',
+        ...(process.env.NODE_ENV === 'production' ? { domain: '.uteam.club', secure: true } : {}),
         path: '/',
         httpOnly: true,
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
       },
     },
   },

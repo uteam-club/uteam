@@ -804,9 +804,17 @@
     "error_saving": "Failed to save changes"
   },
   "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "creating": "Creating...",
+    "saving": "Saving...",
+    "loading": "Loading...",
+    "close": "Close",
+    "deleting": "Deleting...",
+    "edit": "Edit",
+    "delete": "Delete",
     "error": "Error",
     "success": "Success",
-    "saving": "Saving...",
     "error_loading_data": "Error loading data",
     "error_saving": "Error saving",
     "try_refresh": "Try refreshing the page"

@@ -66,6 +66,11 @@ interface PlayerResultsHistoryModalProps {
 }
 function PlayerResultsHistoryModal({ open, onOpenChange, player, results }: PlayerResultsHistoryModalProps) {
   const { t } = useTranslation();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState<string>('');
+  const [editingDate, setEditingDate] = useState<string>('');
+  const [busyId, setBusyId] = useState<string | null>(null);
+
   // Преобразуем данные для графика
   const chartData = results
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -73,6 +78,45 @@ function PlayerResultsHistoryModal({ open, onOpenChange, player, results }: Play
       date: formatDate(r.date),
       value: Number(r.value),
     }));
+
+  async function handleDelete(id: string) {
+    try {
+      setBusyId(id);
+      const res = await fetch(`/api/fitness-tests/results?id=${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      const idx = results.findIndex(r => r.id === id);
+      if (idx >= 0) results.splice(idx, 1);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleSave(id: string) {
+    try {
+      setBusyId(id);
+      const payload: any = { id };
+      if (editingValue !== '') payload.value = editingValue;
+      if (editingDate) payload.date = editingDate;
+      const res = await fetch('/api/fitness-tests/results', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('Update failed');
+      const updated = await res.json();
+      const idx = results.findIndex(r => r.id === id);
+      if (idx >= 0) {
+        results[idx].value = updated.value;
+        results[idx].date = updated.date;
+      }
+      setEditingId(null);
+      setEditingValue('');
+      setEditingDate('');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-vista-dark text-vista-light rounded-xl p-6 shadow-xl max-w-2xl w-full border-none">
@@ -98,9 +142,39 @@ function PlayerResultsHistoryModal({ open, onOpenChange, player, results }: Play
         </div>
         <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
           {results.sort((a: FitnessTestResult, b: FitnessTestResult) => (b.date > a.date ? 1 : -1)).map((r: FitnessTestResult) => (
-            <div key={r.id} className="flex justify-between text-sm border-b border-vista-secondary/20 py-1">
-              <span>{formatDate(r.date)}</span>
-              <span className="font-semibold">{formatResult(r.value)}</span>
+            <div key={r.id} className="flex items-center justify-between gap-3 text-sm border-b border-vista-secondary/20 py-1">
+              {editingId === r.id ? (
+                <input
+                  type="date"
+                  className="shrink-0 w-40 bg-vista-dark/40 border border-vista-secondary/30 rounded px-2 py-1"
+                  value={editingDate}
+                  onChange={(e) => setEditingDate(e.target.value)}
+                />
+              ) : (
+                <span className="shrink-0 w-40">{formatDate(r.date)}</span>
+              )}
+              {editingId === r.id ? (
+                <input
+                  className="flex-1 bg-vista-dark/40 border border-vista-secondary/30 rounded px-2 py-1"
+                  value={editingValue}
+                  onChange={(e) => setEditingValue(e.target.value)}
+                />
+              ) : (
+                <span className="font-semibold flex-1">{formatResult(r.value)}</span>
+              )}
+              <div className="flex items-center gap-2">
+                {editingId === r.id ? (
+                  <>
+                    <button disabled={busyId === r.id} onClick={() => handleSave(r.id)} className="px-2 py-1 text-xs bg-vista-primary/20 text-vista-primary rounded">{t('common.save')}</button>
+                    <button onClick={() => { setEditingId(null); setEditingValue(''); setEditingDate(''); }} className="px-2 py-1 text-xs bg-vista-secondary/20 rounded">{t('common.cancel')}</button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => { setEditingId(r.id); setEditingValue(String(r.value)); setEditingDate(r.date.slice(0, 10)); }} className="px-2 py-1 text-xs bg-vista-secondary/20 rounded">{t('common.edit')}</button>
+                    <button disabled={busyId === r.id} onClick={() => handleDelete(r.id)} className="px-2 py-1 text-xs bg-vista-error/20 text-vista-error rounded">{t('common.delete')}</button>
+                  </>
+                )}
+              </div>
             </div>
           ))}
         </div>

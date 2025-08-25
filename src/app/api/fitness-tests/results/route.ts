@@ -72,6 +72,10 @@ export async function POST(req: NextRequest) {
   if (!hasPermission(permissions, 'fitnessTests.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+  const hasAccess = await checkClubAccess(req, token);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
+  }
   const body = await req.json();
   const parse = saveResultsSchema.safeParse(body);
   if (!parse.success) {
@@ -101,3 +105,52 @@ export async function POST(req: NextRequest) {
   await db.insert(fitnessTestResult).values(toInsert);
   return NextResponse.json({ success: true });
 } 
+
+export async function PATCH(req: NextRequest) {
+  const token = await getToken({ req });
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'fitnessTests.update')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const hasAccess = await checkClubAccess(req, token);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
+  }
+  const body = await req.json();
+  const { id, value, date } = body || {};
+  if (!id) {
+    return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+  }
+  const updatePayload: any = {};
+  if (value !== undefined && value !== null) updatePayload.value = String(value);
+  if (date) updatePayload.date = new Date(date);
+  if (Object.keys(updatePayload).length === 0) {
+    return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
+  }
+  const [updated] = await db.update(fitnessTestResult)
+    .set(updatePayload)
+    .where(eq(fitnessTestResult.id, id))
+    .returning();
+  return NextResponse.json(updated);
+}
+
+export async function DELETE(req: NextRequest) {
+  const token = await getToken({ req });
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const permissions = await getUserPermissions(token.id);
+  if (!hasPermission(permissions, 'fitnessTests.update')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const hasAccess = await checkClubAccess(req, token);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
+  }
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get('id');
+  if (!id) {
+    return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+  }
+  await db.delete(fitnessTestResult).where(eq(fitnessTestResult.id, id));
+  return NextResponse.json({ success: true });
+}
