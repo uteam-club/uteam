@@ -1,0 +1,73 @@
+{
+  "id": "0021_add_duration_minutes_only",
+  "prevId": "0018_snapshot",
+  "version": "5",
+  "dialect": "pg",
+  "tables": {
+    "RPESurveyResponse": {
+      "name": "RPESurveyResponse",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "hasDefault": false,
+          "notNull": true
+        },
+        "playerId": {
+          "name": "playerId",
+          "type": "uuid",
+          "primaryKey": false,
+          "hasDefault": false,
+          "notNull": true
+        },
+        "surveyId": {
+          "name": "surveyId",
+          "type": "uuid",
+          "primaryKey": false,
+          "hasDefault": false,
+          "notNull": true
+        },
+        "tenantId": {
+          "name": "tenantId",
+          "type": "uuid",
+          "primaryKey": false,
+          "hasDefault": false,
+          "notNull": true
+        },
+        "rpeScore": {
+          "name": "rpeScore",
+          "type": "integer",
+          "primaryKey": false,
+          "hasDefault": false,
+          "notNull": true
+        },
+        "durationMinutes": {
+          "name": "durationMinutes",
+          "type": "integer",
+          "primaryKey": false,
+          "hasDefault": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "hasDefault": false,
+          "notNull": true
+        },
+        "completedAt": {
+          "name": "completedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "hasDefault": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {}
+    }
+  }
+}

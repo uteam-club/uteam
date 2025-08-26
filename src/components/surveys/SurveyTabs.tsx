@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useTranslation } from 'react-i18next';
 import { MUSCLE_NAMES } from '@/lib/constants';
+import { TrainingDurationModal } from './TrainingDurationModal';
 
 interface Team {
   id: string;
@@ -196,16 +197,59 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const [resending, setResending] = useState<string | null>(null);
+  const [showDurationModal, setShowDurationModal] = useState(false);
+  const [durationSettings, setDurationSettings] = useState<{
+    globalDuration: number;
+    individualDurations: Record<string, number>;
+  }>({
+    globalDuration: 70,
+    individualDurations: {}
+  });
 
   // Загрузка команд
   useEffect(() => {
-    fetch('/api/teams')
-      .then(res => res.json())
-      .then(data => {
+    async function fetchTeams() {
+      try {
+        const res = await fetch('/api/teams');
+        const data = await res.json();
         setTeams(data);
-        if (data.length > 0) setSelectedTeam(data[0].id);
-      });
+        if (data.length > 0) {
+          setSelectedTeam(data[0].id);
+        }
+      } catch (e) {
+        console.error('Ошибка загрузки команд:', e);
+      }
+    }
+    fetchTeams();
   }, []);
+
+  // Загружаем настройки длительности
+  useEffect(() => {
+    if (type === 'rpe' && selectedTeam && date) {
+      loadDurationSettings();
+    }
+  }, [type, selectedTeam, date]);
+
+  const loadDurationSettings = async () => {
+    if (!selectedTeam || !date) return;
+    
+    try {
+      const response = await fetch(`/api/surveys/rpe/duration?teamId=${selectedTeam}&date=${date}`);
+      if (response.ok) {
+        const data = await response.json();
+        setDurationSettings({
+          globalDuration: data.globalDuration || 70,
+          individualDurations: data.individualDurations || {}
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке настроек длительности:', error);
+    }
+  };
+
+  const handleDurationUpdate = () => {
+    loadDurationSettings();
+  };
 
   // Загрузка игроков выбранной команды
   useEffect(() => {
@@ -273,7 +317,30 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
             </div>
             <div>
               <label className="block text-vista-light/80 mb-1">{t('morningSurveyTabs.date')}</label>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} className="px-2 py-1 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light" />
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <input 
+                    type="date" 
+                    value={date} 
+                    onChange={e => setDate(e.target.value)} 
+                    className="px-2 py-1 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light [&::-webkit-calendar-picker-indicator]:text-vista-primary [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:saturate-100 [&::-webkit-calendar-picker-indicator]:hue-rotate-[180deg]" 
+                  />
+                </div>
+                
+                {/* Кнопка для указания времени тренировки */}
+                {type === 'rpe' && (
+                  <button
+                    onClick={() => setShowDurationModal(true)}
+                    className="px-3 py-2 bg-vista-secondary text-vista-light rounded-md hover:bg-vista-secondary/80 transition-colors flex items-center gap-2 h-8"
+                    title="Указать время тренировки"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm">Время</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           {loading ? (
@@ -290,6 +357,8 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                     <tr className="bg-vista-dark/70 text-xs">
                       <th className="px-3 py-1 border-b border-vista-secondary/30 text-left whitespace-nowrap text-xs">{t('morningSurveyTabs.player')}</th>
                       <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">{t('morningSurveyTabs.rpe_score')}</th>
+                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">Длительность (мин)</th>
+                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">Нагрузка (RPE×Время)</th>
                       <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">{t('morningSurveyTabs.status')}</th>
                       <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">{t('morningSurveyTabs.time')}</th>
                       <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">{t('morningSurveyTabs.actions')}</th>
@@ -298,12 +367,15 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                   <tbody>
                     {filteredPlayers.map(player => {
                       const resp = responseByPlayerId[player.id];
+                      const playerDuration = resp ? (durationSettings?.individualDurations?.[player.id] || durationSettings?.globalDuration) : null;
+                      const workload = resp && playerDuration ? resp.rpeScore * playerDuration : null;
+                      
                       return (
                         <tr key={player.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10">
                           <td className="px-3 py-1 whitespace-nowrap text-xs">{player.lastName} {player.firstName}</td>
                           <td className="px-2 py-1 text-center align-middle">
                             {resp ? (
-                              <span className={`inline-block rounded-lg border-0 text-base font-bold w-14 h-8 flex items-center justify-center transition-all duration-200 ${
+                              <span className={`inline-block rounded-lg border-0 text-base font-bold w-14 h-8 flex items-center justify-center transition-all duration-200 mx-auto ${
                                 resp.rpeScore <= 2 
                                   ? 'bg-gradient-to-br from-emerald-400 to-green-500 text-white' 
                                   : resp.rpeScore <= 4 
@@ -315,6 +387,30 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                                         : 'bg-gradient-to-br from-red-500 to-red-600 text-white'
                               }`}>{resp.rpeScore}</span>
                             ) : ''}
+                          </td>
+                          <td className="px-2 py-1 text-center align-middle text-xs">
+                            {resp && playerDuration ? (
+                              <span className="inline-block px-2 py-1 rounded bg-vista-primary/20 text-vista-primary text-xs">
+                                {playerDuration} мин
+                              </span>
+                            ) : resp ? (
+                              <span className="text-vista-light/50 text-xs">Не задано</span>
+                            ) : (
+                              <span className="text-vista-light/50 text-xs">-</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-1 text-center align-middle text-xs">
+                            {workload ? (
+                              <span className={`inline-block px-2 py-1 rounded text-white text-xs font-medium ${
+                                workload <= 20 ? 'bg-green-500' :
+                                workload <= 40 ? 'bg-yellow-500' :
+                                workload <= 60 ? 'bg-orange-500' : 'bg-red-500'
+                              }`}>
+                                {workload}
+                              </span>
+                            ) : (
+                              <span className="text-vista-light/50 text-xs">-</span>
+                            )}
                           </td>
                           <td className="px-2 py-1 text-center align-middle text-xs">
                             {resp ? (
@@ -362,6 +458,34 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                       <td className="px-3 py-1 text-center text-xs">{t('morningSurveyTabs.average')}</td>
                       <td className="px-2 py-1 text-center align-middle text-xs">
                         {filteredPlayers.filter(p => responseByPlayerId[p.id]).length > 0 ? (filteredPlayers.reduce((acc, p) => acc + (responseByPlayerId[p.id]?.rpeScore || 0), 0) / filteredPlayers.filter(p => responseByPlayerId[p.id]).length).toFixed(2) : ''}
+                      </td>
+                      <td className="px-2 py-1 text-center align-middle text-xs">
+                        {(() => {
+                          const completedPlayers = filteredPlayers.filter(p => responseByPlayerId[p.id]);
+                          if (completedPlayers.length === 0) return '';
+                          
+                          const totalDuration = completedPlayers.reduce((acc, p) => {
+                            const resp = responseByPlayerId[p.id];
+                            const playerDuration = resp ? (durationSettings?.individualDurations?.[p.id] || durationSettings?.globalDuration) : null;
+                            return acc + (playerDuration || 0);
+                          }, 0);
+                          
+                          return totalDuration > 0 ? `${Math.round(totalDuration / completedPlayers.length)} мин` : '';
+                        })()}
+                      </td>
+                      <td className="px-2 py-1 text-center align-middle text-xs">
+                        {(() => {
+                          const completedPlayers = filteredPlayers.filter(p => responseByPlayerId[p.id]);
+                          if (completedPlayers.length === 0) return '';
+                          
+                          const totalWorkload = completedPlayers.reduce((acc, p) => {
+                            const resp = responseByPlayerId[p.id];
+                            const playerDuration = durationSettings?.individualDurations?.[p.id] || durationSettings?.globalDuration;
+                            return acc + (resp && playerDuration ? resp.rpeScore * playerDuration : 0);
+                          }, 0);
+                          
+                          return totalWorkload > 0 ? (totalWorkload / completedPlayers.length).toFixed(1) : '';
+                        })()}
                       </td>
                       <td className="px-2 py-1"></td>
                       <td className="px-2 py-1"></td>
@@ -493,6 +617,15 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
           )}
         </Card>
       </TabsContent>
+      {/* Модальное окно для управления длительностью */}
+      <TrainingDurationModal
+        open={showDurationModal}
+        onOpenChange={setShowDurationModal}
+        teamId={selectedTeam}
+        date={date}
+        players={players}
+        onDurationUpdate={handleDurationUpdate}
+      />
     </Tabs>
   );
 } 

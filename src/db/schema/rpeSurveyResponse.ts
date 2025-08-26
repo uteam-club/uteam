@@ -7,6 +7,7 @@ export const rpeSurveyResponse = pgTable('RPESurveyResponse', {
   readAt: timestamp('readAt', { withTimezone: true }),
   completedAt: timestamp('completedAt', { withTimezone: true }),
   rpeScore: integer('rpeScore').notNull(), // Оценка RPE от 1 до 10
+  durationMinutes: integer('durationMinutes'), // Длительность тренировки в минутах
   surveyId: uuid('surveyId').notNull(),
   tenantId: uuid('tenantId').notNull(),
 }); 

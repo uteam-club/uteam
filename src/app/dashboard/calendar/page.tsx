@@ -90,7 +90,7 @@ export default function CalendarPage() {
   const [calendarDays, setCalendarDays] = useState<Date[]>([]);
   const [trainings, setTrainings] = useState<TrainingEvent[]>([]);
   const [isLoadingTrainings, setIsLoadingTrainings] = useState(false);
-  const [calendarView, setCalendarView] = useState<'month' | 'week' | '3months' | '6months' | 'year'>('month');
+  const [calendarView, setCalendarView] = useState<'month' | 'week' | '3months' | '6months' | 'year'>('week');
   const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
   const [addEventDay, setAddEventDay] = useState<Date | null>(null);
   const [eventModalDate, setEventModalDate] = useState<Date | null>(null);
