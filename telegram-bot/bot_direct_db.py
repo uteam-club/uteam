@@ -87,7 +87,7 @@ def get_survey_schedules():
             SELECT 
                 rs."id",
                 rs."teamId",
-                rs."scheduledTime" as "sendTime",
+                TO_CHAR(rs."scheduledTime", 'HH24:MI') as "sendTime",
                 true as "enabled",
                 'rpe' as "surveyType",
                 t."timezone",
