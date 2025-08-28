@@ -31,7 +31,7 @@ const translations = {
 };
 
 export function RPESurveyForm({ player, surveyId, tenantId, onSubmit, lang = 'en' }: RPESurveyFormProps) {
-  const [rpeScore, setRpeScore] = useState<number>(0);
+  const [rpeScore, setRpeScore] = useState<number | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -80,7 +80,7 @@ export function RPESurveyForm({ player, surveyId, tenantId, onSubmit, lang = 'en
         </div>
         <Button
           onClick={handleSubmit}
-          disabled={rpeScore === 0 || submitting}
+          disabled={rpeScore === undefined || submitting}
           className="w-full mt-6 py-4 text-lg"
         >
           {submitting ? t.sending : t.submit}

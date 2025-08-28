@@ -15,7 +15,7 @@ export default function RPESurveyPage() {
   const tenantId = searchParams.get('tenantId');
 
   const [formData, setFormData] = useState({
-    rpeScore: 0,
+    rpeScore: undefined as number | undefined,
   });
   const [surveyStatus, setSurveyStatus] = useState<{ isActive: boolean | null, loading: boolean }>({ isActive: null, loading: true });
 
@@ -45,7 +45,7 @@ export default function RPESurveyPage() {
       return;
     }
 
-    if (formData.rpeScore === 0) {
+    if (formData.rpeScore === undefined) {
       toast({
         title: "Ошибка",
         description: "Пожалуйста, выберите оценку RPE",
@@ -119,7 +119,7 @@ export default function RPESurveyPage() {
             <div className="flex justify-center pt-6">
               <Button 
                 onClick={handleSubmit}
-                disabled={formData.rpeScore === 0}
+                disabled={formData.rpeScore === undefined}
                 className="px-8 py-3 text-lg"
               >
                 Отправить оценку

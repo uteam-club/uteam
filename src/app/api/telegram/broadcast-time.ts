@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'adminPanel.read')) {
+  if (!hasPermission(permissions, 'rpeSurvey.read')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { searchParams } = new URL(req.url);
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'adminPanel.update')) {
+  if (!hasPermission(permissions, 'rpeSurvey.update')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {

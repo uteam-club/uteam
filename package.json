@@ -9,7 +9,15 @@
     "start": "next start",
     "lint": "next lint",
     "migrate:generate": "drizzle-kit generate:pg",
-    "migrate:push": "DATABASE_URL='postgresql://postgres:Mell567234!@158.160.80.155:5432/postgres' drizzle-kit push:pg"
+    "migrate:push": "DATABASE_URL='postgresql://postgres:Mell567234!@158.160.80.155:5432/postgres' drizzle-kit push:pg",
+    "clear-durations": "tsx scripts/clear-training-durations.ts",
+    "clear-durations-safe": "tsx scripts/clear-training-durations-safe.ts",
+    "check-durations": "tsx scripts/check-rpe-durations.ts",
+    "debug-durations": "tsx scripts/debug-duration-display.ts",
+    "test-exact-date": "tsx scripts/test-exact-date.ts",
+    "fix-all-durations": "tsx scripts/fix-all-duration-issues.ts",
+    "migrate-training-id": "tsx scripts/run-safe-migration.ts",
+    "migrate-rpe-schedule": "tsx scripts/run-rpe-schedule-migration.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.828.0",
@@ -34,6 +42,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.5",
     "drizzle-kit": "^0.20.16",

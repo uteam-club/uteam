@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useState, useEffect } from 'react';
 import { formatDateTime } from '@/lib/utils';
 import { format } from 'date-fns';
+import { RPESchedulingModal } from './RPESchedulingModal';
 import { TeamSelect } from '@/components/ui/team-select';
 import { useToast } from '@/components/ui/use-toast';
 import { useSession } from 'next-auth/react';
@@ -29,6 +30,10 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
   const [showInstruction, setShowInstruction] = useState(false);
+  
+  // Состояние для модала планирования RPE (только для type === 'rpe')
+  const [isSchedulingModalOpen, setIsSchedulingModalOpen] = useState(false);
+  const [selectedTeamForScheduling, setSelectedTeamForScheduling] = useState<{ id: string; name: string } | null>(null);
 
   // Загрузка всех команд и их расписаний рассылки
   useEffect(() => {
@@ -91,6 +96,12 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
     }
   };
 
+  // Открыть модал планирования RPE
+  const handleOpenScheduling = (team: Team) => {
+    setSelectedTeamForScheduling({ id: team.id, name: team.name });
+    setIsSchedulingModalOpen(true);
+  };
+
   return (
     <div className="p-0 md:p-6 bg-vista-dark/60 border border-vista-secondary/30 rounded-lg mb-6">
       <div className="flex flex-row items-center justify-between mb-4">
@@ -126,9 +137,18 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
           <thead>
             <tr className="border-b border-vista-secondary/30">
               <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">{t('morningSurveyTabs.team')}</th>
-              <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">{t('morningSurveyTabs.send_time')}</th>
-              <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">{t('morningSurveyTabs.status')}</th>
-              <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">{t('morningSurveyTabs.actions')}</th>
+              {type === 'rpe' ? (
+                <>
+                  <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">Статус расписания</th>
+                  <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">Действия</th>
+                </>
+              ) : (
+                <>
+                  <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">{t('morningSurveyTabs.send_time')}</th>
+                  <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">{t('morningSurveyTabs.status')}</th>
+                  <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">{t('morningSurveyTabs.actions')}</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -137,45 +157,80 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
               return (
                 <tr key={team.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10">
                   <td className="px-4 py-2 text-vista-light font-medium text-sm">{team.name}</td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="time"
-                      value={schedule.sendTime}
-                      onChange={e => setSchedules(schedules => schedules.map(s => s.teamId === team.id ? { ...s, sendTime: e.target.value } : s))}
-                      className="px-2 py-1 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light focus:ring-2 focus:ring-vista-accent text-sm"
-                      disabled={saving === team.id}
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <span className={schedule.enabled ? 
-                      'text-emerald-400 font-semibold text-sm' : 
-                      'text-red-400 font-semibold text-sm'
-                    }>
-                      {schedule.enabled ? t('morningSurveyTabs.enabled') : t('morningSurveyTabs.disabled')}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 flex items-center gap-4">
-                    <Switch
-                      checked={schedule.enabled}
-                      onCheckedChange={e => setSchedules(schedules => schedules.map(s => s.teamId === team.id ? { ...s, enabled: e } : s))}
-                      disabled={saving === team.id}
-                      className="data-[state=checked]:bg-vista-primary data-[state=unchecked]:bg-vista-secondary"
-                    />
-                    <Button
-                      size="sm"
-                      className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark rounded-md px-4 py-2 text-sm font-semibold shadow"
-                      onClick={() => handleSave(team.id, schedule.sendTime, schedule.enabled)}
-                      disabled={saving === team.id}
-                    >
-                      {saving === team.id ? t('morningSurveyTabs.saving') : t('morningSurveyTabs.save')}
-                    </Button>
-                  </td>
+                  {type === 'rpe' ? (
+                    <>
+                      <td className="px-4 py-2">
+                        <span className="text-vista-light/60 text-sm">
+                          Настраивается индивидуально для каждой тренировки
+                        </span>
+                      </td>
+                      <td className="px-4 py-2">
+                        <Button
+                          size="sm"
+                          className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark rounded-md px-4 py-2 text-sm font-semibold shadow"
+                          onClick={() => handleOpenScheduling(team)}
+                          disabled={loading}
+                        >
+                          Запланировать рассылки
+                        </Button>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-4 py-2">
+                        <input
+                          type="time"
+                          value={schedule.sendTime}
+                          onChange={e => setSchedules(schedules => schedules.map(s => s.teamId === team.id ? { ...s, sendTime: e.target.value } : s))}
+                          className="px-2 py-1 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light focus:ring-2 focus:ring-vista-accent text-sm"
+                          disabled={saving === team.id}
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className={schedule.enabled ? 
+                          'text-emerald-400 font-semibold text-sm' : 
+                          'text-red-400 font-semibold text-sm'
+                        }>
+                          {schedule.enabled ? t('morningSurveyTabs.enabled') : t('morningSurveyTabs.disabled')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 flex items-center gap-4">
+                        <Switch
+                          checked={schedule.enabled}
+                          onCheckedChange={e => setSchedules(schedules => schedules.map(s => s.teamId === team.id ? { ...s, enabled: e } : s))}
+                          disabled={saving === team.id}
+                          className="data-[state=checked]:bg-vista-primary data-[state=unchecked]:bg-vista-secondary"
+                        />
+                        <Button
+                          size="sm"
+                          className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark rounded-md px-4 py-2 text-sm font-semibold shadow"
+                          onClick={() => handleSave(team.id, schedule.sendTime, schedule.enabled)}
+                          disabled={saving === team.id}
+                        >
+                          {saving === team.id ? t('morningSurveyTabs.saving') : t('morningSurveyTabs.save')}
+                        </Button>
+                      </td>
+                    </>
+                  )}
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
+      
+      {/* Модал планирования RPE (только для type === 'rpe') */}
+      {type === 'rpe' && (
+        <RPESchedulingModal
+          open={isSchedulingModalOpen}
+          onOpenChange={setIsSchedulingModalOpen}
+          team={selectedTeamForScheduling}
+          onScheduleUpdated={() => {
+            // Можно здесь обновить данные или показать уведомление
+            toast({ title: 'Расписание обновлено', variant: 'default' });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -199,10 +254,10 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
   const [resending, setResending] = useState<string | null>(null);
   const [showDurationModal, setShowDurationModal] = useState(false);
   const [durationSettings, setDurationSettings] = useState<{
-    globalDuration: number;
+    globalDuration: number | null;
     individualDurations: Record<string, number>;
   }>({
-    globalDuration: 70,
+    globalDuration: null,
     individualDurations: {}
   });
 
@@ -238,7 +293,7 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
       if (response.ok) {
         const data = await response.json();
         setDurationSettings({
-          globalDuration: data.globalDuration || 70,
+          globalDuration: data.globalDuration || null,
           individualDurations: data.individualDurations || {}
         });
       }
@@ -425,8 +480,8 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                           </td>
                           <td className="px-2 py-1 text-center align-middle text-xs">{resp ? formatDateTime(resp.createdAt) : '-'}</td>
                           <td className="px-2 py-1 text-center align-middle">
-                            {!resp && <button
-                              className="px-3 py-1 rounded bg-vista-accent text-white hover:bg-vista-accent/90 disabled:opacity-60 shadow border border-vista-secondary/30 text-xs"
+                            <button
+                              className="px-3 py-1 rounded bg-vista-secondary/10 text-vista-light/40 hover:bg-vista-accent hover:text-white disabled:opacity-60 border border-vista-secondary/20 text-xs transition-colors opacity-70 hover:opacity-100"
                               disabled={!!resending}
                               onClick={async () => {
                                 setResending(player.id);
@@ -448,7 +503,7 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                                   setResending(null);
                                 }
                               }}
-                            >{resending === player.id ? t('morningSurveyTabs.resending') : t('morningSurveyTabs.resend')}</button>}
+                            >{resending === player.id ? t('morningSurveyTabs.resending') : t('morningSurveyTabs.resend')}</button>
                           </td>
                         </tr>
                       );
@@ -569,8 +624,8 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                           </td>
                           <td className="px-2 py-1 text-center align-middle text-xs">{resp ? formatDateTime(resp.createdAt) : '-'}</td>
                           <td className="px-2 py-1 text-center align-middle">
-                            {!resp && <button
-                              className="px-3 py-1 rounded bg-vista-accent text-white hover:bg-vista-accent/90 disabled:opacity-60 shadow border border-vista-secondary/30 text-xs"
+                            <button
+                              className="px-3 py-1 rounded bg-vista-secondary/10 text-vista-light/40 hover:bg-vista-accent hover:text-white disabled:opacity-60 border border-vista-secondary/20 text-xs transition-colors opacity-70 hover:opacity-100"
                               disabled={!!resending}
                               onClick={async () => {
                                 setResending(player.id);
@@ -592,7 +647,7 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                                   setResending(null);
                                 }
                               }}
-                            >{resending === player.id ? t('morningSurveyTabs.resending') : t('morningSurveyTabs.resend')}</button>}
+                            >{resending === player.id ? t('morningSurveyTabs.resending') : t('morningSurveyTabs.resend')}</button>
                           </td>
                         </tr>
                       );

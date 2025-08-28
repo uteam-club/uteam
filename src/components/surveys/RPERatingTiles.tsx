@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 
 interface RPERatingTilesProps {
-  value: number;
+  value: number | undefined;
   onChange: (value: number) => void;
   lang?: 'ru' | 'en';
 }
@@ -91,7 +91,7 @@ export function RPERatingTiles({ value, onChange, lang = 'ru' }: RPERatingTilesP
             onClick={() => onChange(number)}
             className={cn(
               "py-3 rounded-lg flex flex-col items-center justify-center text-sm font-medium transition-colors border-2 min-h-[60px]",
-              value === number 
+              value !== undefined && value === number 
                 ? `${COLORS[number as keyof typeof COLORS]} ${BORDER_COLORS[number as keyof typeof BORDER_COLORS]} text-white shadow-md` 
                 : `${INACTIVE_COLORS[number as keyof typeof INACTIVE_COLORS]} border-gray-200/20 text-gray-500`
             )}
@@ -108,7 +108,7 @@ export function RPERatingTiles({ value, onChange, lang = 'ru' }: RPERatingTilesP
           onClick={() => onChange(10)}
           className={cn(
             "col-span-3 py-3 rounded-lg flex flex-col items-center justify-center text-sm font-medium transition-colors border-2 min-h-[60px]",
-            value === 10
+            value !== undefined && value === 10
               ? `${COLORS[10]} ${BORDER_COLORS[10]} text-white shadow-md`
               : `${INACTIVE_COLORS[10]} border-gray-200/20 text-gray-500`
           )}
@@ -119,7 +119,7 @@ export function RPERatingTiles({ value, onChange, lang = 'ru' }: RPERatingTilesP
           </span>
         </button>
       </div>
-      {value > 0 && (
+      {value !== undefined && value > 0 && (
         <div className="text-center p-3 bg-vista-dark/30 rounded-lg">
           <p className="text-vista-light font-medium">
             {SELECTED_LABEL[lang] || SELECTED_LABEL['ru']}: <span className="text-lg font-bold">{value}</span>

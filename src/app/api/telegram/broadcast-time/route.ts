@@ -19,8 +19,14 @@ export async function GET(req: NextRequest) {
   if (!token) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+  
+  const { searchParams } = new URL(req.url);
+  const type = searchParams.get('type') || 'morning';
+  
   const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'adminPanel.read')) {
+  // Проверяем права в зависимости от типа опроса
+  const requiredPermission = type === 'rpe' ? 'rpeSurvey.read' : 'morningSurvey.read';
+  if (!hasPermission(permissions, requiredPermission)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const clubId = token.clubId;
@@ -37,16 +43,21 @@ export async function POST(req: NextRequest) {
   if (!token) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-  const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'adminPanel.update')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
   try {
+    const body = await req.json();
+    const { teamId, time, enabled, type = 'morning' } = body;
+    
+    const permissions = await getUserPermissions(token.id);
+    // Проверяем права в зависимости от типа опроса
+    const requiredPermission = type === 'rpe' ? 'rpeSurvey.update' : 'morningSurvey.update';
+    if (!hasPermission(permissions, requiredPermission)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    
     const clubId = token.clubId;
     if (!clubId) {
       return NextResponse.json({ error: 'No clubId in token', token }, { status: 400 });
     }
-    const { teamId, time, enabled, type = 'morning' } = await req.json();
     if (!teamId || typeof teamId !== 'string') {
       return NextResponse.json({ error: 'No teamId provided', teamId }, { status: 400 });
     }

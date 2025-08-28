@@ -67,21 +67,50 @@ def get_survey_schedules():
     
     try:
         with connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
-            query = """
+            # Получаем старые опросы (утренние)
+            query_morning = """
             SELECT 
                 ss."id",
                 ss."teamId",
                 ss."sendTime",
                 ss."enabled",
                 ss."surveyType",
-                t."timezone"
+                t."timezone",
+                NULL as "trainingId"
             FROM "SurveySchedule" ss
             LEFT JOIN "Team" t ON ss."teamId" = t."id"
-            WHERE ss."enabled" = true
+            WHERE ss."enabled" = true AND ss."surveyType" = 'morning'
             """
-            cursor.execute(query)
-            schedules = cursor.fetchall()
-            return [dict(schedule) for schedule in schedules]
+            
+            # Получаем новые RPE расписания привязанные к тренировкам
+            query_rpe = """
+            SELECT 
+                rs."id",
+                rs."teamId",
+                rs."scheduledTime" as "sendTime",
+                true as "enabled",
+                'rpe' as "surveyType",
+                t."timezone",
+                rs."trainingId",
+                tr."date" as "trainingDate"
+            FROM "RPESchedule" rs
+            LEFT JOIN "Team" t ON rs."teamId" = t."id"
+            LEFT JOIN "Training" tr ON rs."trainingId" = tr."id"
+            WHERE rs."status" = 'scheduled'
+            """
+            
+            schedules = []
+            
+            # Выполняем оба запроса
+            cursor.execute(query_morning)
+            morning_schedules = cursor.fetchall()
+            schedules.extend([dict(schedule) for schedule in morning_schedules])
+            
+            cursor.execute(query_rpe)
+            rpe_schedules = cursor.fetchall()
+            schedules.extend([dict(schedule) for schedule in rpe_schedules])
+            
+            return schedules
     except Exception as e:
         print(f"[DB] Ошибка получения расписаний: {e}")
         return []
@@ -374,6 +403,15 @@ async def send_survey_broadcast():
             if schedule.get('sendTime') == now_str:
                 team_id = schedule.get('teamId')
                 survey_type = schedule.get('surveyType', 'morning')
+                
+                # Для RPE опросов проверяем, что дата тренировки = сегодня
+                if survey_type == 'rpe' and schedule.get('trainingDate'):
+                    training_date = schedule.get('trainingDate')
+                    if isinstance(training_date, str):
+                        # Проверяем, что дата тренировки = сегодняшней дате
+                        today_date = now.strftime('%Y-%m-%d')
+                        if training_date != today_date:
+                            continue  # Пропускаем, если тренировка не сегодня
                 players = get_team_players(team_id)
                 print(f"[Scheduler] Получено игроков для рассылки: {len(players)}")
                 for player in players:

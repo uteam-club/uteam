@@ -25,6 +25,7 @@ import { X, Search, Plus, Calendar, Filter, CalendarIcon, Clock, ChevronLeft, Ch
 import { useRouter } from 'next/navigation';
 import { useTrainingCategories } from '@/hooks/useExerciseData';
 import { CreateTrainingModal } from '@/components/training/CreateTrainingModal';
+
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 
@@ -78,6 +79,8 @@ export default function TrainingsPage() {
   
   // Состояние для модального окна создания тренировки
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  
+
   const [newTraining, setNewTraining] = useState({
     title: '',
     teamId: '',
@@ -593,15 +596,17 @@ export default function TrainingsPage() {
                 {paginatedTrainings.map((training) => (
                   <div 
                     key={training.id} 
-                    className="rounded-lg border border-vista-secondary/50 bg-vista-dark/70 hover:bg-vista-dark/90 transition-all overflow-hidden flex flex-col cursor-pointer shadow-md hover:shadow-xl hover:ring-1 hover:ring-vista-primary hover:ring-offset-0 hover:ring-offset-gray-800/20"
-                    onClick={() => {
-                      router.push(`/dashboard/coaching/trainings/${training.id}`);
-                    }}
+                    className="rounded-lg border border-vista-secondary/50 bg-vista-dark/70 hover:bg-vista-dark/90 transition-all overflow-hidden flex flex-col shadow-md hover:shadow-xl"
                   >
                     {/* Статус тренировки - полоса сверху */}
                     <div className={`h-1 w-full ${training.isCompleted ? 'bg-green-500' : 'bg-vista-primary'}`}></div>
                     
-                    <div className="p-5">
+                    <div 
+                      className="p-5 cursor-pointer flex-1"
+                      onClick={() => {
+                        router.push(`/dashboard/coaching/trainings/${training.id}`);
+                      }}
+                    >
                       {/* Заголовок и статус в одну строку */}
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-medium text-vista-light">{training.name}</h3>
@@ -714,6 +719,8 @@ export default function TrainingsPage() {
           // Можно обновить список тренировок или показать toast
         }}
       />
+
+
     </div>
   );
 }

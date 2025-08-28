@@ -261,7 +261,7 @@ export function RPESurveyTabs() {
                         {resending === response.playerId ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
-                          'Отправить'
+                          'Отправить повторно'
                         )}
                       </Button>
                     </TableCell>

@@ -33,7 +33,7 @@ export function TrainingDurationModal({
 }: TrainingDurationModalProps) {
   const { toast } = useToast();
   const [isIndividualMode, setIsIndividualMode] = useState(false);
-  const [globalDuration, setGlobalDuration] = useState<number>(70);
+  const [globalDuration, setGlobalDuration] = useState<number | undefined>(undefined);
   const [individualDurations, setIndividualDurations] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -53,7 +53,7 @@ export function TrainingDurationModal({
       const response = await fetch(`/api/surveys/rpe/duration?teamId=${teamId}&date=${date}`);
       if (response.ok) {
         const data = await response.json();
-        setGlobalDuration(data.globalDuration || 70);
+        setGlobalDuration(data.globalDuration || undefined);
         setIndividualDurations(data.individualDurations || {});
       }
     } catch (error) {
@@ -65,6 +65,16 @@ export function TrainingDurationModal({
 
   const saveSettings = async () => {
     if (!teamId || !date) return;
+    
+    // Проверяем, что есть что сохранять
+    if (!isIndividualMode && !globalDuration) {
+      toast({
+        title: 'Ошибка',
+        description: 'Пожалуйста, укажите длительность тренировки',
+        variant: 'destructive'
+      });
+      return;
+    }
     
     setSaving(true);
     try {
@@ -119,11 +129,11 @@ export function TrainingDurationModal({
   };
 
   const handleGlobalDurationChange = (value: string) => {
-    const numValue = parseInt(value) || 0;
+    const numValue = value === '' ? undefined : parseInt(value) || undefined;
     setGlobalDuration(numValue);
     
     // Если включен индивидуальный режим, обновляем все индивидуальные значения
-    if (isIndividualMode) {
+    if (isIndividualMode && numValue !== undefined) {
       const newIndividualDurations = { ...individualDurations };
       players.forEach(player => {
         newIndividualDurations[player.id] = numValue;
@@ -141,11 +151,13 @@ export function TrainingDurationModal({
   };
 
   const resetToGlobal = () => {
-    const newIndividualDurations = { ...individualDurations };
-    players.forEach(player => {
-      newIndividualDurations[player.id] = globalDuration;
-    });
-    setIndividualDurations(newIndividualDurations);
+    if (globalDuration !== undefined) {
+      const newIndividualDurations = { ...individualDurations };
+      players.forEach(player => {
+        newIndividualDurations[player.id] = globalDuration;
+      });
+      setIndividualDurations(newIndividualDurations);
+    }
   };
 
   if (loading) {
@@ -163,13 +175,13 @@ export function TrainingDurationModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-2xl w-full overflow-hidden backdrop-blur-xl h-[90vh] mt-8"
+        className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-2xl w-full overflow-hidden backdrop-blur-xl max-h-[95vh] my-2 flex flex-col"
       >
         <DialogHeader className="sr-only">
           <DialogTitle>Управление длительностью тренировки</DialogTitle>
         </DialogHeader>
         
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col min-h-0 flex-1">
             {/* Блок с режимом и временем в самом верху */}
             <div className="p-4 border-b border-vista-secondary/20">
               <div className="flex items-center justify-between p-4 bg-vista-dark/60 border border-vista-secondary/20 rounded-lg">
@@ -190,11 +202,12 @@ export function TrainingDurationModal({
                   <Label className="text-vista-light/70 font-normal text-sm">Длительность:</Label>
                   <Input
                     type="number"
-                    value={globalDuration}
+                    value={globalDuration || ''}
                     onChange={(e) => handleGlobalDurationChange(e.target.value)}
                     className="w-20 text-center bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
                     min="1"
                     max="300"
+                    placeholder="мин"
                   />
                   <span className="text-vista-light/80 text-sm">мин</span>
                 </div>
@@ -220,7 +233,7 @@ export function TrainingDurationModal({
                   <p className="text-xs text-vista-light/50">
                     Укажите индивидуальную длительность для игроков, если она отличается от общей
                   </p>
-                  <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar pr-2">
+                  <div className="space-y-2 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2">
                     {players.map(player => (
                       <div key={player.id} className="flex items-center justify-between p-2 bg-vista-dark/60 rounded border border-vista-secondary/20">
                         <div className="flex items-center gap-2">
@@ -234,11 +247,12 @@ export function TrainingDurationModal({
                         <div className="flex items-center gap-2">
                           <Input
                             type="number"
-                            value={individualDurations[player.id] || globalDuration}
+                            value={individualDurations[player.id] || globalDuration || ''}
                             onChange={(e) => handleIndividualDurationChange(player.id, e.target.value)}
                             className="w-20 text-center text-sm bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
                             min="1"
                             max="300"
+                            placeholder="мин"
                           />
                           <span className="text-vista-light/50 text-xs">мин</span>
                         </div>
