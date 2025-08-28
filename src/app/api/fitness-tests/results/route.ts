@@ -10,6 +10,7 @@ import { getClubBySubdomain } from '@/services/user.service';
 import { getToken } from 'next-auth/jwt';
 import { getUserPermissions } from '@/services/user.service';
 import { hasPermission } from '@/lib/permissions';
+import { inArray } from 'drizzle-orm';
 
 const saveResultsSchema = z.object({
   testId: z.string(),
@@ -85,26 +86,46 @@ export async function POST(req: NextRequest) {
   if (!results.length || !results[0].date) {
     return NextResponse.json({ error: 'Date is required' }, { status: 400 });
   }
+  
   // Используем дату, которую выбрал тренер
   const date = new Date(results[0].date);
-  // Удаляем все старые результаты за эту дату для этого теста и команды
+  
+  // Получаем список ID игроков, для которых будут обновлены результаты
+  const playerIdsToUpdate = results.map(r => r.playerId);
+  
+  // Удаляем только те результаты, которые будут обновлены
+  // Используем inArray для эффективного удаления
   await db.delete(fitnessTestResult)
     .where(and(
       eq(fitnessTestResult.testId, testId),
       eq(fitnessTestResult.teamId, teamId),
-      eq(fitnessTestResult.date, date)
+      eq(fitnessTestResult.date, date),
+      inArray(fitnessTestResult.playerId, playerIdsToUpdate)
     ));
-  const toInsert = results.map(r => ({
-    testId,
-    teamId,
-    playerId: r.playerId,
-    value: String(r.value),
-    date,
-    createdBy: token.id,
-  }));
-  await db.insert(fitnessTestResult).values(toInsert);
+  
+  // Фильтруем результаты: убираем пустые значения
+  const validResults = results.filter(r => 
+    r.value !== null && 
+    r.value !== undefined && 
+    r.value.toString().trim() !== ''
+  );
+  
+  // Вставляем только валидные результаты
+  if (validResults.length > 0) {
+    const toInsert = validResults.map(r => ({
+      testId,
+      teamId,
+      playerId: r.playerId,
+      value: String(r.value),
+      date,
+      createdBy: token.id,
+    }));
+    
+    await db.insert(fitnessTestResult).values(toInsert);
+  }
+  
   return NextResponse.json({ success: true });
-} 
+}
 
 export async function PATCH(req: NextRequest) {
   const token = await getToken({ req });
