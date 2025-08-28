@@ -87,7 +87,7 @@ def get_survey_schedules():
             SELECT 
                 rs."id",
                 rs."teamId",
-                TO_CHAR(rs."scheduledTime", 'HH24:MI') as "sendTime",
+                rs."scheduledTime" as "sendTime",
                 true as "enabled",
                 'rpe' as "surveyType",
                 t."timezone",
@@ -400,7 +400,19 @@ async def send_survey_broadcast():
                 now = datetime.utcnow() + timedelta(hours=3)  # fallback
             now_str = now.strftime('%H:%M')
             survey_date = now.strftime('%d.%m.%Y')
-            if schedule.get('sendTime') == now_str:
+            
+            # Обрезаем секунды из времени расписания для корректного сравнения
+            schedule_time = schedule.get('sendTime', '')
+            if ':' in schedule_time and len(schedule_time.split(':')) == 3:
+                schedule_time = schedule_time[:5]  # Обрезаем до HH:MM
+            
+            # ОТЛАДОЧНЫЕ ЛОГИ
+            print(f"[DEBUG] Schedule: sendTime={schedule_time}, currentTime={now_str}, type={schedule.get('surveyType')}")
+            if schedule.get('trainingDate'):
+                print(f"[DEBUG] Training date: {schedule.get('trainingDate')}, today: {now.strftime('%Y-%m-%d')}")
+            
+            if schedule_time == now_str:
+                print(f"[DEBUG] ⏰ ВРЕМЯ СОВПАЛО! Запускаем рассылку")
                 team_id = schedule.get('teamId')
                 survey_type = schedule.get('surveyType', 'morning')
                 
@@ -411,7 +423,11 @@ async def send_survey_broadcast():
                         # Проверяем, что дата тренировки = сегодняшней дате
                         today_date = now.strftime('%Y-%m-%d')
                         if training_date != today_date:
+                            print(f"[DEBUG] ❌ Пропускаем RPE: дата тренировки {training_date} != сегодня {today_date}")
                             continue  # Пропускаем, если тренировка не сегодня
+                        else:
+                            print(f"[DEBUG] ✅ Дата тренировки совпадает")
+                
                 players = get_team_players(team_id)
                 print(f"[Scheduler] Получено игроков для рассылки: {len(players)}")
                 for player in players:
@@ -423,11 +439,7 @@ async def send_survey_broadcast():
                         print(f"[DEBUG] Пропущен игрок без telegramId или clubId: {player}")
                         continue
                     # Формируем ссылку с нужным type
-                    if survey_type == 'rpe':
-                        training_id = schedule.get('trainingId')
-                        link = f"https://api.uteam.club/survey?tenantId={club_id}&type={survey_type}&trainingId={training_id}"
-                    else:
-                        link = f"https://api.uteam.club/survey?tenantId={club_id}&type={survey_type}"
+                    link = f"https://api.uteam.club/survey?tenantId={club_id}&type={survey_type}"
                     # Текст и кнопка для разных типов опросов
                     if survey_type == 'morning':
                         if lang == 'en':
@@ -480,9 +492,11 @@ async def send_survey_broadcast():
                             reply_markup=keyboard,
                             parse_mode="HTML"
                         )
-                        print(f"[DEBUG] Сообщение отправлено: telegramId={telegram_id}")
+                        print(f"[DEBUG] ✅ Сообщение отправлено: telegramId={telegram_id}")
                     except Exception as e:
-                        print(f"[Scheduler] Ошибка отправки {telegram_id}: {e}")
+                        print(f"[Scheduler] ❌ Ошибка отправки {telegram_id}: {e}")
+            else:
+                print(f"[DEBUG] ⏰ Время НЕ совпало: {schedule.get('sendTime')} != {now_str}")
         print(f"[Scheduler] Проверка рассылок завершена")
     except Exception as e:
         print(f"[Scheduler] Ошибка планировщика: {e}")
@@ -586,4 +600,4 @@ async def main():
 
 if __name__ == '__main__':
     print("[BOT] Запуск Telegram-бота с прямым доступом к базе данных...")
-    asyncio.run(main()) 
+    asyncio.run(main())

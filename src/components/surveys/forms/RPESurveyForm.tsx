@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RPERatingTiles } from '@/components/surveys/RPERatingTiles';
+import { useSearchParams } from 'next/navigation';
 
 interface RPESurveyFormProps {
   player: any;
@@ -34,6 +35,8 @@ export function RPESurveyForm({ player, surveyId, tenantId, onSubmit, lang = 'en
   const [rpeScore, setRpeScore] = useState<number | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const searchParams = useSearchParams();
+  const trainingId = searchParams.get('trainingId');
 
   const t = translations[lang] || translations.en;
 
@@ -49,6 +52,7 @@ export function RPESurveyForm({ player, surveyId, tenantId, onSubmit, lang = 'en
           tenantId,
           playerId: player.id,
           type: 'rpe',
+          trainingId: trainingId,
         }),
       });
       if (!response.ok) throw new Error('Failed to submit survey');

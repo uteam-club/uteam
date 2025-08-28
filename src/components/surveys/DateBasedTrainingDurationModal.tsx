@@ -16,21 +16,23 @@ interface Player {
   telegramId?: number;
 }
 
-interface TrainingDurationModalProps {
+interface DateBasedTrainingDurationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  trainingId: string;
+  teamId: string;
+  date: string;
   players: Player[];
   onDurationUpdate: () => void;
 }
 
-export function TrainingDurationModal({
+export function DateBasedTrainingDurationModal({
   open,
   onOpenChange,
-  trainingId,
+  teamId,
+  date,
   players,
   onDurationUpdate
-}: TrainingDurationModalProps) {
+}: DateBasedTrainingDurationModalProps) {
   const { toast } = useToast();
   const [isIndividualMode, setIsIndividualMode] = useState(false);
   const [globalDuration, setGlobalDuration] = useState<number | undefined>(undefined);
@@ -40,17 +42,17 @@ export function TrainingDurationModal({
 
   // Загружаем текущие настройки длительности
   useEffect(() => {
-    if (open && trainingId) {
+    if (open && teamId && date) {
       loadDurationSettings();
     }
-  }, [open, trainingId]);
+  }, [open, teamId, date]);
 
   const loadDurationSettings = async () => {
-    if (!trainingId) return;
+    if (!teamId || !date) return;
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/trainings/${trainingId}/duration`);
+      const response = await fetch(`/api/surveys/rpe/duration?teamId=${teamId}&date=${date}`);
       if (response.ok) {
         const data = await response.json();
         setGlobalDuration(data.globalDuration || undefined);
@@ -64,7 +66,7 @@ export function TrainingDurationModal({
   };
 
   const saveSettings = async () => {
-    if (!trainingId) return;
+    if (!teamId || !date) return;
     
     setSaving(true);
     try {
@@ -72,10 +74,12 @@ export function TrainingDurationModal({
         // Сохраняем индивидуальные настройки
         for (const [playerId, duration] of Object.entries(individualDurations)) {
           if (duration > 0) {
-            await fetch(`/api/trainings/${trainingId}/duration`, {
+            await fetch(`/api/surveys/rpe/duration`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
+                teamId,
+                date,
                 playerId,
                 individualDuration: duration
               })
@@ -88,10 +92,12 @@ export function TrainingDurationModal({
         });
       } else {
         // Сохраняем общую настройку
-        const response = await fetch(`/api/trainings/${trainingId}/duration`, {
+        const response = await fetch(`/api/surveys/rpe/duration`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            teamId,
+            date,
             globalDuration: globalDuration || null
           })
         });
@@ -176,7 +182,7 @@ export function TrainingDurationModal({
             Управление длительностью тренировки
           </DialogTitle>
           <DialogDescription className="text-vista-light/70 text-sm">
-            Установите длительность тренировки для команды или индивидуально для каждого игрока
+            Установите длительность тренировки для команды или индивидуально для каждого игрока на {date}
           </DialogDescription>
         </DialogHeader>
 

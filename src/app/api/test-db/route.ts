@@ -8,6 +8,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { getToken } from 'next-auth/jwt';
 
+// Указываем, что этот маршрут должен быть динамическим
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const token = await getToken({ req });

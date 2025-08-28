@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { Loader2, RefreshCw, Calendar, Clock, Trophy, Dumbbell } from 'lucide-react';
+import { Calendar, Clock, Trophy, Dumbbell, Settings, Loader2 } from 'lucide-react';
+import { TrainingDurationModal } from './TrainingDurationModal';
 
 interface Team {
   id: string;
@@ -60,6 +61,7 @@ export function RPESurveyAnalysis() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const [resending, setResending] = useState<string | null>(null);
+  const [showDurationModal, setShowDurationModal] = useState(false);
 
   // Загрузка команд
   useEffect(() => {
@@ -111,6 +113,9 @@ export function RPESurveyAnalysis() {
               const rpeResponse = await fetch(`/api/trainings/${training.id}/rpe-survey`);
               if (rpeResponse.ok) {
                 const rpeData = await rpeResponse.json();
+                
+
+                
                 return {
                   ...training,
                   hasRPEResponses: rpeData.totalResponses > 0
@@ -128,6 +133,7 @@ export function RPESurveyAnalysis() {
         
         // Оставляем только тренировки с RPE ответами
         const filteredTrainings = trainingsWithRPE.filter(t => t.hasRPEResponses);
+        
         setTrainings(filteredTrainings);
         
         // Автоматически выбираем первую тренировку
@@ -137,7 +143,7 @@ export function RPESurveyAnalysis() {
       })
       .catch(e => {
         console.error('Ошибка загрузки тренировок:', e);
-        setTrainings([]);
+        setError(`Ошибка загрузки тренировок: ${e.message}`);
       })
       .finally(() => setLoadingTrainings(false));
   }, [selectedTeam]);
@@ -204,12 +210,24 @@ export function RPESurveyAnalysis() {
     }
   };
 
+  const handleDurationUpdate = () => {
+    // Перезагружаем ответы после обновления длительности
+    if (selectedTraining) {
+      fetch(`/api/trainings/${selectedTraining}/rpe-survey`)
+        .then(res => res.json())
+        .then(data => {
+          setResponses(data.responses || []);
+        })
+        .catch(console.error);
+    }
+  };
+
   const getRPEBadgeColor = (score: number) => {
-    if (score <= 3) return 'bg-green-500';
-    if (score <= 5) return 'bg-lime-500';
-    if (score <= 7) return 'bg-yellow-500';
-    if (score <= 9) return 'bg-orange-500';
-    return 'bg-red-500';
+    if (score <= 3) return 'bg-gradient-to-br from-emerald-500 to-green-600';
+    if (score <= 5) return 'bg-gradient-to-br from-lime-500 to-lime-600';
+    if (score <= 7) return 'bg-gradient-to-br from-amber-500 to-orange-500';
+    if (score <= 9) return 'bg-gradient-to-br from-orange-500 to-red-500';
+    return 'bg-gradient-to-br from-red-500 to-red-600';
   };
 
   const getRPEStatus = (score: number) => {
@@ -225,11 +243,11 @@ export function RPESurveyAnalysis() {
   };
 
   const getWorkloadColor = (workload: number | null) => {
-    if (!workload) return 'bg-gray-500';
-    if (workload <= 200) return 'bg-green-500';
-    if (workload <= 400) return 'bg-yellow-500';
-    if (workload <= 600) return 'bg-orange-500';
-    return 'bg-red-500';
+    if (!workload) return 'bg-gradient-to-br from-gray-500 to-gray-600';
+    if (workload <= 200) return 'bg-gradient-to-br from-emerald-500 to-green-600';
+    if (workload <= 400) return 'bg-gradient-to-br from-amber-500 to-yellow-500';
+    if (workload <= 600) return 'bg-gradient-to-br from-orange-500 to-orange-600';
+    return 'bg-gradient-to-br from-red-500 to-red-600';
   };
 
   const formatDate = (dateStr: string) => {
@@ -318,9 +336,19 @@ export function RPESurveyAnalysis() {
       {selectedTrainingData && (
         <Card className="bg-vista-dark/50 border-vista-secondary/50">
           <CardHeader className="pb-3">
-            <CardTitle className="text-vista-light flex items-center gap-2">
-              {getTrainingTypeIcon(selectedTrainingData.type)}
-              {getTrainingTypeText(selectedTrainingData.type)} - {formatDate(selectedTrainingData.date)}
+            <CardTitle className="text-vista-light flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {getTrainingTypeIcon(selectedTrainingData.type)}
+                {getTrainingTypeText(selectedTrainingData.type)} - {formatDate(selectedTrainingData.date)}
+              </div>
+              <button
+                onClick={() => setShowDurationModal(true)}
+                className="px-3 py-2 bg-vista-secondary text-vista-light rounded-md hover:bg-vista-secondary/80 transition-colors flex items-center gap-2 h-8"
+                title="Управление длительностью тренировки"
+              >
+                <Settings className="w-4 h-4" />
+                <span className="text-sm">Длительность</span>
+              </button>
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -358,98 +386,146 @@ export function RPESurveyAnalysis() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-vista-secondary/30">
-                    <TableHead className="text-vista-light">Игрок</TableHead>
-                    <TableHead className="text-vista-light">Оценка RPE</TableHead>
-                    <TableHead className="text-vista-light">Длительность (мин)</TableHead>
-                    <TableHead className="text-vista-light">Нагрузка (RPE×Время)</TableHead>
-                    <TableHead className="text-vista-light">Статус рассылки</TableHead>
-                    <TableHead className="text-vista-light">Время</TableHead>
-                    <TableHead className="text-vista-light">Действия</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <table className="min-w-full text-sm text-vista-light border border-vista-secondary/30 rounded-md">
+                <thead>
+                  <tr className="bg-vista-dark/70 text-xs">
+                    <th className="px-3 py-1 border-b border-vista-secondary/30 text-left whitespace-nowrap text-xs">Игрок</th>
+                    <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">Оценка RPE</th>
+                    <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">Длительность (мин)</th>
+                    <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">Нагрузка (RPE×Время)</th>
+                    <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">Статус рассылки</th>
+                    <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">Время</th>
+                    <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {players.map((player) => {
                     const response = responseByPlayerId[player.id];
                     const workload = response ? getWorkload(response.rpeScore, response.durationMinutes) : null;
                     
                     return (
-                      <TableRow key={player.id} className="border-vista-secondary/20">
-                        <TableCell className="text-vista-light">
-                          {player.firstName} {player.lastName}
-                        </TableCell>
-                        <TableCell>
+                      <tr key={player.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10">
+                        <td className="px-3 py-1 whitespace-nowrap text-xs text-vista-light">
+                          {player.lastName} {player.firstName}
+                        </td>
+                        
+                        {/* RPE Оценка - большая цветная плитка */}
+                        <td className="px-2 py-1 text-center align-middle">
                           {response?.completedAt ? (
-                            <div className="flex items-center gap-2">
-                              <Badge 
-                                className={`${getRPEBadgeColor(response.rpeScore)} text-white border-0`}
-                              >
-                                {response.rpeScore}
-                              </Badge>
-                              <span className="text-vista-light/70 text-xs">
-                                {getRPEStatus(response.rpeScore)}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-vista-light/50">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-vista-light">
-                          {response?.durationMinutes || 'Не задано'}
-                        </TableCell>
-                        <TableCell>
+                            <span className={`rounded-lg border-0 text-base font-bold w-14 h-8 flex items-center justify-center transition-all duration-200 ${getRPEBadgeColor(response.rpeScore)} text-white mx-auto`}>
+                              {response.rpeScore}
+                            </span>
+                          ) : ''}
+                        </td>
+                        
+                        {/* Длительность */}
+                        <td className="px-2 py-1 text-center align-middle">
+                          {response?.durationMinutes ? (
+                            <span className="rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white text-base font-bold w-14 h-8 flex items-center justify-center mx-auto">
+                              {response.durationMinutes}
+                            </span>
+                          ) : ''}
+                        </td>
+                        
+                        {/* Нагрузка */}
+                        <td className="px-2 py-1 text-center align-middle">
                           {workload ? (
-                            <Badge className={`${getWorkloadColor(workload)} text-white border-0`}>
+                            <span className={`rounded-lg border-0 text-base font-bold w-14 h-8 flex items-center justify-center transition-all duration-200 ${getWorkloadColor(workload)} text-white mx-auto`}>
                               {workload}
-                            </Badge>
-                          ) : (
-                            <span className="text-vista-light/50">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
+                            </span>
+                          ) : ''}
+                        </td>
+                        
+                        {/* Статус рассылки */}
+                        <td className="px-2 py-1 text-center align-middle text-xs">
                           {response?.completedAt ? (
-                            <Badge className="bg-green-500 text-white border-0">
+                            <span className="text-emerald-400 font-semibold">
                               Прошёл
-                            </Badge>
+                            </span>
                           ) : (
-                            <Badge className="bg-red-500 text-white border-0">
+                            <span className="text-red-400 font-semibold">
                               Не прошёл
-                            </Badge>
+                            </span>
                           )}
-                        </TableCell>
-                        <TableCell className="text-vista-light/70 text-sm">
+                        </td>
+                        
+                        {/* Время */}
+                        <td className="px-2 py-1 text-center align-middle text-xs text-vista-light/70">
                           {response?.completedAt ? 
                             format(new Date(response.completedAt), 'HH:mm', { locale: ru }) : 
-                            '-'
+                            ''
                           }
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleResend(player.id)}
+                        </td>
+                        
+                        {/* Действия */}
+                        <td className="px-2 py-1 text-center align-middle">
+                          <button
+                            className="px-3 py-1 rounded bg-vista-secondary/10 text-vista-light/40 hover:bg-vista-accent hover:text-white disabled:opacity-60 border border-vista-secondary/20 text-xs transition-colors opacity-70 hover:opacity-100"
                             disabled={!player.telegramId || resending === player.id}
-                            className="text-vista-light hover:bg-vista-secondary/20"
+                            onClick={() => handleResend(player.id)}
                           >
-                            {resending === player.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <RefreshCw className="h-4 w-4" />
-                            )}
-                            Отправить повторно
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                            {resending === player.id ? 'Отправка...' : 'Отправить повторно'}
+                          </button>
+                        </td>
+                      </tr>
                     );
                   })}
-                </TableBody>
-              </Table>
+                  
+                  {/* Средние значения */}
+                  <tr className="bg-vista-dark/80 font-bold">
+                    <td className="px-3 py-1 text-center text-xs">Среднее</td>
+                    
+                    {/* Среднее RPE */}
+                    <td className="px-2 py-1 text-center align-middle text-xs">
+                      {(() => {
+                        const completedResponses = responses.filter(r => r.completedAt);
+                        if (completedResponses.length === 0) return '';
+                        const avgRPE = completedResponses.reduce((sum, r) => sum + r.rpeScore, 0) / completedResponses.length;
+                        return avgRPE.toFixed(2);
+                      })()}
+                    </td>
+                    
+                    {/* Средняя длительность */}
+                    <td className="px-2 py-1 text-center align-middle text-xs">
+                      {(() => {
+                        const responsesWithDuration = responses.filter(r => r.completedAt && r.durationMinutes);
+                        if (responsesWithDuration.length === 0) return '';
+                        const avgDuration = responsesWithDuration.reduce((sum, r) => sum + (r.durationMinutes || 0), 0) / responsesWithDuration.length;
+                        return avgDuration.toFixed(2);
+                      })()}
+                    </td>
+                    
+                    {/* Средняя нагрузка */}
+                    <td className="px-2 py-1 text-center align-middle text-xs">
+                      {(() => {
+                        const responsesWithWorkload = responses.filter(r => r.completedAt && r.durationMinutes);
+                        if (responsesWithWorkload.length === 0) return '';
+                        const avgWorkload = responsesWithWorkload.reduce((sum, r) => sum + (r.rpeScore * (r.durationMinutes || 0)), 0) / responsesWithWorkload.length;
+                        return avgWorkload.toFixed(2);
+                      })()}
+                    </td>
+                    
+                    <td className="px-2 py-1"></td>
+                    <td className="px-2 py-1"></td>
+                    <td className="px-2 py-1"></td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Модальное окно для управления длительностью */}
+      {selectedTrainingData && (
+        <TrainingDurationModal
+          open={showDurationModal}
+          onOpenChange={setShowDurationModal}
+          trainingId={selectedTraining}
+          players={players}
+          onDurationUpdate={handleDurationUpdate}
+        />
+      )}
     </div>
   );
 }

@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useTranslation } from 'react-i18next';
 import { MUSCLE_NAMES } from '@/lib/constants';
-import { TrainingDurationModal } from './TrainingDurationModal';
+import { DateBasedTrainingDurationModal } from './DateBasedTrainingDurationModal';
 
 interface Team {
   id: string;
@@ -673,7 +673,7 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
         </Card>
       </TabsContent>
       {/* Модальное окно для управления длительностью */}
-      <TrainingDurationModal
+      <DateBasedTrainingDurationModal
         open={showDurationModal}
         onOpenChange={setShowDurationModal}
         teamId={selectedTeam}

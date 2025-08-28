@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -285,6 +286,9 @@ export function RPESchedulingModal({
             <Settings className="h-5 w-5 text-vista-primary" />
             Планирование RPE опросов для команды "{team?.name}"
           </DialogTitle>
+          <DialogDescription className="text-vista-light/70 text-sm">
+            Настройте автоматическую отправку RPE опросов для конкретных тренировок
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col min-h-0 flex-1">

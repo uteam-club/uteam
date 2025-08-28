@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -113,6 +114,9 @@ export function TrainingSelectionModal({
             <Target className="h-5 w-5 text-vista-primary" />
             Выберите тренировку для оценки
           </DialogTitle>
+          <DialogDescription className="text-vista-light/70 text-sm">
+            Выберите тренировку из списка доступных для прохождения RPE опроса
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col min-h-0 flex-1">

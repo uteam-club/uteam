@@ -144,7 +144,7 @@ export async function GET(
       return NextResponse.json({ error: 'Training not found' }, { status: 404 });
     }
 
-    // Получаем все RPE ответы для этой тренировки
+    // Получаем все RPE ответы для этой тренировки, фильтруя по команде
     const rpeResponses = await db
       .select({
         id: rpeSurveyResponse.id,
@@ -158,7 +158,13 @@ export async function GET(
       })
       .from(rpeSurveyResponse)
       .leftJoin(player, eq(rpeSurveyResponse.playerId, player.id))
-      .where(eq(rpeSurveyResponse.trainingId, trainingId));
+      .where(
+        and(
+          eq(rpeSurveyResponse.trainingId, trainingId),
+          eq(player.teamId, trainingRecord.teamId), // Фильтруем по команде
+          eq(rpeSurveyResponse.tenantId, token.clubId) // Фильтруем по клубу
+        )
+      );
 
     return NextResponse.json({
       training: {

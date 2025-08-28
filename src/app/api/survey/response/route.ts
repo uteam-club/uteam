@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
     playerId,
     type,
     rpeScore,
+    trainingId,
   } = body;
 
   if (!surveyId || !tenantId || !playerId) {
@@ -78,6 +79,7 @@ export async function POST(req: NextRequest) {
         playerId,
         surveyId,
         tenantId,
+        trainingId: trainingId || null, // Добавляем trainingId если есть
         completedAt: new Date(),
         createdAt: new Date(),
       }).returning();
