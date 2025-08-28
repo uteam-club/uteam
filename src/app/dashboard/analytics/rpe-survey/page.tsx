@@ -1,6 +1,6 @@
 'use client';
 
-import { RPESurveyAnalysis } from "@/components/surveys/RPESurveyAnalysis";
+import { RPESurveyTabsWrapper } from "@/components/surveys/RPESurveyTabsWrapper";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export default function RPESurveyPage() {
@@ -11,7 +11,7 @@ export default function RPESurveyPage() {
           <CardTitle className="text-vista-light">Оценка RPE</CardTitle>
         </CardHeader>
         <CardContent className="custom-scrollbar">
-          <RPESurveyAnalysis />
+          <RPESurveyTabsWrapper />
         </CardContent>
       </Card>
     </div>
