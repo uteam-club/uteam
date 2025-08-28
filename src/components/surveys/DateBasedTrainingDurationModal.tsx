@@ -173,26 +173,11 @@ export function DateBasedTrainingDurationModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto backdrop-blur-xl">
-        <DialogHeader className="pb-4 border-b border-vista-secondary/20">
-          <DialogTitle className="text-xl font-semibold text-vista-light flex items-center gap-3">
-            <div className="p-2 bg-vista-primary/20 rounded-lg">
-              <Clock className="h-5 w-5 text-vista-primary" />
-            </div>
-            Управление длительностью тренировки
-          </DialogTitle>
-          <DialogDescription className="text-vista-light/70 text-sm">
-            Установите длительность тренировки для команды или индивидуально для каждого игрока на {date}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-6 py-4">
+      <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-lg w-full h-[calc(100vh-var(--modal-top-spacing)-var(--modal-bottom-spacing))] overflow-y-auto backdrop-blur-xl">
+        <div className="flex flex-col h-full space-y-4 pt-4">
           {/* Переключатель режима */}
           <div className="flex items-center justify-between p-4 bg-vista-secondary/10 rounded-lg border border-vista-secondary/20">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-vista-accent/20 rounded-lg">
-                <Settings className="h-4 w-4 text-vista-accent" />
-              </div>
               <div>
                 <Label className="text-vista-light font-medium">Индивидуальные настройки</Label>
                 <p className="text-xs text-vista-light/60">Устанавливать длительность отдельно для каждого игрока</p>
@@ -234,11 +219,7 @@ export function DateBasedTrainingDurationModal({
           {/* Индивидуальные настройки */}
           {isIndividualMode && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-vista-primary" />
-                  <Label className="text-vista-light font-medium">Индивидуальные длительности</Label>
-                </div>
+              <div className="flex items-center justify-end">
                 {globalDuration && (
                   <Button
                     size="sm"
@@ -251,9 +232,9 @@ export function DateBasedTrainingDurationModal({
                 )}
               </div>
 
-              <div className="space-y-2 max-h-60 overflow-y-auto">
+              <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
                 {players.map((player) => (
-                  <div key={player.id} className="flex items-center justify-between p-3 bg-vista-secondary/5 rounded-lg border border-vista-secondary/20">
+                  <div key={player.id} className="flex items-center justify-between py-0.5 px-2 bg-vista-secondary/5 rounded-lg border border-vista-secondary/20">
                     <div className="text-sm text-vista-light">
                       {player.firstName} {player.lastName}
                     </div>
@@ -267,7 +248,6 @@ export function DateBasedTrainingDurationModal({
                         placeholder="мин"
                         className="w-20 bg-vista-dark border-vista-secondary/50 text-vista-light"
                       />
-                      <span className="text-vista-light/70 text-xs">мин</span>
                     </div>
                   </div>
                 ))}
@@ -277,7 +257,7 @@ export function DateBasedTrainingDurationModal({
         </div>
 
         {/* Кнопки действий */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-vista-secondary/20">
+        <div className="flex justify-end gap-3 pt-4 border-t border-vista-secondary/20 mt-auto">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}

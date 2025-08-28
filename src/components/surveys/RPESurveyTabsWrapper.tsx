@@ -156,28 +156,28 @@ export function RPESurveyTabsWrapper() {
   const { t } = useTranslation();
 
   return (
-    <Tabs defaultValue="settings" className="w-full">
+    <Tabs defaultValue="analysis" className="w-full">
       <TabsList className="grid w-full grid-cols-2 bg-vista-dark/50 border border-vista-secondary/30">
-        <TabsTrigger 
-          value="settings" 
-          className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70"
-        >
-          {t('morningSurveyTabs.settings')}
-        </TabsTrigger>
         <TabsTrigger 
           value="analysis" 
           className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70"
         >
           {t('morningSurveyTabs.analysis')}
         </TabsTrigger>
+        <TabsTrigger 
+          value="settings" 
+          className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70"
+        >
+          {t('morningSurveyTabs.settings')}
+        </TabsTrigger>
       </TabsList>
-      
-      <TabsContent value="settings">
-        <TelegramBotSettings type="rpe" />
-      </TabsContent>
       
       <TabsContent value="analysis">
         <RPESurveyAnalysis />
+      </TabsContent>
+      
+      <TabsContent value="settings">
+        <TelegramBotSettings type="rpe" />
       </TabsContent>
     </Tabs>
   );

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TeamSelect } from '@/components/ui/team-select';
 
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
@@ -261,11 +262,11 @@ export function RPESurveyAnalysis() {
   const getTrainingTypeIcon = (type: string) => {
     switch (type) {
       case 'GYM':
-        return <Dumbbell className="h-4 w-4 text-purple-400" />;
+        return <Dumbbell className="h-4 w-4 text-vista-primary" />;
       case 'MATCH':
-        return <Trophy className="h-4 w-4 text-amber-400" />;
+        return <Trophy className="h-4 w-4 text-vista-primary" />;
       default:
-        return <Calendar className="h-4 w-4 text-blue-400" />;
+        return <Calendar className="h-4 w-4 text-vista-primary" />;
     }
   };
 
@@ -284,96 +285,56 @@ export function RPESurveyAnalysis() {
 
   return (
     <div className="space-y-6">
-      {/* Фильтры */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-vista-light mb-2">
-            Команда
-          </label>
-          <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-            <SelectTrigger className="bg-vista-dark border-vista-secondary text-vista-light">
-              <SelectValue placeholder="Выберите команду" />
-            </SelectTrigger>
-            <SelectContent className="bg-vista-dark border-vista-secondary">
-              {teams.map((team) => (
-                <SelectItem key={team.id} value={team.id} className="text-vista-light hover:bg-vista-secondary">
-                  {team.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
 
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-vista-light mb-2">
-            Тренировка / Матч
-          </label>
-          <Select value={selectedTraining} onValueChange={setSelectedTraining} disabled={loadingTrainings}>
-            <SelectTrigger className="bg-vista-dark border-vista-secondary text-vista-light">
-              <SelectValue placeholder={loadingTrainings ? "Загрузка..." : "Выберите тренировку"} />
-            </SelectTrigger>
-            <SelectContent className="bg-vista-dark border-vista-secondary">
-              {trainings.map((training) => (
-                <SelectItem key={training.id} value={training.id} className="text-vista-light hover:bg-vista-secondary">
-                  <div className="flex items-center gap-2">
-                    {getTrainingTypeIcon(training.type)}
-                    <span>{getTrainingTypeText(training.type)}</span>
-                    <span className="text-vista-light/70">
-                      {formatDate(training.date)} в {formatTime(training.time)}
-                    </span>
-                    {training.title && (
-                      <span className="text-vista-light/50">- {training.title}</span>
-                    )}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
 
-      {/* Информация о выбранной тренировке */}
-      {selectedTrainingData && (
-        <Card className="bg-vista-dark/50 border-vista-secondary/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-vista-light flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {getTrainingTypeIcon(selectedTrainingData.type)}
-                {getTrainingTypeText(selectedTrainingData.type)} - {formatDate(selectedTrainingData.date)}
-              </div>
-              <button
-                onClick={() => setShowDurationModal(true)}
-                className="px-3 py-2 bg-vista-secondary text-vista-light rounded-md hover:bg-vista-secondary/80 transition-colors flex items-center gap-2 h-8"
-                title="Управление длительностью тренировки"
-              >
-                <Settings className="w-4 h-4" />
-                <span className="text-sm">Длительность</span>
-              </button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="flex items-center gap-4 text-sm text-vista-light/70">
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                {formatTime(selectedTrainingData.time)}
-              </div>
-              {selectedTrainingData.title && (
-                <div>{selectedTrainingData.title}</div>
-              )}
-              {selectedTrainingData.category && (
-                <div>{selectedTrainingData.category}</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
 
       {/* Таблица результатов */}
-      <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
-        <CardHeader>
-          <CardTitle className="text-vista-light">Анализ ответов</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Card className="p-6 bg-vista-dark/50 border-vista-secondary/50">
+        <div className="flex flex-wrap gap-4 mb-4 items-end">
+          <div className="min-w-[220px]">
+            <TeamSelect teams={teams} value={selectedTeam} onChange={setSelectedTeam} />
+          </div>
+
+          <div className="min-w-[280px]">
+            <Select value={selectedTraining} onValueChange={setSelectedTraining} disabled={loadingTrainings}>
+              <SelectTrigger className="px-3 py-2 bg-vista-dark/40 border border-vista-secondary/50 text-vista-light text-sm rounded-md">
+                <SelectValue placeholder={loadingTrainings ? "Загрузка..." : "Выберите тренировку"} />
+              </SelectTrigger>
+              <SelectContent className="bg-vista-dark border-vista-secondary">
+                {trainings.map((training) => (
+                  <SelectItem key={training.id} value={training.id} className="text-vista-light hover:bg-vista-secondary">
+                    <div className="flex items-center gap-2">
+                      {getTrainingTypeIcon(training.type)}
+                      <span>{getTrainingTypeText(training.type)}</span>
+                      <span className="text-vista-light/70">
+                        {formatDate(training.date)} в {formatTime(training.time)}
+                      </span>
+                      {training.title && (
+                        <span className="text-vista-light/50">- {training.title}</span>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Кнопка управления длительностью */}
+          <button
+            onClick={() => setShowDurationModal(true)}
+            disabled={!selectedTraining}
+            className={`px-3 py-2 rounded-md transition-colors flex items-center gap-2 h-10 ${
+              selectedTraining 
+                ? 'bg-vista-secondary text-vista-light hover:bg-vista-secondary/80 cursor-pointer' 
+                : 'bg-vista-secondary/10 text-vista-light/30 cursor-not-allowed'
+            }`}
+                          title={selectedTraining ? "Управление длительностью события" : "Сначала выберите тренировку"}
+          >
+            <Clock className="w-4 h-4" />
+            <span className="text-sm">Длительность</span>
+          </button>
+        </div>
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-vista-light" />
@@ -389,78 +350,99 @@ export function RPESurveyAnalysis() {
               <table className="min-w-full text-sm text-vista-light border border-vista-secondary/30 rounded-md">
                 <thead>
                   <tr className="bg-vista-dark/70 text-xs">
-                    <th className="px-3 py-1 border-b border-vista-secondary/30 text-left whitespace-nowrap text-xs">Игрок</th>
-                    <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">Оценка RPE</th>
-                    <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">Длительность (мин)</th>
-                    <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">Нагрузка (RPE×Время)</th>
-                    <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">Статус рассылки</th>
-                    <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">Время</th>
-                    <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">Действия</th>
+                    <th className="px-3 py-2 border-b border-vista-secondary/30 text-left whitespace-nowrap text-xs font-normal tracking-tight">Игрок</th>
+                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">Оценка RPE</th>
+                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">Длительность (мин)</th>
+                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">Нагрузка (RPE×Время)</th>
+                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">Статус</th>
+                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">Время</th>
+                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">Действия</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {players.map((player) => {
+                  {players
+                    .sort((a, b) => {
+                      const aHasResponse = !!responseByPlayerId[a.id]?.completedAt;
+                      const bHasResponse = !!responseByPlayerId[b.id]?.completedAt;
+                      // Сначала те, кто прошёл опросник (true), потом те, кто не прошёл (false)
+                      return (bHasResponse ? 1 : 0) - (aHasResponse ? 1 : 0);
+                    })
+                    .map((player) => {
                     const response = responseByPlayerId[player.id];
                     const workload = response ? getWorkload(response.rpeScore, response.durationMinutes) : null;
                     
                     return (
-                      <tr key={player.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10">
-                        <td className="px-3 py-1 whitespace-nowrap text-xs text-vista-light">
+                      <tr key={player.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10 min-h-[36px]">
+                        <td className="px-3 py-0.5 whitespace-nowrap text-xs text-vista-light min-h-[36px] flex items-center">
                           {player.lastName} {player.firstName}
                         </td>
                         
                         {/* RPE Оценка - большая цветная плитка */}
-                        <td className="px-2 py-1 text-center align-middle">
+                        <td className="px-2 py-0.5 text-center align-middle">
                           {response?.completedAt ? (
-                            <span className={`rounded-lg border-0 text-base font-bold w-14 h-8 flex items-center justify-center transition-all duration-200 ${getRPEBadgeColor(response.rpeScore)} text-white mx-auto`}>
+                            <span className={`rounded-lg border-0 text-sm font-bold w-14 h-6 flex items-center justify-center transition-all duration-200 ${getRPEBadgeColor(response.rpeScore)} text-white mx-auto`}>
                               {response.rpeScore}
                             </span>
-                          ) : ''}
+                          ) : (
+                            <span className="text-vista-light/50 text-sm">-</span>
+                          )}
                         </td>
                         
                         {/* Длительность */}
-                        <td className="px-2 py-1 text-center align-middle">
+                        <td className="px-2 py-0.5 text-center align-middle">
                           {response?.durationMinutes ? (
-                            <span className="rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white text-base font-bold w-14 h-8 flex items-center justify-center mx-auto">
+                            <span className="rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white text-sm font-bold w-14 h-6 flex items-center justify-center mx-auto">
                               {response.durationMinutes}
                             </span>
-                          ) : ''}
+                          ) : (
+                            <span className="text-vista-light/50 text-sm">-</span>
+                          )}
                         </td>
                         
                         {/* Нагрузка */}
-                        <td className="px-2 py-1 text-center align-middle">
+                        <td className="px-2 py-0.5 text-center align-middle">
                           {workload ? (
-                            <span className={`rounded-lg border-0 text-base font-bold w-14 h-8 flex items-center justify-center transition-all duration-200 ${getWorkloadColor(workload)} text-white mx-auto`}>
+                            <span className={`rounded-lg border-0 text-sm font-bold w-14 h-6 flex items-center justify-center transition-all duration-200 ${getWorkloadColor(workload)} text-white mx-auto`}>
                               {workload}
                             </span>
-                          ) : ''}
+                          ) : (
+                            <span className="text-vista-light/50 text-sm">-</span>
+                          )}
                         </td>
                         
                         {/* Статус рассылки */}
-                        <td className="px-2 py-1 text-center align-middle text-xs">
+                        <td className="px-2 py-0.5 text-center align-middle text-xs">
                           {response?.completedAt ? (
-                            <span className="text-emerald-400 font-semibold">
-                              Прошёл
-                            </span>
+                            <div className="flex justify-center">
+                              <div className="w-5 h-5 rounded-full border border-emerald-400 flex items-center justify-center">
+                                <svg className="w-3 h-3 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            </div>
                           ) : (
-                            <span className="text-red-400 font-semibold">
-                              Не прошёл
-                            </span>
+                            <div className="flex justify-center">
+                              <div className="w-5 h-5 rounded-full border border-red-400 flex items-center justify-center">
+                                <svg className="w-3 h-3 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            </div>
                           )}
                         </td>
                         
                         {/* Время */}
-                        <td className="px-2 py-1 text-center align-middle text-xs text-vista-light/70">
+                        <td className="px-2 py-0.5 text-center align-middle text-xs text-vista-light/70">
                           {response?.completedAt ? 
                             format(new Date(response.completedAt), 'HH:mm', { locale: ru }) : 
-                            ''
+                            <span className="text-vista-light/50 text-sm">-</span>
                           }
                         </td>
                         
                         {/* Действия */}
-                        <td className="px-2 py-1 text-center align-middle">
+                        <td className="px-2 py-0.5 text-center align-middle">
                           <button
-                            className="px-3 py-1 rounded bg-vista-secondary/10 text-vista-light/40 hover:bg-vista-accent hover:text-white disabled:opacity-60 border border-vista-secondary/20 text-xs transition-colors opacity-70 hover:opacity-100"
+                            className="px-3 py-0.5 rounded bg-vista-secondary/10 text-vista-light/40 hover:bg-vista-accent hover:text-white disabled:opacity-60 border border-vista-secondary/20 text-xs transition-colors opacity-70 hover:opacity-100"
                             disabled={!player.telegramId || resending === player.id}
                             onClick={() => handleResend(player.id)}
                           >
@@ -473,10 +455,10 @@ export function RPESurveyAnalysis() {
                   
                   {/* Средние значения */}
                   <tr className="bg-vista-dark/80 font-bold">
-                    <td className="px-3 py-1 text-center text-xs">Среднее</td>
+                    <td className="px-3 py-2 text-center text-xs">Среднее</td>
                     
                     {/* Среднее RPE */}
-                    <td className="px-2 py-1 text-center align-middle text-xs">
+                    <td className="px-2 py-2 text-center align-middle text-xs">
                       {(() => {
                         const completedResponses = responses.filter(r => r.completedAt);
                         if (completedResponses.length === 0) return '';
@@ -486,7 +468,7 @@ export function RPESurveyAnalysis() {
                     </td>
                     
                     {/* Средняя длительность */}
-                    <td className="px-2 py-1 text-center align-middle text-xs">
+                    <td className="px-2 py-0.5 text-center align-middle text-xs">
                       {(() => {
                         const responsesWithDuration = responses.filter(r => r.completedAt && r.durationMinutes);
                         if (responsesWithDuration.length === 0) return '';
@@ -496,7 +478,7 @@ export function RPESurveyAnalysis() {
                     </td>
                     
                     {/* Средняя нагрузка */}
-                    <td className="px-2 py-1 text-center align-middle text-xs">
+                    <td className="px-2 py-2 text-center align-middle text-xs">
                       {(() => {
                         const responsesWithWorkload = responses.filter(r => r.completedAt && r.durationMinutes);
                         if (responsesWithWorkload.length === 0) return '';
@@ -505,15 +487,14 @@ export function RPESurveyAnalysis() {
                       })()}
                     </td>
                     
-                    <td className="px-2 py-1"></td>
-                    <td className="px-2 py-1"></td>
-                    <td className="px-2 py-1"></td>
+                    <td className="px-2 py-2"></td>
+                    <td className="px-2 py-2"></td>
+                    <td className="px-2 py-2"></td>
                   </tr>
                 </tbody>
               </table>
             </div>
           )}
-        </CardContent>
       </Card>
 
       {/* Модальное окно для управления длительностью */}

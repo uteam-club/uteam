@@ -182,7 +182,7 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
                           type="time"
                           value={schedule.sendTime}
                           onChange={e => setSchedules(schedules => schedules.map(s => s.teamId === team.id ? { ...s, sendTime: e.target.value } : s))}
-                          className="px-2 py-1 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light focus:ring-2 focus:ring-vista-accent text-sm"
+                          className="px-2 py-0.5 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light focus:ring-2 focus:ring-vista-accent text-sm"
                           disabled={saving === team.id}
                         />
                       </td>
@@ -260,6 +260,9 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
     globalDuration: null,
     individualDurations: {}
   });
+  
+  // Состояние для отслеживания развернутых болевых зон игроков
+  const [expandedPainAreas, setExpandedPainAreas] = useState<Set<string>>(new Set());
 
   // Загрузка команд
   useEffect(() => {
@@ -354,31 +357,176 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
     });
   }
 
+  // Функция для переключения развернутого состояния болевых зон
+  const togglePainAreasExpansion = (playerId: string) => {
+    setExpandedPainAreas(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(playerId)) {
+        newSet.delete(playerId);
+      } else {
+        newSet.add(playerId);
+      }
+      return newSet;
+    });
+  };
+
+  // Функция для определения цвета среднего значения (улучшенная логика с плавными переходами)
+  const getAverageValueColor = (value: number, key?: string) => {
+    if (key === "sleepDuration") {
+      // Для сна: < 6.5 - красный, < 7.5 - оранжевый, >= 7.5 - зелёный
+      return value < 6.5 
+        ? 'text-red-500' 
+        : value < 7.5 
+          ? 'text-amber-500' 
+          : 'text-emerald-500';
+    } else if (key === "rpe") {
+      // Для RPE: <= 2.5 - отлично, <= 4.5 - хорошо, <= 6.5 - средне, <= 8.5 - тяжело, > 8.5 - очень тяжело
+      return value <= 2.5 
+        ? 'text-emerald-400' 
+        : value <= 4.5 
+          ? 'text-green-400'
+          : value <= 6.5 
+            ? 'text-yellow-400'
+            : value <= 8.5 
+              ? 'text-orange-400'
+              : 'text-red-500';
+    } else {
+      // Для остальных оценок: < 2.5 - красный, < 3.5 - оранжевый, >= 3.5 - зелёный
+      return value < 2.5 
+        ? 'text-red-500' 
+        : value < 3.5 
+          ? 'text-amber-500' 
+          : 'text-emerald-500';
+    }
+  };
+
+  // Функция для рендера болевых зон
+  const renderPainAreas = (painAreas: any[], playerId: string) => {
+    if (!painAreas || painAreas.length === 0) {
+      return <span className="invisible">-</span>;
+    }
+
+    const isExpanded = expandedPainAreas.has(playerId);
+    const maxVisible = 2;
+    const visibleAreas = isExpanded ? painAreas : painAreas.slice(0, maxVisible);
+    const hiddenCount = painAreas.length - maxVisible;
+
+    const renderPainArea = (area: any, idx: number) => {
+      // Определяем view (front/back) по id: если есть в MUSCLE_NAMES.front, иначе back
+      let view: 'front' | 'back' = 'front';
+      if (MUSCLE_NAMES.back[area.id as keyof typeof MUSCLE_NAMES.back]) view = 'back';
+      const localizedName = MUSCLE_NAMES[view][area.id as keyof typeof MUSCLE_NAMES[typeof view]]?.[lang] || area.areaName || '';
+      
+      return (
+        <div key={idx} className={`inline-flex items-center rounded-lg shadow-sm border h-6 max-w-[120px] text-xs font-medium transition-all duration-300 overflow-hidden backdrop-blur-sm hover:shadow-md ${
+          area.painLevel >= 7 
+            ? 'bg-gradient-to-r from-red-50/90 via-red-50/80 to-red-100/90 border-red-200/60 text-red-900 hover:border-red-300/80' 
+            : area.painLevel >= 4 
+              ? 'bg-gradient-to-r from-amber-50/90 via-orange-50/80 to-orange-100/90 border-amber-200/60 text-amber-900 hover:border-amber-300/80' 
+              : 'bg-gradient-to-r from-emerald-50/90 via-green-50/80 to-green-100/90 border-emerald-200/60 text-emerald-900 hover:border-emerald-300/80'
+        }`}>
+          {/* Левая часть с оценкой */}
+          <div className={`flex items-center justify-center min-w-[18px] h-full text-white font-bold text-xs rounded-l-lg ${
+            area.painLevel >= 7 
+              ? 'bg-gradient-to-br from-red-500 to-red-600' 
+              : area.painLevel >= 4 
+                ? 'bg-gradient-to-br from-amber-500 to-orange-600' 
+                : 'bg-gradient-to-br from-emerald-500 to-green-600'
+          }`}>
+            {area.painLevel}
+          </div>
+          {/* Правая часть с названием */}
+          <div className="flex-1 px-1.5 py-0.5 min-w-0">
+            <span className="whitespace-nowrap truncate block text-ellipsis overflow-hidden">{localizedName}</span>
+          </div>
+        </div>
+      );
+    };
+
+    if (painAreas.length <= maxVisible) {
+      // Если зон не больше 2, просто показываем их в ряд
+      return (
+        <div className="flex flex-nowrap gap-1 items-center">
+          {painAreas.map((area, idx) => renderPainArea(area, idx))}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-1">
+        {/* Первая строка: первые 2 зоны + кнопка +N */}
+        <div className="flex flex-nowrap gap-1 items-center">
+          {visibleAreas.slice(0, maxVisible).map((area, idx) => renderPainArea(area, idx))}
+          {!isExpanded && hiddenCount > 0 && (
+            <button
+              onClick={() => togglePainAreasExpansion(playerId)}
+              className="inline-flex items-center px-2 py-0.5 bg-vista-secondary/30 text-vista-light hover:bg-vista-secondary/50 rounded-full text-xs font-semibold transition-colors"
+            >
+              +{hiddenCount}
+            </button>
+          )}
+        </div>
+        
+        {/* Дополнительные строки (если развернуто) */}
+        {isExpanded && painAreas.length > maxVisible && (
+          <div className="space-y-1">
+            {/* Группируем оставшиеся зоны по 2 */}
+            {Array.from({ length: Math.ceil((painAreas.length - maxVisible) / 2) }, (_, rowIndex) => {
+              const startIdx = maxVisible + rowIndex * 2;
+              const endIdx = Math.min(startIdx + 2, painAreas.length);
+              const rowAreas = painAreas.slice(startIdx, endIdx);
+              
+              return (
+                <div key={rowIndex} className="flex flex-nowrap gap-1 items-center">
+                  {rowAreas.map((area, idx) => renderPainArea(area, startIdx + idx))}
+                  {/* Кнопка "свернуть" на последней строке */}
+                  {rowIndex === Math.ceil((painAreas.length - maxVisible) / 2) - 1 && (
+                    <button
+                      onClick={() => togglePainAreasExpansion(playerId)}
+                      className="inline-flex items-center px-2 py-0.5 bg-vista-secondary/30 text-vista-light hover:bg-vista-secondary/50 rounded-full text-xs font-semibold transition-colors"
+                    >
+                      ↑
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <Tabs defaultValue="settings" className="w-full">
-      <TabsList className="grid w-full grid-cols-2 mb-6">
-        <TabsTrigger value="settings">{t('morningSurveyTabs.settings')}</TabsTrigger>
-        <TabsTrigger value="analysis">{t('morningSurveyTabs.analysis')}</TabsTrigger>
+    <Tabs defaultValue="analysis" className="w-full">
+      <TabsList className="grid w-full grid-cols-2 bg-vista-dark/50 border border-vista-secondary/30">
+        <TabsTrigger 
+          value="analysis" 
+          className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70"
+        >
+          {t('morningSurveyTabs.analysis')}
+        </TabsTrigger>
+        <TabsTrigger 
+          value="settings" 
+          className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70"
+        >
+          {t('morningSurveyTabs.settings')}
+        </TabsTrigger>
       </TabsList>
-      <TabsContent value="settings">
-        <TelegramBotSettings type={type} />
-      </TabsContent>
       <TabsContent value="analysis">
         <Card className="p-6 bg-vista-dark/50 border-vista-secondary/50">
-          <h3 className="text-xl font-bold text-vista-light mb-4">{t('morningSurveyTabs.analysis_title')}</h3>
           <div className="flex flex-wrap gap-4 mb-4 items-end">
             <div className="min-w-[220px]">
               <TeamSelect teams={teams} value={selectedTeam} onChange={setSelectedTeam} />
             </div>
             <div>
-              <label className="block text-vista-light/80 mb-1">{t('morningSurveyTabs.date')}</label>
               <div className="flex items-center gap-2">
                 <div className="relative">
                   <input 
                     type="date" 
                     value={date} 
                     onChange={e => setDate(e.target.value)} 
-                    className="px-2 py-1 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light [&::-webkit-calendar-picker-indicator]:text-vista-primary [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:saturate-100 [&::-webkit-calendar-picker-indicator]:hue-rotate-[180deg]" 
+                    className="px-3 py-2 rounded-md border border-vista-secondary/50 bg-vista-dark/40 text-vista-light text-sm [&::-webkit-calendar-picker-indicator]:text-vista-primary [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:saturate-100 [&::-webkit-calendar-picker-indicator]:hue-rotate-[180deg]" 
                   />
                 </div>
                 
@@ -410,27 +558,34 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                 <table className="min-w-full text-sm text-vista-light border border-vista-secondary/30 rounded-md">
                   <thead>
                     <tr className="bg-vista-dark/70 text-xs">
-                      <th className="px-3 py-1 border-b border-vista-secondary/30 text-left whitespace-nowrap text-xs">{t('morningSurveyTabs.player')}</th>
-                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">{t('morningSurveyTabs.rpe_score')}</th>
-                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">Длительность (мин)</th>
-                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">Нагрузка (RPE×Время)</th>
-                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">{t('morningSurveyTabs.status')}</th>
-                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">{t('morningSurveyTabs.time')}</th>
-                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">{t('morningSurveyTabs.actions')}</th>
+                      <th className="px-3 py-2 border-b border-vista-secondary/30 text-left whitespace-nowrap text-xs font-normal tracking-tight">{t('morningSurveyTabs.player')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal w-[70px] tracking-tight">{t('morningSurveyTabs.rpe_score')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal w-[70px] tracking-tight">Длительность (мин)</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal w-[70px] tracking-tight">Нагрузка (RPE×Время)</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">{t('morningSurveyTabs.status')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">{t('morningSurveyTabs.time')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">{t('morningSurveyTabs.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredPlayers.map(player => {
+                    {filteredPlayers
+                      .sort((a, b) => {
+                        const aHasResponse = !!responseByPlayerId[a.id];
+                        const bHasResponse = !!responseByPlayerId[b.id];
+                        // Сначала те, кто прошёл опросник (true), потом те, кто не прошёл (false)
+                        return (bHasResponse ? 1 : 0) - (aHasResponse ? 1 : 0);
+                      })
+                      .map(player => {
                       const resp = responseByPlayerId[player.id];
                       const playerDuration = resp ? (durationSettings?.individualDurations?.[player.id] || durationSettings?.globalDuration) : null;
                       const workload = resp && playerDuration ? resp.rpeScore * playerDuration : null;
                       
                       return (
-                        <tr key={player.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10">
-                          <td className="px-3 py-1 whitespace-nowrap text-xs">{player.lastName} {player.firstName}</td>
-                          <td className="px-2 py-1 text-center align-middle">
+                        <tr key={player.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10 min-h-[36px]">
+                          <td className="px-3 py-0.5 whitespace-nowrap text-xs min-h-[36px] flex items-center">{player.lastName} {player.firstName}</td>
+                          <td className="px-2 py-0.5 text-center align-middle w-[70px]">
                             {resp ? (
-                              <span className={`inline-block rounded-lg border-0 text-base font-bold w-14 h-8 flex items-center justify-center transition-all duration-200 mx-auto ${
+                              <span className={`inline-block rounded-lg border-0 text-sm font-bold w-14 h-6 flex items-center justify-center transition-all duration-200 mx-auto ${
                                 resp.rpeScore <= 2 
                                   ? 'bg-gradient-to-br from-emerald-400 to-green-500 text-white' 
                                   : resp.rpeScore <= 4 
@@ -441,11 +596,13 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                                         ? 'bg-gradient-to-br from-orange-400 to-red-500 text-white'
                                         : 'bg-gradient-to-br from-red-500 to-red-600 text-white'
                               }`}>{resp.rpeScore}</span>
-                            ) : ''}
+                            ) : (
+                              <span className="text-vista-light/50 text-sm">-</span>
+                            )}
                           </td>
-                          <td className="px-2 py-1 text-center align-middle text-xs">
+                          <td className="px-2 py-0.5 text-center align-middle text-xs w-[70px]">
                             {resp && playerDuration ? (
-                              <span className="inline-block px-2 py-1 rounded bg-vista-primary/20 text-vista-primary text-xs">
+                              <span className="inline-block px-2 py-0.5 rounded bg-vista-primary/20 text-vista-primary text-xs">
                                 {playerDuration} мин
                               </span>
                             ) : resp ? (
@@ -454,9 +611,9 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                               <span className="text-vista-light/50 text-xs">-</span>
                             )}
                           </td>
-                          <td className="px-2 py-1 text-center align-middle text-xs">
+                          <td className="px-2 py-0.5 text-center align-middle text-xs w-[70px]">
                             {workload ? (
-                              <span className={`inline-block px-2 py-1 rounded text-white text-xs font-medium ${
+                              <span className={`inline-block px-2 py-0.5 rounded text-white text-xs font-medium ${
                                 workload <= 20 ? 'bg-green-500' :
                                 workload <= 40 ? 'bg-yellow-500' :
                                 workload <= 60 ? 'bg-orange-500' : 'bg-red-500'
@@ -467,21 +624,29 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                               <span className="text-vista-light/50 text-xs">-</span>
                             )}
                           </td>
-                          <td className="px-2 py-1 text-center align-middle text-xs">
+                          <td className="px-2 py-0.5 text-center align-middle text-xs">
                             {resp ? (
-                              <span className="text-emerald-400 font-semibold">
-                                {t('morningSurveyTabs.completed')}
-                              </span>
+                              <div className="flex justify-center">
+                                <div className="w-5 h-5 rounded-full border border-emerald-400 flex items-center justify-center">
+                                  <svg className="w-3 h-3 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              </div>
                             ) : (
-                              <span className="text-red-400 font-semibold">
-                                {t('morningSurveyTabs.not_completed')}
-                              </span>
+                              <div className="flex justify-center">
+                                <div className="w-5 h-5 rounded-full border border-red-400 flex items-center justify-center">
+                                  <svg className="w-3 h-3 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              </div>
                             )}
                           </td>
-                          <td className="px-2 py-1 text-center align-middle text-xs">{resp ? formatDateTime(resp.createdAt) : '-'}</td>
-                          <td className="px-2 py-1 text-center align-middle">
+                          <td className="px-2 py-0.5 text-center align-middle text-xs">{resp ? formatDateTime(resp.createdAt) : '-'}</td>
+                          <td className="px-2 py-0.5 text-center align-middle">
                             <button
-                              className="px-3 py-1 rounded bg-vista-secondary/10 text-vista-light/40 hover:bg-vista-accent hover:text-white disabled:opacity-60 border border-vista-secondary/20 text-xs transition-colors opacity-70 hover:opacity-100"
+                              className="px-2 py-0.5 rounded bg-vista-secondary/10 text-vista-light/40 hover:bg-vista-accent hover:text-white disabled:opacity-60 border border-vista-secondary/20 text-[10px] transition-colors opacity-70 hover:opacity-100 whitespace-nowrap"
                               disabled={!!resending}
                               onClick={async () => {
                                 setResending(player.id);
@@ -510,11 +675,16 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                     })}
                     {/* Среднее значение */}
                     <tr className="bg-vista-dark/80 font-bold">
-                      <td className="px-3 py-1 text-center text-xs">{t('morningSurveyTabs.average')}</td>
-                      <td className="px-2 py-1 text-center align-middle text-xs">
-                        {filteredPlayers.filter(p => responseByPlayerId[p.id]).length > 0 ? (filteredPlayers.reduce((acc, p) => acc + (responseByPlayerId[p.id]?.rpeScore || 0), 0) / filteredPlayers.filter(p => responseByPlayerId[p.id]).length).toFixed(2) : ''}
+                      <td className="px-3 py-2 text-center text-xs">{t('morningSurveyTabs.average')}</td>
+                      <td className="px-2 py-2 text-center align-middle text-xs">
+                        {(() => {
+                          const completedPlayers = filteredPlayers.filter(p => responseByPlayerId[p.id]);
+                          if (completedPlayers.length === 0) return '';
+                          const average = completedPlayers.reduce((acc, p) => acc + (responseByPlayerId[p.id]?.rpeScore || 0), 0) / completedPlayers.length;
+                          return <span className={`font-bold ${getAverageValueColor(average, 'rpe')}`}>{average.toFixed(2)}</span>;
+                        })()}
                       </td>
-                      <td className="px-2 py-1 text-center align-middle text-xs">
+                      <td className="px-2 py-2 text-center align-middle text-xs">
                         {(() => {
                           const completedPlayers = filteredPlayers.filter(p => responseByPlayerId[p.id]);
                           if (completedPlayers.length === 0) return '';
@@ -528,7 +698,7 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                           return totalDuration > 0 ? `${Math.round(totalDuration / completedPlayers.length)} мин` : '';
                         })()}
                       </td>
-                      <td className="px-2 py-1 text-center align-middle text-xs">
+                      <td className="px-2 py-0.5 text-center align-middle text-xs">
                         {(() => {
                           const completedPlayers = filteredPlayers.filter(p => responseByPlayerId[p.id]);
                           if (completedPlayers.length === 0) return '';
@@ -542,9 +712,9 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                           return totalWorkload > 0 ? (totalWorkload / completedPlayers.length).toFixed(1) : '';
                         })()}
                       </td>
-                      <td className="px-2 py-1"></td>
-                      <td className="px-2 py-1"></td>
-                      <td className="px-2 py-1"></td>
+                      <td className="px-2 py-2"></td>
+                      <td className="px-2 py-2"></td>
+                      <td className="px-2 py-2"></td>
                     </tr>
                   </tbody>
                 </table>
@@ -552,80 +722,74 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                 <table className="min-w-full text-sm text-vista-light border border-vista-secondary/30 rounded-md">
                   <thead>
                     <tr className="bg-vista-dark/70 text-xs">
-                      <th className="px-3 py-1 border-b border-vista-secondary/30 text-left whitespace-nowrap text-xs">{t('morningSurveyTabs.player')}</th>
-                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">{t('morningSurveyTabs.sleep_duration')}</th>
-                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">{t('morningSurveyTabs.sleep_quality')}</th>
-                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">{t('morningSurveyTabs.recovery')}</th>
-                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">{t('morningSurveyTabs.mood')}</th>
-                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">{t('morningSurveyTabs.muscle_condition')}</th>
-                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap min-w-[180px] text-xs">{t('morningSurveyTabs.pain')}</th>
-                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">{t('morningSurveyTabs.status')}</th>
-                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">{t('morningSurveyTabs.time')}</th>
-                      <th className="px-2 py-1 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs">{t('morningSurveyTabs.actions')}</th>
+                      <th className="px-3 py-2 border-b border-vista-secondary/30 text-left whitespace-nowrap text-xs font-normal tracking-tight">{t('morningSurveyTabs.player')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal w-[70px] tracking-tight">{t('morningSurveyTabs.sleep_duration')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal w-[70px] tracking-tight">{t('morningSurveyTabs.sleep_quality')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal w-[70px] tracking-tight">{t('morningSurveyTabs.recovery')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal w-[70px] tracking-tight">{t('morningSurveyTabs.mood')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal w-[70px] tracking-tight">{t('morningSurveyTabs.muscle_condition')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap min-w-[180px] text-xs font-normal tracking-tight">{t('morningSurveyTabs.pain')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">Статус</th>
+                      <th className="px-2 py-2 border-b border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">{t('morningSurveyTabs.time')}</th>
+                      <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">{t('morningSurveyTabs.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredPlayers.map(player => {
+                    {filteredPlayers
+                      .sort((a, b) => {
+                        const aHasResponse = !!responseByPlayerId[a.id];
+                        const bHasResponse = !!responseByPlayerId[b.id];
+                        // Сначала те, кто прошёл опросник (true), потом те, кто не прошёл (false)
+                        return (bHasResponse ? 1 : 0) - (aHasResponse ? 1 : 0);
+                      })
+                      .map(player => {
                       const resp = responseByPlayerId[player.id];
                       return (
-                        <tr key={player.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10">
-                          <td className="px-3 py-1 whitespace-nowrap text-xs">{player.lastName} {player.firstName}</td>
+                        <tr key={player.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10 min-h-[36px]">
+                          <td className="px-3 py-0.5 whitespace-nowrap text-xs min-h-[36px] flex items-center">{player.lastName} {player.firstName}</td>
                           {/* Плитки оценок */}
                           {["sleepDuration","sleepQuality","recovery","mood","muscleCondition"].map((key, idx) => (
-                            <td key={key} className={`px-2 py-1 text-center align-middle`}>
+                            <td key={key} className={`px-2 py-0.5 text-center align-middle min-h-[36px] w-[70px]`}>
                               {resp ? (
-                                <span className={`inline-block rounded-lg border-0 text-base font-bold w-14 h-8 flex items-center justify-center transition-all duration-200 ${
+                                <span className={`inline-block rounded-lg border-0 text-sm font-bold w-14 h-6 flex items-center justify-center transition-all duration-200 mx-auto ${
                                   resp[key] < (key==="sleepDuration"?7:3) 
                                     ? 'bg-gradient-to-br from-red-500 to-red-600 text-white' 
                                     : resp[key]<(key==="sleepDuration"?8:4) 
                                       ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white' 
                                       : 'bg-gradient-to-br from-emerald-500 to-green-600 text-white'
                                 }`}>{resp[key]}</span>
-                              ) : ''}
+                              ) : (
+                                <span className="text-vista-light/50 text-sm">-</span>
+                              )}
                             </td>
                           ))}
                           {/* Болевые зоны */}
-                          <td className="px-2 py-1 min-w-[180px] max-w-[220px] overflow-x-auto custom-scrollbar">
-                            {resp && resp.painAreas && resp.painAreas.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {resp.painAreas.map((area: any, idx: number) => {
-                                  // Определяем view (front/back) по id: если есть в MUSCLE_NAMES.front, иначе back
-                                  let view: 'front' | 'back' = 'front';
-                                  if (MUSCLE_NAMES.back[area.id as keyof typeof MUSCLE_NAMES.back]) view = 'back';
-                                  const localizedName = MUSCLE_NAMES[view][area.id as keyof typeof MUSCLE_NAMES[typeof view]]?.[lang] || area.areaName || '';
-                                  return (
-                                    <span key={idx} className={`inline-flex items-center rounded-full border-0 px-2 py-1 text-xs font-semibold whitespace-nowrap gap-1 transition-all duration-200 ${
-                                      area.painLevel >= 7 
-                                        ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' 
-                                        : area.painLevel >= 4 
-                                          ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' 
-                                          : 'bg-gradient-to-r from-emerald-500 to-green-500 text-white'
-                                    }`}>
-                                      <span className={`inline-block w-2 h-2 rounded-full ${
-                                        area.painLevel >= 7 ? 'bg-white' : area.painLevel >= 4 ? 'bg-white' : 'bg-white'
-                                      }`}></span>
-                                      {localizedName} <span className="opacity-90">({area.painLevel})</span>
-                                    </span>
-                                  );
-                                })}
-                              </div>
-                            ) : ''}
+          <td className="px-2 py-0.5 min-w-[220px] max-w-[280px] min-h-[36px] flex items-center">
+                            {renderPainAreas(resp?.painAreas || [], player.id)}
                           </td>
-                          <td className="px-2 py-1 text-center align-middle text-xs">
+                          <td className="px-2 py-0.5 text-center align-middle text-xs">
                             {resp ? (
-                              <span className="text-emerald-400 font-semibold">
-                                {t('morningSurveyTabs.completed')}
-                              </span>
-                            ) : (
-                              <span className="text-red-400 font-semibold">
-                                {t('morningSurveyTabs.not_completed')}
-                              </span>
+                              <div className="flex justify-center">
+                                                              <div className="w-5 h-5 rounded-full border border-emerald-400 flex items-center justify-center">
+                                <svg className="w-3 h-3 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex justify-center">
+                              <div className="w-5 h-5 rounded-full border border-red-400 flex items-center justify-center">
+                                <svg className="w-3 h-3 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                              </div>
                             )}
                           </td>
-                          <td className="px-2 py-1 text-center align-middle text-xs">{resp ? formatDateTime(resp.createdAt) : '-'}</td>
-                          <td className="px-2 py-1 text-center align-middle">
+                          <td className="px-2 py-0.5 text-center align-middle text-xs">{resp ? formatDateTime(resp.createdAt) : '-'}</td>
+                          <td className="px-2 py-0.5 text-center align-middle">
                             <button
-                              className="px-3 py-1 rounded bg-vista-secondary/10 text-vista-light/40 hover:bg-vista-accent hover:text-white disabled:opacity-60 border border-vista-secondary/20 text-xs transition-colors opacity-70 hover:opacity-100"
+                              className="px-2 py-0.5 rounded bg-vista-secondary/10 text-vista-light/40 hover:bg-vista-accent hover:text-white disabled:opacity-60 border border-vista-secondary/20 text-[10px] transition-colors opacity-70 hover:opacity-100 whitespace-nowrap"
                               disabled={!!resending}
                               onClick={async () => {
                                 setResending(player.id);
@@ -654,16 +818,21 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
                     })}
                     {/* Средние значения */}
                     <tr className="bg-vista-dark/80 font-bold">
-                      <td className="px-3 py-1 text-center text-xs">{t('morningSurveyTabs.average')}</td>
+                      <td className="px-3 py-2 text-center text-xs">{t('morningSurveyTabs.average')}</td>
                       {["sleepDuration","sleepQuality","recovery","mood","muscleCondition"].map((key, idx) => (
-                        <td key={key} className="px-2 py-1 text-center align-middle text-xs">
-                          {filteredPlayers.filter(p => responseByPlayerId[p.id]).length > 0 ? (filteredPlayers.reduce((acc, p) => acc + (responseByPlayerId[p.id]?.[key] || 0), 0) / filteredPlayers.filter(p => responseByPlayerId[p.id]).length).toFixed(2) : ''}
+                        <td key={key} className="px-2 py-2 text-center align-middle text-xs">
+                          {(() => {
+                            const completedPlayers = filteredPlayers.filter(p => responseByPlayerId[p.id]);
+                            if (completedPlayers.length === 0) return '';
+                            const average = completedPlayers.reduce((acc, p) => acc + (responseByPlayerId[p.id]?.[key] || 0), 0) / completedPlayers.length;
+                            return <span className={`font-bold ${getAverageValueColor(average, key)}`}>{average.toFixed(2)}</span>;
+                          })()}
                         </td>
                       ))}
-                      <td className="px-2 py-1"></td>
-                      <td className="px-2 py-1"></td>
-                      <td className="px-2 py-1"></td>
-                      <td className="px-2 py-1"></td>
+                      <td className="px-2 py-2"></td>
+                      <td className="px-2 py-2"></td>
+                      <td className="px-2 py-0.5"></td>
+                      <td className="px-2 py-2"></td>
                     </tr>
                   </tbody>
                 </table>
@@ -671,6 +840,9 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
             </div>
           )}
         </Card>
+      </TabsContent>
+      <TabsContent value="settings">
+        <TelegramBotSettings type={type} />
       </TabsContent>
       {/* Модальное окно для управления длительностью */}
       <DateBasedTrainingDurationModal

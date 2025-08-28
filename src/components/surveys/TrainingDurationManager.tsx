@@ -208,12 +208,9 @@ export function TrainingDurationManager({
   return (
     <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md mb-6">
       <CardHeader>
-        <CardTitle className="text-vista-light flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Управление длительностью тренировки
-        </CardTitle>
+
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         {/* Общая длительность для команды */}
         <div className="flex items-center justify-between p-3 bg-vista-dark/30 rounded-lg">
           <div className="flex items-center gap-3">
@@ -295,13 +292,13 @@ export function TrainingDurationManager({
           </div>
           
           {/* Таблица игроков с возможностью редактирования длительности */}
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 overflow-x-auto custom-scrollbar">
             <table className="min-w-full text-sm text-vista-light border border-vista-secondary/30 rounded-md">
               <thead>
                 <tr className="bg-vista-dark/70 text-xs">
-                  <th className="px-3 py-2 border-b border-vista-secondary/30 text-left">Игрок</th>
-                  <th className="px-3 py-2 border-b border-vista-secondary/30 text-center">Длительность</th>
-                  <th className="px-3 py-2 border-b border-vista-secondary/30 text-center">Действия</th>
+                  <th className="px-3 py-0 border-b border-vista-secondary/30 text-left">Игрок</th>
+                  <th className="px-3 py-0 border-b border-vista-secondary/30 text-center">Длительность</th>
+                  <th className="px-3 py-0 border-b border-vista-secondary/30 text-center">Действия</th>
                 </tr>
               </thead>
               <tbody>
@@ -315,10 +312,10 @@ export function TrainingDurationManager({
                     
                     return (
                       <tr key={player.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10">
-                        <td className="px-3 py-2 whitespace-nowrap text-xs">
+                        <td className="px-3 py-0 whitespace-nowrap text-xs">
                           {player.lastName} {player.firstName}
                         </td>
-                        <td className="px-3 py-2 text-center">
+                        <td className="px-3 py-0 text-center">
                           {isEditing ? (
                             <div className="flex items-center justify-center gap-2">
                               <Input
@@ -329,7 +326,6 @@ export function TrainingDurationManager({
                                 className="w-20 bg-vista-dark border-vista-secondary/50 text-vista-light text-center"
                                 placeholder="мин"
                               />
-                              <span className="text-vista-light/70 text-xs">мин</span>
                             </div>
                           ) : (
                             <span className="inline-block px-2 py-1 rounded bg-vista-primary/20 text-vista-primary text-xs">
@@ -337,7 +333,7 @@ export function TrainingDurationManager({
                             </span>
                           )}
                         </td>
-                        <td className="px-3 py-2 text-center">
+                        <td className="px-3 py-0 text-center">
                           {isEditing ? (
                             <div className="flex items-center justify-center gap-1">
                               <Button
@@ -373,7 +369,7 @@ export function TrainingDurationManager({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={3} className="px-3 py-4 text-center text-vista-light/50 text-xs">
+                    <td colSpan={3} className="px-3 py-0.5 text-center text-vista-light/50 text-xs">
                       {safeResponses.length === 0 
                         ? 'Нет ответов RPE для отображения' 
                         : 'Нет данных об игроках для отображения'
