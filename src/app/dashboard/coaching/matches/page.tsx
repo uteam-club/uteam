@@ -55,11 +55,19 @@ export default function MatchesPage() {
   // Состояния для фильтров
   const [teams, setTeams] = useState<Team[]>([]);
   const [isLoadingTeams, setIsLoadingTeams] = useState(true);
-  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<string>("all");
+  const [selectedCompetitionType, setSelectedCompetitionType] = useState<string>("all");
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
   const isSingleTeam = teams.length === 1;
+  
+  // Если у пользователя только одна команда, автоматически выбираем её
+  useEffect(() => {
+    if (isSingleTeam && teams.length > 0 && !selectedTeam) {
+      setSelectedTeam(teams[0].id);
+    }
+  }, [isSingleTeam, teams, selectedTeam]);
 
   const competitionTypeLabels = useMemo(() => ({
     FRIENDLY: t('matchesPage.friendly'),
@@ -76,6 +84,7 @@ export default function MatchesPage() {
     try {
       setIsLoading(true);
       const response = await fetch('/api/matches');
+      
       if (response.ok) {
         const data = await response.json();
         setMatches(data);
@@ -91,6 +100,7 @@ export default function MatchesPage() {
     try {
       setIsLoadingTeams(true);
       const response = await fetch('/api/teams');
+      
       if (response.ok) {
         const data = await response.json();
         setTeams(data);
@@ -109,10 +119,14 @@ export default function MatchesPage() {
   const filteredMatches = useMemo(() => {
     const filtered = matches.filter(match => {
       // Фильтр по поисковому запросу
-      if (searchValue && 
-          !match.team.name.toLowerCase().includes(searchValue.toLowerCase()) && 
-          !match.opponentName.toLowerCase().includes(searchValue.toLowerCase())) {
-        return false;
+      if (searchValue) {
+        const teamName = match.team?.name || '';
+        const opponentName = match.opponentName || '';
+        
+        if (!teamName.toLowerCase().includes(searchValue.toLowerCase()) && 
+            !opponentName.toLowerCase().includes(searchValue.toLowerCase())) {
+          return false;
+        }
       }
       
       // Фильтр по команде
@@ -120,8 +134,13 @@ export default function MatchesPage() {
         return false;
       }
       
+      // Фильтр по типу соревнований
+      if (selectedCompetitionType && selectedCompetitionType !== "all" && match.competitionType !== selectedCompetitionType) {
+        return false;
+      }
+      
       // Фильтр по дате начала
-      if (startDate) {
+      if (startDate && match.date) {
         const matchDate = new Date(match.date);
         const filterStartDate = new Date(startDate);
         if (matchDate < filterStartDate) {
@@ -130,7 +149,7 @@ export default function MatchesPage() {
       }
       
       // Фильтр по дате окончания
-      if (endDate) {
+      if (endDate && match.date) {
         const matchDate = new Date(match.date);
         const filterEndDate = new Date(endDate);
         // Добавляем один день к дате окончания, чтобы включить весь день
@@ -142,11 +161,16 @@ export default function MatchesPage() {
       
       return true;
     });
+    
     // Сортировка по дате (новые в начале)
-    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [matches, searchValue, selectedTeam, startDate, endDate]);
+    return filtered.sort((a, b) => {
+      if (!a.date || !b.date) return 0;
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+  }, [matches, searchValue, selectedTeam, selectedCompetitionType, startDate, endDate]);
 
   const formatMatchDate = (dateString: string) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
     return format(date, 'd MMMM yyyy', { locale: ru });
   };
@@ -156,10 +180,11 @@ export default function MatchesPage() {
   };
 
   // Проверка наличия активных фильтров
-  const hasActiveFilters = selectedTeam || startDate || endDate;
+  const hasActiveFilters = (selectedTeam && selectedTeam !== "all") || (selectedCompetitionType && selectedCompetitionType !== "all") || startDate || endDate;
 
   const resetFilters = () => {
-    setSelectedTeam(null);
+    setSelectedTeam("all");
+    setSelectedCompetitionType("all");
     setStartDate('');
     setEndDate('');
   };
@@ -181,128 +206,135 @@ export default function MatchesPage() {
   return (
     <div className="space-y-6">
       <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
-        <CardHeader>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <CardTitle className="text-vista-light">{t('matchesPage.title')}</CardTitle>
-            
-            <Button 
-              className="bg-vista-primary hover:bg-vista-primary/90"
-              onClick={() => setIsAddModalOpen(true)}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              {t('matchesPage.add_match')}
-            </Button>
-          </div>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-vista-light">{t('matchesPage.title')}</CardTitle>
+          
+          <Button 
+            variant="outline"
+            className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
+            onClick={() => setIsAddModalOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            {t('matchesPage.add_match')}
+          </Button>
         </CardHeader>
         <CardContent>
           {/* Строка с поиском и фильтрами в один ряд */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6 items-end">
-            {/* Строка поиска */}
-            <div className="relative flex-1 md:max-w-[250px]">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-vista-light/50" />
-              <Input 
-                className="pl-8 bg-vista-dark-lighter border-vista-secondary/30 text-vista-light w-full" 
-                placeholder={t('matchesPage.search_placeholder')} 
-                value={searchValue}
-                onChange={handleSearchChange}
-              />
-            </div>
+          <div className="flex flex-col md:flex-row gap-2 mb-6 items-end">
+                         {/* Строка поиска */}
+             <div className="relative flex-1">
+               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-vista-light/50" />
+               <Input 
+                 className="pl-10 bg-vista-dark/30 border-vista-light/20 text-vista-light/90 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 font-normal shadow-lg w-full" 
+                 placeholder={t('matchesPage.search_placeholder')} 
+                 value={searchValue}
+                 onChange={handleSearchChange}
+               />
+             </div>
             
             {/* Фильтр по команде */}
             {!isSingleTeam && (
-              <div className="flex-1 md:max-w-[250px]">
-                <Select value={selectedTeam || "all"} onValueChange={setSelectedTeam}>
-                  <SelectTrigger className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light h-10">
-                    <SelectValue placeholder={t('matchesPage.all_teams')} />
-                  </SelectTrigger>
-                  <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light">
-                    <SelectItem value="all">{t('matchesPage.all_teams')}</SelectItem>
-                    {teams.map(team => (
-                      <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select value={selectedTeam || "all"} onValueChange={setSelectedTeam}>
+                <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal shadow-lg data-[value]:text-vista-light">
+                  <SelectValue placeholder={t('matchesPage.all_teams')} />
+                </SelectTrigger>
+                <SelectContent className="bg-vista-dark border border-vista-light/20 shadow-2xl rounded-lg">
+                  <SelectItem value="all">{t('matchesPage.all_teams')}</SelectItem>
+                  {teams.map(team => (
+                    <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
             
-            {/* Фильтр по дате от */}
-            <div className="flex-1 md:max-w-[180px]">
-              <div className="relative">
-                <div 
-                  className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-primary cursor-pointer z-10"
-                  onClick={() => {
-                    const dateInput = document.getElementById('filter-start-date') as HTMLInputElement;
-                    if (dateInput) {
-                      try {
-                        dateInput.showPicker();
-                      } catch (error) {
-                        console.error('Failed to show date picker:', error);
-                      }
-                    }
-                  }}
-                >
-                  <CalendarIcon size={16} />
-                </div>
-                <Input
-                  id="filter-start-date"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="pl-10 bg-vista-dark-lighter border-vista-secondary/30 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
-                  placeholder={t('matchesPage.date_placeholder')}
-                  onClick={(e) => {
-                    try {
-                      (e.target as HTMLInputElement).showPicker();
-                    } catch (error) {
-                      console.error('Failed to show date picker:', error);
-                    }
-                  }}
-                />
-              </div>
-            </div>
+            {/* Фильтр по типу соревнований */}
+            <Select value={selectedCompetitionType || "all"} onValueChange={setSelectedCompetitionType}>
+              <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal shadow-lg data-[value]:text-vista-light">
+                <SelectValue placeholder={t('matchesPage.all_competition_types')} />
+              </SelectTrigger>
+              <SelectContent className="bg-vista-dark border border-vista-light/20 shadow-2xl rounded-lg">
+                <SelectItem value="all">{t('matchesPage.all_competition_types')}</SelectItem>
+                <SelectItem value="FRIENDLY">{t('matchesPage.friendly')}</SelectItem>
+                <SelectItem value="LEAGUE">{t('matchesPage.league')}</SelectItem>
+                <SelectItem value="CUP">{t('matchesPage.cup')}</SelectItem>
+              </SelectContent>
+            </Select>
             
-            {/* Фильтр по дате до */}
-            <div className="flex-1 md:max-w-[180px]">
-              <div className="relative">
-                <div 
-                  className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-primary cursor-pointer z-10"
-                  onClick={() => {
-                    const dateInput = document.getElementById('filter-end-date') as HTMLInputElement;
-                    if (dateInput) {
-                      try {
-                        dateInput.showPicker();
-                      } catch (error) {
-                        console.error('Failed to show date picker:', error);
-                      }
-                    }
-                  }}
-                >
-                  <CalendarIcon size={16} />
-                </div>
-                <Input
-                  id="filter-end-date"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="pl-10 bg-vista-dark-lighter border-vista-secondary/30 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
-                  placeholder={t('matchesPage.date_placeholder')}
-                  onClick={(e) => {
-                    try {
-                      (e.target as HTMLInputElement).showPicker();
-                    } catch (error) {
-                      console.error('Failed to show date picker:', error);
-                    }
-                  }}
-                />
-              </div>
-            </div>
+                         {/* Фильтр по дате */}
+                         <div className="flex gap-2 items-center">
+                           <div className="relative w-full sm:w-[150px]">
+                             <div 
+                               className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-light/50 cursor-pointer z-10"
+                               onClick={() => {
+                                 const dateInput = document.getElementById('filter-start-date') as HTMLInputElement;
+                                 if (dateInput) {
+                                   try {
+                                     dateInput.showPicker();
+                                   } catch (error) {
+                                     console.error('Failed to show date picker:', error);
+                                   }
+                                 }
+                               }}
+                             >
+                               <CalendarIcon size={16} />
+                             </div>
+                             <Input
+                               id="filter-start-date"
+                               type="date"
+                               value={startDate}
+                               onChange={(e) => setStartDate(e.target.value)}
+                               className="pl-10 bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 font-normal shadow-lg cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
+                               placeholder={t('matchesPage.date_placeholder')}
+                               onClick={(e) => {
+                                 try {
+                                   (e.target as HTMLInputElement).showPicker();
+                                 } catch (error) {
+                                   console.error('Failed to show date picker:', error);
+                                 }
+                               }}
+                             />
+                           </div>
+                           <span className="text-vista-light/70">—</span>
+                           <div className="relative w-full sm:w-[150px]">
+                             <div 
+                               className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-light/50 cursor-pointer z-10"
+                               onClick={() => {
+                                 const dateInput = document.getElementById('filter-end-date') as HTMLInputElement;
+                                 if (dateInput) {
+                                   try {
+                                     dateInput.showPicker();
+                                   } catch (error) {
+                                     console.error('Failed to show date picker:', error);
+                                   }
+                                 }
+                               }}
+                             >
+                               <CalendarIcon size={16} />
+                             </div>
+                             <Input
+                               id="filter-end-date"
+                               type="date"
+                               value={endDate}
+                               onChange={(e) => setEndDate(e.target.value)}
+                               className="pl-10 bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 font-normal shadow-lg cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
+                               placeholder={t('matchesPage.date_placeholder')}
+                               onClick={(e) => {
+                                 try {
+                                   (e.target as HTMLInputElement).showPicker();
+                                 } catch (error) {
+                                   console.error('Failed to show date picker:', error);
+                                 }
+                               }}
+                             />
+                           </div>
+                         </div>
             
             {/* Кнопка сброса фильтров */}
             {hasActiveFilters && (
               <div className="flex-none">
                 <Button 
-                  variant="ghost" 
-                  className="w-full md:w-auto h-10 flex items-center text-vista-light/70 hover:text-vista-light"
+                  variant="outline" 
+                  className="w-full md:w-auto h-9 px-3 font-normal bg-transparent border border-vista-secondary/30 text-vista-light/70 hover:bg-vista-secondary/20 hover:text-vista-light"
                   onClick={resetFilters}
                 >
                   <X className="mr-2 h-4 w-4" />
@@ -316,13 +348,27 @@ export default function MatchesPage() {
           {hasActiveFilters && (
             <div className="mb-4 flex flex-wrap gap-2">
               {!isSingleTeam && selectedTeam && selectedTeam !== "all" && (
-                <Badge className="bg-vista-primary/20 text-vista-light flex items-center gap-1 pl-2">
+                <Badge className="bg-vista-light/20 text-vista-light flex items-center gap-1 pl-2">
                   <Users size={12} />
                   {teams.find(t => t.id === selectedTeam)?.name || 'Команда'}
                   <Button 
                     variant="ghost" 
-                    className="h-5 w-5 p-0 ml-1 hover:bg-vista-primary/30" 
+                    className="h-5 w-5 p-0 ml-1 hover:bg-vista-light/30" 
                     onClick={() => setSelectedTeam("all")}
+                  >
+                    <X size={10} />
+                  </Button>
+                </Badge>
+              )}
+              
+              {selectedCompetitionType && selectedCompetitionType !== "all" && (
+                <Badge className="bg-vista-primary/20 text-vista-light flex items-center gap-1 pl-2">
+                  <span className="text-xs">🏆</span>
+                  {competitionTypeLabels[selectedCompetitionType as keyof typeof competitionTypeLabels]}
+                  <Button 
+                    variant="ghost" 
+                    className="h-5 w-5 p-0 ml-1 hover:bg-vista-primary/30" 
+                    onClick={() => setSelectedCompetitionType("all")}
                   >
                     <X size={10} />
                   </Button>
@@ -383,7 +429,7 @@ export default function MatchesPage() {
                           </span>
                         </div>
                         <span className="text-sm text-vista-light/80">
-                          <span>{dayjs(match.date).format('DD.MM.YYYY')}</span> • {match.time}
+                          <span>{match.date ? dayjs(match.date).format('DD.MM.YYYY') : 'Дата не указана'}</span> • {match.time || 'Время не указано'}
                         </span>
                       </div>
                     </div>

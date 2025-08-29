@@ -229,8 +229,13 @@ export default function AttendanceAnalyticsPage() {
               };
             }
             
-            // Добавляем запись о посещаемости этой тренировки
-            playersMap[playerData.id].attendanceRecords[training.id] = playerData.attendance;
+            // Добавляем запись о посещаемости этой тренировки только если она существует
+            if (playerData.attendance) {
+              if (!playersMap[playerData.id].attendanceRecords) {
+                playersMap[playerData.id].attendanceRecords = {};
+              }
+              playersMap[playerData.id].attendanceRecords[training.id] = playerData.attendance;
+            }
           });
         } catch (error) {
           console.error(`Ошибка при загрузке данных посещаемости для тренировки ${training.id}:`, error);
@@ -252,8 +257,8 @@ export default function AttendanceAnalyticsPage() {
         
         // Проходим по всем тренировкам и считаем статистику
         trainings.forEach(training => {
-          const attendance = player.attendanceRecords[training.id];
-          if (attendance) {
+          const attendance = player.attendanceRecords?.[training.id];
+          if (attendance && attendance.status) {
             switch (attendance.status) {
               case 'TRAINED':
                 stats.trained++;
@@ -272,6 +277,7 @@ export default function AttendanceAnalyticsPage() {
                 break;
             }
           }
+          // Если записи о посещаемости нет, игрок не учитывается в статистике
         });
         
         // Рассчитываем процент посещенных тренировок
@@ -297,8 +303,8 @@ export default function AttendanceAnalyticsPage() {
       // Обновляем общую статистику
       const totalTrainings = trainings.length;
       const playersCount = sortedPlayers.length;
-      const totalAttendance = sortedPlayers.reduce((total, player) => total + player.stats.trained, 0);
-      const averageAttendance = playersCount > 0 
+      const totalAttendance = sortedPlayers.reduce((total, player) => total + (player.stats?.trained || 0), 0);
+      const averageAttendance = playersCount > 0 && totalTrainings > 0
         ? Math.round((totalAttendance / (playersCount * totalTrainings)) * 100) 
         : 0;
       
@@ -343,6 +349,11 @@ export default function AttendanceAnalyticsPage() {
   
   // Получение отфильтрованных игроков в зависимости от выбранной вкладки
   const getFilteredPlayers = () => {
+    // Проверяем, что данные загружены
+    if (!playersWithAttendance || playersWithAttendance.length === 0) {
+      return [];
+    }
+    
     if (currentTab === 'all') {
       return playersWithAttendance;
     }
@@ -350,11 +361,11 @@ export default function AttendanceAnalyticsPage() {
     // Для других вкладок фильтруем игроков по проценту посещаемости
     switch (currentTab) {
       case 'high':
-        return playersWithAttendance.filter(p => p.stats.trainingPercentage >= 80);
+        return playersWithAttendance.filter(p => p.stats && p.stats.trainingPercentage >= 80);
       case 'medium':
-        return playersWithAttendance.filter(p => p.stats.trainingPercentage >= 50 && p.stats.trainingPercentage < 80);
+        return playersWithAttendance.filter(p => p.stats && p.stats.trainingPercentage >= 50 && p.stats.trainingPercentage < 80);
       case 'low':
-        return playersWithAttendance.filter(p => p.stats.trainingPercentage < 50);
+        return playersWithAttendance.filter(p => p.stats && p.stats.trainingPercentage < 50);
       default:
         return playersWithAttendance;
     }
@@ -458,7 +469,7 @@ export default function AttendanceAnalyticsPage() {
       </Card>
       
       {/* Отображение данных посещаемости */}
-      {trainings.length > 0 && playersWithAttendance.length > 0 && (
+      {trainings.length > 0 && playersWithAttendance.length > 0 && !isLoadingAttendance && (
         <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
           <CardHeader>
             <CardTitle className="text-vista-light flex items-center justify-between">
@@ -566,29 +577,31 @@ export default function AttendanceAnalyticsPage() {
                             <TableCell className="text-center py-1.5">
                               <div className="flex items-center justify-center gap-2">
                                 <span className="text-vista-light font-medium">
-                                  {player.stats.trained}/{player.stats.total}
+                                  {player.stats?.trained || 0}/{player.stats?.total || 0}
                                 </span>
                                 <span 
                                   className={`text-sm font-medium 
-                                    ${player.stats.trainingPercentage >= 80 
+                                    ${(player.stats?.trainingPercentage || 0) >= 80 
                                       ? 'text-green-300' 
-                                      : player.stats.trainingPercentage >= 50 
+                                      : (player.stats?.trainingPercentage || 0) >= 50 
                                         ? 'text-yellow-300' 
                                         : 'text-red-300'
                                   }`}
                                 >
-                                  ({player.stats.trainingPercentage}%)
+                                  ({(player.stats?.trainingPercentage || 0)}%)
                                 </span>
                               </div>
                             </TableCell>
                             
                             {/* Статусы посещаемости по каждой тренировке */}
                             {trainings.map((training) => {
-                              const attendance = player.attendanceRecords[training.id];
+                              const attendance = player.attendanceRecords?.[training.id];
                               const status = attendance?.status;
-                              const statusInfo = status 
+                              
+                              // Безопасно получаем информацию о статусе
+                              const statusInfo = status && attendanceStatuses[status as keyof typeof attendanceStatuses] 
                                 ? attendanceStatuses[status as keyof typeof attendanceStatuses] 
-                                : { color: 'bg-gray-600', textColor: 'text-gray-300' };
+                                : null;
                               
                               return (
                                 <TableCell 
@@ -609,7 +622,7 @@ export default function AttendanceAnalyticsPage() {
                                               ? 'bg-gray-500' 
                                               : 'bg-vista-dark/40 border border-vista-secondary/50 shadow-md'
                                     }`}
-                                    title={status ? attendanceStatuses[status as keyof typeof attendanceStatuses].name : 'Нет данных'}
+                                    title={statusInfo ? statusInfo.name : 'Нет данных'}
                                   ></div>
                                 </TableCell>
                               );

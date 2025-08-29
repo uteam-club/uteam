@@ -273,13 +273,38 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
           <DialogFooter className="flex justify-end gap-2 mt-4">
             {isEditMode ? (
               <>
-                  <Button variant="outline" onClick={onCancel} disabled={loading}>{t('common.cancel')}</Button>
-                  <Button onClick={onSave} disabled={loading}>{t('common.save')}</Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={onCancel} 
+                    disabled={loading}
+                    className="bg-transparent border border-vista-error/50 text-vista-error hover:bg-vista-error/10 h-9 px-3 font-normal"
+                  >
+                    {t('common.cancel')}
+                  </Button>
+                  <Button 
+                    onClick={onSave} 
+                    disabled={loading}
+                    className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
+                  >
+                    {t('common.save')}
+                  </Button>
               </>
             ) : (
               <>
-                  <Button variant="outline" onClick={onEdit} disabled={loading}>{t('exercisesPage.edit_btn')}</Button>
-                  <Button variant="destructive" onClick={onDelete} disabled={loading}>{t('exercisesPage.delete_btn')}</Button>
+                  <Button 
+                    onClick={onEdit} 
+                    disabled={loading}
+                    className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
+                  >
+                    {t('exercisesPage.edit_btn')}
+                  </Button>
+                  <Button 
+                    onClick={onDelete} 
+                    disabled={loading}
+                    className="bg-transparent border border-vista-error/50 text-vista-error hover:bg-vista-error/10 h-9 px-3 font-normal"
+                  >
+                    {t('exercisesPage.delete_btn')}
+                  </Button>
               </>
             )}
           </DialogFooter>

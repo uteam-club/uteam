@@ -771,23 +771,25 @@ export default function TrainingPage() {
       <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
         <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
           {/* Кнопки действий */}
-          <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <Button
+              variant="outline"
               onClick={handleAttendance}
-              className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark shadow-sm"
+              className="bg-transparent border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
             >
               <ClipboardCheck className="mr-2 h-4 w-4" /> {t('trainingsPage.mark_attendance')}
             </Button>
             
             <Button 
+              variant="outline"
               onClick={handleOpenExerciseDialog}
-              className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark shadow-sm"
+              className="bg-transparent border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
             >
               <Plus className="mr-2 h-4 w-4" /> {t('trainingsPage.add_exercise')}
             </Button>
             
             {/* Переключатель состояния тренировки */}
-            <div className={`flex items-center space-x-2 ml-1 rounded-md border px-3 py-2 transition-colors shadow-sm ${isCompleted ? 'bg-green-500/20 border-green-500/50' : 'bg-vista-primary/20 border-vista-primary/50'}`}>
+            <div className={`flex items-center space-x-2 ml-1 rounded-md border px-3 py-2 transition-colors shadow-sm h-9 ${isCompleted ? 'bg-green-500/20 border-green-500/50' : 'bg-vista-primary/20 border-vista-primary/50'}`}>
               <Switch
                 id="training-completed" 
                 checked={isCompleted}
@@ -801,25 +803,25 @@ export default function TrainingPage() {
           </div>
           
           {/* Правые кнопки */}
-          <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <Button 
+              variant="outline" 
+              onClick={handleOpenEditModal}
+              className="bg-transparent border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
+            >
+              <Pencil className="h-4 w-4 mr-2" /> {t('common.edit')}
+            </Button>
             <Button 
               variant="outline" 
               onClick={handleSave}
-              className="bg-vista-dark/70 shadow-sm border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 shadow-sm"
+              className="bg-transparent border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
             >
               <Save className="mr-2 h-4 w-4" /> {t('common.save')}
             </Button>
             <Button 
-              variant="secondary" 
-              onClick={handleOpenEditModal}
-              className="bg-vista-dark/70 shadow-sm border-vista-secondary/50 text-vista-light hover:bg-vista-primary/20 flex items-center gap-2"
-            >
-              <Pencil className="h-4 w-4 mr-2 text-vista-light" /> {t('common.edit')}
-            </Button>
-            <Button 
               variant="outline" 
               onClick={handleDelete}
-              className="border-vista-error/50 text-vista-error hover:bg-vista-error/10"
+              className="border-vista-error/50 text-vista-error hover:bg-vista-error/10 h-9 px-3 font-normal"
             >
               <Trash className="mr-2 h-4 w-4" /> {t('common.delete')}
             </Button>
@@ -998,7 +1000,7 @@ export default function TrainingPage() {
                     <div className="flex sm:flex-col items-center gap-2 p-4 border-t sm:border-t-0 sm:border-l border-vista-secondary/50">
                       {/* Кнопка таймингов */}
                       <button 
-                        className="bg-vista-primary/20 text-vista-primary hover:bg-vista-primary/30 rounded-md p-2 transition-colors"
+                        className="border border-vista-primary/50 text-vista-primary hover:bg-vista-primary/10 rounded-md p-2 transition-colors"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleOpenTimingModal(exercise);

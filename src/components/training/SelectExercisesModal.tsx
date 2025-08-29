@@ -7,6 +7,7 @@ import { Badge } from '../ui/badge';
 import { Checkbox } from '../ui/checkbox';
 import { X, Check, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { generatePaginationPages, isEllipsis } from '@/lib/pagination';
 
 interface Author { id: string; name: string; }
 interface Category { id: string; name: string; }
@@ -308,17 +309,27 @@ const SelectExercisesModal: React.FC<SelectExercisesModalProps> = (props) => {
                   <span className="sr-only">{t('exercisesModal.previous_page')}</span>
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
                 </Button>
-                {Array.from({ length: Math.ceil(props.filteredExercises.length / props.exercisesPerPage) }).map((_, index) => (
-                  <Button
-                    key={index}
-                    variant={props.currentPage === index + 1 ? 'default' : 'outline'}
-                    size="sm"
-                    className={`h-8 w-8 p-0 ${props.currentPage === index + 1 ? 'bg-vista-primary text-vista-dark' : 'bg-vista-dark/70 text-vista-light border-vista-secondary/50'} focus:outline-none focus:ring-0`}
-                    onClick={() => props.setCurrentPage(index + 1)}
-                  >
-                    {index + 1}
-                  </Button>
-                ))}
+                {generatePaginationPages(props.currentPage, Math.ceil(props.filteredExercises.length / props.exercisesPerPage)).map((page) => {
+                  if (isEllipsis(page)) {
+                    return (
+                      <span key={page} className="w-8 h-8 flex items-center justify-center text-vista-light/60">
+                        ...
+                      </span>
+                    );
+                  }
+                  
+                  return (
+                    <Button
+                      key={page}
+                      variant={props.currentPage === page ? 'default' : 'outline'}
+                      size="sm"
+                      className={`h-8 w-8 p-0 ${props.currentPage === page ? 'bg-vista-primary text-vista-dark' : 'bg-vista-dark/70 text-vista-light border-vista-secondary/50'} focus:outline-none focus:ring-0`}
+                      onClick={() => props.setCurrentPage(page)}
+                    >
+                      {page}
+                    </Button>
+                  );
+                })}
                 <Button
                   variant="outline"
                   size="sm"
@@ -336,13 +347,13 @@ const SelectExercisesModal: React.FC<SelectExercisesModalProps> = (props) => {
             <Button
               variant="outline"
               onClick={() => props.onOpenChange(false)}
-              className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 focus:outline-none focus:ring-0"
+              className="bg-transparent border border-vista-error/50 text-vista-error hover:bg-vista-error/10 h-9 px-3 font-normal"
             >
               {t('exercisesModal.cancel')}
             </Button>
             <Button
               onClick={props.onAdd}
-              className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark focus:outline-none focus:ring-0"
+              className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
               disabled={props.selectedExercises.length === 0}
             >
               {t('exercisesModal.add_selected')}

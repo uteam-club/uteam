@@ -98,6 +98,45 @@ body {
   .page-title {
     @apply text-2xl font-bold text-vista-light mb-6;
   }
+
+  /* Анимация для активного раздела в навигации */
+  .nav-item-active {
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Анимация для активных элементов в выпадающих списках */
+  .dropdown-item-active {
+    position: relative;
+    transition: all 0.2s ease;
+  }
+
+  .dropdown-item-active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg, #5acce5 0%, #4a9bb3 100%);
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  /* Специальный класс для команд без левой границы */
+  .team-item-active {
+    position: relative;
+    transition: all 0.2s ease;
+    background-color: rgba(44, 60, 66, 0.6);
+  }
   
   /* Основная кнопка */
   .btn-primary {
@@ -176,6 +215,20 @@ body {
     --modal-bottom-spacing: 2rem;
   }
   
+  /* Глобально отключаем все focus стили */
+  *:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    ring: none !important;
+  }
+  
+  /* Отключаем focus для всех интерактивных элементов */
+  button:focus, input:focus, select:focus, textarea:focus, a:focus, [tabindex]:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    ring: none !important;
+  }
+  
   /* Адаптивные отступы для разных размеров экрана */
   @media (min-width: 640px) {
     :root {
@@ -223,6 +276,13 @@ body {
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
   }
+  
+  /* Дополнительно отключаем focus для темной темы */
+  .dark *:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    ring: none !important;
+  }
 }
 
 @layer base {
@@ -231,6 +291,23 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Глобально отключаем фокус для всех интерактивных элементов */
+  button, input, select, textarea, a, [tabindex], [role="button"], [role="tab"], [role="menuitem"] {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  
+  button:focus, input:focus, select:focus, textarea:focus, a:focus, [tabindex]:focus, [role="button"]:focus, [role="tab"]:focus, [role="menuitem"]:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Отключаем фокус для всех элементов с data-* атрибутами (Radix UI компоненты) */
+  [data-radix-focus-guard], [data-radix-focus-trap], [data-radix-focus-scope] {
+    outline: none !important;
+    box-shadow: none !important;
   }
 }
 
@@ -249,4 +326,121 @@ body::-webkit-scrollbar {
 html, body {
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
+}
+
+/* Стили для SelectItem в дропдаунах */
+[data-radix-select-item] {
+  @apply rounded-md px-2 py-1.5 mx-1 my-0.5 cursor-pointer transition-colors;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+}
+
+[data-radix-select-item]:hover {
+  @apply bg-vista-primary/20 text-vista-primary;
+}
+
+[data-radix-select-item][data-state="checked"] {
+  @apply bg-vista-primary/30 text-vista-primary;
+}
+
+[data-radix-select-item][data-highlighted] {
+  @apply bg-vista-primary/20 text-vista-primary;
+}
+
+/* Дополнительно скрываем все возможные кружки и иконки */
+[data-radix-select-item] > *:first-child:not(:empty),
+[data-radix-select-item] > svg,
+[data-radix-select-item] > [class*="radio"],
+[data-radix-select-item] > [class*="check"],
+[data-radix-select-item] > [class*="dot"] {
+  display: none !important;
+}
+
+/* Стили для SelectContent (дропдауны) */
+[data-radix-select-content] {
+  @apply border border-vista-light/20 shadow-2xl rounded-lg;
+}
+
+/* Стили для PopoverContent (popover тегов) */
+[data-radix-popover-content] {
+  @apply border border-vista-light/20 shadow-2xl rounded-lg;
+}
+
+/* Дополнительные стили для всех дропдаунов */
+[data-radix-select-content],
+[data-radix-popover-content],
+[role="listbox"],
+[role="menu"] {
+  border: 1px solid rgb(255 255 255 / 0.2) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Скрываем кружки (radio buttons) в дропдаун меню */
+[data-radix-select-item]::before,
+[data-radix-select-item]::after,
+[data-radix-select-item] > *:first-child,
+[data-radix-select-item] > svg:first-child,
+[data-radix-select-item] > [data-state="checked"]::before {
+  display: none !important;
+}
+
+/* Убираем отступы, которые создавались для кружков */
+[data-radix-select-item] {
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+}
+
+/* Скрываем все возможные иконки состояния в SelectItem */
+[data-radix-select-item] [data-state="checked"],
+[data-radix-select-item] [data-state="unchecked"] {
+  display: none !important;
+}
+
+/* Скрываем кружки по цвету и размеру */
+[data-radix-select-item] * {
+  color: transparent !important;
+}
+
+[data-radix-select-item] *[class*="w-2"],
+[data-radix-select-item] *[class*="w-3"],
+[data-radix-select-item] *[class*="w-4"],
+[data-radix-select-item] *[class*="h-2"],
+[data-radix-select-item] *[class*="h-3"],
+[data-radix-select-item] *[class*="h-4"] {
+  display: none !important;
+}
+
+/* Скрываем все элементы с бирюзовым цветом */
+[data-radix-select-item] *[class*="text-vista-primary"],
+[data-radix-select-item] *[class*="bg-vista-primary"] {
+  display: none !important;
+}
+
+/* Скрываем кружки по возможным классам Radix UI */
+[data-radix-select-item] [class*="indicator"],
+[data-radix-select-item] [class*="icon"],
+[data-radix-select-item] [class*="check"],
+[data-radix-select-item] [class*="radio"],
+[data-radix-select-item] [class*="dot"],
+[data-radix-select-item] [class*="bullet"] {
+  display: none !important;
+}
+
+/* Скрываем все SVG и иконки */
+[data-radix-select-item] svg,
+[data-radix-select-item] [class*="w-"],
+[data-radix-select-item] [class*="h-"] {
+  display: none !important;
+}
+
+/* Показываем только текст */
+[data-radix-select-item] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+}
+
+[data-radix-select-item] > *:last-child {
+  color: inherit !important;
+  display: block !important;
 }

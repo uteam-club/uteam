@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -38,6 +38,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { X, Filter, Check, ChevronDown, Search, Plus, Upload, Play, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { generatePaginationPages, isEllipsis } from '@/lib/pagination';
 import { 
   useExercises, 
   useUsers, 
@@ -101,7 +102,27 @@ export default function ExercisesPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagsPopoverOpen, setTagsPopoverOpen] = useState(false);
   const [createTagsPopoverOpen, setCreateTagsPopoverOpen] = useState(false);
+  
+  // Ref для popover тегов
+  const tagsPopoverRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // Обработка кликов вне popover тегов
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tagsPopoverRef.current && !tagsPopoverRef.current.contains(event.target as Node)) {
+        setTagsPopoverOpen(false);
+      }
+    };
+
+    if (tagsPopoverOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [tagsPopoverOpen]);
   
   // Создаем параметры для серверной фильтрации с мемоизацией
   const filterParams = useMemo<FilterParams>(() => {
@@ -733,7 +754,7 @@ export default function ExercisesPage() {
               >
                 {isSelected && <Check className="h-3 w-3 text-vista-dark" />}
               </div>
-              <span className="text-vista-light">{tag.name}</span>
+              <span className="text-vista-light text-sm">{tag.name}</span>
             </div>
           );
         })}
@@ -834,10 +855,11 @@ export default function ExercisesPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-vista-light">{t('exercisesPage.title')}</CardTitle>
           <Button 
+            variant="outline"
             onClick={() => setIsCreateDialogOpen(true)}
-            className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
+            className="w-full sm:w-[200px] bg-transparent border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-2 font-normal text-sm"
           >
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="mr-1.5 h-4 w-4" />
             {t('exercisesPage.add_exercise')}
           </Button>
         </CardHeader>
@@ -852,7 +874,7 @@ export default function ExercisesPage() {
                   placeholder={t('exercisesPage.search_placeholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
+                  className="pl-10 bg-vista-dark/30 border-vista-light/20 text-vista-light/90 placeholder-vista-light/60 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 font-normal text-sm shadow-lg"
                 />
                 {searchQuery && (
                   <button
@@ -869,10 +891,10 @@ export default function ExercisesPage() {
                 value={selectedAuthor === null ? 'all' : selectedAuthor}
                 onValueChange={(value) => setSelectedAuthor(value === "all" ? null : value)}
               >
-                <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+                <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal text-sm shadow-lg">
                   <SelectValue placeholder={t('exercisesPage.select_author_placeholder')} />
                 </SelectTrigger>
-                <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light shadow-lg">
+                <SelectContent className="bg-vista-dark border border-vista-light/20 text-vista-light shadow-2xl rounded-lg">
                   <SelectItem value="all">{t('exercisesPage.all_authors')}</SelectItem>
                   {usersData.map((user: User) => (
                     <SelectItem key={user.id} value={user.id}>
@@ -894,10 +916,10 @@ export default function ExercisesPage() {
                   }
                 }}
               >
-                <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+                <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal text-sm shadow-lg">
                   <SelectValue placeholder={t('exercisesPage.select_category_placeholder')} />
                 </SelectTrigger>
-                <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light shadow-lg">
+                <SelectContent className="bg-vista-dark border border-vista-light/20 text-vista-light shadow-2xl rounded-lg">
                   <SelectItem value="all">{t('exercisesPage.all_categories')}</SelectItem>
                   {categoriesData.map((category: Category) => (
                     <SelectItem key={category.id} value={category.id}>
@@ -911,7 +933,9 @@ export default function ExercisesPage() {
               <div className="relative">
                 <Button 
                   variant="outline" 
-                  className="w-full sm:w-[200px] justify-between bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
+                  className={`w-full sm:w-[200px] justify-between bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal text-sm shadow-lg ${
+                    selectedTags.length > 0 ? 'text-vista-light' : 'text-vista-light/60'
+                  }`}
                   onClick={() => setTagsPopoverOpen(!tagsPopoverOpen)}
                 >
                   {selectedTags.length > 0 ? `${selectedTags.length} ${t('exercisesPage.selected_tags')}` : `${t('exercisesPage.select_tags')}`}
@@ -919,13 +943,13 @@ export default function ExercisesPage() {
                 </Button>
                 
                 {tagsPopoverOpen && (
-                  <div className="absolute z-50 w-full sm:w-[250px] mt-1 bg-vista-dark border border-vista-secondary/30 rounded-md shadow-lg">
+                  <div ref={tagsPopoverRef} className="absolute z-50 w-full sm:w-[200px] mt-1 bg-vista-dark border border-vista-light/20 rounded-lg shadow-2xl">
                     <div className="p-2">
                       <div className="relative mb-2">
                         <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-light/50" />
                         <Input 
                           placeholder={t('exercisesPage.search_tag_placeholder')} 
-                          className="pl-8 pr-2 h-9 text-vista-light bg-vista-dark/30 border-vista-secondary/30"
+                          className="pl-8 pr-2 h-9 text-vista-light/60 bg-vista-dark/50 border-vista-light/30 placeholder-vista-light/60 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 font-normal text-sm shadow-md"
                         />
                       </div>
                       
@@ -933,18 +957,19 @@ export default function ExercisesPage() {
                         <TagsSection />
                       </div>
                       
-                      <div className="flex justify-end mt-2 pt-2 border-t border-vista-secondary/30">
+                      <div className="flex justify-end mt-2 pt-2 border-t border-vista-secondary/40">
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="mr-2 text-xs border-vista-secondary/30"
+                          className="mr-2 text-xs bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 font-normal shadow-lg"
                           onClick={() => setSelectedTags([])}
                         >
                           {t('exercisesPage.clear_tags')}
                         </Button>
                         <Button 
+                          variant="outline"
                           size="sm" 
-                          className="text-xs bg-vista-primary text-vista-dark hover:bg-vista-primary/90"
+                          className="text-xs bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 font-normal shadow-lg"
                           onClick={() => setTagsPopoverOpen(false)}
                         >
                           {t('exercisesPage.done')}
@@ -958,61 +983,93 @@ export default function ExercisesPage() {
           
             {/* Отображение выбранных фильтров */}
             {hasActiveFilters && (
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                <span className="text-sm text-vista-light/70">{t('exercisesPage.active_filters')}:</span>
-                
-                {searchQuery && (
-                  <Badge variant="secondary" className="bg-vista-secondary/20 text-vista-light">
-                    {t('exercisesPage.search')}: {searchQuery}
-                    <button onClick={() => setSearchQuery('')} className="ml-1">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
-                
-                {selectedAuthor && (
-                  <Badge variant="secondary" className="bg-vista-secondary/20 text-vista-light">
-                    {t('exercisesPage.author')}: {usersData.find((u: User) => u.id === selectedAuthor)?.name || t('exercisesPage.unknown')}
-                    <button onClick={() => setSelectedAuthor(null)} className="ml-1">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
-                
-                {selectedCategory && (
-                  <Badge variant="secondary" className="bg-vista-secondary/20 text-vista-light">
-                    {t('exercisesPage.category')}: {categoriesData.find((c: Category) => c.id === selectedCategory)?.name}
-                    <button onClick={() => setSelectedCategory(null)} className="ml-1">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
-                
-                {selectedTagNames.map((tagName) => (
-                  <Badge key={tagName} variant="secondary" className="bg-vista-secondary/20 text-vista-light">
-                    {t('exercisesPage.tag')}: {tagName}
-                    <button 
-                      onClick={() => {
-                        const tagId = tagsData.find((t: Tag) => t.name === tagName)?.id;
-                        if (tagId) {
-                          setSelectedTags(selectedTags.filter(id => id !== tagId));
-                        }
-                      }} 
-                      className="ml-1"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={resetFilters}
-                  className="ml-auto text-vista-light/70 hover:text-vista-light border-vista-secondary/30"
-                >
-                  {t('exercisesPage.reset_all_filters')}
-                </Button>
+              <div className="bg-vista-dark/20 backdrop-blur-sm border border-vista-light/10 rounded-lg p-4 mt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-4 w-4 text-vista-light/60" />
+                      <span className="text-sm font-medium text-vista-light/80">{t('exercisesPage.active_filters')}</span>
+                      <span className="text-xs text-vista-light/50 bg-vista-light/10 px-2 py-1 rounded-full">
+                        {[
+                          searchQuery ? 1 : 0,
+                          selectedAuthor ? 1 : 0,
+                          selectedCategory ? 1 : 0,
+                          selectedTags.length
+                        ].reduce((a, b) => a + b, 0)}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      {searchQuery && (
+                        <Badge variant="secondary" className="bg-vista-primary/20 border-vista-primary/30 text-vista-primary hover:bg-vista-primary/30 transition-colors">
+                          <Search className="h-3 w-3 mr-1" />
+                          {searchQuery}
+                          <button 
+                            onClick={() => setSearchQuery('')} 
+                            className="ml-2 hover:bg-vista-primary/30 rounded-full p-0.5 transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      )}
+                      
+                      {selectedAuthor && (
+                        <Badge variant="secondary" className="bg-vista-secondary/30 border-vista-secondary/40 text-vista-light hover:bg-vista-secondary/40 transition-colors">
+                          <span className="mr-1 text-vista-light/70">•</span>
+                          {usersData.find((u: User) => u.id === selectedAuthor)?.name || t('exercisesPage.unknown')}
+                          <button 
+                            onClick={() => setSelectedAuthor(null)} 
+                            className="ml-2 hover:bg-vista-secondary/40 rounded-full p-0.5 transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      )}
+                      
+                      {selectedCategory && (
+                        <Badge variant="secondary" className="bg-blue-500/20 border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors">
+                          <span className="mr-1 text-blue-400">•</span>
+                          {categoriesData.find((c: Category) => c.id === selectedCategory)?.name}
+                          <button 
+                            onClick={() => setSelectedCategory(null)} 
+                            className="ml-2 hover:bg-blue-500/30 rounded-full p-0.5 transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      )}
+                      
+                      {selectedTagNames.map((tagName) => (
+                        <Badge key={tagName} variant="secondary" className="bg-vista-primary/20 border-vista-primary/30 text-vista-primary hover:bg-vista-primary/30 transition-colors">
+                          <span className="mr-1 text-vista-primary">•</span>
+                          {tagName}
+                          <button 
+                            onClick={() => {
+                              const tagId = tagsData.find((t: Tag) => t.name === tagName)?.id;
+                              if (tagId) {
+                                setSelectedTags(selectedTags.filter(id => id !== tagId));
+                              }
+                            }} 
+                            className="ml-2 hover:bg-vista-primary/30 rounded-full p-0.5 transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resetFilters}
+                    className="h-7 px-3 text-xs bg-vista-dark/50 backdrop-blur-sm border-vista-light/20 text-vista-light/70 hover:bg-vista-light/10 hover:border-vista-light/40 hover:text-vista-light focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 font-normal shadow-lg"
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    {t('exercisesPage.reset_all_filters')}
+                  </Button>
+                </div>
+
               </div>
             )}
           </div>
@@ -1135,64 +1192,32 @@ export default function ExercisesPage() {
                   </Button>
                   
                   <div className="flex items-center space-x-1">
-                    {(() => {
-                      // Создаем массив страниц для отображения
-                      const pages = [];
-                      const totalPages = pagination.totalPages;
-                      
-                      // Всегда показываем первую страницу
-                      if (currentPage > 3) {
-                        pages.push(1);
-                      }
-                      
-                      // Показываем многоточие, если текущая страница больше 4
-                      if (currentPage > 4) {
-                        pages.push('ellipsis1');
-                      }
-                      
-                      // Показываем соседние страницы
-                      for (let i = Math.max(1, currentPage - 1); i <= Math.min(totalPages, currentPage + 1); i++) {
-                        pages.push(i);
-                      }
-                      
-                      // Показываем многоточие, если до последней страницы больше 2 страниц
-                      if (currentPage < totalPages - 3) {
-                        pages.push('ellipsis2');
-                      }
-                      
-                      // Всегда показываем последнюю страницу, если она не совпадает с соседними
-                      if (currentPage < totalPages - 2) {
-                        pages.push(totalPages);
-                      }
-                      
-                      // Удаляем дубликаты
-                      return [...new Set(pages)].map((page) => {
-                        if (page === 'ellipsis1' || page === 'ellipsis2') {
-                          return (
-                            <span key={page} className="w-9 h-9 flex items-center justify-center text-vista-light/60">
-                              ...
-                            </span>
-                          );
-                        }
-                        
+                    {generatePaginationPages(currentPage, pagination.totalPages).map((page) => {
+                      if (isEllipsis(page)) {
                         return (
-                          <Button
-                            key={page}
-                            variant={currentPage === page ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => goToPage(page as number)}
-                            className={cn(
-                              "w-9 h-9 p-0",
-                              currentPage === page 
-                                ? "bg-vista-primary text-vista-dark" 
-                                : "border-vista-secondary/30 text-vista-light"
-                            )}
-                          >
-                            {page}
-                          </Button>
+                          <span key={page} className="w-9 h-9 flex items-center justify-center text-vista-light/60">
+                            ...
+                          </span>
                         );
-                      });
-                    })()}
+                      }
+                      
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => goToPage(page)}
+                          className={cn(
+                            "w-9 h-9 p-0",
+                            currentPage === page 
+                              ? "bg-vista-primary text-vista-dark" 
+                              : "border-vista-secondary/30 text-vista-light"
+                          )}
+                        >
+                          {page}
+                        </Button>
+                      );
+                    })}
                   </div>
                   
                   <Button

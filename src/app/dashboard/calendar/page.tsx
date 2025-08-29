@@ -280,10 +280,11 @@ export default function CalendarPage() {
                 if (attendanceResponse.ok) {
                   const attendanceData = await attendanceResponse.json();
                   if (attendanceData && attendanceData.length > 0) {
-                    const hasAttendance = attendanceData.some(
-                      (player: any) => player.attendance && player.attendance.status === 'TRAINED'
+                    // Проверяем, есть ли у игроков реальные записи о посещаемости (не null)
+                    const hasRealAttendance = attendanceData.some(
+                      (player: any) => player.attendance && player.attendance.status
                     );
-                    if (hasAttendance) {
+                    if (hasRealAttendance) {
                       status = 'completed';
                     }
                   }

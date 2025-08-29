@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useTranslation } from 'react-i18next';
 
 // Типы статусов посещаемости
-type AttendanceStatus = 'TRAINED' | 'REHAB' | 'SICK' | 'EDUCATION' | 'OTHER';
+type AttendanceStatus = 'TRAINED' | 'REHAB' | 'SICK' | 'EDUCATION' | 'OTHER' | 'NOT_SET';
 
 interface AttendanceModalProps {
   trainingId: string;
@@ -22,6 +22,7 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState<AttendanceStatus>('NOT_SET');
 
   // Маппинг статусов на читаемые названия (мемоизированный, зависит от языка)
   const statusLabels = useMemo(() => ({
@@ -30,6 +31,7 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
     SICK: t('attendanceModal.status_sick'),
     EDUCATION: t('attendanceModal.status_education'),
     OTHER: t('attendanceModal.status_other'),
+    NOT_SET: 'Не указан'
   }), [t]);
 
   // Маппинг статусов на цвета
@@ -38,7 +40,8 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
     REHAB: 'bg-yellow-600 hover:bg-yellow-700',
     SICK: 'bg-red-600 hover:bg-red-700',
     EDUCATION: 'bg-blue-600 hover:bg-blue-700',
-    OTHER: 'bg-gray-600 hover:bg-gray-700'
+    OTHER: 'bg-gray-600 hover:bg-gray-700',
+    NOT_SET: 'bg-slate-500 hover:bg-slate-600'
   };
 
   // Интерфейс для данных игрока
@@ -53,7 +56,7 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
       id?: string;
       status: AttendanceStatus;
       comment?: string;
-    };
+    }; // Теперь всегда есть объект с status: 'NOT_SET' для новых игроков
   }
 
   // Загрузка данных о посещаемости при открытии модального окна
@@ -99,9 +102,28 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
     setPlayers(prev => 
       prev.map(player => 
         player.id === playerId 
-          ? { ...player, attendance: { ...player.attendance, status } }
+          ? { 
+              ...player, 
+              attendance: { ...player.attendance, status }
+            }
           : player
       )
+    );
+  };
+
+  // Функция для массового изменения статусов
+  const applyBulkStatus = () => {
+    if (bulkStatus === 'NOT_SET') return;
+    
+    setPlayers(prev => 
+      prev.map(player => ({
+        ...player,
+        attendance: {
+          ...player.attendance,
+          status: bulkStatus,
+          comment: player.attendance.comment || ''
+        }
+      }))
     );
   };
 
@@ -113,11 +135,13 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
       setError('');
       
       // Подготовка данных для отправки на сервер
-      const attendanceData = players.map(player => ({
-        playerId: player.id,
-        status: player.attendance.status,
-        comment: player.attendance.comment
-      }));
+      const attendanceData = players
+        .filter(player => player.attendance.status && player.attendance.status !== 'NOT_SET') // Фильтруем только игроков с выбранным статусом
+        .map(player => ({
+          playerId: player.id,
+          status: player.attendance.status,
+          comment: player.attendance.comment || ''
+        }));
       
       const response = await fetch(`/api/trainings/${trainingId}/attendance`, {
         method: 'POST',
@@ -150,6 +174,7 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
   // Обработчик клика вне меню для закрытия всех открытых меню
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Закрываем dropdown меню для отдельных игроков
       const allMenus = document.querySelectorAll('[data-status-menu]');
       allMenus.forEach(menu => {
         // Проверяем, что клик не был внутри меню или по кнопке статуса
@@ -159,6 +184,16 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
           (menu as HTMLElement).style.display = 'none';
         }
       });
+      
+      // Закрываем dropdown меню для массового изменения
+      const bulkMenu = document.getElementById('bulk-status-menu');
+      if (bulkMenu) {
+        const target = event.target as Node;
+        if (!bulkMenu.contains(target) && 
+            !(target as HTMLElement).closest('[data-bulk-status-button]')) {
+          bulkMenu.style.display = 'none';
+        }
+      }
     };
 
     document.addEventListener('click', handleClickOutside);
@@ -173,8 +208,72 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-4xl backdrop-blur-xl flex flex-col max-h-[80vh] overflow-y-auto custom-scrollbar">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-vista-light">{t('attendanceModal.title')}</DialogTitle>
+        <DialogHeader className="pb-0">
+          {/* Селектор для массового изменения статусов - перемещен в заголовок */}
+          <div className="bg-vista-secondary/10 border border-vista-secondary/30 rounded-lg p-3 mr-3">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-vista-light/70">
+                Применить ко всем:
+              </span>
+              <div className="relative">
+                <button 
+                  data-bulk-status-button
+                  className={`px-3 py-1.5 rounded text-white min-w-[140px] text-sm ${statusColors[bulkStatus]} ${bulkStatus === 'NOT_SET' ? 'bg-slate-500 hover:bg-slate-600' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    
+                    // Закрываем все другие открытые меню
+                    const allMenus = document.querySelectorAll('[data-status-menu]');
+                    allMenus.forEach(menu => {
+                      (menu as HTMLElement).style.display = 'none';
+                    });
+                    
+                    // Открываем/закрываем текущее меню
+                    const menu = document.getElementById('bulk-status-menu');
+                    if (menu) {
+                      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+                    }
+                  }}
+                >
+                  {bulkStatus === 'NOT_SET' ? 'Выберите статус' : statusLabels[bulkStatus]}
+                </button>
+                
+                <div 
+                  id="bulk-status-menu"
+                  data-bulk-status-menu
+                  className="absolute right-0 mt-1 w-[140px] bg-vista-dark border border-vista-secondary/30 rounded shadow-lg z-10 hidden"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {(Object.keys(statusLabels) as AttendanceStatus[]).map((status) => (
+                    <button
+                      key={status}
+                      className={`block w-full text-left px-4 py-2 text-sm ${
+                        bulkStatus === status 
+                          ? 'bg-vista-secondary/20 text-vista-primary' 
+                          : 'text-vista-light/70 hover:bg-vista-secondary/10'
+                      }`}
+                      onClick={(e) => {
+                        setBulkStatus(status);
+                        // Закрываем меню после выбора
+                        const menu = document.getElementById('bulk-status-menu');
+                        if (menu) menu.style.display = 'none';
+                        e.stopPropagation();
+                      }}
+                    >
+                      {statusLabels[status]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Button
+                onClick={applyBulkStatus}
+                disabled={bulkStatus === 'NOT_SET'}
+                className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark px-3 py-1.5 text-sm h-8 transition-colors"
+              >
+                Применить
+              </Button>
+            </div>
+          </div>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
           {loading ? (
@@ -194,6 +293,7 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
             </div>
           ) : (
             <>
+              {/* Блок с успешным сохранением */}
               {success && (
                 <div className="mb-4 p-3 bg-green-500/10 border border-green-500/30 rounded-md flex items-center">
                   <CheckIcon className="w-5 h-5 text-green-500 mr-2" />
@@ -201,105 +301,108 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
                 </div>
               )}
               
-              <div className="space-y-4">
-                <div className="grid grid-cols-[1fr_auto] gap-4 mb-2 pb-2 border-b border-vista-secondary/30">
-                  <div className="text-sm font-medium text-vista-light/80">{t('attendanceModal.player')}</div>
-                  <div className="text-sm font-medium text-vista-light/80">{t('attendanceModal.status')}</div>
+              <div className="grid grid-cols-[1fr_auto] gap-4 mb-3 pb-3 border-b border-vista-secondary/20">
+                <div className="text-sm font-medium text-vista-light/70">{t('attendanceModal.player')}</div>
+                <div className="text-sm font-medium text-vista-light/70">{t('attendanceModal.status')}</div>
+              </div>
+              
+              {players.length === 0 ? (
+                <div className="text-center p-8 text-vista-light/50">
+                  Нет игроков в команде
                 </div>
-                
-                {players.length === 0 ? (
-                  <div className="text-center p-8 text-vista-light/50">
-                    Нет игроков в команде
-                  </div>
-                ) : (
-                  players.map((player) => (
-                    <div key={player.id} className="grid grid-cols-[1fr_auto] gap-4 items-center">
-                      <div className="flex items-center">
-                        {/* Фото игрока */}
-                        <div className="h-10 w-10 rounded-full overflow-hidden bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)] mr-3 flex-shrink-0">
-                          {player.imageUrl ? (
-                            <img 
-                              src={player.imageUrl}
-                              alt={`${player.lastName} ${player.firstName}`}
-                              className="h-full w-full object-cover"
-                              onError={(e) => {
-                                // В случае ошибки загрузки используем аватар по умолчанию
-                                const target = e.target as HTMLImageElement;
-                                target.src = `https://ui-avatars.com/api/?name=${player.firstName}+${player.lastName}&background=344054&color=fff&size=100`;
-                              }}
-                            />
-                          ) : (
-                            <div className="h-full w-full flex items-center justify-center">
-                              <UserIcon className="w-5 h-5 text-slate-300" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-vista-light">
-                            {player.lastName} {player.firstName}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="relative">
-                        {/* Изменяем с group hover на логику клика */}
-                        <div>
-                          <button 
-                            data-status-button
-                            className={`px-3 py-1.5 rounded text-white min-w-[140px] text-sm ${statusColors[player.attendance.status]}`}
-                            onClick={(e) => {
-                              e.stopPropagation(); // Предотвращаем всплытие события
-                              
-                              // Закрываем все другие открытые меню
-                              const allMenus = document.querySelectorAll('[data-status-menu]');
-                              allMenus.forEach(menu => {
-                                if (menu.id !== `status-menu-${player.id}`) {
-                                  (menu as HTMLElement).style.display = 'none';
-                                }
-                              });
-                              
-                              // Открываем/закрываем текущее меню
-                              const menu = document.getElementById(`status-menu-${player.id}`);
-                              if (menu) {
-                                menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-                              }
+              ) : (
+                players.map((player, index) => (
+                  <div key={player.id} className={`grid grid-cols-[1fr_auto] gap-4 items-center py-2 ${index < players.length - 1 ? 'border-b border-vista-secondary/25' : ''}`}>
+                    <div className="flex items-center">
+                      {/* Фото игрока */}
+                      <div className="h-10 w-10 rounded-full overflow-hidden bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)] mr-3 flex-shrink-0">
+                        {player.imageUrl ? (
+                          <img 
+                            src={player.imageUrl}
+                            alt={`${player.lastName} ${player.firstName}`}
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              // В случае ошибки загрузки используем аватар по умолчанию
+                              const target = e.target as HTMLImageElement;
+                              target.src = `https://ui-avatars.com/api/?name=${player.firstName}+${player.lastName}&background=344054&color=fff&size=100`;
                             }}
-                          >
-                            {statusLabels[player.attendance.status]}
-                          </button>
-                          
-                          <div 
-                            id={`status-menu-${player.id}`}
-                            data-status-menu
-                            className="absolute right-0 mt-1 w-48 bg-vista-dark/90 backdrop-blur-md border border-vista-secondary/30 rounded shadow-lg z-10 hidden"
-                            onClick={(e) => e.stopPropagation()} // Предотвращаем всплытие для меню
-                          >
-                            {(Object.keys(statusLabels) as AttendanceStatus[]).map((status) => (
-                              <button
-                                key={status}
-                                className={`block w-full text-left px-4 py-2 text-sm ${
-                                  player.attendance.status === status 
-                                    ? 'bg-vista-secondary/20 text-vista-primary' 
-                                    : 'text-vista-light/70 hover:bg-vista-secondary/10'
-                                }`}
-                                onClick={(e) => {
-                                  updateStatus(player.id, status);
-                                  // Закрываем меню после выбора
-                                  const menu = document.getElementById(`status-menu-${player.id}`);
-                                  if (menu) menu.style.display = 'none';
-                                  e.stopPropagation(); // Предотвращаем всплытие события
-                                }}
-                              >
-                                {statusLabels[status]}
-                              </button>
-                            ))}
+                          />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center">
+                            <UserIcon className="w-5 h-5 text-slate-300" />
                           </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-vista-light">
+                          {player.lastName} {player.firstName}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="relative">
+                      {/* Изменяем с group hover на логику клика */}
+                      <div>
+                        <button 
+                          data-status-button
+                          className={`px-3 py-1.5 rounded text-white min-w-[140px] text-sm ${statusColors[player.attendance.status]}`}
+                          onClick={(e) => {
+                            e.stopPropagation(); // Предотвращаем всплытие события
+                            
+                            // Закрываем все другие открытые меню
+                            const allMenus = document.querySelectorAll('[data-status-menu]');
+                            allMenus.forEach(menu => {
+                              if (menu.id !== `status-menu-${player.id}`) {
+                                (menu as HTMLElement).style.display = 'none';
+                              }
+                            });
+                            
+                            // Открываем/закрываем текущее меню
+                            const menu = document.getElementById(`status-menu-${player.id}`);
+                            if (menu) {
+                              menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+                            }
+                          }}
+                        >
+                          {statusLabels[player.attendance.status]}
+                        </button>
+                        
+                        <div 
+                          id={`status-menu-${player.id}`}
+                          data-status-menu
+                          className="absolute right-0 mt-1 w-[140px] bg-vista-dark border border-vista-secondary/30 rounded shadow-lg z-10 hidden"
+                          style={{ 
+                            right: '0',
+                            minWidth: '140px',
+                            maxWidth: '140px'
+                          }}
+                          onClick={(e) => e.stopPropagation()} // Предотвращаем всплытие для меню
+                        >
+                          {(Object.keys(statusLabels) as AttendanceStatus[]).map((status) => (
+                            <button
+                              key={status}
+                              className={`block w-full text-left px-4 py-2 text-sm ${
+                                player.attendance.status === status 
+                                  ? 'bg-vista-secondary/20 text-vista-primary' 
+                                  : 'text-vista-light/70 hover:bg-vista-secondary/10'
+                              }`}
+                              onClick={(e) => {
+                                updateStatus(player.id, status);
+                                // Закрываем меню после выбора
+                                const menu = document.getElementById(`status-menu-${player.id}`);
+                                if (menu) menu.style.display = 'none';
+                                e.stopPropagation(); // Предотвращаем всплытие события
+                              }}
+                            >
+                              {statusLabels[status]}
+                            </button>
+                          ))}
                         </div>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
+                  </div>
+                ))
+              )}
             </>
           )}
         </div>

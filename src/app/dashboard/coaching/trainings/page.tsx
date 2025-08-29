@@ -25,6 +25,8 @@ import { X, Search, Plus, Calendar, Filter, CalendarIcon, Clock, ChevronLeft, Ch
 import { useRouter } from 'next/navigation';
 import { useTrainingCategories } from '@/hooks/useExerciseData';
 import { CreateTrainingModal } from '@/components/training/CreateTrainingModal';
+import { generatePaginationPages, isEllipsis } from '@/lib/pagination';
+import { cn } from '@/lib/utils';
 
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
@@ -69,7 +71,7 @@ export default function TrainingsPage() {
   
   // Состояние для пагинации
   const [currentPage, setCurrentPage] = useState(1);
-  const trainingsPerPage = 15;
+  const trainingsPerPage = 10;
   
   // Состояние для данных
   const [teams, setTeams] = useState<Team[]>([]);
@@ -371,7 +373,8 @@ export default function TrainingsPage() {
           <CardTitle className="text-vista-light">{t('trainingsPage.title')}</CardTitle>
           <Button 
             onClick={() => setIsCreateDialogOpen(true)}
-            className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark shadow-sm"
+            variant="outline"
+            className="bg-vista-dark/30 backdrop-blur-sm border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal shadow-lg"
           >
             <Plus className="mr-2 h-4 w-4" />
             {t('trainingsPage.create_training_btn')}
@@ -391,7 +394,7 @@ export default function TrainingsPage() {
                     console.log('🔍 Изменение поиска:', e.target.value);
                     setSearchQuery(e.target.value);
                   }}
-                  className="pl-10 bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary focus:ring-vista-primary/50"
+                  className="pl-10 bg-vista-dark/30 border-vista-light/20 text-vista-light/90 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 font-normal shadow-lg"
                 />
                 {searchQuery && (
                   <button
@@ -419,10 +422,10 @@ export default function TrainingsPage() {
                   }}
                   disabled={isLoadingTeams}
                 >
-                  <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+                  <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal shadow-lg data-[value]:text-vista-light">
                     <SelectValue placeholder={isLoadingTeams ? t('trainingsPage.loading') : t('trainingsPage.select_team_placeholder')} />
                   </SelectTrigger>
-                  <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                  <SelectContent className="bg-vista-dark border border-vista-light/20 shadow-2xl rounded-lg">
                     <SelectItem value="all">{t('trainingsPage.all_teams')}</SelectItem>
                     {teams.map((team) => (
                       <SelectItem key={team.id} value={team.id}>
@@ -442,10 +445,10 @@ export default function TrainingsPage() {
                 }}
                 disabled={isLoadingCategories}
               >
-                <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+                <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal shadow-lg data-[value]:text-vista-light">
                   <SelectValue placeholder={isLoadingCategories ? t('trainingsPage.loading') : t('trainingsPage.select_category_placeholder')} />
                 </SelectTrigger>
-                <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                <SelectContent className="bg-vista-dark border border-vista-light/20 shadow-2xl rounded-lg">
                   <SelectItem value="all">{t('trainingsPage.all_categories')}</SelectItem>
                   {categories.map((c: Category) => (
                     <SelectItem key={c.id} value={c.id}>
@@ -459,7 +462,7 @@ export default function TrainingsPage() {
               <div className="flex gap-2 items-center">
                 <div className="relative w-full sm:w-[150px]">
                   <div 
-                    className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-primary cursor-pointer z-10"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-light/50 cursor-pointer z-10"
                     onClick={() => {
                       const dateInput = document.getElementById('filter-start-date') as HTMLInputElement;
                       if (dateInput) {
@@ -481,7 +484,7 @@ export default function TrainingsPage() {
                       console.log('🔍 Изменение даты начала:', e.target.value);
                       setStartDate(e.target.value);
                     }}
-                    className="pl-10 bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
+                    className="pl-10 bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 font-normal shadow-lg cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
                     placeholder="С"
                     onClick={(e) => {
                       try {
@@ -495,7 +498,7 @@ export default function TrainingsPage() {
                 <span className="text-vista-light/70">—</span>
                 <div className="relative w-full sm:w-[150px]">
                   <div 
-                    className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-primary cursor-pointer z-10"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-light/50 cursor-pointer z-10"
                     onClick={() => {
                       const dateInput = document.getElementById('filter-end-date') as HTMLInputElement;
                       if (dateInput) {
@@ -517,7 +520,7 @@ export default function TrainingsPage() {
                       console.log('🔍 Изменение даты окончания:', e.target.value);
                       setEndDate(e.target.value);
                     }}
-                    className="pl-10 bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
+                    className="pl-10 bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 font-normal shadow-lg cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
                     placeholder="По"
                     onClick={(e) => {
                       try {
@@ -533,54 +536,88 @@ export default function TrainingsPage() {
             
             {/* Отображение выбранных фильтров */}
             {hasActiveFilters && (
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                <span className="text-sm text-vista-light/70">Активные фильтры:</span>
-                
-                {searchQuery && (
-                  <Badge variant="secondary" className="bg-vista-secondary/30 text-vista-light">
-                    {t('trainingsPage.search_filter')}: {searchQuery}
-                    <button onClick={() => setSearchQuery('')} className="ml-1">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
-                
-                {selectedTeam && (
-                  <Badge variant="secondary" className="bg-vista-secondary/30 text-vista-light">
-                    {t('trainingsPage.team_filter')}: {teams.find(t => t.id === selectedTeam)?.name}
-                    <button onClick={() => setSelectedTeam(null)} className="ml-1">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
-                
-                {selectedCategory && (
-                  <Badge variant="secondary" className="bg-vista-secondary/30 text-vista-light">
-                    {t('trainingsPage.category_filter')}: {categories.find((c: Category) => c.id === selectedCategory)?.name}
-                    <button onClick={() => setSelectedCategory(null)} className="ml-1">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
-                
-                {(startDate || endDate) && (
-                  <Badge variant="secondary" className="bg-vista-secondary/30 text-vista-light">
-                    {t('trainingsPage.date_filter')}: {startDate ? new Date(startDate).toLocaleDateString() : ''}
-                    {endDate ? ` - ${new Date(endDate).toLocaleDateString()}` : ''}
-                    <button onClick={() => { setStartDate(''); setEndDate(''); }} className="ml-1">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={resetFilters}
-                  className="ml-auto text-vista-light/70 hover:text-vista-light border-vista-secondary/50"
-                >
-                  {t('trainingsPage.reset_all_filters')}
-                </Button>
+              <div className="bg-vista-dark/20 backdrop-blur-sm border border-vista-light/10 rounded-lg p-4 mt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-4 w-4 text-vista-light/60" />
+                      <span className="text-sm font-medium text-vista-light/80">Активные фильтры</span>
+                      <span className="text-xs text-vista-light/50 bg-vista-light/10 px-2 py-1 rounded-full">
+                        {[
+                          searchQuery ? 1 : 0,
+                          selectedTeam ? 1 : 0,
+                          selectedCategory ? 1 : 0,
+                          (startDate || endDate) ? 1 : 0
+                        ].reduce((a, b) => a + b, 0)}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      {searchQuery && (
+                        <Badge variant="secondary" className="bg-vista-primary/20 border-vista-primary/30 text-vista-primary hover:bg-vista-primary/30 transition-colors">
+                          <Search className="h-3 w-3 mr-1" />
+                          {searchQuery}
+                          <button 
+                            onClick={() => setSearchQuery('')} 
+                            className="ml-2 hover:bg-vista-primary/30 rounded-full p-0.5 transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      )}
+                      
+                      {selectedTeam && (
+                        <Badge variant="secondary" className="bg-vista-secondary/30 border-vista-secondary/40 text-vista-light hover:bg-vista-secondary/40 transition-colors">
+                          <span className="mr-1 text-vista-light/70">•</span>
+                          {teams.find(t => t.id === selectedTeam)?.name}
+                          <button 
+                            onClick={() => setSelectedTeam(null)} 
+                            className="ml-2 hover:bg-vista-secondary/40 rounded-full p-0.5 transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      )}
+                      
+                      {selectedCategory && (
+                        <Badge variant="secondary" className="bg-blue-500/20 border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors">
+                          <span className="mr-1 text-blue-400">•</span>
+                          {categories.find((c: Category) => c.id === selectedCategory)?.name}
+                          <button 
+                            onClick={() => setSelectedCategory(null)} 
+                            className="ml-2 hover:bg-blue-500/30 rounded-full p-0.5 transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      )}
+                      
+                      {(startDate || endDate) && (
+                        <Badge variant="secondary" className="bg-vista-primary/20 border-vista-primary/30 text-vista-primary hover:bg-vista-primary/30 transition-colors">
+                          <span className="mr-1 text-vista-primary">•</span>
+                          {startDate ? new Date(startDate).toLocaleDateString() : ''}
+                          {endDate ? ` - ${new Date(endDate).toLocaleDateString()}` : ''}
+                          <button 
+                            onClick={() => { setStartDate(''); setEndDate(''); }} 
+                            className="ml-2 hover:bg-vista-primary/30 rounded-full p-0.5 transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resetFilters}
+                    className="h-7 px-3 text-xs bg-vista-dark/50 backdrop-blur-sm border-vista-light/20 text-vista-light/70 hover:bg-vista-light/10 hover:border-vista-light/40 hover:text-vista-light focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 font-normal shadow-lg"
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    {t('trainingsPage.reset_all_filters')}
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -598,8 +635,7 @@ export default function TrainingsPage() {
                     key={training.id} 
                     className="rounded-lg border border-vista-secondary/50 bg-vista-dark/70 hover:bg-vista-dark/90 transition-all overflow-hidden flex flex-col shadow-md hover:shadow-xl"
                   >
-                    {/* Статус тренировки - полоса сверху */}
-                    <div className={`h-1 w-full ${training.isCompleted ? 'bg-green-500' : 'bg-vista-primary'}`}></div>
+
                     
                     <div 
                       className="p-5 cursor-pointer flex-1"
@@ -670,27 +706,38 @@ export default function TrainingsPage() {
                       size="sm"
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="bg-vista-dark border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20"
+                      className="border-vista-secondary/30 text-vista-light"
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
                     
                     <div className="flex items-center gap-1">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(page)}
-                          className={`${
-                            currentPage === page 
-                              ? 'bg-vista-primary text-vista-dark' 
-                              : 'bg-vista-dark border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20'
-                          }`}
-                        >
-                          {page}
-                        </Button>
-                      ))}
+                      {generatePaginationPages(currentPage, totalPages).map((page) => {
+                        if (isEllipsis(page)) {
+                          return (
+                            <span key={page} className="w-9 h-9 flex items-center justify-center text-vista-light/60">
+                              ...
+                            </span>
+                          );
+                        }
+                        
+                        return (
+                          <Button
+                            key={page}
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(page)}
+                            className={cn(
+                              "w-9 h-9 p-0",
+                              currentPage === page 
+                                ? "bg-vista-primary text-vista-dark" 
+                                : "border-vista-secondary/30 text-vista-light"
+                            )}
+                          >
+                            {page}
+                          </Button>
+                        );
+                      })}
                     </div>
                     
                     <Button
@@ -698,7 +745,7 @@ export default function TrainingsPage() {
                       size="sm"
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
-                      className="bg-vista-dark border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20"
+                      className="border-vista-secondary/30 text-vista-light"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>

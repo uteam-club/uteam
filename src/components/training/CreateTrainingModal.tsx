@@ -8,6 +8,7 @@ import { useTrainingCategories } from '@/hooks/useExerciseData';
 import { useSession } from 'next-auth/react';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { CalendarIcon, Clock } from 'lucide-react';
 
 interface Team {
   id: string;
@@ -112,18 +113,18 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-hidden backdrop-blur-xl">
+      <DialogContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-y-auto max-h-[80vh] focus:outline-none focus:ring-0 custom-scrollbar">
         <DialogHeader>
           <DialogTitle className="text-vista-light text-xl">{t('trainingsPage.create_modal_title')}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-4 py-4 custom-scrollbar">
           <div className="space-y-2">
             <Label htmlFor="title" className="text-vista-light/40 font-normal">{t('trainingsPage.title_label')}</Label>
             <Input
               id="title"
               value={newTraining.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
-              className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
+              className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
               placeholder={t('trainingsPage.title_placeholder')}
             />
             {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
@@ -138,11 +139,11 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
               >
                 <SelectTrigger 
                   id="team"
-                  className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
+                  className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
                 >
                   <SelectValue placeholder={isLoadingTeams ? t('trainingsPage.loading') : t('trainingsPage.select_team_placeholder')} />
                 </SelectTrigger>
-                <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                <SelectContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-lg">
                   {teams.map(team => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name}
@@ -153,16 +154,17 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
               {errors.teamId && <p className="text-red-500 text-sm">{errors.teamId}</p>}
             </>
           )}
-          <div className="space-y-2">
-            <Label htmlFor="date" className="text-vista-light/40 font-normal">{t('trainingsPage.date_label')}</Label>
-            <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="modal-training-date" className="text-vista-light/40 font-normal">{t('trainingsPage.date_label')}</Label>
               <div className="relative">
+                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-light/50 cursor-pointer z-10" />
                 <Input
                   id="modal-training-date"
                   type="date"
                   value={newTraining.date}
                   onChange={(e) => handleInputChange('date', e.target.value)}
-                  className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
+                  className="pl-10 bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
                   onClick={(e) => {
                     try {
                       (e.target as HTMLInputElement).showPicker();
@@ -171,13 +173,17 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
                 />
                 {errors.date && <p className="text-red-500 text-sm">{errors.date}</p>}
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="modal-training-time" className="text-vista-light/40 font-normal">Время</Label>
               <div className="relative">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-light/50 cursor-pointer z-10" />
                 <Input
                   id="modal-training-time"
                   type="time"
                   value={newTraining.time}
                   onChange={(e) => handleInputChange('time', e.target.value)}
-                  className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
+                  className="pl-10 bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
                   onClick={(e) => {
                     try {
                       (e.target as HTMLInputElement).showPicker();
@@ -187,6 +193,7 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
               </div>
             </div>
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="category" className="text-vista-light/40 font-normal">{t('trainingsPage.category_label')}</Label>
             <Select
@@ -196,11 +203,11 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
             >
               <SelectTrigger 
                 id="category"
-                className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
+                className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
               >
                 <SelectValue placeholder={isLoadingCategories ? t('trainingsPage.loading') : t('trainingsPage.select_category_placeholder')} />
               </SelectTrigger>
-              <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+              <SelectContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-lg">
                 {categories.map((category: Category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
@@ -218,32 +225,32 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
             >
               <SelectTrigger 
                 id="training-type"
-                className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
+                className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
               >
                 <SelectValue placeholder={t('trainingsPage.select_type_placeholder')} />
               </SelectTrigger>
-              <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+              <SelectContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-lg">
                 <SelectItem value="TRAINING">{t('trainingsPage.type_training')}</SelectItem>
                 <SelectItem value="GYM">{t('trainingsPage.type_gym')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex justify-end gap-2 mt-4">
           <Button 
             type="button" 
             variant="outline" 
             onClick={onClose}
-            className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20"
+            className="bg-transparent border border-vista-error/50 text-vista-error hover:bg-vista-error/10 h-9 px-3 font-normal"
           >
             {t('common.cancel')}
           </Button>
           <Button 
             type="button" 
             onClick={handleSubmit}
-            className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark shadow-sm"
+            className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
           >
-            {t('trainingsPage.create_training_btn')}
+            {t('common.save')}
           </Button>
         </DialogFooter>
       </DialogContent>

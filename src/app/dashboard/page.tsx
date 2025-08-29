@@ -380,12 +380,12 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-0">
       {/* Недельный календарь */}
       <Card className="overflow-hidden border-vista-secondary/50 bg-vista-dark/50 shadow-md">
-        <CardHeader className="p-2 md:p-3 bg-vista-dark/50 border-b border-vista-secondary/40 flex flex-row justify-between items-center">
+        <CardHeader className="!p-0 bg-vista-dark/50 border-b border-vista-secondary/40 flex flex-row justify-between items-center">
           {/* Левая часть: кнопка перехода в календарь и выбор команд */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 px-3 py-2">
             <Link href="/dashboard/calendar">
               <Button 
                 variant="outline" 
@@ -409,12 +409,12 @@ export default function DashboardPage() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent 
-                className="w-full min-w-[240px] p-0 bg-vista-dark border-vista-secondary/50 shadow-xl" 
+                className="!p-0 w-full min-w-[240px] bg-vista-dark border-vista-secondary/50 shadow-xl" 
                 align="start"
-                sideOffset={8}
+                sideOffset={0}
               >
-                <div className="p-4 space-y-4">
-                  <div className="flex items-center space-x-2">
+                <div className="p-0 space-y-0">
+                  <div className="flex items-center space-x-2 p-3">
                     <Checkbox 
                       id="select-all" 
                       checked={isAllTeamsSelected} 
@@ -422,7 +422,7 @@ export default function DashboardPage() {
                     />
                     <Label htmlFor="select-all" className="text-vista-light">Все команды</Label>
                   </div>
-                  <div className="border-t border-vista-secondary/40 pt-2">
+                  <div className="border-t border-vista-secondary/40 p-3">
                     {isLoadingTeams ? (
                       <p className="text-vista-light/70 text-sm p-2">Загрузка команд...</p>
                     ) : (
@@ -446,7 +446,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Навигация по неделям - справа */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 px-3 py-2">
             <Button 
               variant="outline" 
               size="icon" 

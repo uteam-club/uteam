@@ -6,6 +6,7 @@ import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 import { useTranslation } from 'react-i18next';
+import { Upload, File } from 'lucide-react';
 
 interface CreateExerciseModalProps {
   open: boolean;
@@ -56,7 +57,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
   const { t } = useTranslation();
   return (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-y-auto max-h-[80vh] backdrop-blur-xl focus:outline-none focus:ring-0 custom-scrollbar">
+    <DialogContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-y-auto max-h-[80vh] focus:outline-none focus:ring-0 custom-scrollbar">
       <DialogHeader>
           <DialogTitle className="text-vista-light text-xl">{t('exercisesPage.create_modal_title')}</DialogTitle>
       </DialogHeader>
@@ -68,7 +69,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
             name="title"
             value={newExercise.title}
             onChange={onChange}
-            className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
+            className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
             disabled={loading}
           />
           {errors.title && (
@@ -82,7 +83,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
             name="description"
             value={newExercise.description}
             onChange={onChange}
-            className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
+            className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
             disabled={loading}
           />
           {errors.description && (
@@ -98,7 +99,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
               type="number"
               value={newExercise.width || ''}
               onChange={onChange}
-              className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
+              className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
               disabled={loading}
               onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
             />
@@ -111,7 +112,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
               type="number"
               value={newExercise.length || ''}
               onChange={onChange}
-              className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
+              className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
               disabled={loading}
               onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
             />
@@ -124,7 +125,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
             onValueChange={value => onChange({ target: { name: 'categoryId', value } } as any)}
             disabled={loading}
           >
-            <SelectTrigger className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light rounded-md px-3 py-2 focus:outline-none focus:ring-0">
+            <SelectTrigger className="bg-vista-dark border-vista-secondary/30 text-vista-light rounded-md px-3 py-2 focus:outline-none focus:ring-0">
                 <SelectValue placeholder={t('exercisesPage.select_category_placeholder')} />
             </SelectTrigger>
             <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
@@ -146,7 +147,7 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
             onValueChange={value => { if (value === 'all') onTagToggle('clear'); }}
             disabled={loading || filteredTags.length === 0}
           >
-            <SelectTrigger className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light rounded-md px-3 py-2 focus:outline-none focus:ring-0 min-h-[40px]">
+            <SelectTrigger className="bg-vista-dark border-vista-secondary/30 text-vista-light rounded-md px-3 py-2 focus:outline-none focus:ring-0 min-h-[40px]">
                 <SelectValue placeholder={t('exercisesPage.select_tags')}>
                 {newExercise.tags.length > 0
                   ? filteredTags.filter(tag => newExercise.tags.includes(tag.id)).map(tag => tag.name).join(', ')
@@ -187,25 +188,55 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
         </div>
         <div className="space-y-2">
             <Label htmlFor="new-file" className="text-vista-light/40 font-normal">{t('exercisesPage.media_label')}</Label>
-          <Input
-            id="new-file"
-            name="file"
-            type="file"
-            accept="image/*,video/*"
-            onChange={onFileChange}
-            className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
-            disabled={loading}
-          />
-          {filePreview && (
-            <div className="mt-2">
-                <img src={filePreview} alt={t('exercisesPage.media_preview_alt')} className="max-h-40 rounded-md border border-vista-secondary/30" />
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <input
+                id="new-file"
+                name="file"
+                type="file"
+                accept="image/*,video/*"
+                onChange={onFileChange}
+                className="hidden"
+                disabled={loading}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => document.getElementById('new-file')?.click()}
+                disabled={loading}
+                className="bg-transparent border border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 h-9 px-3 font-normal flex items-center gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                {t('exercisesPage.choose_file')}
+              </Button>
+              <span className="text-vista-light/60 text-sm">
+                {filePreview ? t('exercisesPage.file_selected') : t('exercisesPage.no_file_selected')}
+              </span>
             </div>
-          )}
+            {filePreview && (
+              <div className="mt-2">
+                  <img src={filePreview} alt={t('exercisesPage.media_preview_alt')} className="max-h-40 rounded-md border border-vista-secondary/30" />
+              </div>
+            )}
+          </div>
         </div>
       </div>
         <DialogFooter className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={onCancel} disabled={loading}>{t('common.cancel')}</Button>
-          <Button onClick={onSave} disabled={loading}>{t('common.save')}</Button>
+          <Button 
+            variant="outline" 
+            onClick={onCancel} 
+            disabled={loading}
+            className="bg-transparent border border-vista-error/50 text-vista-error hover:bg-vista-error/10 h-9 px-3 font-normal"
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button 
+            onClick={onSave} 
+            disabled={loading}
+            className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
+          >
+            {t('common.save')}
+          </Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

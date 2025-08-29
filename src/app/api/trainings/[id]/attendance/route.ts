@@ -98,7 +98,7 @@ export async function GET(
               status: playerAttendanceRow.status,
               comment: playerAttendanceRow.comment || '',
             }
-          : { status: 'TRAINED', comment: '' },
+          : { status: 'NOT_SET', comment: '' }, // Устанавливаем статус NOT_SET для игроков без записи
       };
     });
     return NextResponse.json(result);
@@ -150,8 +150,8 @@ export async function POST(
     }
     const results = [];
     for (const item of data) {
-      if (!item.playerId || !item.status) {
-        continue;
+      if (!item.playerId || !item.status || item.status === 'NOT_SET') {
+        continue; // Пропускаем записи с пустым статусом или NOT_SET
       }
       // Проверяем, существует ли уже запись о посещаемости
       const [existingAttendance] = await db

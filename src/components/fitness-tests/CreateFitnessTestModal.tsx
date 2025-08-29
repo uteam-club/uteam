@@ -58,7 +58,7 @@ const CreateFitnessTestModal: React.FC<CreateFitnessTestModalProps> = ({
   const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl backdrop-blur-xl focus:outline-none focus:ring-0">
+      <DialogContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-y-auto max-h-[80vh] focus:outline-none focus:ring-0 custom-scrollbar">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold text-center mb-2">
             {t('fitnessTest.create_modal_title')}
@@ -68,14 +68,14 @@ const CreateFitnessTestModal: React.FC<CreateFitnessTestModalProps> = ({
           <input
             type="text"
             placeholder={t('fitnessTest.test_name_placeholder')}
-            className="form-input bg-vista-dark border-vista-secondary/50 text-vista-light focus:outline-none focus:ring-0"
+            className="bg-vista-dark border border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0 h-9 px-3 rounded-md"
             value={newTestName}
             onChange={e => setNewTestName(e.target.value)}
             disabled={loading}
           />
           <textarea
             placeholder={t('fitnessTest.test_description_placeholder')}
-            className="form-input bg-vista-dark border-vista-secondary/50 text-vista-light focus:outline-none focus:ring-0 min-h-[64px]"
+            className="bg-vista-dark border border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0 min-h-[64px] px-3 py-2 rounded-md"
             value={newTestDescription}
             onChange={e => setNewTestDescription(e.target.value)}
             disabled={loading}
@@ -85,10 +85,10 @@ const CreateFitnessTestModal: React.FC<CreateFitnessTestModalProps> = ({
             onValueChange={setNewTestType}
             disabled={loading}
           >
-            <SelectTrigger className="form-input bg-vista-dark border-vista-secondary/50 text-vista-light focus:outline-none focus:ring-0">
+            <SelectTrigger className="bg-vista-dark border border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0 h-9 px-3 rounded-md">
               <SelectValue placeholder={t('fitnessTest.select_type_placeholder')} />
             </SelectTrigger>
-            <SelectContent side="bottom" className="bg-vista-dark border-vista-secondary/30 text-vista-light shadow-lg">
+            <SelectContent side="bottom" className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-lg">
               {FITNESS_TEST_TYPES.filter(type => type.value !== 'other').map(type => (
                 <SelectItem key={type.value} value={type.value}>
                   {t(`fitnessTest.type.${type.value}`)}
@@ -101,13 +101,13 @@ const CreateFitnessTestModal: React.FC<CreateFitnessTestModalProps> = ({
             onValueChange={setNewTestUnit}
             disabled={loading}
           >
-            <SelectTrigger className="form-input bg-vista-dark border-vista-secondary/50 text-vista-light focus:outline-none focus:ring-0">
+            <SelectTrigger className="bg-vista-dark border border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0 h-9 px-3 rounded-md">
               <SelectValue placeholder={t('fitnessTest.select_unit_placeholder')} />
             </SelectTrigger>
             <SelectContent
               side="bottom"
               hideScrollButtons={true}
-              className="bg-vista-dark border-vista-secondary/30 text-vista-light shadow-lg max-h-48 overflow-y-auto custom-scrollbar"
+              className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-lg max-h-48 overflow-y-auto custom-scrollbar"
             >
               <div
                 ref={unitListRef}
@@ -124,19 +124,19 @@ const CreateFitnessTestModal: React.FC<CreateFitnessTestModalProps> = ({
             </SelectContent>
           </Select>
           {error && <div className="text-red-500 text-sm text-center">{error}</div>}
-          <DialogFooter className="flex gap-2 mt-2">
+          <DialogFooter className="flex justify-end gap-2 mt-4">
             <Button
               variant="outline"
-              className="w-1/2 border-vista-secondary/30 text-vista-light hover:bg-vista-light/10 hover:text-white focus:outline-none focus:ring-0"
               onClick={onCancel}
               disabled={loading}
+              className="bg-transparent border border-vista-error/50 text-vista-error hover:bg-vista-error/10 h-9 px-3 font-normal"
             >
               {t('common.cancel')}
             </Button>
             <Button
-              className="w-1/2 bg-vista-primary hover:bg-vista-primary/90 text-vista-dark focus:outline-none focus:ring-0"
               onClick={onSave}
               disabled={loading || !newTestName.trim()}
+              className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
             >
               {loading ? t('common.creating') : t('common.save')}
             </Button>
