@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { formatDateTime } from '@/lib/utils';
 import { format } from 'date-fns';
 import { RPESchedulingModal } from './RPESchedulingModal';
+import { MorningSurveyRecipientsModal } from './MorningSurveyRecipientsModal';
 import { TeamSelect } from '@/components/ui/team-select';
 import { useToast } from '@/components/ui/use-toast';
 import { useSession } from 'next-auth/react';
@@ -34,6 +35,10 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
   // Состояние для модала планирования RPE (только для type === 'rpe')
   const [isSchedulingModalOpen, setIsSchedulingModalOpen] = useState(false);
   const [selectedTeamForScheduling, setSelectedTeamForScheduling] = useState<{ id: string; name: string } | null>(null);
+
+  // Состояние для модала выбора получателей (только для type === 'morning')
+  const [isRecipientsModalOpen, setIsRecipientsModalOpen] = useState(false);
+  const [selectedTeamForRecipients, setSelectedTeamForRecipients] = useState<{ id: string; name: string } | null>(null);
 
   // Загрузка всех команд и их расписаний рассылки
   useEffect(() => {
@@ -100,6 +105,13 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
   const handleOpenScheduling = (team: Team) => {
     setSelectedTeamForScheduling({ id: team.id, name: team.name });
     setIsSchedulingModalOpen(true);
+  };
+
+  // Открыть модал выбора получателей
+  const handleOpenRecipientsModal = (team: Team) => {
+    console.log('Opening recipients modal for team:', team);
+    setSelectedTeamForRecipients({ id: team.id, name: team.name });
+    setIsRecipientsModalOpen(true);
   };
 
   return (
@@ -209,6 +221,15 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
                         >
                           {saving === team.id ? t('morningSurveyTabs.saving') : t('morningSurveyTabs.save')}
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 rounded-md px-4 py-2 text-sm font-semibold shadow"
+                          onClick={() => handleOpenRecipientsModal(team)}
+                          disabled={saving === team.id}
+                        >
+                          {t('morningSurveyTabs.select_recipients')}
+                        </Button>
                       </td>
                     </>
                   )}
@@ -228,6 +249,20 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
           onScheduleUpdated={() => {
             // Можно здесь обновить данные или показать уведомление
             toast({ title: 'Расписание обновлено', variant: 'default' });
+          }}
+        />
+      )}
+
+      {/* Модал выбора получателей (только для type === 'morning') */}
+      {type === 'morning' && (
+        <MorningSurveyRecipientsModal
+          open={isRecipientsModalOpen}
+          onOpenChange={setIsRecipientsModalOpen}
+          teamId={selectedTeamForRecipients?.id || ''}
+          teamName={selectedTeamForRecipients?.name || ''}
+          onRecipientsUpdate={() => {
+            // Можно здесь обновить данные или показать уведомление
+            toast({ title: 'Получатели обновлены', variant: 'default' });
           }}
         />
       )}

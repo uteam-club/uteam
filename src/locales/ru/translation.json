@@ -670,6 +670,8 @@
     "disabled": "Выключена",
     "saving": "Сохраняю...",
     "save": "Сохранить",
+    "select_recipients": "Выбрать получателей",
+    "select_rpe_recipients": "Выбрать получателей RPE",
     "settings": "Настройка",
     "analysis": "Анализ",
     "analysis_title": "Анализ ответов",

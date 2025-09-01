@@ -670,6 +670,8 @@
     "disabled": "Disabled",
     "saving": "Saving...",
     "save": "Save",
+    "select_recipients": "Select recipients",
+    "select_rpe_recipients": "Select RPE recipients",
     "settings": "Settings",
     "analysis": "Analysis",
     "analysis_title": "Response analysis",

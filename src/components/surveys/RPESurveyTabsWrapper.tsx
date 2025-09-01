@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { RPESurveyAnalysis } from './RPESurveyAnalysis';
 import { RPESchedulingModal } from './RPESchedulingModal';
+import { RPESurveyRecipientsModal } from './RPESurveyRecipientsModal';
 
 interface Team {
   id: string;
@@ -28,6 +29,10 @@ function TelegramBotSettings({ type = 'rpe' }: { type?: 'morning' | 'rpe' }) {
   // Состояние для модала планирования RPE (только для type === 'rpe')
   const [isSchedulingModalOpen, setIsSchedulingModalOpen] = useState(false);
   const [selectedTeamForScheduling, setSelectedTeamForScheduling] = useState<{ id: string; name: string } | null>(null);
+
+  // Состояние для модала выбора получателей RPE
+  const [isRecipientsModalOpen, setIsRecipientsModalOpen] = useState(false);
+  const [selectedTeamForRecipients, setSelectedTeamForRecipients] = useState<{ id: string; name: string } | null>(null);
 
   // Загрузка всех команд и их расписаний рассылки
   useEffect(() => {
@@ -71,6 +76,12 @@ function TelegramBotSettings({ type = 'rpe' }: { type?: 'morning' | 'rpe' }) {
   const handleOpenScheduling = (team: Team) => {
     setSelectedTeamForScheduling({ id: team.id, name: team.name });
     setIsSchedulingModalOpen(true);
+  };
+
+  // Открыть модал выбора получателей RPE
+  const handleOpenRecipientsModal = (team: Team) => {
+    setSelectedTeamForRecipients({ id: team.id, name: team.name });
+    setIsRecipientsModalOpen(true);
   };
 
   return (
@@ -123,14 +134,25 @@ function TelegramBotSettings({ type = 'rpe' }: { type?: 'morning' | 'rpe' }) {
                     </span>
                   </td>
                   <td className="px-4 py-2">
-                    <Button
-                      size="sm"
-                      className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark rounded-md px-4 py-2 text-sm font-semibold shadow"
-                      onClick={() => handleOpenScheduling(team)}
-                      disabled={loading}
-                    >
-                      Запланировать рассылки
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark rounded-md px-4 py-2 text-sm font-semibold shadow"
+                        onClick={() => handleOpenScheduling(team)}
+                        disabled={loading}
+                      >
+                        Запланировать рассылки
+                      </Button>
+                                              <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 rounded-md px-4 py-2 text-sm font-semibold shadow"
+                          onClick={() => handleOpenRecipientsModal(team)}
+                          disabled={loading}
+                        >
+                          {t('morningSurveyTabs.select_rpe_recipients')}
+                        </Button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -146,6 +168,17 @@ function TelegramBotSettings({ type = 'rpe' }: { type?: 'morning' | 'rpe' }) {
         team={selectedTeamForScheduling}
         onScheduleUpdated={() => {
           toast({ title: 'Расписание обновлено', variant: 'default' });
+        }}
+      />
+
+      {/* Модал выбора получателей RPE */}
+      <RPESurveyRecipientsModal
+        open={isRecipientsModalOpen}
+        onOpenChange={setIsRecipientsModalOpen}
+        teamId={selectedTeamForRecipients?.id || ''}
+        teamName={selectedTeamForRecipients?.name || ''}
+        onRecipientsUpdate={() => {
+          toast({ title: 'Получатели RPE обновлены', variant: 'default' });
         }}
       />
     </div>
