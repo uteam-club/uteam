@@ -148,7 +148,7 @@ export default function GpsReportModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto bg-vista-dark border-vista-secondary/50">
+      <DialogContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-7xl max-h-[85vh] overflow-y-auto focus:outline-none focus:ring-0 mt-8 custom-scrollbar">
         <DialogHeader>
           <DialogTitle className="text-vista-light text-xl flex items-center">
             <Activity className="w-5 h-5 mr-2 text-vista-primary" />
@@ -156,7 +156,7 @@ export default function GpsReportModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 py-4">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
@@ -165,7 +165,7 @@ export default function GpsReportModal({
               </div>
             </div>
           ) : error ? (
-            <Card className="bg-vista-dark/50 border-vista-secondary/50">
+            <Card className="bg-vista-dark/50 border border-vista-secondary/30 shadow-md">
               <CardContent className="p-6">
                 <div className="text-center">
                   <AlertCircle className="w-16 h-16 mx-auto mb-4 text-red-400" />
@@ -173,7 +173,7 @@ export default function GpsReportModal({
                   <p className="text-vista-light/70 mb-4">{error}</p>
                   <Button 
                     onClick={fetchGpsReport}
-                    className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
+                    className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark shadow-sm"
                   >
                     Попробовать снова
                   </Button>
@@ -181,7 +181,7 @@ export default function GpsReportModal({
               </CardContent>
             </Card>
           ) : !report ? (
-            <Card className="bg-vista-dark/50 border-vista-secondary/50">
+            <Card className="bg-vista-dark/50 border border-vista-secondary/30 shadow-md">
               <CardContent className="p-6">
                 <div className="text-center">
                   <FileText className="w-16 h-16 mx-auto mb-4 text-vista-light/50" />
@@ -198,7 +198,7 @@ export default function GpsReportModal({
           ) : report && profile ? (
             <div className="space-y-4">
               {/* Информация о матче */}
-              <Card className="bg-vista-dark/50 border-vista-secondary/50">
+              <Card className="bg-vista-dark/50 border border-vista-secondary/30 shadow-md">
                 <CardHeader>
                   <CardTitle className="text-vista-light text-lg">
                     {matchName} • {matchDate}
