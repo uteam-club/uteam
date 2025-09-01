@@ -40,20 +40,25 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get('eventId');
-
+    const eventType = searchParams.get('eventType');
     const teamId = searchParams.get('teamId');
 
     if (eventId) {
       // Получаем отчет для конкретного события
+      let whereConditions = [
+        eq(gpsReport.clubId, token.clubId),
+        eq(gpsReport.eventId, eventId)
+      ];
+      
+      // Добавляем фильтр по типу события, если он указан
+      if (eventType) {
+        whereConditions.push(eq(gpsReport.eventType, eventType as 'TRAINING' | 'MATCH'));
+      }
+      
       const reports = await db
         .select()
         .from(gpsReport)
-        .where(
-          and(
-            eq(gpsReport.clubId, token.clubId),
-            eq(gpsReport.eventId, eventId)
-          )
-        )
+        .where(and(...whereConditions))
         .orderBy(desc(gpsReport.createdAt));
 
       return NextResponse.json(reports);

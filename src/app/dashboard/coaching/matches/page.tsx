@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, CalendarIcon, X, Users } from 'lucide-react';
+import { Plus, Search, CalendarIcon, X, Users, Filter, Trophy, Handshake, Medal } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AddMatchModal } from '@/components/matches/AddMatchModal';
 import { format } from 'date-fns';
@@ -74,6 +74,20 @@ export default function MatchesPage() {
     LEAGUE: t('matchesPage.league'),
     CUP: t('matchesPage.cup')
   }), [t]);
+
+  // Функция для получения иконки типа соревнования
+  const getCompetitionTypeIcon = (competitionType: string) => {
+    switch (competitionType) {
+      case 'CUP':
+        return <Trophy className="h-3 w-3 mr-1" />;
+      case 'FRIENDLY':
+        return <Handshake className="h-3 w-3 mr-1" />;
+      case 'LEAGUE':
+        return <Medal className="h-3 w-3 mr-1" />;
+      default:
+        return <Trophy className="h-3 w-3 mr-1" />;
+    }
+  };
 
   useEffect(() => {
     fetchMatches();
@@ -201,6 +215,20 @@ export default function MatchesPage() {
       if (right < left) return "bg-red-500/30";   // Поражение в гостях
     }
     return "bg-amber-500/30"; // Ничья
+  };
+
+  // Функция для определения цвета плитки типа соревнования
+  const getCompetitionTypeClass = (competitionType: string) => {
+    switch (competitionType) {
+      case 'LEAGUE':
+        return "bg-vista-primary/20 text-vista-primary"; // Текущий цвет для лиги
+      case 'CUP':
+        return "bg-amber-500/20 text-amber-400"; // Золотистый для кубка
+      case 'FRIENDLY':
+        return "bg-emerald-500/20 text-emerald-400"; // Зеленый для товарищеских
+      default:
+        return "bg-vista-primary/20 text-vista-primary"; // По умолчанию
+    }
   };
 
   return (
@@ -346,62 +374,87 @@ export default function MatchesPage() {
           
           {/* Отображение выбранных фильтров */}
           {hasActiveFilters && (
-            <div className="mb-4 flex flex-wrap gap-2">
-              {!isSingleTeam && selectedTeam && selectedTeam !== "all" && (
-                <Badge className="bg-vista-light/20 text-vista-light flex items-center gap-1 pl-2">
-                  <Users size={12} />
-                  {teams.find(t => t.id === selectedTeam)?.name || 'Команда'}
-                  <Button 
-                    variant="ghost" 
-                    className="h-5 w-5 p-0 ml-1 hover:bg-vista-light/30" 
-                    onClick={() => setSelectedTeam("all")}
-                  >
-                    <X size={10} />
-                  </Button>
-                </Badge>
-              )}
-              
-              {selectedCompetitionType && selectedCompetitionType !== "all" && (
-                <Badge className="bg-vista-primary/20 text-vista-light flex items-center gap-1 pl-2">
-                  <span className="text-xs">🏆</span>
-                  {competitionTypeLabels[selectedCompetitionType as keyof typeof competitionTypeLabels]}
-                  <Button 
-                    variant="ghost" 
-                    className="h-5 w-5 p-0 ml-1 hover:bg-vista-primary/30" 
-                    onClick={() => setSelectedCompetitionType("all")}
-                  >
-                    <X size={10} />
-                  </Button>
-                </Badge>
-              )}
-              
-              {startDate && (
-                <Badge className="bg-vista-primary/20 text-vista-light flex items-center gap-1 pl-2">
-                  <CalendarIcon size={12} />
-                  {t('matchesPage.date_from')}: {startDate}
-                  <Button 
-                    variant="ghost" 
-                    className="h-5 w-5 p-0 ml-1 hover:bg-vista-primary/30" 
-                    onClick={() => setStartDate('')}
-                  >
-                    <X size={10} />
-                  </Button>
-                </Badge>
-              )}
-              
-              {endDate && (
-                <Badge className="bg-vista-primary/20 text-vista-light flex items-center gap-1 pl-2">
-                  <CalendarIcon size={12} />
-                  {t('matchesPage.date_to')}: {endDate}
-                  <Button 
-                    variant="ghost" 
-                    className="h-5 w-5 p-0 ml-1 hover:bg-vista-primary/30" 
-                    onClick={() => setEndDate('')}
-                  >
-                    <X size={10} />
-                  </Button>
-                </Badge>
-              )}
+            <div className="bg-vista-dark/20 backdrop-blur-sm border border-vista-light/10 rounded-lg p-4 mt-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-vista-light/60" />
+                    <span className="text-sm font-medium text-vista-light/80">Активные фильтры</span>
+                    <span className="text-xs text-vista-light/50 bg-vista-light/10 px-2 py-1 rounded-full">
+                      {[
+                        !isSingleTeam && selectedTeam && selectedTeam !== "all" ? 1 : 0,
+                        selectedCompetitionType && selectedCompetitionType !== "all" ? 1 : 0,
+                        startDate ? 1 : 0,
+                        endDate ? 1 : 0
+                      ].reduce((a, b) => a + b, 0)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {!isSingleTeam && selectedTeam && selectedTeam !== "all" && (
+                      <Badge variant="secondary" className="bg-vista-secondary/30 border-vista-secondary/40 text-vista-light hover:bg-vista-secondary/40 transition-colors">
+                        <Users className="h-3 w-3 mr-1" />
+                        {teams.find(t => t.id === selectedTeam)?.name || 'Команда'}
+                        <button 
+                          onClick={() => setSelectedTeam("all")} 
+                          className="ml-2 hover:bg-vista-secondary/40 rounded-full p-0.5 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    )}
+                    
+                    {selectedCompetitionType && selectedCompetitionType !== "all" && (
+                      <Badge variant="secondary" className="bg-vista-primary/20 border-vista-primary/30 text-vista-primary hover:bg-vista-primary/30 transition-colors">
+                        {getCompetitionTypeIcon(selectedCompetitionType)}
+                        {competitionTypeLabels[selectedCompetitionType as keyof typeof competitionTypeLabels]}
+                        <button 
+                          onClick={() => setSelectedCompetitionType("all")} 
+                          className="ml-2 hover:bg-vista-primary/30 rounded-full p-0.5 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    )}
+                    
+                    {startDate && (
+                      <Badge variant="secondary" className="bg-vista-primary/20 border-vista-primary/30 text-vista-primary hover:bg-vista-primary/30 transition-colors">
+                        <CalendarIcon className="h-3 w-3 mr-1" />
+                        {t('matchesPage.date_from')}: {startDate}
+                        <button 
+                          onClick={() => setStartDate('')} 
+                          className="ml-2 hover:bg-vista-primary/30 rounded-full p-0.5 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    )}
+                    
+                    {endDate && (
+                      <Badge variant="secondary" className="bg-vista-primary/20 border-vista-primary/30 text-vista-primary hover:bg-vista-primary/30 transition-colors">
+                        <CalendarIcon className="h-3 w-3 mr-1" />
+                        {t('matchesPage.date_to')}: {endDate}
+                        <button 
+                          onClick={() => setEndDate('')} 
+                          className="ml-2 hover:bg-vista-primary/30 rounded-full p-0.5 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetFilters}
+                  className="h-7 px-3 text-xs bg-vista-dark/50 backdrop-blur-sm border-vista-light/20 text-vista-light/70 hover:bg-vista-light/10 hover:border-vista-light/40 hover:text-vista-light focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 font-normal shadow-lg"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Сбросить все фильтры
+                </Button>
+              </div>
             </div>
           )}
 
@@ -410,60 +463,62 @@ export default function MatchesPage() {
               <p className="text-vista-light/60">{t('matchesPage.loading_matches')}</p>
             </div>
           ) : filteredMatches.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {filteredMatches.map(match => (
                 <div 
                   key={match.id} 
-                  className="p-4 border border-vista-secondary/30 rounded-lg bg-vista-dark-lighter/50 cursor-pointer hover:bg-vista-dark-lighter transition-colors shadow-sm"
+                  className="px-4 py-2 border border-vista-secondary/30 rounded-lg bg-vista-dark-lighter/50 cursor-pointer hover:bg-vista-dark-lighter transition-colors shadow-sm"
                   onClick={() => handleMatchClick(match.id)}
                 >
-                  <div className="flex flex-col space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div className="flex flex-col">
-                        <div className="flex space-x-2 mb-2">
-                          <span className="text-xs px-2 py-1 rounded bg-vista-primary/20 text-vista-primary">
-                            {competitionTypeLabels[match.competitionType]}
-                          </span>
-                          <span className="text-xs px-2 py-1 rounded bg-vista-dark text-vista-light/70">
-                            {match.isHome ? t('matchesPage.home_match') : t('matchesPage.away_match')}
-                          </span>
-                        </div>
-                        <span className="text-sm text-vista-light/80">
-                          <span>{match.date ? dayjs(match.date).format('DD.MM.YYYY') : 'Дата не указана'}</span> • {match.time || 'Время не указано'}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between mt-2 bg-vista-dark/30 p-3 rounded">
-                      <div className="w-5/12 text-left">
-                        <p className="font-semibold text-vista-light">{
-                          match.isHome
-                            ? (match.team?.name || teams.find(t => t.id === match.teamId)?.name || 'Неизвестно')
-                            : match.opponentName
-                        }</p>
-                      </div>
-                      
-                      <div className={`w-2/12 flex justify-center items-center rounded-md py-1 px-3 ${match.status === 'FINISHED' ? getMatchResultClass(match) : 'bg-gray-500/30'}`}>
-                        {match.status === 'FINISHED' ? (
-                          <>
-                            <span className="text-xl font-bold text-vista-light">{match.isHome ? match.teamGoals : match.opponentGoals}</span>
-                            <span className="text-vista-light/30 mx-1">:</span>
-                            <span className="text-xl font-bold text-vista-light">{match.isHome ? match.opponentGoals : match.teamGoals}</span>
-                          </>
-                        ) : (
-                          <span className="text-xl font-bold text-vista-light">-<span className="text-vista-light/30 mx-1">:</span>-</span>
-                        )}
-                      </div>
-                      
-                      <div className="w-5/12 text-right">
-                        <p className="font-semibold text-vista-light">{
-                          match.isHome
-                            ? match.opponentName
-                            : (match.team?.name || teams.find(t => t.id === match.teamId)?.name || 'Неизвестно')
-                        }</p>
-                      </div>
-                    </div>
-                  </div>
+                                       <div className="flex items-center justify-between py-0.5">
+                       <div className="flex flex-col space-y-1 ml-4 w-20">
+                         <span className="text-sm text-vista-light/80 font-medium leading-tight">
+                           {match.time || 'Время не указано'}
+                         </span>
+                         <span className="text-xs text-vista-light/60 leading-tight">
+                           {match.date ? dayjs(match.date).format('DD.MM.YYYY') : 'Дата не указана'}
+                         </span>
+                       </div>
+                       
+                       <div className="flex items-center justify-center flex-1 mx-4">
+                         <div className="flex-1 text-right pr-4">
+                           <p className="font-semibold text-vista-light">{
+                             match.isHome
+                               ? (match.team?.name || teams.find(t => t.id === match.teamId)?.name || 'Неизвестно')
+                               : match.opponentName
+                           }</p>
+                         </div>
+                         
+                         <div className={`w-16 flex justify-center items-center rounded-md py-0.5 px-2 ${match.status === 'FINISHED' ? getMatchResultClass(match) : 'bg-gray-500/30'}`}>
+                           {match.status === 'FINISHED' ? (
+                             <>
+                               <span className="text-base font-bold text-vista-light">{match.isHome ? match.teamGoals : match.opponentGoals}</span>
+                               <span className="text-vista-light/30 mx-1">:</span>
+                               <span className="text-base font-bold text-vista-light">{match.isHome ? match.opponentGoals : match.teamGoals}</span>
+                             </>
+                           ) : (
+                             <span className="text-base font-bold text-vista-light">-<span className="text-vista-light/30 mx-1">:</span>-</span>
+                           )}
+                         </div>
+                         
+                         <div className="flex-1 text-left pl-4">
+                           <p className="font-semibold text-vista-light">{
+                             match.isHome
+                               ? match.opponentName
+                               : (match.team?.name || teams.find(t => t.id === match.teamId)?.name || 'Неизвестно')
+                           }</p>
+                         </div>
+                       </div>
+                       
+                       <div className="flex flex-col space-y-1 mr-4 w-24">
+                         <span className={`text-xs px-2 py-1 rounded whitespace-nowrap leading-tight ${getCompetitionTypeClass(match.competitionType)}`}>
+                           {competitionTypeLabels[match.competitionType]}
+                         </span>
+                         <span className="text-xs px-2 py-1 rounded bg-vista-dark text-vista-light/70 whitespace-nowrap leading-tight">
+                           {match.isHome ? t('matchesPage.home_match') : t('matchesPage.away_match')}
+                         </span>
+                       </div>
+                     </div>
                 </div>
               ))}
             </div>

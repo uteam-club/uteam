@@ -21,6 +21,8 @@ import {
   CircleAlert,
   CircleDashed,
   Medal,
+  Trophy,
+  Handshake,
   ChevronLeftIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -51,6 +53,7 @@ import { Player as FieldPlayer, type PlayerPosition as FieldPlayerPosition } fro
 import { formationPositions } from '@/components/matches/FootballField';
 import SquadSelectionModal from '@/components/matches/SquadSelectionModal';
 import DeleteMatchModal from '@/components/matches/DeleteMatchModal';
+import GpsReportModal from '@/components/gps/GpsReportModal';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { TeamSelect } from '@/components/ui/team-select';
@@ -141,8 +144,14 @@ export default function MatchDetailsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Состояние для модального окна GPS отчета
+  const [isGpsReportModalOpen, setIsGpsReportModalOpen] = useState(false);
+
   // Add new state for status
   const [selectedStatus, setSelectedStatus] = useState<string>('SCHEDULED');
+  
+  // Состояние режима редактирования
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const statusColorClass = selectedStatus === 'FINISHED'
     ? 'bg-green-600 border-green-500 text-white'
@@ -172,6 +181,20 @@ export default function MatchDetailsPage() {
     LEAGUE: t('matchPage.league'),
     CUP: t('matchPage.cup')
   }), [t]);
+
+  // Функция для получения иконки типа соревнования
+  const getCompetitionTypeIcon = (competitionType: string) => {
+    switch (competitionType) {
+      case 'CUP':
+        return <Trophy className="w-4 h-4 mr-1" />;
+      case 'FRIENDLY':
+        return <Handshake className="w-4 h-4 mr-1" />;
+      case 'LEAGUE':
+        return <Medal className="w-4 h-4 mr-1" />;
+      default:
+        return <Trophy className="w-4 h-4 mr-1" />;
+    }
+  };
   // Mapping of game formats to available formations
   const formatFormations = {
     '7×7': ['1-3-3', '1-3-2-1', '1-2-3-1'],
@@ -279,7 +302,14 @@ export default function MatchDetailsPage() {
         }
       }
       setSelectedStatus(match.status || 'SCHEDULED');
-      setHasChanges(false);
+      
+      // Правильно инициализируем hasChanges
+      const hasFormatChanged = format !== (match.gameFormat || '11×11');
+      const hasFormationChanged = actualFormation !== (match.formation || '1-4-4-2');
+      const hasColorChanged = (match.markerColor || 'red-500') !== 'red-500';
+      const hasPositionsChanged = false; // При инициализации позиции не считаются изменением
+      
+      setHasChanges(hasFormatChanged || hasFormationChanged || hasColorChanged || hasPositionsChanged);
     }
   }, [match]);
 
@@ -293,15 +323,45 @@ export default function MatchDetailsPage() {
       setSelectedFormation(formations[0]);
     }
 
-    // Track changes
-    if (match) {
-      const hasFormatChanged = selectedFormat !== match.gameFormat;
-      const hasFormationChanged = selectedFormation !== match.formation;
-      const hasColorChanged = selectedColor !== match.markerColor;
-      const hasPositionsChanged = JSON.stringify(playerPositions) !== JSON.stringify(match.playerPositions);
-      setHasChanges(hasFormatChanged || hasFormationChanged || hasColorChanged || hasPositionsChanged);
+    // Track changes только в режиме редактирования
+    if (match && isEditMode) {
+      const hasFormatChanged = selectedFormat !== (match.gameFormat || '11×11');
+      const hasFormationChanged = selectedFormation !== (match.formation || '1-4-4-2');
+      const hasColorChanged = selectedColor !== (match.markerColor || 'red-500');
+      
+      // Более корректное сравнение позиций
+      let hasPositionsChanged = false;
+      if (match.playerPositions && match.playerPositions.length > 0) {
+        const matchPositions = typeof match.playerPositions === 'string' 
+          ? JSON.parse(match.playerPositions) 
+          : match.playerPositions;
+        hasPositionsChanged = JSON.stringify(playerPositions) !== JSON.stringify(matchPositions);
+      } else {
+        // Если в матче нет позиций, но у нас есть - это изменение
+        hasPositionsChanged = playerPositions.length > 0;
+      }
+      
+      // Проверяем изменения в статистике (автоматически редактируемой в режиме редактирования)
+      let hasStatsChanged = false;
+      if (isEditMode && match.playerStats) {
+        hasStatsChanged = match.playerStats.some(stat => {
+          const editedStat = editedStats[stat.id];
+          if (!editedStat) return false;
+          return (
+            editedStat.minutesPlayed !== stat.minutesPlayed ||
+            editedStat.goals !== stat.goals ||
+            editedStat.assists !== stat.assists ||
+            editedStat.yellowCards !== stat.yellowCards ||
+            editedStat.redCards !== stat.redCards
+          );
+        });
+      }
+      
+      setHasChanges(hasFormatChanged || hasFormationChanged || hasColorChanged || hasPositionsChanged || hasStatsChanged);
+    } else {
+      setHasChanges(false);
     }
-  }, [selectedFormat, selectedFormation, selectedColor, playerPositions, match]);
+  }, [selectedFormat, selectedFormation, selectedColor, playerPositions, match, isEditMode, editedStats]);
 
   // Add this useEffect to update squadPlayers when playerStats changes
   useEffect(() => {
@@ -370,7 +430,9 @@ export default function MatchDetailsPage() {
       setPositionAssignments({});
     }
 
-    setHasChanges(true);
+    if (isEditMode) {
+      setHasChanges(true);
+    }
   };
 
   const handleColorChange = (value: string) => {
@@ -381,14 +443,18 @@ export default function MatchDetailsPage() {
     console.log('Обработчик позиций получил:', positions.length, 'позиций');
     // Сохраняем новые позиции игроков
     setPlayerPositions(positions);
-    setHasChanges(true);
+    if (isEditMode) {
+      setHasChanges(true);
+    }
   };
 
   // Обработчик для привязки игрока к позиции
   const handlePlayerAssigned = (positionIndex: number, playerId?: string | null) => {
     if (typeof positionIndex !== 'number' || isNaN(positionIndex) || positionIndex === undefined) return;
     console.log(`Вызван обработчик привязки: позиция=${positionIndex}, игрок=${playerId || 'null'}`);
-    setHasChanges(true);
+    if (isEditMode) {
+      setHasChanges(true);
+    }
     
     // Обновляем информацию о привязке игрока к позиции
     const updatedAssignments = { ...positionAssignments };
@@ -453,7 +519,8 @@ export default function MatchDetailsPage() {
         }
       });
       
-      const response = await fetch(`/api/matches/${matchId}`, {
+      // Сохраняем основные данные матча
+      const matchResponse = await fetch(`/api/matches/${matchId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -476,32 +543,46 @@ export default function MatchDetailsPage() {
         }),
       });
 
-      if (response.ok) {
-        await fetchMatchDetails();
-        setHasChanges(false);
-        toast({
-          title: 'Сохранено',
-          description: 'Изменения успешно сохранены',
-        });
-      } else {
-        // Добавляем более подробный вывод ошибок от сервера
-        try {
-          const errorData = await response.json();
-          console.error('Ошибка сервера:', errorData);
-          toast({
-            title: 'Ошибка',
-            description: errorData.error || 'Не удалось сохранить изменения',
-            variant: 'destructive',
-          });
-        } catch (parseError) {
-          console.error('Не удалось прочитать ответ сервера:', parseError);
-          toast({
-            title: 'Ошибка',
-            description: 'Не удалось сохранить изменения',
-            variant: 'destructive',
-          });
-        }
+      if (!matchResponse.ok) {
+        throw new Error('Не удалось сохранить данные матча');
       }
+
+      // Сохраняем статистику игроков (автоматически включена в режиме редактирования)
+      if (isEditMode && Object.keys(editedStats).length > 0) {
+        console.log('Сохраняем статистику игроков...');
+        
+        const statPromises = Object.entries(editedStats).map(([statId, fields]) => {
+          const stat = match.playerStats.find(s => s.id === statId);
+          if (!stat) return Promise.resolve();
+          
+          return fetch(`/api/matches/${matchId}/players`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              playerId: stat.player.id,
+              isStarter: stat.isStarter,
+              minutesPlayed: fields.minutesPlayed,
+              goals: fields.goals,
+              assists: fields.assists,
+              yellowCards: fields.yellowCards,
+              redCards: fields.redCards
+            }),
+          });
+        });
+        
+        await Promise.all(statPromises);
+      }
+
+      // Обновляем данные матча
+      await fetchMatchDetails();
+      setHasChanges(false);
+      setIsEditMode(false); // Выключаем режим редактирования
+      toast({
+        title: 'Сохранено',
+        description: 'Все изменения успешно сохранены',
+      });
     } catch (error) {
       console.error('Ошибка при сохранении данных:', error);
       toast({
@@ -649,29 +730,7 @@ export default function MatchDetailsPage() {
     }
   };
 
-  // Add this function to handle stats editing
-  const handleStatsEdit = () => {
-    if (!match) return;
-    
-    if (isEditingStats) {
-      // Save edits
-      savePlayerStats();
-    } else {
-      // Initialize edited stats
-      const initialStats: Record<string, Record<string, number>> = {};
-      match.playerStats.forEach(stat => {
-        initialStats[stat.id] = {
-          minutesPlayed: stat.minutesPlayed,
-          goals: stat.goals,
-          assists: stat.assists,
-          yellowCards: stat.yellowCards,
-          redCards: stat.redCards
-        };
-      });
-      setEditedStats(initialStats);
-      setIsEditingStats(true);
-    }
-  };
+
 
   // Add this function to handle stat value change
   const handleStatChange = (statId: string, field: string, value: number) => {
@@ -684,57 +743,7 @@ export default function MatchDetailsPage() {
     }));
   };
 
-  // Add this function to save player stats
-  const savePlayerStats = async () => {
-    if (!match) return;
-    
-    try {
-      setSavingStats(true);
-      
-      // Create an array of promises for each stat update
-      const promises = Object.entries(editedStats).map(([statId, fields]) => {
-        const stat = match.playerStats.find(s => s.id === statId);
-        if (!stat) return Promise.resolve();
-        
-        return fetch(`/api/matches/${matchId}/players`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            playerId: stat.player.id,
-            isStarter: stat.isStarter,
-            minutesPlayed: fields.minutesPlayed,
-            goals: fields.goals,
-            assists: fields.assists,
-            yellowCards: fields.yellowCards,
-            redCards: fields.redCards
-          }),
-        });
-      });
-      
-      await Promise.all(promises);
-      
-      // Refresh match data
-      await fetchMatchDetails();
-      
-      toast({
-        title: 'Успешно',
-        description: 'Статистика игроков сохранена',
-      });
-      
-      setIsEditingStats(false);
-    } catch (error) {
-      console.error('Ошибка при сохранении статистики:', error);
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось сохранить статистику игроков',
-        variant: 'destructive',
-      });
-    } finally {
-      setSavingStats(false);
-    }
-  };
+
 
   // Преобразуем список игроков в формат, необходимый для FootballField
   const getStarterPlayersForField = () => {
@@ -883,34 +892,78 @@ export default function MatchDetailsPage() {
   return (
     <div className="space-y-6">
       {/* Шапка страницы с кнопкой возврата */}
-      <div className="flex items-center space-x-4 mb-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => router.push('/dashboard/coaching/matches')}
-          className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20"
-        >
-          <ChevronLeftIcon className="w-4 h-4 mr-2" />
-          {t('matchPage.back_to_matches')}
-        </Button>
-        <Button
-          size="sm"
-          className="bg-vista-primary/90 hover:bg-vista-primary text-vista-dark h-8"
-          onClick={() => setEditModalOpen(true)}
-        >
-          {t('matchPage.edit_data')}
-        </Button>
-        {hasChanges && (
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/dashboard/coaching/matches')}
+            className="bg-transparent border border-vista-light/40 text-vista-light hover:bg-vista-light/15 h-9 px-3 font-normal"
+          >
+            <ChevronLeftIcon className="w-4 h-4 mr-2" />
+            {t('matchPage.back_to_matches')}
+          </Button>
+        </div>
+        
+        {/* Правая группа кнопок */}
+        <div className="flex items-center space-x-4">
+          {/* Кнопка "Состав на матч" - видна только в режиме редактирования */}
+          {isEditMode && (
+            <Button
+              size="sm"
+              className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
+              onClick={handleSquadModalOpen}
+            >
+              <User className="w-4 h-4 mr-2" />
+              {t('matchPage.squad_on_match')}
+            </Button>
+          )}
+          
+          {/* Кнопка "Редактировать данные" / "Сохранить" */}
+          {!isEditMode ? (
+            <Button
+              size="sm"
+              className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
+              onClick={() => {
+                setIsEditMode(true);
+                // Автоматически включаем редактирование статистики
+                if (match?.playerStats) {
+                  const initialStats: Record<string, Record<string, number>> = {};
+                  match.playerStats.forEach(stat => {
+                    initialStats[stat.id] = {
+                      minutesPlayed: stat.minutesPlayed,
+                      goals: stat.goals,
+                      assists: stat.assists,
+                      yellowCards: stat.yellowCards,
+                      redCards: stat.redCards
+                    };
+                  });
+                  setEditedStats(initialStats);
+                }
+              }}
+            >
+              {t('matchPage.edit_data')}
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
+              onClick={saveChanges}
+              disabled={isSaving}
+            >
+              <Save className="w-4 h-4 mr-1" />
+              {isSaving ? 'Сохранение...' : t('matchPage.save')}
+            </Button>
+          )}
+          
           <Button 
             size="sm" 
-            className="bg-vista-primary/90 hover:bg-vista-primary h-8"
-            onClick={saveChanges}
-            disabled={isSaving}
+            className="bg-transparent border border-vista-error/50 text-vista-error hover:bg-vista-error/10 h-9 px-3 font-normal transition-colors"
+            onClick={() => setIsDeleteDialogOpen(true)}
           >
-            <Save className="w-4 h-4 mr-1" />
-            {isSaving ? 'Сохранение...' : t('matchPage.save')}
+            {t('matchPage.delete_match')}
           </Button>
-        )}
+        </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Левая колонка */}
@@ -951,7 +1004,7 @@ export default function MatchDetailsPage() {
               <CardContent className="p-4">
                 <div className="flex flex-col items-center">
                   <div className="text-vista-light/60 text-sm flex items-center mb-2">
-                    <Medal className="w-4 h-4 mr-1" />
+                    {getCompetitionTypeIcon(match.competitionType)}
                     {t('matchPage.match_type')}
                   </div>
                   <div className="text-vista-light font-semibold">
@@ -1004,6 +1057,7 @@ export default function MatchDetailsPage() {
             <Button 
               variant="outline" 
               className="w-full h-[52px] bg-vista-dark/50 border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 shadow-sm flex items-center justify-center"
+              onClick={() => setIsGpsReportModalOpen(true)}
             >
               <Activity className="w-4 h-4 mr-2 text-vista-primary" />
               {t('matchPage.gps_report')}
@@ -1053,10 +1107,10 @@ export default function MatchDetailsPage() {
                   <FootballField 
                     formation={selectedFormation}
                     colorValue={getColorHex(selectedColor)}
-                    onPositionsChange={handlePositionsChange}
+                    onPositionsChange={isEditMode ? handlePositionsChange : undefined}
                     savedPositions={playerPositions.length > 0 ? playerPositions : undefined}
                     players={getStarterPlayersForField()}
-                    onPlayerAssigned={handlePlayerAssigned}
+                    onPlayerAssigned={isEditMode ? handlePlayerAssigned : undefined}
                     matchId={matchId}
                   />
                 </div>
@@ -1069,8 +1123,9 @@ export default function MatchDetailsPage() {
                     <Select
                       value={selectedFormat}
                       onValueChange={handleFormatChange}
+                      disabled={!isEditMode}
                     >
-                      <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30 text-vista-light">
+                      <SelectTrigger className={`w-full border-vista-secondary/30 text-vista-light ${isEditMode ? 'bg-vista-dark-lighter' : 'bg-vista-dark/30 cursor-not-allowed'}`}>
                         <SelectValue placeholder={t('matchPage.select_format')} />
                       </SelectTrigger>
                       <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light">
@@ -1089,8 +1144,9 @@ export default function MatchDetailsPage() {
                     <Select
                       value={selectedFormation}
                       onValueChange={handleFormationChange}
+                      disabled={!isEditMode}
                     >
-                      <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30 text-vista-light">
+                      <SelectTrigger className={`w-full border-vista-secondary/30 text-vista-light ${isEditMode ? 'bg-vista-dark-lighter' : 'bg-vista-dark/30 cursor-not-allowed'}`}>
                         <SelectValue placeholder={t('matchPage.select_formation')} />
                       </SelectTrigger>
                       <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light">
@@ -1110,7 +1166,8 @@ export default function MatchDetailsPage() {
                       <PopoverTrigger asChild>
                         <Button 
                           variant="outline" 
-                          className="w-full bg-vista-dark-lighter border-vista-secondary/30 text-vista-light h-10 flex justify-between"
+                          className={`w-full border-vista-secondary/30 text-vista-light h-10 flex justify-between ${isEditMode ? 'bg-vista-dark-lighter' : 'bg-vista-dark/30 cursor-not-allowed'}`}
+                          disabled={!isEditMode}
                         >
                           <div className="flex items-center">
                             <div 
@@ -1148,36 +1205,8 @@ export default function MatchDetailsPage() {
                     </Popover>
                   </div>
 
-                  {/* Кнопки одна под другой */}
+                  {/* Пустое пространство для будущих элементов */}
                   <div className="space-y-3 pt-2">
-                    <div>
-                      <div className="text-vista-light/60 text-sm mb-1">{t('matchPage.squad_on_match')}</div>
-                      <Button 
-                        className="w-full h-[33px] bg-vista-primary/90 hover:bg-vista-primary text-vista-dark flex items-center justify-center"
-                        onClick={handleSquadModalOpen}
-                      >
-                        <User className="w-4 h-4 mr-2" />
-                        {t('matchPage.squad')}
-                      </Button>
-                    </div>
-
-                    <div>
-                      <div className="text-vista-light/60 text-sm mb-1">{t('matchPage.statistics')}</div>
-                      <Button 
-                        className="w-full h-[33px] bg-vista-primary/90 hover:bg-vista-primary text-vista-dark flex items-center justify-center"
-                        onClick={handleStatsEdit}
-                        disabled={savingStats}
-                      >
-                        <BarChart2 className="w-4 h-4 mr-2" />
-                        {isEditingStats ? t('matchPage.save') : t('matchPage.edit')}
-                      </Button>
-                      <Button 
-                        className="w-full h-[33px] border border-vista-error/50 text-vista-error hover:bg-vista-error/10 flex items-center justify-center mt-2 transition-colors"
-                        onClick={() => setIsDeleteDialogOpen(true)}
-                      >
-                        {t('matchPage.delete_match')}
-                      </Button>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -1248,7 +1277,7 @@ export default function MatchDetailsPage() {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-vista-light">
-                        {isEditingStats ? (
+                        {isEditMode ? (
                           <input
                             type="number"
                             min="0"
@@ -1262,7 +1291,7 @@ export default function MatchDetailsPage() {
                         )}
                       </td>
                       <td className="py-3 px-4 text-vista-light">
-                        {isEditingStats ? (
+                        {isEditMode ? (
                           <input
                             type="number"
                             min="0"
@@ -1276,7 +1305,7 @@ export default function MatchDetailsPage() {
                         )}
                       </td>
                       <td className="py-3 px-4 text-vista-light">
-                        {isEditingStats ? (
+                        {isEditMode ? (
                           <input
                             type="number"
                             min="0"
@@ -1290,7 +1319,7 @@ export default function MatchDetailsPage() {
                         )}
                       </td>
                       <td className="py-3 px-4 text-vista-light">
-                        {isEditingStats ? (
+                        {isEditMode ? (
                           <input
                             type="number"
                             min="0"
@@ -1304,7 +1333,7 @@ export default function MatchDetailsPage() {
                         )}
                       </td>
                       <td className="py-3 px-4 text-vista-light">
-                        {isEditingStats ? (
+                        {isEditMode ? (
                           <input
                             type="number"
                             min="0"
@@ -1490,6 +1519,17 @@ export default function MatchDetailsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Модальное окно GPS отчета */}
+      <GpsReportModal
+        isOpen={isGpsReportModalOpen}
+        onClose={() => setIsGpsReportModalOpen(false)}
+        matchId={matchId}
+        matchName={match ? `${match.team.name} ${match.teamGoals}:${match.opponentGoals} ${match.opponentName}` : 'Матч'}
+        matchDate={match ? format(new Date(match.date), 'dd.MM.yyyy', { locale: ru }) : ''}
+        teamId={match?.teamId}
+        teamName={match?.team.name}
+      />
     </div>
   );
 } 

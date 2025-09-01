@@ -303,7 +303,7 @@ export default function ExercisesPage() {
 
   // Обработчик изменения полей формы редактирования
   const handleEditInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement> | { target: { name: string; value: string } }
   ) => {
     const { name, value } = e.target;
     setEditExerciseForm((prev) => ({ ...prev, [name]: value }));
