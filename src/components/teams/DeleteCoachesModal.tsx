@@ -41,7 +41,7 @@ const DeleteCoachesModal: React.FC<DeleteCoachesModalProps> = ({
   deleteCoachError,
 }) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-hidden backdrop-blur-xl focus:outline-none focus:ring-0">
+    <DialogContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-y-auto max-h-[80vh] focus:outline-none focus:ring-0 custom-scrollbar">
       <DialogHeader>
         <DialogTitle className="text-vista-light text-xl">Удаление тренеров</DialogTitle>
         <DialogDescription className="text-vista-light/70">
@@ -53,11 +53,11 @@ const DeleteCoachesModal: React.FC<DeleteCoachesModalProps> = ({
           {deleteCoachError}
         </div>
       )}
-      <div className="py-4 max-h-[300px] overflow-y-auto custom-scrollbar">
+      <div className="py-4 max-h-[400px] overflow-y-auto custom-scrollbar border border-vista-secondary/20 rounded-lg bg-vista-dark/30 p-3">
         {coaches.length > 0 ? (
           <div className="space-y-2">
             {coaches.map(coach => (
-              <div key={coach.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-vista-dark/70">
+              <div key={coach.userId} className="flex items-center space-x-3 p-2 rounded-md hover:bg-vista-dark/70">
                 <Checkbox
                   id={`coach-delete-${coach.userId}`}
                   checked={selectedCoachIdsToDelete.includes(coach.userId)}
@@ -74,7 +74,7 @@ const DeleteCoachesModal: React.FC<DeleteCoachesModalProps> = ({
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full mr-3 flex items-center justify-center bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)]">
                           <UserIcon className="w-5 h-5 text-slate-300" />
                         </div>
                       )}
@@ -94,13 +94,13 @@ const DeleteCoachesModal: React.FC<DeleteCoachesModalProps> = ({
           </div>
         )}
       </div>
-      <DialogFooter>
+      <DialogFooter className="flex justify-end gap-2 mt-4">
         <Button
           type="button"
           variant="outline"
           onClick={() => onOpenChange(false)}
           disabled={isDeleting}
-          className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 focus:outline-none focus:ring-0"
+          className="bg-transparent border border-vista-light/30 text-vista-light hover:bg-vista-light/10 h-9 px-3 font-normal"
         >
           Отмена
         </Button>
@@ -108,11 +108,11 @@ const DeleteCoachesModal: React.FC<DeleteCoachesModalProps> = ({
           type="button"
           onClick={onDelete}
           disabled={isDeleting || selectedCoachIdsToDelete.length === 0}
-          className="bg-red-500/80 hover:bg-red-500 text-white focus:outline-none focus:ring-0"
+          className="bg-transparent border border-vista-error/50 text-vista-error hover:bg-vista-error/10 h-9 px-3 font-normal"
         >
           {isDeleting ? (
             <>
-              <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+              <div className="animate-spin mr-2 h-4 w-4 border border-vista-error border-t-transparent rounded-full"></div>
               Удаление...
             </>
           ) : (

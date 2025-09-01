@@ -60,14 +60,14 @@ def get_db_connection():
         return None
 
 def get_survey_schedules():
-    """Получает все активные расписания рассылок с таймзоной команды"""
+    """Получает все активные расписания рассылок с таймзоной команды и настройками получателей"""
     connection = get_db_connection()
     if not connection:
         return []
     
     try:
         with connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
-            # Получаем старые опросы (утренние)
+            # Получаем старые опросы (утренние) с recipientsConfig
             query_morning = """
             SELECT 
                 ss."id",
@@ -76,7 +76,8 @@ def get_survey_schedules():
                 ss."enabled",
                 ss."surveyType",
                 t."timezone",
-                NULL as "trainingId"
+                NULL as "trainingId",
+                ss."recipientsConfig"
             FROM "SurveySchedule" ss
             LEFT JOIN "Team" t ON ss."teamId" = t."id"
             WHERE ss."enabled" = true AND ss."surveyType" = 'morning'
@@ -92,7 +93,8 @@ def get_survey_schedules():
                 'rpe' as "surveyType",
                 t."timezone",
                 rs."trainingId",
-                tr."date" as "trainingDate"
+                tr."date" as "trainingDate",
+                rs."recipientsConfig"
             FROM "RPESchedule" rs
             LEFT JOIN "Team" t ON rs."teamId" = t."id"
             LEFT JOIN "Training" tr ON rs."trainingId" = tr."id"
@@ -117,28 +119,48 @@ def get_survey_schedules():
     finally:
         connection.close()
 
-def get_team_players(team_id):
-    """Получает всех игроков команды с telegramId"""
+def get_team_players(team_id, selected_player_ids=None):
+    """Получает игроков команды с telegramId, с возможностью фильтрации по списку ID"""
     connection = get_db_connection()
     if not connection:
         return []
     
     try:
         with connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
-            query = """
-            SELECT 
-                p."id",
-                p."firstName",
-                p."lastName",
-                p."telegramId",
-                p."pinCode",
-                p."language",
-                t."clubId"
-            FROM "Player" p
-            LEFT JOIN "Team" t ON p."teamId" = t."id"
-            WHERE p."teamId" = %s AND p."telegramId" IS NOT NULL
-            """
-            cursor.execute(query, (team_id,))
+            if selected_player_ids and len(selected_player_ids) > 0:
+                # Фильтруем по выбранным ID игроков
+                placeholders = ','.join(['%s'] * len(selected_player_ids))
+                query = f"""
+                SELECT 
+                    p."id",
+                    p."firstName",
+                    p."lastName",
+                    p."telegramId",
+                    p."pinCode",
+                    p."language",
+                    t."clubId"
+                FROM "Player" p
+                LEFT JOIN "Team" t ON p."teamId" = t."id"
+                WHERE p."teamId" = %s AND p."telegramId" IS NOT NULL AND p."id" IN ({placeholders})
+                """
+                cursor.execute(query, [team_id] + selected_player_ids)
+            else:
+                # Получаем всех игроков команды
+                query = """
+                SELECT 
+                    p."id",
+                    p."firstName",
+                    p."lastName",
+                    p."telegramId",
+                    p."pinCode",
+                    p."language",
+                    t."clubId"
+                FROM "Player" p
+                LEFT JOIN "Team" t ON p."teamId" = t."id"
+                WHERE p."teamId" = %s AND p."telegramId" IS NOT NULL
+                """
+                cursor.execute(query, (team_id,))
+            
             players = cursor.fetchall()
             return [dict(player) for player in players]
     except Exception as e:
@@ -412,7 +434,25 @@ async def send_survey_broadcast():
                         today_date = now.strftime('%Y-%m-%d')
                         if training_date != today_date:
                             continue  # Пропускаем, если тренировка не сегодня
-                players = get_team_players(team_id)
+                # Получаем игроков с учетом настроек получателей
+                recipients_config = schedule.get('recipientsConfig')
+                selected_player_ids = None
+                
+                if recipients_config:
+                    try:
+                        config = json.loads(recipients_config)
+                        if config.get('isIndividualMode') and config.get('selectedPlayerIds'):
+                            selected_player_ids = config['selectedPlayerIds']
+                            print(f"[Scheduler] Индивидуальный режим: выбрано {len(selected_player_ids)} игроков")
+                        else:
+                            print(f"[Scheduler] Общий режим: все игроки команды")
+                    except Exception as e:
+                        print(f"[Scheduler] Ошибка парсинга recipientsConfig: {e}")
+                        selected_player_ids = None
+                else:
+                    print(f"[Scheduler] Настройки получателей не найдены: все игроки команды")
+                
+                players = get_team_players(team_id, selected_player_ids)
                 print(f"[Scheduler] Получено игроков для рассылки: {len(players)}")
                 for player in players:
                     telegram_id = player.get('telegramId')

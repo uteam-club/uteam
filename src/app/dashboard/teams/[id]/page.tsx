@@ -43,7 +43,7 @@ interface Player {
   position?: string;
   imageUrl?: string;
   teamId: string;
-  status?: 'ready' | 'rehabilitation' | 'sick' | 'study' | 'other';
+  status?: 'ready' | 'rehabilitation' | 'sick' | 'study' | 'other' | 'injury' | 'national_team' | 'other_team';
 }
 
 interface Coach {
@@ -218,11 +218,6 @@ export default function TeamPage() {
     };
   }, []);
 
-  // Обработчик возврата к списку команд
-  const handleBackToList = () => {
-    router.push('/dashboard/teams');
-  };
-  
   // Обработчик изменения полей формы
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -546,142 +541,154 @@ export default function TeamPage() {
   const sortedPlayers = [...players].sort((a, b) => a.lastName.localeCompare(b.lastName, 'ru'));
 
   return (
-    <div className="space-y-6">
-      {/* Шапка страницы с кнопкой возврата и названием команды */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="bg-vista-dark/70 border border-vista-secondary/30 py-1 px-3 rounded-md text-vista-light h-9 flex items-center">
+    <div className="space-y-6 pb-6">
+      <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="flex items-center space-x-4">
             <div>
-              <h1 className="text-sm font-medium">
+              <CardTitle className="text-vista-light">
                 {isLoading ? t('teamPage.loading') : team?.name || t('teamPage.team_name')}
-              </h1>
+              </CardTitle>
               {team?.description && (
-                <p className="text-xs text-vista-light/70">{team.description}</p>
+                <p className="text-vista-light/70 mt-1">{team.description}</p>
               )}
             </div>
           </div>
-        </div>
-        
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark border-none"
-            onClick={activeTab === 'squad' ? handleOpenAddPlayerDialog : handleOpenAddCoachDialog}
-          >
-            <PlusIcon className="w-4 h-4 mr-2" />
-            {activeTab === 'squad' ? t('teamPage.add_player') : t('teamPage.add_coach')}
-          </Button>
-                    <Button 
-            variant="outline"
-            size="sm"
-            className="border-vista-error/50 text-vista-error hover:bg-vista-error/10"
-            onClick={activeTab === 'squad' ? handleOpenDeletePlayersDialog : handleOpenDeleteCoachesDialog}
-            disabled={activeTab === 'squad' ? players.length === 0 : coaches.length === 0}
-          >
-            <TrashIcon className="w-4 h-4 mr-2" />
-            {activeTab === 'squad' ? t('teamPage.delete_player') : t('teamPage.delete_coach')}
-          </Button>
-        </div>
-      </div>
-
-      {/* Основное содержимое */}
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-vista-primary"></div>
-        </div>
-      ) : error ? (
-        <Card className="bg-vista-dark/50 border-vista-secondary/30">
-          <CardContent className="p-6">
+          <div className="flex space-x-2">
+            <Button 
+              variant="outline"
+              onClick={activeTab === 'squad' ? handleOpenAddPlayerDialog : handleOpenAddCoachDialog}
+              className="bg-transparent border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal shadow-lg"
+            >
+              <PlusIcon className="mr-2 h-4 w-4" />
+              {activeTab === 'squad' ? t('teamPage.add_player') : t('teamPage.add_coach')}
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              className="border-vista-error/50 text-vista-error hover:bg-vista-error/10"
+              onClick={activeTab === 'squad' ? handleOpenDeletePlayersDialog : handleOpenDeleteCoachesDialog}
+              disabled={activeTab === 'squad' ? players.length === 0 : coaches.length === 0}
+            >
+              <TrashIcon className="w-4 h-4 mr-2" />
+              {activeTab === 'squad' ? t('teamPage.delete_player') : t('teamPage.delete_coaches')}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vista-primary"></div>
+            </div>
+          ) : error ? (
             <div className="text-center py-8">
               <div className="mb-4 text-vista-light/50">
                 <UsersIcon className="mx-auto h-12 w-12" />
               </div>
               <p className="text-vista-light/70">{error}</p>
-              <Button 
-                className="mt-4 bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
-                onClick={handleBackToList}
-              >
-                {t('teamPage.back_to_teams_list')}
-              </Button>
             </div>
-          </CardContent>
-        </Card>
-      ) : team ? (
-        <div className="space-y-6">
-          {/* Табы для разделов */}
-          <Tabs defaultValue="squad" className="w-full" onValueChange={(value) => setActiveTab(value)}>
-            <div className="flex items-center justify-between bg-vista-dark/50 border-b border-vista-secondary/30">
-              <TabsList className="bg-transparent border-0 rounded-none justify-start z-50">
-                <TabsTrigger value="squad" className="data-[state=active]:bg-vista-primary/20 data-[state=active]:text-vista-primary">
-                  {t('teamPage.squad')}
-                </TabsTrigger>
-                <TabsTrigger value="staff" className="data-[state=active]:bg-vista-primary/20 data-[state=active]:text-vista-primary">
-                  {t('teamPage.staff')}
-                </TabsTrigger>
-              </TabsList>
-              
-              {activeTab === 'squad' && (
-                <div className="flex items-center space-x-2 px-2">
-                  <div 
-                    className="flex items-center rounded-md bg-green-500/20 px-2 py-1 cursor-pointer hover:bg-green-500/30"
-                    onClick={() => handleOpenStatusPlayersDialog('ready', t('teamPage.ready'))}
-                  >
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                    <span className="text-green-300 text-xs whitespace-nowrap">
-                      {t('teamPage.ready')}: {(players || []).filter(p => p && (p.status === 'ready' || !p.status)).length}
-                    </span>
-                  </div>
-                  
-                  <div 
-                    className="flex items-center rounded-md bg-blue-500/20 px-2 py-1 cursor-pointer hover:bg-blue-500/30"
-                    onClick={() => handleOpenStatusPlayersDialog('rehabilitation', t('teamPage.rehabilitation'))}
-                  >
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                    <span className="text-blue-300 text-xs whitespace-nowrap">
-                      {t('teamPage.rehabilitation')}: {(players || []).filter(p => p && p.status === 'rehabilitation').length}
-                    </span>
-                  </div>
-                  
-                  <div 
-                    className="flex items-center rounded-md bg-yellow-500/20 px-2 py-1 cursor-pointer hover:bg-yellow-500/30"
-                    onClick={() => handleOpenStatusPlayersDialog('sick', t('teamPage.sick'))}
-                  >
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
-                    <span className="text-yellow-300 text-xs whitespace-nowrap">
-                      {t('teamPage.sick')}: {(players || []).filter(p => p && p.status === 'sick').length}
-                    </span>
-                  </div>
-                  
-                  <div 
-                    className="flex items-center rounded-md bg-purple-500/20 px-2 py-1 cursor-pointer hover:bg-purple-500/30"
-                    onClick={() => handleOpenStatusPlayersDialog('study', t('teamPage.study'))}
-                  >
-                    <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
-                    <span className="text-purple-300 text-xs whitespace-nowrap">
-                      {t('teamPage.study')}: {(players || []).filter(p => p && p.status === 'study').length}
-                    </span>
-                  </div>
-                  
-                  <div 
-                    className="flex items-center rounded-md bg-gray-500/20 px-2 py-1 cursor-pointer hover:bg-gray-500/30"
-                    onClick={() => handleOpenStatusPlayersDialog('other', t('teamPage.other'))}
-                  >
-                    <div className="w-2 h-2 bg-gray-500 rounded-full mr-2"></div>
-                    <span className="text-gray-300 text-xs whitespace-nowrap">
-                      {t('teamPage.other')}: {(players || []).filter(p => p && p.status === 'other').length}
-                    </span>
+          ) : team ? (
+            <>
+              {/* Табы для разделов */}
+              <Tabs defaultValue="squad" className="w-full" onValueChange={(value) => setActiveTab(value)}>
+                <div className="bg-transparent border border-gray-600/50 rounded-lg p-2 mb-4">
+                  <div className="flex items-center justify-between">
+                    <TabsList className="bg-transparent border-0 rounded-none justify-start z-50">
+                      <TabsTrigger value="squad" className="data-[state=active]:bg-vista-primary/20 data-[state=active]:text-vista-primary">
+                        {t('teamPage.squad')}
+                      </TabsTrigger>
+                      <TabsTrigger value="staff" className="data-[state=active]:bg-vista-primary/20 data-[state=active]:text-vista-primary">
+                        {t('teamPage.staff')}
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    {activeTab === 'squad' && (
+                      <div className="flex items-center space-x-2 px-2">
+                        <div 
+                          className="flex items-center rounded-md bg-green-500/20 px-2 py-1 cursor-pointer hover:bg-green-500/30"
+                          onClick={() => handleOpenStatusPlayersDialog('ready', t('teamPage.ready'))}
+                        >
+                          <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                          <span className="text-green-300 text-xs whitespace-nowrap">
+                            {t('teamPage.ready')}: {(players || []).filter(p => p && (p.status === 'ready' || !p.status)).length}
+                          </span>
+                        </div>
+                        
+                        <div 
+                          className="flex items-center rounded-md bg-blue-500/20 px-2 py-1 cursor-pointer hover:bg-blue-500/30"
+                          onClick={() => handleOpenStatusPlayersDialog('rehabilitation', t('teamPage.rehabilitation'))}
+                        >
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                          <span className="text-blue-300 text-xs whitespace-nowrap">
+                            {t('teamPage.rehabilitation')}: {(players || []).filter(p => p && p.status === 'rehabilitation').length}
+                          </span>
+                        </div>
+                        
+                        <div 
+                          className="flex items-center rounded-md bg-yellow-500/20 px-2 py-1 cursor-pointer hover:bg-yellow-500/30"
+                          onClick={() => handleOpenStatusPlayersDialog('sick', t('teamPage.sick'))}
+                        >
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
+                          <span className="text-yellow-300 text-xs whitespace-nowrap">
+                            {t('teamPage.sick')}: {(players || []).filter(p => p && p.status === 'sick').length}
+                          </span>
+                        </div>
+                        
+                        <div 
+                          className="flex items-center rounded-md bg-purple-500/20 px-2 py-1 cursor-pointer hover:bg-purple-500/30"
+                          onClick={() => handleOpenStatusPlayersDialog('study', t('teamPage.study'))}
+                        >
+                          <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                          <span className="text-purple-300 text-xs whitespace-nowrap">
+                            {t('teamPage.study')}: {(players || []).filter(p => p && p.status === 'study').length}
+                          </span>
+                        </div>
+                        
+                        <div 
+                          className="flex items-center rounded-md bg-red-500/20 px-2 py-1 cursor-pointer hover:bg-red-500/30"
+                          onClick={() => handleOpenStatusPlayersDialog('injury', t('teamPage.injury'))}
+                        >
+                          <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
+                          <span className="text-red-300 text-xs whitespace-nowrap">
+                            {t('teamPage.injury')}: {(players || []).filter(p => p && p.status === 'injury').length}
+                          </span>
+                        </div>
+                        
+                        <div 
+                          className="flex items-center rounded-md bg-indigo-500/20 px-2 py-1 cursor-pointer hover:bg-indigo-500/30"
+                          onClick={() => handleOpenStatusPlayersDialog('national_team', t('teamPage.national_team'))}
+                        >
+                          <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                          <span className="text-indigo-300 text-xs whitespace-nowrap">
+                            {t('teamPage.national_team')}: {(players || []).filter(p => p && p.status === 'national_team').length}
+                          </span>
+                        </div>
+                        
+                        <div 
+                          className="flex items-center rounded-md bg-orange-500/20 px-2 py-1 cursor-pointer hover:bg-orange-500/30"
+                          onClick={() => handleOpenStatusPlayersDialog('other_team', t('teamPage.other_team'))}
+                        >
+                          <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+                          <span className="text-orange-300 text-xs whitespace-nowrap">
+                            {t('teamPage.other_team')}: {(players || []).filter(p => p && p.status === 'other_team').length}
+                          </span>
+                        </div>
+                        
+                        <div 
+                          className="flex items-center rounded-md bg-gray-500/20 px-2 py-1 cursor-pointer hover:bg-gray-500/30"
+                          onClick={() => handleOpenStatusPlayersDialog('other', t('teamPage.other'))}
+                        >
+                          <div className="w-2 h-2 bg-gray-500 rounded-full mr-2"></div>
+                          <span className="text-gray-300 text-xs whitespace-nowrap">
+                            {t('teamPage.other')}: {(players || []).filter(p => p && p.status === 'other').length}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
-            </div>
-            
-            <TabsContent value="squad">
-              <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-vista-light">{t('teamPage.squad_title')}</CardTitle>
-                </CardHeader>
-                <CardContent>
+              
+              <TabsContent value="squad">
                   {isLoadingPlayers ? (
                     <div className="flex justify-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vista-primary"></div>
@@ -696,7 +703,7 @@ export default function TeamPage() {
                         >
                           {/* Номер игрока в верхнем правом углу */}
                           {player.number && (
-                            <div className="absolute top-[2px] right-[2px] bg-gray-800/85 text-vista-primary rounded-md px-1 py-0.5 text-sm font-medium z-50 shadow-md">
+                            <div className="absolute top-[2px] right-[2px] bg-gray-800/85 text-vista-primary rounded-md w-6 h-6 flex items-center justify-center text-sm font-medium z-50 shadow-md">
                               {player.number}
                             </div>
                           )}
@@ -736,6 +743,9 @@ export default function TeamPage() {
                                     player.status === 'rehabilitation' ? 'bg-blue-500/20 text-blue-300' :
                                     player.status === 'sick' ? 'bg-yellow-500/20 text-yellow-300' :
                                     player.status === 'study' ? 'bg-purple-500/20 text-purple-300' :
+                                    player.status === 'injury' ? 'bg-red-500/20 text-red-300' :
+                                    player.status === 'national_team' ? 'bg-indigo-500/20 text-indigo-300' :
+                                    player.status === 'other_team' ? 'bg-orange-500/20 text-orange-300' :
                                     player.status === 'other' ? 'bg-gray-500/20 text-gray-300' :
                                     'bg-green-500/20 text-green-300'
                                   }`}
@@ -748,6 +758,9 @@ export default function TeamPage() {
                                   {player.status === 'rehabilitation' ? t('teamPage.rehabilitation') :
                                     player.status === 'sick' ? t('teamPage.sick') :
                                     player.status === 'study' ? t('teamPage.study') :
+                                    player.status === 'injury' ? t('teamPage.injury') :
+                                    player.status === 'national_team' ? t('teamPage.national_team') :
+                                    player.status === 'other_team' ? t('teamPage.other_team') :
                                     player.status === 'other' ? t('teamPage.other') :
                                     t('teamPage.ready')
                                   }
@@ -773,29 +786,24 @@ export default function TeamPage() {
                       </Button>
                     </div>
                   )}
-                </CardContent>
-              </Card>
             </TabsContent>
             
             <TabsContent value="staff">
-              <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-vista-light">{t('teamPage.staff_title')}</CardTitle>
-                </CardHeader>
-                <CardContent>
+              <Card className="bg-transparent border-0 shadow-none">
+                <CardContent className="p-0">
                   {isLoadingCoaches ? (
                     <div className="flex justify-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vista-primary"></div>
                     </div>
                   ) : coaches.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
                       {coaches.map(coach => (
                         <div 
                           key={coach.id} 
-                          className="bg-vista-dark/70 rounded-md overflow-hidden shadow-md border border-vista-secondary/30"
+                          className="relative bg-vista-dark/50 rounded-lg overflow-hidden shadow-md border border-vista-secondary/30 hover:border-vista-primary/50 transition-all duration-200 cursor-pointer group"
                         >
-                          <div className="p-4 flex flex-col items-center text-center">
-                            <div className="w-20 h-20 rounded-full overflow-hidden relative bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)] mb-3">
+                          <div className="p-3 flex flex-col items-center text-center">
+                            <div className="w-16 h-16 rounded-full overflow-hidden relative bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)] mb-2">
                               {coach.user.imageUrl ? (
                                 <img 
                                   src={coach.user.imageUrl} 
@@ -804,19 +812,12 @@ export default function TeamPage() {
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
-                                  <UserIcon className="w-8 h-8 text-slate-300" />
+                                  <UserIcon className="w-6 h-6 text-slate-300" />
                                 </div>
                               )}
                             </div>
                             
-                            <h3 className="font-medium text-vista-light">{coach.user.name || t('teamPage.coach_not_specified')}</h3>
-                            <p className="text-sm text-vista-light/70 mt-1">{coach.user.email}</p>
-                            
-                            {coach.role && (
-                              <div className="mt-2 px-2 py-1 bg-vista-primary/20 rounded text-xs text-vista-primary">
-                                {coach.role}
-                              </div>
-                            )}
+                            <h3 className="font-medium text-vista-light text-sm leading-tight">{coach.user.name || t('teamPage.coach_not_specified')}</h3>
                           </div>
                         </div>
                       ))}
@@ -840,8 +841,10 @@ export default function TeamPage() {
               </Card>
             </TabsContent>
           </Tabs>
-        </div>
-      ) : null}
+              </>
+            ) : null}
+        </CardContent>
+      </Card>
       
       {/* Модальное окно добавления игрока */}
       <AddPlayerModal
@@ -874,6 +877,7 @@ export default function TeamPage() {
         playerName={selectedPlayer ? `${selectedPlayer.firstName} ${selectedPlayer.lastName}` : t('teamPage.player')}
         statusError={statusError}
         onStatusSelect={handleUpdatePlayerStatus}
+        currentStatus={selectedPlayer?.status}
       />
 
       {/* Модальное окно со списком игроков по статусу */}

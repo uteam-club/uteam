@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
         .update(rpeSchedule)
         .set({
           scheduledTime,
+          recipientsConfig: body.recipientsConfig ? JSON.stringify(body.recipientsConfig) : null,
           updatedAt: new Date(),
         })
         .where(eq(rpeSchedule.id, existingSchedule.id));
@@ -78,6 +79,7 @@ export async function POST(request: NextRequest) {
         teamId,
         scheduledTime,
         status: 'scheduled' as const,
+        recipientsConfig: body.recipientsConfig ? JSON.stringify(body.recipientsConfig) : null,
         createdById: token.id,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -143,6 +145,7 @@ export async function GET(request: NextRequest) {
         trainingId: rpeSchedule.trainingId,
         scheduledTime: rpeSchedule.scheduledTime,
         status: rpeSchedule.status,
+        recipientsConfig: rpeSchedule.recipientsConfig,
         sentAt: rpeSchedule.sentAt,
         createdAt: rpeSchedule.createdAt,
         updatedAt: rpeSchedule.updatedAt,

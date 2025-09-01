@@ -29,7 +29,7 @@ export function AddPlayerModal({
   const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-hidden backdrop-blur-xl">
+      <DialogContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-y-auto max-h-[80vh] focus:outline-none focus:ring-0 custom-scrollbar">
         <DialogHeader>
           <DialogTitle className="text-vista-light text-xl">{t('teamPage.add_player_modal_title')}</DialogTitle>
         </DialogHeader>
@@ -49,7 +49,7 @@ export function AddPlayerModal({
                 name="firstName"
                 value={firstName}
                 onChange={onChange}
-                className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
+                className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
                 placeholder={t('teamPage.first_name_placeholder')}
                 disabled={isSubmitting}
                 autoComplete="off"
@@ -64,7 +64,7 @@ export function AddPlayerModal({
                 name="lastName"
                 value={lastName}
                 onChange={onChange}
-                className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
+                className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
                 placeholder={t('teamPage.last_name_placeholder')}
                 disabled={isSubmitting}
                 autoComplete="off"
@@ -77,18 +77,18 @@ export function AddPlayerModal({
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
-              className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 focus:outline-none focus:ring-0"
+              className="bg-transparent border border-vista-error/50 text-vista-error hover:bg-vista-error/10 h-9 px-3 font-normal"
             >
               {t('teamPage.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark focus:outline-none focus:ring-0"
+              className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
             >
               {isSubmitting ? (
                 <>
-                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-vista-dark border-t-transparent rounded-full"></div>
+                  <div className="animate-spin mr-2 h-4 w-4 border border-vista-primary border-t-transparent rounded-full"></div>
                   {t('teamPage.saving')}
                 </>
               ) : (

@@ -39,7 +39,7 @@ export function DeletePlayersModal({
   const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-hidden backdrop-blur-xl">
+      <DialogContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-y-auto max-h-[80vh] focus:outline-none focus:ring-0 custom-scrollbar">
         <DialogHeader>
           <DialogTitle className="text-vista-light text-xl">{t('teamPage.delete_players_modal_title')}</DialogTitle>
           <DialogDescription className="text-vista-light/70">
@@ -51,7 +51,7 @@ export function DeletePlayersModal({
             {deleteError}
           </div>
         )}
-        <div className="py-4 max-h-[300px] overflow-y-auto custom-scrollbar">
+        <div className="py-4 max-h-[400px] overflow-y-auto custom-scrollbar border border-vista-secondary/20 rounded-lg bg-vista-dark/30 p-3">
           {players.length > 0 ? (
             <div className="space-y-2">
               {players.map(player => (
@@ -97,13 +97,13 @@ export function DeletePlayersModal({
             </div>
           )}
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex justify-end gap-2 mt-4">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={isDeleting}
-            className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 focus:outline-none focus:ring-0"
+            className="bg-transparent border border-vista-light/30 text-vista-light hover:bg-vista-light/10 h-9 px-3 font-normal"
           >
             {t('teamPage.cancel')}
           </Button>
@@ -111,11 +111,11 @@ export function DeletePlayersModal({
             type="button"
             onClick={onDelete}
             disabled={isDeleting || selectedPlayerIds.length === 0}
-            className="bg-red-500/80 hover:bg-red-500 text-white focus:outline-none focus:ring-0"
+            className="bg-transparent border border-vista-error/50 text-vista-error hover:bg-vista-error/10 h-9 px-3 font-normal"
           >
             {isDeleting ? (
               <>
-                <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                <div className="animate-spin mr-2 h-4 w-4 border border-vista-error border-t-transparent rounded-full"></div>
                 {t('teamPage.deleting')}
               </>
             ) : (

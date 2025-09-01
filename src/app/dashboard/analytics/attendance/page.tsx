@@ -45,7 +45,7 @@ interface Training {
 
 interface AttendanceData {
   id?: string;
-  status: 'TRAINED' | 'REHAB' | 'SICK' | 'EDUCATION' | 'OTHER';
+  status: 'TRAINED' | 'REHAB' | 'SICK' | 'EDUCATION' | 'INJURY' | 'NATIONAL_TEAM' | 'OTHER_TEAM' | 'OTHER';
   comment?: string;
 }
 
@@ -82,6 +82,9 @@ const attendanceStatuses = {
   'REHAB': { name: 'Реабилитация', color: 'bg-blue-500', textColor: 'text-blue-300', badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
   'SICK': { name: 'Болеет', color: 'bg-yellow-500', textColor: 'text-yellow-300', badgeColor: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
   'EDUCATION': { name: 'Учеба', color: 'bg-purple-500', textColor: 'text-purple-300', badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
+  'INJURY': { name: 'Травма', color: 'bg-red-500', textColor: 'text-red-300', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
+  'NATIONAL_TEAM': { name: 'Национальная сборная', color: 'bg-indigo-500', textColor: 'text-indigo-300', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+  'OTHER_TEAM': { name: 'Другая команда', color: 'bg-orange-500', textColor: 'text-orange-300', badgeColor: 'bg-orange-500/20 text-orange-300 border-orange-500/30' },
   'OTHER': { name: 'Другое', color: 'bg-gray-500', textColor: 'text-gray-300', badgeColor: 'bg-gray-500/20 text-gray-300 border-gray-500/30' },
 };
 
@@ -610,19 +613,8 @@ export default function AttendanceAnalyticsPage() {
                                 >
                                   <div 
                                     className={`w-5 h-5 rounded-full mx-auto 
-                                    ${status === 'TRAINED' 
-                                      ? 'bg-green-500' 
-                                      : status === 'REHAB' 
-                                        ? 'bg-blue-500' 
-                                        : status === 'SICK' 
-                                          ? 'bg-yellow-500' 
-                                          : status === 'EDUCATION' 
-                                            ? 'bg-purple-500' 
-                                            : status === 'OTHER' 
-                                              ? 'bg-gray-500' 
-                                              : 'bg-vista-dark/40 border border-vista-secondary/50 shadow-md'
-                                    }`}
-                                    title={statusInfo ? statusInfo.name : 'Нет данных'}
+                                    ${attendanceStatuses[status as keyof typeof attendanceStatuses]?.color || 'bg-vista-dark/40 border border-vista-secondary/50 shadow-md'}`}
+                                    title={attendanceStatuses[status as keyof typeof attendanceStatuses]?.name || 'Нет данных'}
                                   ></div>
                                 </TableCell>
                               );
@@ -647,7 +639,7 @@ export default function AttendanceAnalyticsPage() {
             <div className="mt-4 bg-vista-dark/30 p-3 rounded-md border border-vista-secondary/50 shadow-sm">
               <h4 className="text-vista-light/80 text-sm font-medium mb-2">{t('attendancePage.legend')}</h4>
               <div className="flex flex-wrap gap-3">
-                {(['TRAINED', 'REHAB', 'SICK', 'EDUCATION', 'OTHER'] as (keyof typeof attendanceStatuses)[]).map((status) => (
+                {(['TRAINED', 'REHAB', 'SICK', 'EDUCATION', 'INJURY', 'NATIONAL_TEAM', 'OTHER_TEAM', 'OTHER'] as (keyof typeof attendanceStatuses)[]).map((status) => (
                   <div key={status} className="flex items-center">
                     <div className={`w-4 h-4 rounded-full ${attendanceStatuses[status].color} mr-2`}></div>
                     <span className={`text-xs ${attendanceStatuses[status].textColor}`}>

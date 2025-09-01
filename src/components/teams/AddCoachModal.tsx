@@ -35,7 +35,7 @@ const AddCoachModal: React.FC<AddCoachModalProps> = ({
   addCoachError,
 }) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-hidden backdrop-blur-xl focus:outline-none focus:ring-0">
+    <DialogContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-y-auto max-h-[80vh] focus:outline-none focus:ring-0 custom-scrollbar">
       <DialogHeader>
         <DialogTitle className="text-vista-light text-xl">Добавление тренера</DialogTitle>
         <DialogDescription className="text-vista-light/70">
@@ -47,7 +47,7 @@ const AddCoachModal: React.FC<AddCoachModalProps> = ({
           {addCoachError}
         </div>
       )}
-      <div className="py-4 max-h-[300px] overflow-y-auto custom-scrollbar">
+      <div className="py-4 max-h-[400px] overflow-y-auto custom-scrollbar border border-vista-secondary/20 rounded-lg bg-vista-dark/30 p-3">
         {availableCoaches.length > 0 ? (
           <div className="space-y-2">
             {availableCoaches.map(coach => (
@@ -88,13 +88,13 @@ const AddCoachModal: React.FC<AddCoachModalProps> = ({
           </div>
         )}
       </div>
-      <DialogFooter>
+      <DialogFooter className="flex justify-end gap-2 mt-4">
         <Button
           type="button"
           variant="outline"
           onClick={() => onOpenChange(false)}
           disabled={isAdding}
-          className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 focus:outline-none focus:ring-0"
+          className="bg-transparent border border-vista-error/50 text-vista-error hover:bg-vista-error/10 h-9 px-3 font-normal"
         >
           Отмена
         </Button>
@@ -102,11 +102,11 @@ const AddCoachModal: React.FC<AddCoachModalProps> = ({
           type="button"
           onClick={onAdd}
           disabled={isAdding || selectedCoachIds.length === 0}
-          className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark focus:outline-none focus:ring-0"
+          className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
         >
           {isAdding ? (
             <>
-              <div className="animate-spin mr-2 h-4 w-4 border-2 border-vista-dark border-t-transparent rounded-full"></div>
+              <div className="animate-spin mr-2 h-4 w-4 border border-vista-primary border-t-transparent rounded-full"></div>
               Добавление...
             </>
           ) : (
