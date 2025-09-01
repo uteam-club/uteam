@@ -1361,7 +1361,7 @@ export default function MatchDetailsPage() {
         </CardContent>
       </Card>
 
-      {/* Add Squad Selection Modal */}
+      {/* Add Squad Selection Modal -->
       <SquadSelectionModal
         open={squadModalOpen}
         onOpenChange={setSquadModalOpen}
@@ -1530,6 +1530,9 @@ export default function MatchDetailsPage() {
         teamId={match?.teamId}
         teamName={match?.team.name}
       />
+
+      {/* Пустое пространство основного фона */}
+      <div className="h-10"></div>
     </div>
   );
 } 

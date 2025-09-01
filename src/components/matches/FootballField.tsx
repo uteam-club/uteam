@@ -478,11 +478,11 @@ const FootballField: React.FC<FootballFieldProps> = ({
           {mode === 'match' && selectedPositionIndex === index && (
             <div
               ref={dropdownRef}
-              className="absolute z-20 bg-slate-800 border border-slate-600/30 rounded shadow-lg p-2 transform -translate-x-1/2"
+              className="absolute z-20 bg-slate-800 border border-slate-600/30 rounded shadow-lg p-1.5 transform -translate-x-1/2"
               style={{
                 top: '30px',
-                minWidth: '180px',
-                maxHeight: '200px',
+                minWidth: '160px',
+                maxHeight: '180px',
                 overflowY: 'auto',
                 scrollbarWidth: 'thin',
                 scrollbarColor: 'rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.3)'
@@ -491,16 +491,16 @@ const FootballField: React.FC<FootballFieldProps> = ({
               {hasPlayerAssigned(position) ? (
                 // Если игрок уже привязан, показываем кнопку удаления
                 <button
-                  className="w-full text-left px-2 py-1 text-red-400 hover:bg-slate-700 rounded flex items-center"
+                  className="w-full text-left px-2 py-1.5 text-red-400 hover:bg-slate-700 rounded text-sm flex items-center justify-start"
                   onClick={() => handleRemovePlayer(index)}
                 >
-                  <span className="w-4 h-4 mr-1.5">✕</span>
-                  {t('footballField.remove_player')}
+                  <span className="w-3.5 h-3.5 mr-2 text-xs">✕</span>
+                  <span className="text-xs">{t('footballField.remove_player')}</span>
                 </button>
               ) : (
                 // Если игрок не привязан, показываем список доступных игроков
                 <>
-                  <div className="font-semibold text-sm px-2 py-1 border-b border-slate-600/30 text-white">
+                  <div className="font-medium text-xs px-2 py-1.5 border-b border-slate-600/30 text-white">
                     {t('footballField.select_player')}
                   </div>
                   <div className="mt-1">
@@ -508,7 +508,7 @@ const FootballField: React.FC<FootballFieldProps> = ({
                       getAvailablePlayers().map(player => (
                         <div
                           key={player.id}
-                          className="px-2 py-1 hover:bg-slate-700 cursor-pointer rounded text-sm text-white"
+                          className="px-2 py-1 hover:bg-slate-700 cursor-pointer rounded text-xs text-white"
                           onClick={() => {
                             console.log('Клик по игроку в списке:', player);
                             handlePlayerSelect(
@@ -519,12 +519,12 @@ const FootballField: React.FC<FootballFieldProps> = ({
                             );
                           }}
                         >
-                          <span className="font-semibold mr-1 text-blue-400">#{player.number}</span>
+                          <span className="font-medium mr-1.5 text-blue-400">#{player.number}</span>
                           {player.lastName} {player.firstName.charAt(0)}.
                         </div>
                       ))
                     ) : (
-                      <div className="px-2 py-1 text-gray-400 text-sm">
+                      <div className="px-2 py-1 text-gray-400 text-xs">
                         {t('footballField.no_available_players')}
                       </div>
                     )}

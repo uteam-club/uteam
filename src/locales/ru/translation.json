@@ -548,7 +548,8 @@
     "select_match_type": "Выберите тип матча",
     "competition_type": "Тип соревнований",
     "scheduled": "Запланирован",
-    "finished": "Завершён"
+    "finished": "Завершён",
+    "no_squad_data": "Нет данных о составе"
   },
   "squadModal": {
     "title": "Состав на матч",
@@ -572,6 +573,7 @@
   },
   "attendancePage": {
     "title": "Анализ посещаемости тренировок",
+    "filters": "Фильтры",
     "team": "Команда",
     "select_team": "Выберите команду",
     "from_date": "С даты",
@@ -598,10 +600,23 @@
       "REHAB": "Реабилитация",
       "SICK": "Болеет",
       "EDUCATION": "Учёба",
+      "INJURY": "Травма",
+      "NATIONAL_TEAM": "Национальная сборная",
+      "OTHER_TEAM": "Другая команда",
       "OTHER": "Другое"
     },
     "date_range": "{{from}} - {{to}}",
-    "select_dates": "Выберите даты"
+    "select_dates": "Выберите даты",
+    "current_week": "Текущая неделя",
+    "current_month": "Текущий месяц",
+    "players": "Игроков",
+    "total_sessions": "Всего сессий",
+    "trainings": "Тренировок",
+    "gym": "Тренажерный зал",
+    "matches": "Матчи",
+    "attendance": "Посещаемость",
+    "training": "Тренировка",
+    "gym_short": "Зал"
   },
   "calendarPage": {
     "monday": "Понедельник",

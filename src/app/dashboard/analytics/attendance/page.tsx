@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -41,6 +42,7 @@ interface Training {
   date: string;
   teamId: string;
   time: string;
+  type: 'TRAINING' | 'GYM';
 }
 
 interface AttendanceData {
@@ -109,16 +111,20 @@ export default function AttendanceAnalyticsPage() {
   const [playersWithAttendance, setPlayersWithAttendance] = useState<PlayerWithAttendance[]>([]);
   const [isLoadingAttendance, setIsLoadingAttendance] = useState(false);
   
+  // Состояние для быстрых фильтров
+  const [quickFilter, setQuickFilter] = useState<'week' | 'month' | null>(null);
+  
   // Состояние для статистики
   const [stats, setStats] = useState({
     totalTrainings: 0,
     playersCount: 0,
     totalAttendance: 0,
     averageAttendance: 0,
+    gymCount: 0,
+    matchesCount: 0,
   });
   
-  // Состояние для текущей вкладки
-  const [currentTab, setCurrentTab] = useState<string>('all');
+
   
   // Загрузка списка команд при загрузке страницы
   useEffect(() => {
@@ -170,21 +176,44 @@ export default function AttendanceAnalyticsPage() {
       }
       const data = await response.json();
       
+      // Добавляем отладочную информацию
+      console.log('📊 Данные тренировок от API:', data);
+      console.log('🔍 Первая тренировка:', data[0]);
+      
       // Сортируем тренировки по дате (от старых к новым)
-      const sortedTrainings = data.sort((a: Training, b: Training) => {
+      const sortedTrainings = data.sort((a: any, b: any) => {
         return new Date(a.date).getTime() - new Date(b.date).getTime();
       });
       
-      setTrainings(sortedTrainings);
+      // Преобразуем данные в правильный формат
+      const formattedTrainings: Training[] = sortedTrainings.map((item: any) => {
+        const trainingType = (item.type || 'TRAINING').toUpperCase();
+        console.log(`🔍 Тренировка ${item.id}: type="${item.type}" -> "${trainingType}"`);
+        
+        return {
+          id: item.id,
+          title: item.name || item.title, // API возвращает 'name', но интерфейс ожидает 'title'
+          date: item.date,
+          teamId: item.teamId,
+          time: item.time,
+          type: trainingType
+        };
+      });
       
-      if (sortedTrainings.length > 0) {
-        fetchAttendanceForAllTrainings(sortedTrainings);
+      console.log('🔧 Форматированные тренировки:', formattedTrainings);
+      
+      setTrainings(formattedTrainings);
+      
+      if (formattedTrainings.length > 0) {
+        fetchAttendanceForAllTrainings(formattedTrainings);
       } else {
         setStats({
           totalTrainings: 0,
           playersCount: 0,
           totalAttendance: 0,
           averageAttendance: 0,
+          gymCount: 0,
+          matchesCount: 0,
         });
         setIsLoadingTrainings(false);
       }
@@ -247,9 +276,13 @@ export default function AttendanceAnalyticsPage() {
       
       // Преобразуем данные и считаем статистику
       const playersWithStats = Object.values(playersMap).map(player => {
-        // Подсчет статистики для игрока
+        // Подсчет статистики для игрока (все активности: тренировки + зал + матчи)
+        const regularTrainings = trainings.filter(t => t.type.toUpperCase() === 'TRAINING');
+        const gymTrainings = trainings.filter(t => t.type.toUpperCase() === 'GYM');
+        const totalActivities = regularTrainings.length + gymTrainings.length; // Пока без матчей
+        
         const stats = {
-          total: trainings.length,
+          total: totalActivities, // Общее количество всех активностей
           trained: 0,
           rehab: 0,
           sick: 0,
@@ -257,6 +290,13 @@ export default function AttendanceAnalyticsPage() {
           other: 0,
           trainingPercentage: 0
         };
+        
+        console.log('🔍 Статистика для игрока:', { 
+          playerId: player.id, 
+          regularTrainingsCount: regularTrainings.length,
+          gymTrainingsCount: gymTrainings.length,
+          totalActivitiesCount: totalActivities
+        });
         
         // Проходим по всем тренировкам и считаем статистику
         trainings.forEach(training => {
@@ -283,7 +323,7 @@ export default function AttendanceAnalyticsPage() {
           // Если записи о посещаемости нет, игрок не учитывается в статистике
         });
         
-        // Рассчитываем процент посещенных тренировок
+        // Рассчитываем процент посещенных активностей (по всем активностям)
         stats.trainingPercentage = stats.total > 0 
           ? Math.round((stats.trained / stats.total) * 100) 
           : 0;
@@ -304,11 +344,19 @@ export default function AttendanceAnalyticsPage() {
       setPlayersWithAttendance(sortedPlayers);
       
       // Обновляем общую статистику
-      const totalTrainings = trainings.length;
+      console.log('🔍 Тренировки для подсчета статистики:', trainings);
+      console.log('🔍 Типы тренировок:', trainings.map(t => ({ id: t.id, type: t.type, title: t.title })));
+      
+      const totalTrainings = trainings.filter(t => t.type.toUpperCase() === 'TRAINING').length;
+      const gymCount = trainings.filter(t => t.type.toUpperCase() === 'GYM').length;
+      const totalActivities = totalTrainings + gymCount; // Общее количество всех активностей
+      
+      console.log('📊 Подсчет:', { totalTrainings, gymCount, totalActivities, total: trainings.length });
+      
       const playersCount = sortedPlayers.length;
       const totalAttendance = sortedPlayers.reduce((total, player) => total + (player.stats?.trained || 0), 0);
-      const averageAttendance = playersCount > 0 && totalTrainings > 0
-        ? Math.round((totalAttendance / (playersCount * totalTrainings)) * 100) 
+      const averageAttendance = playersCount > 0 && totalActivities > 0
+        ? Math.round((totalAttendance / (playersCount * totalActivities)) * 100) 
         : 0;
       
       setStats({
@@ -316,6 +364,8 @@ export default function AttendanceAnalyticsPage() {
         playersCount,
         totalAttendance,
         averageAttendance,
+        gymCount,
+        matchesCount: 0, // TODO: Добавить подсчет матчей
       });
       
     } catch (error) {
@@ -350,29 +400,7 @@ export default function AttendanceAnalyticsPage() {
     return t('attendancePage.date_range', { from: fromFormatted, to: toFormatted });
   };
   
-  // Получение отфильтрованных игроков в зависимости от выбранной вкладки
-  const getFilteredPlayers = () => {
-    // Проверяем, что данные загружены
-    if (!playersWithAttendance || playersWithAttendance.length === 0) {
-      return [];
-    }
-    
-    if (currentTab === 'all') {
-      return playersWithAttendance;
-    }
-    
-    // Для других вкладок фильтруем игроков по проценту посещаемости
-    switch (currentTab) {
-      case 'high':
-        return playersWithAttendance.filter(p => p.stats && p.stats.trainingPercentage >= 80);
-      case 'medium':
-        return playersWithAttendance.filter(p => p.stats && p.stats.trainingPercentage >= 50 && p.stats.trainingPercentage < 80);
-      case 'low':
-        return playersWithAttendance.filter(p => p.stats && p.stats.trainingPercentage < 50);
-      default:
-        return playersWithAttendance;
-    }
-  };
+
   
   // Отображение значка статуса посещаемости
   const renderAttendanceStatus = (status: string | undefined) => {
@@ -410,136 +438,223 @@ export default function AttendanceAnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Фильтры и кнопка сверху */}
-      <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
-        <CardHeader>
-          <CardTitle className="text-vista-light">{t('attendancePage.title')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap items-end gap-4">
-            {/* Выбор команды */}
-            <div className="flex-1 min-w-[250px]">
-              <label className="text-sm text-vista-light/80 font-medium mb-2 block">{t('attendancePage.team')}</label>
-              <Select 
-                value={selectedTeamId}
-                onValueChange={setSelectedTeamId}
-                disabled={isLoadingTeams}
-              >
-                <SelectTrigger className="bg-vista-dark/70 border-vista-secondary/50 text-vista-light h-10 shadow-sm">
-                  <SelectValue placeholder={t('attendancePage.select_team')} />
-                </SelectTrigger>
-                <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
-                  {teams.map(team => (
-                    <SelectItem key={team.id} value={team.id}>
-                      {team.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {/* Выбор периода дат */}
-            <div className="flex gap-2 flex-1 min-w-[250px]">
-              <div className="flex-1">
-                <label className="text-sm text-vista-light/80 font-medium mb-2 block">{t('attendancePage.from_date')}</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 rounded-md bg-vista-dark/70 border border-vista-secondary/50 text-vista-light h-10 focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-sm text-vista-light/80 font-medium mb-2 block">{t('attendancePage.to_date')}</label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 rounded-md bg-vista-dark/70 border border-vista-secondary/50 text-vista-light h-10 focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
-                />
-              </div>
-            </div>
-            
-            <Button 
-              onClick={fetchTrainings} 
-              className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark h-10 shadow-sm"
-              disabled={isLoadingTrainings || !selectedTeamId}
-            >
-              {isLoadingTrainings ? t('attendancePage.loading') : t('attendancePage.show_report')}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-      
       {/* Отображение данных посещаемости */}
       {trainings.length > 0 && playersWithAttendance.length > 0 && !isLoadingAttendance && (
-        <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
-          <CardHeader>
-            <CardTitle className="text-vista-light flex items-center justify-between">
-              <span>
-                {t('attendancePage.stats_title', { team: teams.find(t => t.id === selectedTeamId)?.name || '' })}
-              </span>
-              <span className="text-sm text-vista-light/80">
-                {formatDateRange()}
-              </span>
+        <Card className="bg-vista-dark/50 border border-vista-secondary/30 shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-vista-light">
+              {t('attendancePage.stats_title', { team: teams.find(t => t.id === selectedTeamId)?.name || '' })}
             </CardTitle>
+            <div className="w-[200px] h-9"></div> {/* Пустая кнопка для выравнивания */}
           </CardHeader>
           <CardContent>
+            {/* Фильтры под заголовком */}
+            <div className="mb-6 space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                {/* Выбор команды */}
+                <Select
+                  value={selectedTeamId}
+                  onValueChange={setSelectedTeamId}
+                  disabled={isLoadingTeams}
+                >
+                  <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal shadow-lg">
+                    <SelectValue placeholder={t('attendancePage.select_team')} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-vista-dark border border-vista-light/20 text-vista-light shadow-2xl rounded-lg">
+                    {teams.map(team => (
+                      <SelectItem key={team.id} value={team.id}>
+                        {team.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {/* Быстрые фильтры по периодам */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const now = new Date();
+                      const startOfWeek = new Date(now);
+                      startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Понедельник
+                      startOfWeek.setHours(0, 0, 0, 0);
+                      const endOfWeek = new Date(startOfWeek);
+                      endOfWeek.setDate(startOfWeek.getDate() + 6); // Воскресенье
+                      endOfWeek.setHours(23, 59, 59, 999);
+                      
+                      setStartDate(format(startOfWeek, 'yyyy-MM-dd'));
+                      setEndDate(format(endOfWeek, 'yyyy-MM-dd'));
+                      setQuickFilter('week');
+                    }}
+                    className={`h-9 px-3 text-sm font-normal bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 ${
+                      quickFilter === 'week' ? 'bg-vista-primary/20 border-vista-primary/40 text-vista-primary' : ''
+                    }`}
+                  >
+                    {t('attendancePage.current_week')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const now = new Date();
+                      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                      endOfMonth.setHours(23, 59, 59, 999);
+                      
+                      setStartDate(format(startOfMonth, 'yyyy-MM-dd'));
+                      setEndDate(format(endOfMonth, 'yyyy-MM-dd'));
+                      setQuickFilter('month');
+                    }}
+                    className={`h-9 px-3 text-sm font-normal bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 ${
+                      quickFilter === 'month' ? 'bg-vista-primary/20 border-vista-primary/40 text-vista-primary' : ''
+                    }`}
+                  >
+                    {t('attendancePage.current_month')}
+                  </Button>
+                </div>
+                
+                {/* Выбор периода дат */}
+                <div className="flex items-center gap-2">
+                  <div className="relative w-full sm:w-[150px]">
+                    <div 
+                      className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-light/50 cursor-pointer z-10"
+                      onClick={() => {
+                        const dateInput = document.getElementById('attendance-start-date') as HTMLInputElement;
+                        if (dateInput) {
+                          try {
+                            dateInput.showPicker();
+                          } catch (error) {
+                            console.error('Failed to show date picker:', error);
+                          }
+                        }
+                      }}
+                    >
+                      <CalendarIcon size={16} />
+                    </div>
+                    <Input
+                      id="attendance-start-date"
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        setQuickFilter(null); // Сбрасываем выделение быстрых фильтров
+                      }}
+                      className="pl-10 bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 font-normal shadow-lg cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
+                      placeholder="С"
+                      onClick={(e) => {
+                        try {
+                          (e.target as HTMLInputElement).showPicker();
+                        } catch (error) {
+                          console.error('Failed to show date picker:', error);
+                        }
+                      }}
+                    />
+                  </div>
+                  <span className="text-vista-light/70">—</span>
+                  <div className="relative w-full sm:w-[150px]">
+                    <div 
+                      className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-light/50 cursor-pointer z-10"
+                      onClick={() => {
+                        const dateInput = document.getElementById('attendance-end-date') as HTMLInputElement;
+                        if (dateInput) {
+                          try {
+                            dateInput.showPicker();
+                          } catch (error) {
+                            console.error('Failed to show date picker:', error);
+                          }
+                        }
+                      }}
+                    >
+                      <CalendarIcon size={16} />
+                    </div>
+                    <Input
+                      id="attendance-end-date"
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => {
+                        setEndDate(e.target.value);
+                        setQuickFilter(null); // Сбрасываем выделение быстрых фильтров
+                      }}
+                      className="pl-10 bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 font-normal shadow-lg cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
+                      placeholder="По"
+                      onClick={(e) => {
+                        try {
+                          (e.target as HTMLInputElement).showPicker();
+                        } catch (error) {
+                          console.error('Failed to show date picker:', error);
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+                
+
+              </div>
+            </div>
             {/* Общая статистика в виде карточек */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-vista-dark/70 rounded-md p-3 border border-vista-secondary/50 shadow-sm">
-                <div className="text-vista-light/70 text-sm mb-1">{t('attendancePage.total_trainings')}</div>
-                <div className="text-vista-light text-xl font-bold">{stats.totalTrainings}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
+              <div className="bg-vista-dark-lighter rounded-md p-2.5 border border-vista-secondary/30 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-vista-light/70 text-xs">{t('attendancePage.players')}</span>
+                  <span className="text-vista-light text-lg font-semibold">{stats.playersCount}</span>
+                </div>
               </div>
-              <div className="bg-vista-dark/70 rounded-md p-3 border border-vista-secondary/50 shadow-sm">
-                <div className="text-vista-light/70 text-sm mb-1">{t('attendancePage.players_count')}</div>
-                <div className="text-vista-light text-xl font-bold">{stats.playersCount}</div>
+              <div className="bg-vista-dark-lighter rounded-md p-2.5 border border-vista-secondary/30 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-vista-light/70 text-xs">{t('attendancePage.total_sessions')}</span>
+                  <span className="text-vista-light text-lg font-semibold">{stats.totalTrainings + stats.gymCount + stats.matchesCount}</span>
+                </div>
               </div>
-              <div className="bg-vista-dark/70 rounded-md p-3 border border-vista-secondary/50 shadow-sm">
-                <div className="text-vista-light/70 text-sm mb-1">{t('attendancePage.total_attendance')}</div>
-                <div className="text-vista-light text-xl font-bold">{stats.totalAttendance}</div>
+              <div className="bg-vista-dark-lighter rounded-md p-2.5 border border-vista-secondary/30 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-vista-light/70 text-xs">{t('attendancePage.trainings')}</span>
+                  <span className="text-vista-light text-lg font-semibold">{stats.totalTrainings}</span>
+                </div>
               </div>
-              <div className="bg-vista-dark/70 rounded-md p-3 border border-vista-secondary/50 shadow-sm">
-                <div className="text-vista-light/70 text-sm mb-1">{t('attendancePage.average_attendance')}</div>
-                <div className="text-vista-light text-xl font-bold">{stats.averageAttendance}%</div>
+              <div className="bg-vista-dark-lighter rounded-md p-2.5 border border-vista-secondary/30 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-vista-light/70 text-xs">{t('attendancePage.gym')}</span>
+                  <span className="text-vista-light text-lg font-semibold">{stats.gymCount || 0}</span>
+                </div>
+              </div>
+              <div className="bg-vista-dark-lighter rounded-md p-2.5 border border-vista-secondary/30 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-vista-light/70 text-xs">{t('attendancePage.matches')}</span>
+                  <span className="text-vista-light text-lg font-semibold">{stats.matchesCount || 0}</span>
+                </div>
+              </div>
+              <div className="bg-vista-dark-lighter rounded-md p-2.5 border border-vista-secondary/30 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-vista-light/70 text-xs">{t('attendancePage.attendance')}</span>
+                  <span className="text-vista-light text-lg font-semibold">{stats.averageAttendance}%</span>
+                </div>
               </div>
             </div>
             
-            {/* Вкладки для фильтрации */}
-            <Tabs value={currentTab} onValueChange={setCurrentTab} className="mt-6">
-              <TabsList className="bg-vista-dark/30 border border-vista-secondary/50 mb-4">
-                <TabsTrigger value="all" className="data-[state=active]:bg-vista-primary data-[state=active]:text-vista-dark">
-                  {t('attendancePage.all_players')}
-                </TabsTrigger>
-                <TabsTrigger value="high" className="data-[state=active]:bg-green-500 data-[state=active]:text-white">
-                  {t('attendancePage.high_attendance')}
-                </TabsTrigger>
-                <TabsTrigger value="medium" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
-                  {t('attendancePage.medium_attendance')}
-                </TabsTrigger>
-                <TabsTrigger value="low" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">
-                  {t('attendancePage.low_attendance')}
-                </TabsTrigger>
-              </TabsList>
-              
-              {/* Содержимое вкладок - таблица с данными */}
-              <TabsContent value={currentTab} className="mt-0">
-                <div className="rounded-md border border-vista-secondary/50 overflow-hidden shadow-md">
+            {/* Таблица с данными */}
+            <div className="mt-6">
+                <div className="rounded-md border border-vista-secondary/30 overflow-hidden shadow-md">
                   <div className="overflow-x-auto w-full custom-scrollbar" style={{ minWidth: "100%" }}>
                     <Table className="relative w-auto">
                       <TableHeader>
-                        <UITableRow className="bg-vista-dark/70 hover:bg-vista-dark/70 border-b border-vista-secondary/50 shadow-md">
-                          <TableHead className="text-vista-light/80 font-medium w-[250px] min-w-[250px] sticky left-0 bg-vista-dark py-2.5">{t('attendancePage.player')}</TableHead>
-                          <TableHead className="text-vista-light/80 font-medium text-center py-2.5">{t('attendancePage.attendance')}</TableHead>
+                        <UITableRow className="bg-vista-dark-lighter hover:bg-vista-dark-lighter border-b border-vista-secondary/30 shadow-md">
+                          <TableHead className="text-vista-light/80 font-medium w-[250px] min-w-[250px] sticky left-0 bg-vista-dark py-2.5 border-r border-vista-secondary/30">{t('attendancePage.player')}</TableHead>
+                          <TableHead className="text-vista-light/80 font-medium text-center py-2.5 border-r border-vista-secondary/30 w-[120px] min-w-[120px]">{t('attendancePage.attendance')}</TableHead>
                           
                           {/* Генерируем заголовки для каждой тренировки */}
                           {trainings.map((training) => (
                             <TableHead 
                               key={training.id} 
-                              className={`text-vista-light/80 font-medium text-center p-1.5 min-w-[80px] ${getTrainingColumnClass(training.date)}`}
+                              className={`text-vista-light/80 font-medium text-center p-1.5 min-w-[80px] border-r border-vista-secondary/30 ${getTrainingColumnClass(training.date)}`}
                             >
                               <div className="flex flex-col items-center justify-center">
-                                <span className="text-xs font-semibold">{format(parseISO(training.date), 'dd.MM.yyyy')}</span>
+                                <span className={`text-[8px] mb-0.5 px-1 py-0.5 rounded w-full text-center flex items-center justify-center ${
+                                  training.type.toUpperCase() === 'GYM' 
+                                    ? 'bg-purple-500/20 text-purple-400' 
+                                    : 'bg-blue-500/20 text-blue-400'
+                                }`}>
+                                  {training.type.toUpperCase() === 'GYM' ? t('attendancePage.gym_short') : t('attendancePage.training')}
+                                </span>
+                                <span className="text-xs font-semibold mt-0.5">{format(parseISO(training.date), 'dd.MM.yy')}</span>
                                 <span className="text-[10px] text-vista-light/50 mt-0.5">{training.time}</span>
                               </div>
                             </TableHead>
@@ -547,10 +662,10 @@ export default function AttendanceAnalyticsPage() {
                         </UITableRow>
                       </TableHeader>
                       <TableBody>
-                        {getFilteredPlayers().map((player, index) => (
-                          <UITableRow key={player.id} className="hover:bg-vista-dark/40 border-b border-vista-secondary/50 shadow-md">
+                        {playersWithAttendance.map((player, index) => (
+                          <UITableRow key={player.id} className="hover:bg-vista-dark/40 border-b border-vista-secondary/30 shadow-md">
                             {/* Информация об игроке */}
-                            <TableCell className="sticky left-0 bg-vista-dark py-1.5 w-[250px] min-w-[250px]">
+                            <TableCell className="sticky left-0 bg-vista-dark py-1.5 w-[250px] min-w-[250px] border-r border-vista-secondary/30">
                               <div className="flex items-center">
                                 {/* Фото игрока */}
                                 <div className="h-7 w-7 rounded-full overflow-hidden bg-gradient-to-t from-[rgba(52,64,84,0.5)] to-[rgba(230,247,255,0.65)] mr-2 flex-shrink-0 shadow-sm">
@@ -576,14 +691,14 @@ export default function AttendanceAnalyticsPage() {
                               </div>
                             </TableCell>
                             
-                            {/* Посещаемость */}
-                            <TableCell className="text-center py-1.5">
+                            {/* Посещаемость (по всем активностям: тренировки + зал + матчи) */}
+                            <TableCell className="text-center py-1.5 border-r border-vista-secondary/30 w-[120px] min-w-[120px]">
                               <div className="flex items-center justify-center gap-2">
-                                <span className="text-vista-light font-medium">
+                                <span className="text-vista-light text-sm">
                                   {player.stats?.trained || 0}/{player.stats?.total || 0}
                                 </span>
                                 <span 
-                                  className={`text-sm font-medium 
+                                  className={`text-xs 
                                     ${(player.stats?.trainingPercentage || 0) >= 80 
                                       ? 'text-green-300' 
                                       : (player.stats?.trainingPercentage || 0) >= 50 
@@ -609,11 +724,11 @@ export default function AttendanceAnalyticsPage() {
                               return (
                                 <TableCell 
                                   key={`${player.id}-${training.id}`} 
-                                  className={`text-center p-1 ${getTrainingColumnClass(training.date)}`}
+                                  className={`text-center p-1 border-r border-vista-secondary/30 ${getTrainingColumnClass(training.date)}`}
                                 >
                                   <div 
                                     className={`w-5 h-5 rounded-full mx-auto 
-                                    ${attendanceStatuses[status as keyof typeof attendanceStatuses]?.color || 'bg-vista-dark/40 border border-vista-secondary/50 shadow-md'}`}
+                                    ${attendanceStatuses[status as keyof typeof attendanceStatuses]?.color || 'bg-vista-dark/40 border border-vista-secondary/30 shadow-md'}`}
                                     title={attendanceStatuses[status as keyof typeof attendanceStatuses]?.name || 'Нет данных'}
                                   ></div>
                                 </TableCell>
@@ -626,17 +741,16 @@ export default function AttendanceAnalyticsPage() {
                   </div>
                 </div>
                 
-                {/* Если нет данных на выбранной вкладке */}
-                {getFilteredPlayers().length === 0 && (
+                {/* Если нет данных */}
+                {playersWithAttendance.length === 0 && (
                   <div className="text-center py-8">
                     <p className="text-vista-light/70">{t('attendancePage.no_players_found')}</p>
                   </div>
                 )}
-              </TabsContent>
-            </Tabs>
+              </div>
             
             {/* Легенда статусов */}
-            <div className="mt-4 bg-vista-dark/30 p-3 rounded-md border border-vista-secondary/50 shadow-sm">
+            <div className="mt-4 bg-vista-dark/30 p-3 rounded-md border border-vista-secondary/30 shadow-sm">
               <h4 className="text-vista-light/80 text-sm font-medium mb-2">{t('attendancePage.legend')}</h4>
               <div className="flex flex-wrap gap-3">
                 {(['TRAINED', 'REHAB', 'SICK', 'EDUCATION', 'INJURY', 'NATIONAL_TEAM', 'OTHER_TEAM', 'OTHER'] as (keyof typeof attendanceStatuses)[]).map((status) => (
@@ -655,11 +769,11 @@ export default function AttendanceAnalyticsPage() {
       
       {/* Состояние загрузки */}
       {isLoadingTrainings && (
-        <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
+        <Card className="bg-vista-dark/50 border border-vista-secondary/30 shadow-md">
           <CardContent className="p-6">
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vista-primary"></div>
-              <span className="ml-2 text-vista-light/80">Загрузка данных...</span>
+              <span className="ml-2 text-vista-light/80">{t('common.loading')}</span>
             </div>
           </CardContent>
         </Card>
@@ -667,11 +781,11 @@ export default function AttendanceAnalyticsPage() {
       
       {/* Пустое состояние */}
       {!isLoadingTrainings && trainings.length === 0 && selectedTeamId && (
-        <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
+        <Card className="bg-vista-dark/50 border border-vista-secondary/30 shadow-md">
           <CardContent className="p-6">
             <div className="text-center py-8">
               <div className="mb-4 text-vista-light/50">
-                <CalendarIcon className="mx-auto h-12 w-12" />
+                <CalendarIcon className="mx-auto h-12 w-12 opacity-50" />
               </div>
               <p className="text-vista-light/70">{t('attendancePage.no_trainings_in_period')}</p>
             </div>
@@ -681,11 +795,11 @@ export default function AttendanceAnalyticsPage() {
       
       {/* Начальное состояние */}
       {!selectedTeamId && (
-        <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
+        <Card className="bg-vista-dark/50 border border-vista-secondary/30 shadow-md">
           <CardContent className="p-6">
             <div className="text-center py-8">
               <div className="mb-4 text-vista-light/50">
-                <ListFilterIcon className="mx-auto h-12 w-12" />
+                <ListFilterIcon className="mx-auto h-12 w-12 opacity-50" />
               </div>
               <p className="text-vista-light/70">{t('attendancePage.select_team_and_period')}</p>
             </div>

@@ -548,7 +548,8 @@
     "select_match_type": "Select match type",
     "competition_type": "Competition type",
     "scheduled": "Scheduled",
-    "finished": "Finished"
+    "finished": "Finished",
+    "no_squad_data": "No squad data"
   },
   "squadModal": {
     "title": "Squad on match",
@@ -572,6 +573,7 @@
   },
   "attendancePage": {
     "title": "Training Attendance Analysis",
+    "filters": "Filters",
     "team": "Team",
     "select_team": "Select team",
     "from_date": "From date",
@@ -598,10 +600,23 @@
       "REHAB": "Rehabilitation",
       "SICK": "Sick",
       "EDUCATION": "Education",
+      "INJURY": "Injury",
+      "NATIONAL_TEAM": "National team",
+      "OTHER_TEAM": "Other team",
       "OTHER": "Other"
     },
     "date_range": "{{from}} - {{to}}",
-    "select_dates": "Select dates"
+    "select_dates": "Select dates",
+    "current_week": "Current week",
+    "current_month": "Current month",
+    "players": "Players",
+    "total_sessions": "Total sessions",
+    "trainings": "Trainings",
+    "gym": "Gym",
+    "matches": "Matches",
+    "attendance": "Attendance",
+    "training": "Training",
+    "gym_short": "Gym"
   },
   "calendarPage": {
     "monday": "Monday",
