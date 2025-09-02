@@ -51,7 +51,7 @@ import {
 import FootballField from '@/components/matches/FootballField';
 import { Player as FieldPlayer, type PlayerPosition as FieldPlayerPosition } from '@/components/matches/FootballField';
 import { formationPositions } from '@/components/matches/FootballField';
-import SquadSelectionModal from '@/components/matches/SquadSelectionModal';
+import SquadSelectionModal, { PlayerSquadStatus } from '@/components/matches/SquadSelectionModal';
 import DeleteMatchModal from '@/components/matches/DeleteMatchModal';
 import GpsReportModal from '@/components/gps/GpsReportModal';
 import { cn } from '@/lib/utils';
@@ -228,12 +228,7 @@ export default function MatchDetailsPage() {
     return color ? color.hex : '#ef4444'; // Default to red if not found
   };
 
-  // Enumerate player statuses for squad selection
-  enum PlayerSquadStatus {
-    STARTER = 'STARTER',
-    SUBSTITUTE = 'SUBSTITUTE',
-    RESERVE = 'RESERVE'
-  }
+
   // Add to your interfaces
   interface TeamPlayer {
     id: string;
@@ -602,14 +597,21 @@ export default function MatchDetailsPage() {
 
   // Function to fetch all players from the team
   const fetchTeamPlayers = async () => {
-    if (!match) return;
+    if (!match) {
+      console.log('fetchTeamPlayers: match is null');
+      return;
+    }
     
     try {
+      console.log('fetchTeamPlayers: starting fetch for teamId:', match.teamId);
       setIsLoadingPlayers(true);
       const response = await fetch(`/api/teams/${match.teamId}/players`);
       
+      console.log('fetchTeamPlayers: response status:', response.status);
+      
       if (response.ok) {
         const players = await response.json();
+        console.log('fetchTeamPlayers: received players:', players);
         setTeamPlayers(players);
         
         // Initialize player statuses
@@ -620,7 +622,10 @@ export default function MatchDetailsPage() {
           }
         });
         setSquadPlayers(newSquadPlayers);
+        console.log('fetchTeamPlayers: initialized squad players:', newSquadPlayers);
       } else {
+        const errorText = await response.text();
+        console.error('fetchTeamPlayers: API error:', response.status, errorText);
         toast({
           title: 'Ошибка',
           description: 'Не удалось загрузить список игроков',
@@ -641,8 +646,11 @@ export default function MatchDetailsPage() {
 
   // Handle opening squad selection modal
   const handleSquadModalOpen = () => {
+    console.log('handleSquadModalOpen: opening squad modal');
+    console.log('handleSquadModalOpen: current squadModalOpen state:', squadModalOpen);
     fetchTeamPlayers();
     setSquadModalOpen(true);
+    console.log('handleSquadModalOpen: set squadModalOpen to true');
   };
 
   // Handle changing player squad status
@@ -912,7 +920,12 @@ export default function MatchDetailsPage() {
             <Button
               size="sm"
               className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
-              onClick={handleSquadModalOpen}
+              onClick={(e) => {
+                console.log('Squad button clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                handleSquadModalOpen();
+              }}
             >
               <User className="w-4 h-4 mr-2" />
               {t('matchPage.squad_on_match')}
@@ -1361,17 +1374,23 @@ export default function MatchDetailsPage() {
         </CardContent>
       </Card>
 
-      {/* Add Squad Selection Modal -->
+      {/* Add Squad Selection Modal */}
       <SquadSelectionModal
         open={squadModalOpen}
-        onOpenChange={setSquadModalOpen}
+        onOpenChange={(open) => {
+          console.log('SquadSelectionModal onOpenChange:', open);
+          setSquadModalOpen(open);
+        }}
         teamPlayers={teamPlayers}
         squadPlayers={squadPlayers}
         isLoadingPlayers={isLoadingPlayers}
         handlePlayerStatusChange={handlePlayerStatusChange}
         savingSquad={savingSquad}
         onSave={saveSquadSelection}
-        onCancel={() => setSquadModalOpen(false)}
+        onCancel={() => {
+          console.log('SquadSelectionModal onCancel');
+          setSquadModalOpen(false);
+        }}
       />
 
       {/* Кнопка удаления матча и диалог подтверждения */}

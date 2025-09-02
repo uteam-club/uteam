@@ -36,9 +36,17 @@ interface SquadSelectionModalProps {
 
 const SquadSelectionModal: React.FC<SquadSelectionModalProps> = (props) => {
   const { t } = useTranslation();
+  
+  console.log('SquadSelectionModal render:', {
+    open: props.open,
+    teamPlayersCount: props.teamPlayers.length,
+    isLoadingPlayers: props.isLoadingPlayers,
+    squadPlayersCount: Object.keys(props.squadPlayers).length
+  });
+  
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="bg-vista-dark border-vista-secondary/50 text-vista-light max-w-3xl max-h-[80vh] overflow-y-auto focus:outline-none focus:ring-0 custom-scrollbar">
+      <DialogContent className="bg-vista-dark border-vista-secondary/50 text-vista-light max-w-3xl max-h-[80vh] overflow-y-auto focus:outline-none focus:ring-0 custom-scrollbar z-[99999]">
         <DialogHeader>
           <DialogTitle className="text-vista-light text-xl">{t('squadModal.title')}</DialogTitle>
           <DialogDescription className="text-vista-light/70">
