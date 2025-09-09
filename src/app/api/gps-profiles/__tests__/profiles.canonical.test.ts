@@ -302,7 +302,7 @@ describe('GPS Profile Canonical Validation', () => {
       expect(result.success).toBe(true);
       
       // Но rawRow не содержит нужного поля
-      expect(rawRow['NonExistentColumn']).toBeUndefined();
+      expect((rawRow as any)['NonExistentColumn']).toBeUndefined();
     });
   });
 });

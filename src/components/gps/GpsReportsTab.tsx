@@ -137,7 +137,7 @@ export default function GpsReportsTab() {
             setReportCanonRows(canon.rows);
             setReportProfile({
               id: report.profileId,
-              columnMapping: profileSnapshot.columns.map(col => ({
+              columnMapping: profileSnapshot.columns.map((col: any) => ({
                 name: col.displayName,
                 mappedColumn: col.sourceHeader,
                 canonicalKey: col.canonicalKey,

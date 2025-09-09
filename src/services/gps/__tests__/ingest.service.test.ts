@@ -28,7 +28,7 @@ describe('GPS Ingest Service', () => {
       gpsSystem: 'Test',
       columnMapping: [
         {
-          type: 'column',
+          type: 'column' as const,
           name: 'Player Name',
           mappedColumn: 'Name',
           canonicalKey: 'athlete_name',
@@ -36,7 +36,7 @@ describe('GPS Ingest Service', () => {
           order: 0,
         },
         {
-          type: 'column',
+          type: 'column' as const,
           name: 'Total Distance',
           mappedColumn: 'Distance',
           canonicalKey: 'total_distance_m',
@@ -44,11 +44,12 @@ describe('GPS Ingest Service', () => {
           order: 1,
         },
         {
-          type: 'formula',
+          type: 'formula' as const,
           name: 'Calculated Field',
           formula: 'distance * 2',
         },
       ],
+      createdAt: '2024-01-01T00:00:00Z',
     };
 
     it('should map columns correctly by header names', () => {
@@ -111,14 +112,14 @@ describe('GPS Ingest Service', () => {
         ...mockProfile,
         columnMapping: [
           {
-            type: 'column',
+            type: 'column' as const,
             name: 'Second',
             mappedColumn: 'B',
             canonicalKey: 'second_field',
             order: 2,
           },
           {
-            type: 'column',
+            type: 'column' as const,
             name: 'First',
             mappedColumn: 'A',
             canonicalKey: 'first_field',

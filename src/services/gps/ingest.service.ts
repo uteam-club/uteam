@@ -16,7 +16,10 @@ export interface GpsProfile {
     canonicalKey?: string;
     isVisible?: boolean;
     order?: number;
+    unit?: string;
+    transform?: string;
   }>;
+  createdAt: string;
 }
 
 export interface ApplyProfileResult {

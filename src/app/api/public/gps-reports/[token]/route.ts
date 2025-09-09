@@ -29,11 +29,11 @@ export async function GET(
 
     // Используем profileSnapshot из отчёта, если есть
     let profile = null;
-    if (report.profileSnapshot) {
+    if (report.profileSnapshot && (report.profileSnapshot as any).columns) {
       // Используем snapshot для стабильной визуализации
       profile = {
         id: report.profileId,
-        columnMapping: report.profileSnapshot.columns.map((col: any) => ({
+        columnMapping: (report.profileSnapshot as any).columns.map((col: any) => ({
           name: col.displayName,
           mappedColumn: col.sourceHeader,
           canonicalKey: col.canonicalKey,
@@ -42,7 +42,7 @@ export async function GET(
           unit: col.unit,
           transform: col.transform,
         })),
-        gpsSystem: report.profileSnapshot.gpsSystem,
+        gpsSystem: (report.profileSnapshot as any).gpsSystem || 'Unknown',
       };
     } else {
       // Fallback для старых отчётов без snapshot

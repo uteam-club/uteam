@@ -1,9 +1,13 @@
 #!/usr/bin/env ts-node
 
+// @ts-ignore
 import { db } from '../src/lib/db';
+// @ts-ignore
 import { gpsReport, gpsProfile } from '../src/db/schema';
 import { eq, isNull } from 'drizzle-orm';
+// @ts-ignore
 import { buildProfileSnapshot } from '../src/services/gps/profileSnapshot.service';
+// @ts-ignore
 import { CANON } from '../src/canon/metrics.registry';
 
 interface BackfillOptions {

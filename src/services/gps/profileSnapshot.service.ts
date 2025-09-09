@@ -1,20 +1,5 @@
 import { ProfileSnapshot, ProfileSnapshotColumn } from '@/types/gps';
-
-export interface GpsProfile {
-  id: string;
-  gpsSystem: string;
-  columnMapping: Array<{
-    type?: 'column' | 'formula';
-    name: string;
-    mappedColumn?: string;
-    canonicalKey?: string;
-    isVisible?: boolean;
-    order?: number;
-    unit?: string;
-    transform?: string;
-  }>;
-  createdAt: string;
-}
+import { GpsProfile } from './ingest.service';
 
 /**
  * Строит снапшот профиля для сохранения в отчёте

@@ -7,17 +7,17 @@ describe('Profile Snapshot Service', () => {
       gpsSystem: 'B-SIGHT',
       columnMapping: [
         {
-          type: 'column',
+          type: 'column' as const,
           name: 'Player Name',
           mappedColumn: 'Name',
           canonicalKey: 'athlete_name',
           isVisible: true,
           order: 0,
           unit: 'string',
-          transform: null,
+          transform: undefined,
         },
         {
-          type: 'column',
+          type: 'column' as const,
           name: 'Total Distance',
           mappedColumn: 'Distance',
           canonicalKey: 'total_distance_m',
@@ -27,7 +27,7 @@ describe('Profile Snapshot Service', () => {
           transform: 'parseFloat',
         },
         {
-          type: 'formula',
+          type: 'formula' as const,
           name: 'Calculated Field',
           formula: 'distance * 2',
         },
@@ -71,12 +71,12 @@ describe('Profile Snapshot Service', () => {
       gpsSystem: 'Test',
       columnMapping: [
         {
-          type: 'formula',
+          type: 'formula' as const,
           name: 'Calculated Field',
           formula: 'distance * 2',
         },
         {
-          type: 'column',
+          type: 'column' as const,
           name: 'Player Name',
           mappedColumn: 'Name',
           canonicalKey: 'athlete_name',
@@ -97,7 +97,7 @@ describe('Profile Snapshot Service', () => {
     const profile = {
       id: 'profile-1',
       gpsSystem: 'Test',
-      columnMapping: null,
+      columnMapping: [],
       createdAt: '2024-01-01T00:00:00Z',
     };
 
@@ -112,21 +112,21 @@ describe('Profile Snapshot Service', () => {
       gpsSystem: 'Test',
       columnMapping: [
         {
-          type: 'column',
+          type: 'column' as const,
           name: 'Third',
           mappedColumn: 'C',
           canonicalKey: 'third_field',
           order: 3,
         },
         {
-          type: 'column',
+          type: 'column' as const,
           name: 'First',
           mappedColumn: 'A',
           canonicalKey: 'first_field',
           order: 1,
         },
         {
-          type: 'column',
+          type: 'column' as const,
           name: 'Second',
           mappedColumn: 'B',
           canonicalKey: 'second_field',
@@ -149,7 +149,7 @@ describe('Profile Snapshot Service', () => {
       gpsSystem: 'Test',
       columnMapping: [
         {
-          type: 'column',
+          type: 'column' as const,
           name: 'Player Name',
           mappedColumn: 'Name',
           canonicalKey: 'athlete_name',
