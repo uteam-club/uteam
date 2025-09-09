@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
+    "readiness": "bash scripts/gps_readiness_check.sh",
     "migrate:generate": "drizzle-kit generate:pg",
     "migrate:push": "DATABASE_URL='postgresql://postgres:Mell567234!@158.160.80.155:5432/postgres' drizzle-kit push:pg",
     "clear-durations": "tsx scripts/clear-training-durations.ts",
@@ -21,7 +22,17 @@
     "migrate-rpe-schedule": "tsx scripts/run-rpe-schedule-migration.ts",
     "migrate-rpe-recipients": "tsx scripts/apply-rpe-recipients-migration.ts",
     "test-recipients-fix": "tsx scripts/test-recipients-fix.ts",
-    "gps:backfill": "tsx scripts/gps/backfill-profile-snapshots.ts --dry-run=false"
+    "gps:backfill": "tsx scripts/gps/backfill-profile-snapshots.ts --dry-run=false",
+    "gps:backfill:dry": "tsx scripts/gps/dryrun-backfill-snapshot.ts",
+    "gps:recover:dry": "tsx scripts/gps/dryrun-recover-snapshot.ts",
+    "gps:prune:dry": "tsx scripts/gps/dryrun-prune.ts",
+    "gps:seed:demo": "tsx scripts/gps/seed-demo.ts",
+    "gps:import:demo": "tsx scripts/gps/import-demo.ts",
+    "gps:verify:demo": "tsx scripts/gps/verify-demo.ts",
+    "dev:gps:viewer": "next dev",
+    "test:e2e:gps": "playwright test e2e/gps-report-dev.spec.ts",
+    "test:e2e:gps:headed": "playwright test --headed e2e/gps-report-dev.spec.ts",
+    "db:migrate:safe": "tsx scripts/db/apply-safe-migration.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.828.0",
@@ -81,6 +92,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@types/bcryptjs": "^2.4.2",
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.9",

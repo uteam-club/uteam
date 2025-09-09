@@ -1,0 +1,64 @@
+name: GPS CI
+
+on:
+  push:
+    paths:
+      - "src/**"
+      - "scripts/**"
+      - "docs/**"
+      - ".github/workflows/gps-ci.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "yarn.lock"
+  pull_request:
+
+jobs:
+  build-test-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: |
+          if npm pkg get scripts | grep -q '"lint"'; then
+            npm run lint
+          else
+            echo "No lint script — skipping"
+          fi
+
+      - name: Unit tests
+        run: |
+          if npm pkg get scripts | grep -q '"test"'; then
+            npm test --silent -- --watchAll=false
+          else
+            echo "No test script — skipping"
+          fi
+
+      - name: Readiness (read-only)
+        env:
+          PGHOST: ${{ secrets.PGHOST }}
+          PGPORT: ${{ secrets.PGPORT }}
+          PGDATABASE: ${{ secrets.PGDATABASE }}
+          PGUSER: ${{ secrets.PGUSER }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+        run: |
+          bash scripts/gps_readiness_check.sh
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gps-readiness-artifacts
+          path: artifacts/*
