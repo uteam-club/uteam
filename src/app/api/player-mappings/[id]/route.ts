@@ -1,53 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
-import { getUserPermissions } from '@/services/user.service';
-import { hasPermission } from '@/lib/permissions';
-import { getSubdomain } from '@/lib/utils';
-import { getClubBySubdomain } from '@/services/user.service';
-import { PlayerMappingService } from '@/services/playerMapping.service';
+import { db } from '@/lib/db';
+import { playerMapping } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 
-// Проверка доступа к клубу
-async function checkClubAccess(request: NextRequest, token: any) {
-  const host = request.headers.get('host') || '';
-  const subdomain = getSubdomain(host);
-  if (!subdomain) return false;
-  const club = await getClubBySubdomain(subdomain);
-  if (!club) return false;
-  return token.clubId === club.id;
-}
-
-// DELETE - удаление маппинга
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const token = await getToken({ req: request });
   if (!token) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'gpsReports.delete')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
-  const hasAccess = await checkClubAccess(request, token);
-  if (!hasAccess) {
-    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
-  }
-
+  const { id } = params;
+  
   try {
-    const mappingId = params.id;
-    
-    if (!mappingId) {
-      return NextResponse.json({ error: 'Mapping ID is required' }, { status: 400 });
+    // Проверяем, что маппинг принадлежит клубу пользователя
+    const existingMapping = await db
+      .select()
+      .from(playerMapping)
+      .where(eq(playerMapping.id, id))
+      .limit(1);
+
+    if (existingMapping.length === 0) {
+      return NextResponse.json({ error: 'Mapping not found' }, { status: 404 });
     }
 
-    await PlayerMappingService.deleteMapping(mappingId, token.clubId);
-    
-    return NextResponse.json({ success: true });
+    if (existingMapping[0].clubId !== token.clubId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Удаляем маппинг
+    const result = await db
+      .delete(playerMapping)
+      .where(eq(playerMapping.id, id));
+
+    return NextResponse.json({ 
+      success: true, 
+      removed: result.rowCount ?? 0 
+    });
   } catch (error) {
-    console.error('Ошибка при удалении маппинга игрока:', error);
+    console.error('Ошибка при удалении маппинга:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

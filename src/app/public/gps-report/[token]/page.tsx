@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import GpsVisualization from '@/components/gps/GpsVisualization';
 
 interface GpsProfile {
   id: string;
@@ -213,18 +212,7 @@ export default function PublicGpsReportPage({ params }: { params: { token: strin
           })()}
         </div>
 
-        {/* Используем тот же компонент GpsVisualization что и в приложении */}
-        <GpsVisualization
-          data={data}
-          profile={profile}
-          eventName={report.name}
-          eventDate={report.createdAt}
-          teamName={report.team?.name}
-          reportId={report.id}
-          teamId={report.teamId}
-          eventType={report.eventType}
-          isPublic={true}
-        />
+        {/* Визуализация временно отключена */}
       </div>
     </div>
   );

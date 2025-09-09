@@ -9,6 +9,24 @@ import { gpsReport, gpsProfile, player } from '@/db/schema';
 import { eq, desc, and, inArray } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 import { PlayerMappingService } from '@/services/playerMapping.service';
+import { buildCanonColumns, mapRowsToCanonical } from '@/services/canon.mapper';
+
+// Утилита для нормализации ключей игроков
+function normalizePlayerKey(s: string) {
+  return (s ?? '')
+    .toString()
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[ё]/g, 'е')
+    .replace(/[''`´\-_.]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isSummaryRow(name: string) {
+  const n = normalizePlayerKey(name);
+  return n.includes('средн') || n.includes('сумм') || n.includes('average') || n.includes('total');
+}
 
 // Проверка доступа к клубу
 async function checkClubAccess(request: NextRequest, token: any) {
@@ -137,6 +155,57 @@ export async function POST(request: NextRequest) {
       console.log('⚠️ playerMappingsJson пустой');
     }
 
+    // Построение словарей для маппинга
+    type IncomingMap = { reportName?: string; selectedPlayerId?: string; rowIndex?: number; player?: { id?: string } };
+
+    const byName = new Map<string, string>(); // key -> playerId
+    const byIndex = new Map<number, string>();
+
+    (playerMappings as IncomingMap[]).forEach(m => {
+      const pid = m.selectedPlayerId || m.player?.id || null;
+      if (!pid) return;
+      if (typeof m.rowIndex === 'number') byIndex.set(m.rowIndex, pid);
+      const key = normalizePlayerKey(m.reportName ?? '');
+      if (key) byName.set(key, pid);
+    });
+
+    // Ранняя валидация: есть ли вообще выбранные Id
+    if (byName.size === 0 && byIndex.size === 0) {
+      return NextResponse.json({ error: 'no_player_mappings', message: 'Не выбраны игроки для маппинга' }, { status: 400 });
+    }
+
+    // Логи для диагностики
+    if (process.env.GPS_DEBUG === '1') {
+      console.log('[GPS-MAP] byName=%d byIndex=%d', byName.size, byIndex.size);
+      console.log('[GPS-MAP] sample keys:', Array.from(byName.keys()).slice(0,5));
+    }
+
+    // Серверная проверка уникальности маппингов
+    if (playerMappings.length > 0) {
+      const seen = new Map<string, string[]>(); // playerId -> [reportName...]
+      for (const m of playerMappings) {
+        const pid = m.selectedPlayerId || m.player?.id;
+        const rn = (m.reportName || m.mapping?.reportName || '').toString();
+        if (!pid) continue;
+        const arr = seen.get(pid) ?? [];
+        arr.push(rn);
+        seen.set(pid, arr);
+      }
+      const dup = [...seen.entries()].filter(([, arr]) => arr.length > 1);
+      if (dup.length) {
+        // GPS Debug: логируем дубли для диагностики
+        if (process.env.GPS_DEBUG === '1') {
+          console.log('🔍 GPS Debug - Duplicate player mappings detected:', dup);
+        }
+        
+        return NextResponse.json({
+          error: 'duplicate_player_mapping',
+          message: 'Один и тот же игрок выбран для нескольких строк',
+          details: dup.map(([playerId, names]) => ({ playerId, reportNames: names }))
+        }, { status: 400 });
+      }
+    }
+
     // Проверяем тип файла
     const allowedTypes = [
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
@@ -197,6 +266,20 @@ export async function POST(request: NextRequest) {
       .filter(header => header.length > 0);
 
     console.log('📊 Заголовки:', filteredHeaders.length, 'шт, данные:', jsonData.length - 1, 'строк');
+    
+    // GPS Debug: логируем заголовки и профиль
+    if (process.env.GPS_DEBUG === '1') {
+      console.log('🔍 GPS Debug - Headers and Profile:', {
+        headersCount: filteredHeaders.length,
+        firstHeaders: filteredHeaders.slice(0, 5),
+        profileColumnMapping: Array.isArray(profile.columnMapping) ? profile.columnMapping.map(c => ({
+          type: c?.type,
+          canonicalKey: c?.canonicalKey,
+          mappedColumn: c?.mappedColumn,
+          name: c?.name
+        })) : []
+      });
+    }
 
     // Обрабатываем данные согласно профилю
     const processedData = await processDataAccordingToProfile(
@@ -206,10 +289,164 @@ export async function POST(request: NextRequest) {
       teamId,
       token.clubId,
       profile.gpsSystem,
-      playerMappings
+      playerMappings,
+      byName,
+      byIndex
     );
 
     console.log('✅ Обработано записей:', processedData.length);
+
+    // Создаем rawRows из обработанных данных для корректного отображения имен
+    const rawRows = processedData.map((processedRow: any) => {
+      const rawRow: Record<string, any> = {};
+      
+      // GPS Debug: логируем структуру processedRow для диагностики
+      if (process.env.GPS_DEBUG === '1') {
+        console.log('[GPS] processedRow sample:', Object.keys(processedRow).slice(0, 10));
+        console.log('[GPS] processedRow values sample:', Object.entries(processedRow).slice(0, 5));
+      }
+      
+      // Используем обработанные данные для правильных имен
+      if (processedRow.name) rawRow['Игрок'] = processedRow.name;
+      if (processedRow.athlete_name) rawRow['athlete_name'] = processedRow.athlete_name;
+      
+      // Копируем все остальные поля как есть из processedRow
+      Object.keys(processedRow).forEach(key => {
+        if (key !== 'name' && key !== 'athlete_name' && key !== 'playerId' && key !== 'athlete_id') {
+          rawRow[key] = processedRow[key];
+        }
+      });
+      
+      return rawRow;
+    });
+
+    // GPS Debug: логируем rawRows для диагностики
+    if (process.env.GPS_DEBUG === '1') {
+      console.log('[GPS] rawRows sample:', {
+        count: rawRows.length,
+        firstRowKeys: rawRows[0] ? Object.keys(rawRows[0]) : [],
+        firstRowValues: rawRows[0] ? Object.entries(rawRows[0]).slice(0, 10) : []
+      });
+    }
+
+    // Добавляем canonical данные
+    let finalProcessedData = processedData;
+    try {
+      // Фильтруем строки только с маппингом игроков
+      const processedRows = Array.isArray(processedData) ? processedData : [];
+      const processedRowsOnlyMapped = processedRows.filter(r => r && (r.athlete_id || r.playerId));
+      
+      // Подсчитываем количество сопоставленных строк
+      const matchedCount = processedRowsOnlyMapped.length;
+      
+      // Создаем карту processedRows по исходному индексу
+      const processedByIndex = new Map<number, any>();
+      processedRows.forEach((r, idx) => {
+        if (r && (r.athlete_id || r.playerId)) {
+          const originalIndex = r.__rowIndex ?? r.rowIndex ?? idx;
+          processedByIndex.set(originalIndex, r);
+        }
+      });
+      
+      // Логи для диагностики
+      if (process.env.GPS_DEBUG === '1') {
+        console.log('[GPS] raw=%d, processed=%d, byIndex=%d',
+          rawRows.length, processedRows.length, processedByIndex.size);
+        console.log('[GPS] counts: input=%d, filtered=%d, canonical=%d',
+          rawRows.length, processedRows.length - processedRowsOnlyMapped.length, processedRowsOnlyMapped.length);
+      }
+      
+      const canonColumns = buildCanonColumns(Array.isArray(profile.columnMapping) ? profile.columnMapping : []);
+      const canon = mapRowsToCanonical(rawRows, canonColumns, {
+        processedRowsMap: processedByIndex,
+        debug: process.env.GPS_DEBUG === '1',
+      });
+
+      // GPS Debug: логируем canonical данные
+      if (process.env.GPS_DEBUG === '1') {
+        const matchedColumns = canonColumns.filter(col => {
+          const hasValue = rawRows.some(row => {
+            const val = row[col.sourceHeader] ?? row[col.sourceHeader.trim()];
+            return val !== null && val !== undefined && val !== '';
+          });
+          return hasValue;
+        });
+        
+        console.log('🔍 GPS Debug - Canonical data prepared:', {
+          rawRowsCount: rawRows.length,
+          firstRawRowKeys: rawRows[0] ? Object.keys(rawRows[0]) : [],
+          canonColumnsCount: canonColumns.length,
+          matchedColumnsCount: matchedColumns.length,
+          matchedColumns: matchedColumns.map(c => ({ sourceHeader: c.sourceHeader, canonicalKey: c.canonicalKey })),
+          canonicalRowsCount: canon.rows.length,
+          firstCanonicalRowKeys: canon.rows[0] ? Object.keys(canon.rows[0]) : [],
+          warnings: canon.meta.warnings
+        });
+      }
+
+      // Собираем финальную meta с правильными counts
+      const finalMeta = {
+        counts: canon.meta?.counts ?? { 
+          input: rawRows.length, 
+          filtered: 0, 
+          canonical: canon.rows.length 
+        },
+        warnings: [...(canon.meta?.warnings ?? [])],
+      };
+      
+      // Добавляем предупреждения о пропущенных колонках и строках
+      const droppedCount = processedRows.length - processedRowsOnlyMapped.length;
+      if (droppedCount > 0) {
+        finalMeta.warnings.push(`unmapped_rows_dropped:${droppedCount}`);
+      }
+      
+      // Предупреждение если нет сопоставлений
+      if (matchedCount === 0) {
+        finalMeta.warnings.push('mapping:no-matches');
+      }
+
+      // Логируем warnings для диагностики
+      if (process.env.GPS_DEBUG === '1') {
+        console.log('[GPS] warnings:', finalMeta.warnings);
+        console.log('[GPS] final counts:', finalMeta.counts);
+      }
+      
+      // Предупреждение о пропущенных колонках, если canonical.rows пустые
+      if (canon.rows.length === 0 && canonColumns.length > 0) {
+        const missingColumns = canonColumns
+          .filter(col => !rawRows.some(row => {
+            const val = row[col.sourceHeader] ?? row[col.sourceHeader.trim()];
+            return val !== null && val !== undefined && val !== '';
+          }))
+          .map(col => col.sourceHeader);
+        
+        if (missingColumns.length > 0) {
+          finalMeta.warnings.push(`mapping:missing-columns:${missingColumns.join(',')}`);
+        }
+      }
+
+      // аккуратно дописываем canonical в processedData (не ломая legacy)
+      finalProcessedData = {
+        ...(processedData as any),
+        canonical: {
+          version: canon.meta.canonVersion,
+          units: canon.meta.units,
+          profileId: profile.id,
+          gpsSystem: profile.gpsSystem,
+          rows: canon.rows,         // массив строк с canonicalKey-полями
+          warnings: finalMeta.warnings,
+          meta: finalMeta
+        },
+      };
+      
+      console.log('📊 Canonical данные добавлены:', {
+        rowsCount: canon.rows.length,
+        warningsCount: finalMeta.warnings.length,
+        version: canon.meta.canonVersion
+      });
+    } catch (e) {
+      console.warn('[gps canonical] failed to build canonical block', e);
+    }
 
     // Сохраняем отчет в базу данных
     const [newReport] = await db
@@ -224,12 +461,21 @@ export async function POST(request: NextRequest) {
         teamId,
         profileId,
         isProcessed: true,
-        processedData: processedData,
+        processedData: finalProcessedData,
         rawData: jsonData,
         clubId: token.clubId,
         uploadedById: token.id,
       })
       .returning();
+
+    // GPS Debug: логируем после сохранения отчета
+    if (process.env.GPS_DEBUG === '1') {
+      console.log('🔍 GPS Debug - Report saved:', {
+        reportId: newReport.id,
+        processedDataSize: JSON.stringify(finalProcessedData).length,
+        hasCanonical: Boolean((finalProcessedData as any)?.canonical?.rows?.length)
+      });
+    }
 
     return NextResponse.json(newReport);
   } catch (error) {
@@ -246,7 +492,9 @@ async function processDataAccordingToProfile(
   teamId: string,
   clubId: string,
   gpsSystem: string,
-  customPlayerMappings: any[] = []
+  customPlayerMappings: any[] = [],
+  byName: Map<string, string> = new Map(),
+  byIndex: Map<number, string> = new Map()
 ) {
 
 
@@ -258,27 +506,80 @@ async function processDataAccordingToProfile(
   // Для B-SIGHT системы используем фиксированный маппинг
   if (gpsSystem === 'B-SIGHT') {
     console.log('🔧 Используем фиксированный маппинг для B-SIGHT');
+    
+    // Получаем данные игроков для отображения правильных имен
+    const playerIds = Array.from(new Set([...byIndex.values(), ...byName.values()]));
+    const playerDataMap = new Map();
+    
+    if (playerIds.length > 0) {
+      const playersData = await db
+        .select({ id: player.id, firstName: player.firstName, lastName: player.lastName })
+        .from(player)
+        .where(inArray(player.id, playerIds));
+      
+      playersData.forEach(p => {
+        const fullName = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+        playerDataMap.set(p.id, fullName || 'Неизвестный игрок');
+      });
+      
+      console.log('🔍 Найдено игроков в БД для B-SIGHT:', playersData.length, 'шт');
+    }
+    
     return data.map((row, rowIndex) => {
       // Пропускаем строки "Среднее" и "Сумма"
       if (row[0] === 'Среднее' || row[0] === 'Сумма') {
         return null;
       }
 
+      const playerNameFromFile = row[0]; // Игрок из файла
+      
+      // Ищем маппинг игрока по имени или индексу
+      let playerId = byIndex.get(rowIndex);
+      if (!playerId) {
+        const normalizedName = normalizePlayerKey(playerNameFromFile);
+        playerId = byName.get(normalizedName);
+      }
+
+      // Получаем имя игрока из приложения
+      const playerNameFromApp = playerId ? playerDataMap.get(playerId) : null;
+      const displayName = playerNameFromApp || playerNameFromFile;
+
+      // GPS Debug: логируем исходные данные из файла
+      if (process.env.GPS_DEBUG === '1' && rowIndex < 3) {
+        console.log(`[GPS] Row ${rowIndex} raw data:`, {
+          playerName: row[0],
+          time: row[1],
+          td: row[2],
+          zone3: row[3],
+          zone4: row[4],
+          zone5: row[5],
+          acc: row[6],
+          dec: row[7],
+          maxSpeed: row[8],
+          hsr: row[9],
+          hsrPercent: row[10],
+          fullRow: row
+        });
+      }
+
       const processedRow: any = {
-        name: row[0], // Игрок
+        name: displayName, // Имя для отображения (из приложения или файла)
+        athlete_name: displayName, // Для совместимости
+        athlete_id: playerId, // ID игрока из маппинга
+        playerId: playerId, // Дублируем для совместимости
         Time: row[1], // Время
         TD: row[2], // Общая дистанция
         'Z-3 Tempo': row[3], // Зона 3
         'Z-4 HIR': row[4], // Зона 4
         'Z-5 Sprint': row[5], // Зона 5
-                Acc: row[6], // Ускорения
+        Acc: row[6], // Ускорения
         Dec: row[7], // Торможения
         'Max Speed': row[8], // Максимальная скорость
         HSR: row[9], // HSR
         'HSR%': row[10] // HSR %
       };
 
-      console.log(`✅ Обработана строка ${rowIndex}:`, Object.keys(processedRow));
+      console.log(`✅ Обработана строка ${rowIndex}: ${playerNameFromFile} -> ${playerId || 'НЕ СОПОСТАВЛЕН'} (отображение: ${displayName})`);
       return processedRow;
     }).filter(row => row !== null);
   }
@@ -344,29 +645,50 @@ async function processDataAccordingToProfile(
         return null;
       }
       
-      const playerName = String(row[nameColumnIndex]).trim();
-      const playerNameLower = playerName.toLowerCase();
+      const playerNameRaw = String(row[nameColumnIndex]).trim();
       
-      // Проверяем, есть ли этот игрок в маппингах
-      const hasMapping = mappedPlayerNames.has(playerNameLower);
-      if (!hasMapping) {
-        console.log(`⚠️ Игрок "${playerName}" не найден в маппингах - обрабатываем без маппинга`);
+      // Первый барьер: пропускаем служебные строки на источнике
+      if (isSummaryRow(playerNameRaw)) {
+        if (process.env.GPS_DEBUG === '1') console.log('[GPS] drop summary row at source:', playerNameRaw);
+        return null; // пропускаем строку целиком
       }
       
-      const processedRow: any = {};
+      const playerName = playerNameRaw;
       
-      // Добавляем ID игрока, если есть маппинг
-      const playerId = mappingMap.get(playerNameLower);
+      const processedRow: any = {
+        __rowIndex: rowIndex // Сохраняем исходный индекс строки
+      };
+      
+      // Новый алгоритм маппинга: сначала по rowIndex, потом по нормализованному имени
+      const normName = normalizePlayerKey(playerName);
+      const mappedByIndex = byIndex.get(rowIndex);
+      const mappedByName = byName.get(normName);
+      
+      const playerId = mappedByIndex || mappedByName || null;
       
       if (playerId) {
         processedRow.playerId = playerId;
+        processedRow.athlete_id = playerId; // Добавляем athlete_id для совместимости
         
         // Получаем имя игрока из приложения
         const appPlayerName = playerDataMap.get(playerId);
         processedRow.name = appPlayerName || playerName; // Используем имя из приложения или из отчета как fallback
-        console.log(`✅ "${playerName}" -> "${processedRow.name}" (ID: ${playerId})`);
+        
+        // Добавляем информацию о confidence score из маппинга
+        const mapping = finalPlayerMappings.find((m: any) => {
+          const reportName = m.reportName ? m.reportName.toLowerCase() : m.mapping?.reportName?.toLowerCase();
+          return reportName === normName;
+        });
+        if (mapping) {
+          processedRow.confidenceScore = mapping.confidenceScore || 1.0;
+          processedRow.mappingType = mapping.mappingType || 'manual';
+        }
+        
+        console.log(`✅ "${playerName}" -> "${processedRow.name}" (ID: ${playerId}, confidence: ${processedRow.confidenceScore || 'N/A'})`);
       } else {
         processedRow.name = playerName; // Используем имя из отчета
+        processedRow.confidenceScore = 0; // Нет маппинга
+        processedRow.mappingType = 'none';
         console.log(`⚠️ Нет маппинга для "${playerName}" - используем имя из отчета`);
       }
     

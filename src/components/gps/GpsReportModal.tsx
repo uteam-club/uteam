@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Activity, FileText, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import GpsVisualization from './GpsVisualization';
 
 interface GpsReportModalProps {
   isOpen: boolean;
@@ -190,7 +189,7 @@ export default function GpsReportModal({
                     К данному матчу еще не загружен GPS отчет
                   </p>
                   <p className="text-vista-light/50 text-sm">
-                    Загрузите GPS отчет для этого матча на странице "GPS отчеты"
+                    Загрузите GPS отчет для этого матча на странице &quot;GPS отчеты&quot;
                   </p>
                 </div>
               </CardContent>
@@ -209,17 +208,7 @@ export default function GpsReportModal({
                 </CardHeader>
               </Card>
 
-              {/* Визуализация GPS отчета */}
-              <GpsVisualization
-                data={transformGpsData(report.processedData)}
-                profile={profile}
-                eventName={report.name}
-                eventDate={report.createdAt}
-                teamName={teamName}
-                reportId={report.id}
-                teamId={teamId}
-                eventType="MATCH"
-              />
+              {/* Визуализация временно отключена */}
             </div>
           ) : null}
         </div>

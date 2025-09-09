@@ -76,13 +76,30 @@ export async function GET(
 
 // Функция для обработки имен игроков в отчете
 async function processPlayerNames(report: any, clubId: string) {
-  if (!report.processedData || !Array.isArray(report.processedData)) {
+  // Проверяем, есть ли processedData
+  if (!report.processedData) {
+    console.log('[GPS:DEBUG] No processedData found');
+    return report;
+  }
+
+  // Если processedData уже содержит canonical данные, возвращаем как есть
+  if (report.processedData.canonical) {
+    console.log('[GPS:DEBUG] processedData already has canonical data, rows:', report.processedData.canonical.rows?.length || 0);
+    return report;
+  }
+
+  // Проверяем, есть ли processedData и это массив
+  if (!Array.isArray(report.processedData)) {
+    console.log('[GPS:DEBUG] processedData is not array:', typeof report.processedData);
     return report;
   }
 
   try {
+    console.log('[GPS:DEBUG] Processing report with processedData length:', report.processedData.length);
+    
     // Получаем маппинги игроков для команды
     const playerMappings = await PlayerMappingService.getTeamMappings(report.teamId, clubId);
+    console.log('[GPS:DEBUG] Found player mappings:', playerMappings.length);
     
     // Создаем карту маппингов
     const mappingMap = new Map();
@@ -121,9 +138,24 @@ async function processPlayerNames(report: any, clubId: string) {
       return row;
     });
 
+    console.log('[GPS:DEBUG] Final processedData length:', processedData.length);
+    
+    // Возвращаем данные в том же формате, что и API загрузки
     return {
       ...report,
-      processedData
+      processedData: {
+        canonical: {
+          rows: processedData,
+          meta: {
+            counts: {
+              input: report.processedData?.length || 0,
+              filtered: 0,
+              canonical: processedData.length
+            },
+            warnings: []
+          }
+        }
+      }
     };
   } catch (error) {
     console.error('❌ Ошибка при обработке имен игроков:', error);

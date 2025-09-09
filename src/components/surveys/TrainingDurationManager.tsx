@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +38,27 @@ export function TrainingDurationManager({
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Обеспечиваем, что responses всегда является массивом
+  const safeResponses = Array.isArray(responses) ? responses : [];
+
+  // Отладочное логирование
+  useEffect(() => {
+    console.log('TrainingDurationManager - responses:', responses);
+    console.log('TrainingDurationManager - safeResponses:', safeResponses);
+    console.log('TrainingDurationManager - responses type:', typeof responses);
+    console.log('TrainingDurationManager - Array.isArray(responses):', Array.isArray(responses));
+  }, [responses, safeResponses]);
+
+  // Загружаем настройки длительности при изменении команды или даты
+  useEffect(() => {
+    if (teamId && date) {
+      loadDurationSettings();
+    }
+  }, [teamId, date]);
+
+  // Проверяем, есть ли данные для отображения
+  const hasData = safeResponses.length > 0 && safeResponses.some(response => response && response.player);
+
   // Проверяем, что у нас есть необходимые данные
   if (!teamId || !date) {
     return (
@@ -51,26 +72,7 @@ export function TrainingDurationManager({
     );
   }
 
-  // Обеспечиваем, что responses всегда является массивом
-  const safeResponses = Array.isArray(responses) ? responses : [];
-
-  // Отладочное логирование
-  useEffect(() => {
-    console.log('TrainingDurationManager - responses:', responses);
-    console.log('TrainingDurationManager - safeResponses:', safeResponses);
-    console.log('TrainingDurationManager - responses type:', typeof responses);
-    console.log('TrainingDurationManager - Array.isArray(responses):', Array.isArray(responses));
-  }, [responses]);
-
-  // Проверяем, есть ли данные для отображения
-  const hasData = safeResponses.length > 0 && safeResponses.some(response => response && response.player);
-
-  // Загружаем настройки длительности при изменении команды или даты
-  useEffect(() => {
-    loadDurationSettings();
-  }, [teamId, date]);
-
-  const loadDurationSettings = async () => {
+  const loadDurationSettings = useCallback(async () => {
     try {
       const response = await fetch(`/api/surveys/rpe/duration?teamId=${teamId}&date=${date}`);
       if (response.ok) {
@@ -80,7 +82,7 @@ export function TrainingDurationManager({
     } catch (error) {
       console.error('Ошибка загрузки настроек длительности:', error);
     }
-  };
+  }, [teamId, date]);
 
   const saveGlobalDuration = async () => {
     if (tempDuration <= 0) {

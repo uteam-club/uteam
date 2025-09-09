@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Copy, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import CreateGpsProfileModal from './CreateGpsProfileModal';
@@ -91,7 +91,8 @@ export default function GpsProfilesTab() {
           <CardTitle className="text-vista-light">Профили визуализации</CardTitle>
           <Button 
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
+            variant="outline"
+            className="bg-vista-dark/30 backdrop-blur-sm border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal shadow-lg"
           >
             <Plus className="w-4 h-4 mr-2" />
             Создать профиль
@@ -133,7 +134,7 @@ export default function GpsProfilesTab() {
                       variant="outline" 
                       size="sm"
                       onClick={() => handleEditProfile(profile.id)}
-                      className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20"
+                      className="bg-vista-dark/30 backdrop-blur-sm border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-8 px-2 font-normal shadow-lg"
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -141,16 +142,8 @@ export default function GpsProfilesTab() {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      size="sm"
                       onClick={() => handleDeleteProfile(profile.id)}
-                      className="border-vista-error/50 text-vista-error hover:bg-vista-error/10"
+                      className="bg-vista-dark/30 backdrop-blur-sm border-vista-error/40 text-vista-error hover:bg-vista-error/15 h-8 px-2 font-normal shadow-lg"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

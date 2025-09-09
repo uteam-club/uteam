@@ -5,8 +5,9 @@ import { hasPermission } from '@/lib/permissions';
 import { getSubdomain } from '@/lib/utils';
 import { getClubBySubdomain } from '@/services/user.service';
 import { db } from '@/lib/db';
-import { gpsProfile } from '@/db/schema';
-import { eq, and, ne } from 'drizzle-orm';
+import { gpsProfile, gpsReport } from '@/db/schema';
+import { eq, and, ne, count } from 'drizzle-orm';
+import { UpdateGpsProfileSchema } from '@/validators/gpsProfile.schema';
 
 // Проверка доступа к клубу
 async function checkClubAccess(request: NextRequest, token: any) {
@@ -18,97 +19,17 @@ async function checkClubAccess(request: NextRequest, token: any) {
   return token.clubId === club.id;
 }
 
-// Валидация columnMapping (та же функция, что и в создании)
-function validateColumnMapping(columns: any[]): { isValid: boolean; errors: string[]; validatedColumns: any[] } {
-  console.log('🔍 Начало валидации columnMapping:', {
-    columnsCount: columns?.length,
-    columns: columns
-  });
-  
-  const errors: string[] = [];
-  const validatedColumns: any[] = [];
-
-  if (!Array.isArray(columns) || columns.length === 0) {
-    console.log('❌ Ошибка: пустой массив колонок');
-    errors.push('Должна быть добавлена хотя бы одна колонка');
-    return { isValid: false, errors, validatedColumns };
-  }
-
-  // Обязательные поля для B-SIGHT системы
-  const requiredFields = ['Player', 'Time', 'TD'];
-  console.log('📋 Проверяем обязательные поля:', requiredFields);
-  const requiredFieldNames = ['Игрок', 'Время', 'Общая дистанция'];
-
-  for (let i = 0; i < columns.length; i++) {
-    const column = columns[i];
-    const columnErrors: string[] = [];
-
-    // Проверка обязательных полей
-    if (!column.name || typeof column.name !== 'string') {
-      columnErrors.push('Название колонки обязательно');
-    }
-
-    if (!column.mappedColumn || typeof column.mappedColumn !== 'string') {
-      columnErrors.push('Маппинг колонки обязателен');
-    }
-
-    // Проверка на русские названия в mappedColumn
-    const russianPattern = /[а-яё]/i;
-    if (russianPattern.test(column.mappedColumn)) {
-      // Убираем эту проверку - разрешаем русские названия в mappedColumn
-      // columnErrors.push(`Колонка "${column.name}": используйте английские названия вместо "${column.mappedColumn}"`);
-    }
-
-    // Проверка на специальные символы
-    const specialCharsPattern = /[^a-zA-Z0-9\s\-_]/;
-    if (specialCharsPattern.test(column.mappedColumn)) {
-      // Убираем эту проверку - разрешаем любые символы в mappedColumn
-      // columnErrors.push(`Колонка "${column.name}": избегайте специальных символов в названии колонки`);
-    }
-
-    // Проверка дублирования mappedColumn
-    const duplicateIndex = validatedColumns.findIndex(col => col.mappedColumn === column.mappedColumn);
-    if (duplicateIndex !== -1) {
-      columnErrors.push(`Колонка "${column.name}": дублирует маппинг колонки "${validatedColumns[duplicateIndex].name}"`);
-    }
-
-    if (columnErrors.length > 0) {
-      errors.push(`Колонка "${column.name || `#${i + 1}`}": ${columnErrors.join(', ')}`);
-    } else {
-      // Создаем валидированную колонку с правильной структурой
-      validatedColumns.push({
-        name: column.name,
-        type: column.type || 'column',
-        order: column.order || i + 1,
-        mappedColumn: column.mappedColumn,
-        displayName: column.displayName || column.name,
-        dataType: column.dataType || 'string',
-        isVisible: column.isVisible !== undefined ? column.isVisible : true
-      });
-    }
-  }
-
-  // Проверка наличия обязательных полей
-  const columnNames = validatedColumns.map(col => col.name);
-  console.log('📋 Найденные названия колонок:', columnNames);
-  const missingRequired = requiredFields.filter(field => !columnNames.includes(field));
-  console.log('❌ Отсутствующие обязательные поля:', missingRequired);
-  
-  if (missingRequired.length > 0) {
-    errors.push(`Отсутствуют обязательные поля: ${missingRequired.join(', ')}`);
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-    validatedColumns
-  };
-  
-  console.log('✅ Результат валидации:', {
-    isValid: errors.length === 0,
-    errorsCount: errors.length,
-    validatedColumnsCount: validatedColumns.length
-  });
+// Нормализация колонок для сохранения в БД
+function normalizeColumns(columns: any[]): any[] {
+  return columns.map((col, idx) => ({
+    type: col.type ?? 'column',
+    name: col.name,
+    mappedColumn: col.mappedColumn,
+    canonicalKey: col.canonicalKey,
+    isVisible: col.isVisible ?? true,
+    order: Number.isFinite(col.order) ? col.order : idx,
+    ...(col.type === 'formula' && col.formula ? { formula: col.formula } : {})
+  }));
 }
 
 // GET - получение профиля по ID
@@ -150,71 +71,35 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🔄 PUT запрос на обновление GPS профиля:', params.id);
-  
   const token = await getToken({ req: request });
   if (!token) {
-    console.log('❌ Не авторизован');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const permissions = await getUserPermissions(token.id);
   if (!hasPermission(permissions, 'gpsProfiles.update')) {
-    console.log('❌ Нет прав на обновление');
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const hasAccess = await checkClubAccess(request, token);
   if (!hasAccess) {
-    console.log('❌ Нет доступа к клубу');
     return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
   }
 
   try {
     const profileId = params.id;
-    const body = await request.json();
+    const json = await request.json();
     
-    console.log('📋 Данные для обновления:', {
-      profileId,
-      name: body.name,
-      columnMappingLength: body.columnMapping?.length,
-      columnMapping: body.columnMapping
-    });
-
-    // Валидация названия профиля
-    if (!body.name || typeof body.name !== 'string' || body.name.trim().length === 0) {
-      console.log('❌ Ошибка валидации: название профиля обязательно');
-      return NextResponse.json({
-        error: 'Название профиля обязательно',
-        field: 'name'
+    // Валидация с помощью zod схемы
+    const parsed = UpdateGpsProfileSchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json({ 
+        error: 'Validation failed', 
+        details: parsed.error.format() 
       }, { status: 400 });
     }
 
-    if (body.name.trim().length < 3) {
-      console.log('❌ Ошибка валидации: название слишком короткое');
-      return NextResponse.json({
-        error: 'Название профиля должно содержать минимум 3 символа',
-        field: 'name'
-      }, { status: 400 });
-    }
-
-    // Валидация columnMapping
-    const validation = validateColumnMapping(body.columnMapping || []);
-    console.log('🔍 Результат валидации columnMapping:', {
-      isValid: validation.isValid,
-      errorsCount: validation.errors.length,
-      errors: validation.errors,
-      validatedColumnsCount: validation.validatedColumns.length
-    });
-
-    if (!validation.isValid) {
-      console.log('❌ Ошибка валидации columnMapping:', validation.errors);
-      return NextResponse.json({
-        error: 'Ошибки валидации колонок',
-        details: validation.errors,
-        field: 'columns'
-      }, { status: 400 });
-    }
+    const { name, description, gpsSystem, columns } = parsed.data;
 
     // Проверяем, что профиль принадлежит клубу пользователя
     const [existingProfile] = await db
@@ -231,41 +116,104 @@ export async function PUT(
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
-    // Проверка на дублирование названия профиля (исключая текущий профиль)
-    const existingProfileWithSameName = await db
-      .select()
-      .from(gpsProfile)
-      .where(
-        and(
-          eq(gpsProfile.clubId, token.clubId),
-          eq(gpsProfile.name, body.name.trim()),
-          ne(gpsProfile.id, profileId) // Исключаем текущий профиль
-        )
+    // Guard: проверяем, использовался ли профиль в отчётах
+    const [usageResult] = await db
+      .select({ count: count() })
+      .from(gpsReport)
+      .where(eq(gpsReport.profileId, profileId));
+    
+    const usageCount = usageResult?.count || 0;
+
+    // Если профиль использовался, применяем guard
+    if (usageCount > 0 && columns) {
+      const oldCols = existingProfile.columnMapping || [];
+      const newCols = normalizeColumns(columns);
+
+      // Helper: ключ-идентификатор "смысла" строки
+      const makeKey = (c: any) => `${c.canonicalKey}__@@__${c.mappedColumn}`;
+
+      // Сформируем множества для существующих строк
+      const oldSet = new Set((Array.isArray(oldCols) ? oldCols : [])
+        .filter((c: any) => c?.type !== 'formula' && c?.canonicalKey && c?.mappedColumn)
+        .map(makeKey)
       );
 
-    if (existingProfileWithSameName.length > 0) {
-      return NextResponse.json({ 
-        error: 'Профиль с таким названием уже существует',
-        field: 'name'
-      }, { status: 400 });
+      const newSet = new Set((Array.isArray(newCols) ? newCols : [])
+        .filter((c: any) => c?.type !== 'formula' && c?.canonicalKey && c?.mappedColumn)
+        .map(makeKey)
+      );
+
+      // 1) Запрет удаления существующих строк
+      for (const k of oldSet) {
+        if (!newSet.has(k)) {
+          return NextResponse.json({
+            error: 'PROFILE_GUARD',
+            message: 'Нельзя удалять ранее использованные строки (canonicalKey/mappedColumn). Создайте новую версию профиля.',
+            details: { removedKey: k }
+          }, { status: 409 });
+        }
+      }
+
+      // 2) Запрет изменять canonicalKey/mappedColumn у существующих строк
+      const byCanonOld = new Map((Array.isArray(oldCols) ? oldCols : []).map((c: any) => [c.canonicalKey, c]));
+      for (const nc of newCols) {
+        const oc = byCanonOld.get(nc.canonicalKey);
+        if (!oc) continue; // новая строка — ок
+        
+        // Если профиль уже использовался — запрещаем менять source/ключ
+        if (oc.mappedColumn !== nc.mappedColumn) {
+          return NextResponse.json({
+            error: 'PROFILE_GUARD',
+            message: 'Нельзя менять mappedColumn у ранее использованной строки. Создайте новую версию профиля.',
+            details: { canonicalKey: nc.canonicalKey, from: oc.mappedColumn, to: nc.mappedColumn }
+          }, { status: 409 });
+        }
+      }
+
+      // 3) Запрет менять gpsSystem
+      if (gpsSystem && gpsSystem !== existingProfile.gpsSystem) {
+        return NextResponse.json({
+          error: 'PROFILE_GUARD',
+          message: 'Нельзя менять GPS систему у уже использованного профиля. Создайте новую версию.',
+        }, { status: 409 });
+      }
     }
 
-    // Обновляем профиль с валидированными данными
+    // Проверка на дублирование названия профиля (если name изменился)
+    if (name && name !== existingProfile.name) {
+      const existingProfileWithSameName = await db
+        .select()
+        .from(gpsProfile)
+        .where(
+          and(
+            eq(gpsProfile.clubId, token.clubId),
+            eq(gpsProfile.name, name.trim()),
+            ne(gpsProfile.id, profileId)
+          )
+        );
+
+      if (existingProfileWithSameName.length > 0) {
+        return NextResponse.json({ 
+          error: 'Профиль с таким названием уже существует',
+          field: 'name'
+        }, { status: 400 });
+      }
+    }
+
+    // Подготавливаем данные для обновления
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
+
+    if (name) updateData.name = name.trim();
+    if (description !== undefined) updateData.description = description;
+    if (gpsSystem) updateData.gpsSystem = gpsSystem;
+    if (columns) updateData.columnMapping = normalizeColumns(columns);
+
+    // Обновляем профиль
     const [updatedProfile] = await db
       .update(gpsProfile)
-      .set({
-        name: body.name.trim(),
-        description: body.description || existingProfile.description,
-        gpsSystem: body.gpsSystem || existingProfile.gpsSystem,
-        columnMapping: validation.validatedColumns,
-        visualizationConfig: body.visualizationConfig || existingProfile.visualizationConfig,
-        metricsConfig: body.metricsConfig || existingProfile.metricsConfig,
-        customFormulas: body.customFormulas || existingProfile.customFormulas,
-        dataFilters: body.dataFilters || existingProfile.dataFilters,
-        isDefault: body.isDefault !== undefined ? body.isDefault : existingProfile.isDefault,
-        isActive: body.isActive !== undefined ? body.isActive : existingProfile.isActive,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(gpsProfile.id, profileId))
       .returning();
 

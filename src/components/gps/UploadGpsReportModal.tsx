@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, FileSpreadsheet, CheckCircle, Users } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle, Users, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import PlayerMappingModal from './PlayerMappingModal';
 
@@ -73,6 +73,7 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
   // Состояние загрузки
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   
   // Состояние сопоставления игроков
   const [showPlayerMapping, setShowPlayerMapping] = useState(false);
@@ -159,6 +160,39 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
       
       // Извлекаем имена игроков из файла
       await extractPlayerNames(selectedFile);
+    }
+  };
+
+  // Обработчики drag & drop
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const droppedFile = files[0];
+      if (droppedFile.type.includes('sheet') || droppedFile.type.includes('csv') || 
+          droppedFile.name.endsWith('.xlsx') || droppedFile.name.endsWith('.xls') || 
+          droppedFile.name.endsWith('.csv')) {
+        setFile(droppedFile);
+        await extractPlayerNames(droppedFile);
+      } else {
+        toast({
+          title: "Неверный формат файла",
+          description: "Пожалуйста, выберите файл Excel (.xlsx, .xls) или CSV",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -282,6 +316,10 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
     setPlayerNames([]);
     setPlayerMappings([]);
     setShowPlayerMapping(false);
+    setIsDragOver(false);
+    // Очищаем файловый input
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    if (fileInput) fileInput.value = '';
   };
 
   const handleClose = () => {
@@ -309,25 +347,31 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent 
-        className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-4xl max-h-[85vh] overflow-y-auto backdrop-blur-xl mt-8 custom-scrollbar"
+        className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-2xl overflow-y-auto max-h-[80vh] focus:outline-none focus:ring-0 custom-scrollbar"
         aria-describedby="upload-gps-description"
       >
         <DialogHeader>
-          <DialogTitle className="text-vista-light text-xl">Загрузить GPS отчет</DialogTitle>
+          <DialogTitle className="text-vista-light text-xl flex items-center gap-2">
+            <Upload className="h-5 w-5 text-vista-primary" />
+            Загрузить GPS отчет
+          </DialogTitle>
         </DialogHeader>
         <div id="upload-gps-description" className="sr-only">
           Модальное окно для загрузки GPS отчета
         </div>
         
-        <div className="space-y-6">
-          {/* Шаг 1: Выбор команды */}
+        <div className="grid gap-4 py-4 custom-scrollbar">
+          {/* Выбор команды */}
           <div className="space-y-2">
-            <Label className="text-vista-light/40 font-normal">1. Выберите команду</Label>
+            <Label htmlFor="team" className="text-vista-light/40 font-normal">Команда</Label>
             <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-              <SelectTrigger className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+              <SelectTrigger 
+                id="team"
+                className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
+              >
                 <SelectValue placeholder="Выберите команду" />
               </SelectTrigger>
-              <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+              <SelectContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-lg">
                 {teams.map(team => (
                   <SelectItem key={team.id} value={team.id}>
                     {team.name}
@@ -337,15 +381,18 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
             </Select>
           </div>
 
-          {/* Шаг 2: Тип события */}
+          {/* Тип события */}
           {selectedTeam && (
             <div className="space-y-2">
-              <Label className="text-vista-light/40 font-normal">2. Тип события</Label>
+              <Label htmlFor="event-type" className="text-vista-light/40 font-normal">Тип события</Label>
               <Select value={eventType} onValueChange={(value) => setEventType(value as 'TRAINING' | 'MATCH')}>
-                <SelectTrigger className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+                <SelectTrigger 
+                  id="event-type"
+                  className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
+                >
                   <SelectValue placeholder="Выберите тип события" />
                 </SelectTrigger>
-                <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                <SelectContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-lg">
                   <SelectItem value="TRAINING">Тренировка</SelectItem>
                   <SelectItem value="MATCH">Матч</SelectItem>
                 </SelectContent>
@@ -353,18 +400,21 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
             </div>
           )}
 
-          {/* Шаг 3: Конкретное событие */}
+          {/* Конкретное событие */}
           {selectedTeam && eventType && (
             <div className="space-y-2">
-              <Label className="text-vista-light/40 font-normal">3. Выберите {eventType === 'TRAINING' ? 'тренировку' : 'матч'}</Label>
+              <Label htmlFor="event" className="text-vista-light/40 font-normal">{eventType === 'TRAINING' ? 'Тренировка' : 'Матч'}</Label>
               {isLoadingData ? (
                 <div className="text-center py-4 text-vista-light/60">Загрузка...</div>
               ) : (
                 <Select value={selectedEvent} onValueChange={setSelectedEvent}>
-                  <SelectTrigger className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+                  <SelectTrigger 
+                    id="event"
+                    className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
+                  >
                     <SelectValue placeholder={`Выберите ${eventType === 'TRAINING' ? 'тренировку' : 'матч'}`} />
                   </SelectTrigger>
-                  <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                  <SelectContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-lg">
                     {eventType === 'TRAINING' ? (
                       trainings.map(training => (
                         <SelectItem key={training.id} value={training.id}>
@@ -384,15 +434,18 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
             </div>
           )}
 
-          {/* Шаг 4: Профиль отчета */}
+          {/* Профиль отчета */}
           {selectedEvent && (
             <div className="space-y-2">
-              <Label className="text-vista-light/40 font-normal">4. Профиль отчета</Label>
+              <Label htmlFor="profile" className="text-vista-light/40 font-normal">Профиль отчета</Label>
               <Select value={selectedProfile} onValueChange={setSelectedProfile}>
-                <SelectTrigger className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+                <SelectTrigger 
+                  id="profile"
+                  className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
+                >
                   <SelectValue placeholder="Выберите профиль отчета" />
                 </SelectTrigger>
-                <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                <SelectContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-lg">
                   {profiles.map(profile => (
                     <SelectItem key={profile.id} value={profile.id}>
                       {profile.name}
@@ -403,63 +456,116 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
             </div>
           )}
 
-          {/* Шаг 5: Загрузка файла */}
+          {/* Загрузка файла */}
           {selectedProfile && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-vista-light/40 font-normal">5. Файл отчета (Excel/CSV)</Label>
-                <div className="border-2 border-dashed border-vista-secondary/30 rounded-lg p-6 text-center hover:border-vista-primary/50 transition-colors">
-                  <Upload className="w-8 h-8 mx-auto mb-2 text-vista-light/40" />
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls,.csv"
-                    onChange={handleFileChange}
-                    className="hidden"
-                    id="file-upload"
-                  />
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <span className="text-vista-primary hover:text-vista-primary/80 transition-colors">
-                      Выберите Excel или CSV файл
-                    </span>
-                  </label>
+            <div className="space-y-2">
+              <Label htmlFor="file-upload" className="text-vista-light/40 font-normal">Файл отчета (Excel/CSV)</Label>
+              
+              {/* Скрытый input для файла */}
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleFileChange}
+                disabled={isLoading}
+                className="hidden"
+                id="file-upload"
+              />
+              
+              {/* Кастомное поле загрузки */}
+              <div 
+                className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer group ${
+                  isDragOver 
+                    ? 'border-vista-primary/60 bg-vista-primary/5' 
+                    : 'border-vista-secondary/30 hover:border-vista-primary/40'
+                }`}
+                onClick={() => document.getElementById('file-upload')?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-vista-secondary/10 rounded-full flex items-center justify-center group-hover:bg-vista-primary/10 transition-colors flex-shrink-0">
+                    <Upload className="h-4 w-4 text-vista-light/60 group-hover:text-vista-primary transition-colors" />
+                  </div>
+                  
+                  <div className="flex-1 text-left">
+                    <p className="text-vista-light font-medium text-sm">
+                      {file 
+                        ? file.name 
+                        : (isDragOver 
+                          ? 'Отпустите файл здесь' 
+                          : (
+                            <>
+                              Выберите файл <span className="font-normal text-vista-light/60">(.xlsx, .xls, .csv)</span>
+                            </>
+                          )
+                        )
+                      }
+                    </p>
+                    <p className="text-vista-light/60 text-xs">
+                      {file 
+                        ? 'Файл загружен' 
+                        : isDragOver 
+                          ? 'Отпустите файл для загрузки'
+                          : 'Нажмите для выбора или перетащите сюда'
+                      }
+                    </p>
+                  </div>
+
+                  {!file && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={isLoading}
+                      size="sm"
+                      className="bg-vista-primary/10 border-vista-primary/40 text-vista-primary hover:bg-vista-primary/20 h-8 px-3 font-normal flex-shrink-0"
+                    >
+                      <Upload className="h-3 w-3 mr-1" />
+                      Выбрать
+                    </Button>
+                  )}
+                  
+                  {file && (
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                      <div className="flex items-center space-x-1 text-green-400">
+                        <CheckCircle className="h-4 w-4" />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFile(null);
+                          (document.getElementById('file-upload') as HTMLInputElement).value = '';
+                        }}
+                        className="text-vista-light/60 hover:text-vista-error hover:bg-vista-error/10 h-6 w-6 p-0"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {file && (
-                <div className="flex items-center gap-2 text-vista-success">
-                  <CheckCircle className="w-4 h-4" />
-                  <span>{file.name} выбран</span>
-                </div>
-              )}
             </div>
           )}
 
-          {/* Сводка */}
-          {selectedEvent && selectedProfile && (
-            <div className="bg-vista-secondary/20 border border-vista-secondary/30 rounded-lg p-4">
-              <h3 className="text-vista-light font-medium mb-3">Сводка</h3>
-              <div className="space-y-2 text-sm text-vista-light/80">
-                <div><strong>Команда:</strong> {teams.find(t => t.id === selectedTeam)?.name}</div>
-                <div><strong>Событие:</strong> {getEventName()}</div>
-                <div><strong>Профиль:</strong> {getProfileName()}</div>
-                {file && <div><strong>Файл:</strong> {file.name}</div>}
-              </div>
-            </div>
-          )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex justify-end gap-2 mt-4">
           <Button 
+            type="button" 
             variant="outline" 
             onClick={handleClose}
-            className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20"
+            className="bg-transparent border border-vista-error/50 text-vista-error hover:bg-vista-error/10 h-9 px-3 font-normal"
           >
             Отмена
           </Button>
           <Button 
+            type="button" 
             onClick={handleSubmit}
             disabled={!file || !selectedTeam || !eventType || !selectedEvent || !selectedProfile || isLoading}
-            className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
+            className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
           >
             {isLoading ? 'Загрузка...' : 'Загрузить отчет'}
           </Button>

@@ -5,6 +5,9 @@ import { hasPermission } from '@/lib/permissions';
 import { getSubdomain } from '@/lib/utils';
 import { getClubBySubdomain } from '@/services/user.service';
 import { PlayerMappingService } from '@/services/playerMapping.service';
+import { db } from '@/lib/db';
+import { player, playerMapping } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 // Проверка доступа к клубу
 async function checkClubAccess(request: NextRequest, token: any) {
@@ -42,6 +45,26 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await PlayerMappingService.autoMatchPlayer(reportName, teamId, token.clubId, gpsSystem);
+    
+    // GPS Debug: логируем входные/выходные данные
+    if (process.env.GPS_DEBUG === '1') {
+      console.log('[AUTO-MATCH]', { 
+        reportName, 
+        best: { 
+          id: result.suggestedPlayer?.id, 
+          name: result.suggestedPlayer ? `${result.suggestedPlayer.firstName || ''} ${result.suggestedPlayer.lastName || ''}`.trim() : null, 
+          score: result.confidence 
+        }, 
+        action: result.action,
+        source: result.source,
+        alternatives: result.alternatives?.slice(0, 3).map(alt => ({
+          id: alt.id,
+          name: `${alt.firstName || ''} ${alt.lastName || ''}`.trim(),
+          score: result.confidence
+        }))
+      });
+    }
+    
     return NextResponse.json(result);
   } catch (error) {
     console.error('Ошибка при автоматическом сопоставлении игрока:', error);

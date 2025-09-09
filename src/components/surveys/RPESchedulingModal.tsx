@@ -284,7 +284,7 @@ export function RPESchedulingModal({
         <DialogHeader>
           <DialogTitle className="text-vista-light text-xl flex items-center gap-2">
             <Settings className="h-5 w-5 text-vista-primary" />
-            Планирование RPE опросов для команды "{team?.name}"
+            Планирование RPE опросов для команды &quot;{team?.name}&quot;
           </DialogTitle>
           <DialogDescription className="text-vista-light/70 text-sm">
             Настройте автоматическую отправку RPE опросов для конкретных тренировок

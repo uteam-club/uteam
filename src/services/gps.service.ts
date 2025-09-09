@@ -3,6 +3,8 @@ import { gpsReport, gpsProfile, gpsMetric } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 
+const GPS_ENABLE_CUSTOM_FORMULAS = process.env.GPS_ENABLE_CUSTOM_FORMULAS === 'true';
+
 export interface GpsDataRow {
   [key: string]: any;
 }
@@ -160,6 +162,11 @@ export class GpsDataProcessor {
     playerData: GpsDataRow[], 
     baseMetrics: Record<string, number>
   ): Promise<Record<string, number>> {
+    if (!GPS_ENABLE_CUSTOM_FORMULAS) {
+      // безопасный режим: игнорируем пользовательские формулы
+      return {};
+    }
+
     const customMetrics: Record<string, number> = {};
     const customFormulas = this.profile.customFormulas || {};
 

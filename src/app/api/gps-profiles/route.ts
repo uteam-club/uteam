@@ -7,6 +7,7 @@ import { getUserPermissions } from '@/services/user.service';
 import { hasPermission } from '@/lib/permissions';
 import { getSubdomain } from '@/lib/utils';
 import { getClubBySubdomain } from '@/services/user.service';
+import { CreateGpsProfileSchema } from '@/validators/gpsProfile.schema';
 
 // Проверка доступа к клубу
 async function checkClubAccess(request: NextRequest, token: any) {
@@ -18,82 +19,17 @@ async function checkClubAccess(request: NextRequest, token: any) {
   return token.clubId === club.id;
 }
 
-// Валидация columnMapping
-function validateColumnMapping(columns: any[]): { isValid: boolean; errors: string[]; validatedColumns: any[] } {
-  const errors: string[] = [];
-  const validatedColumns: any[] = [];
-
-  if (!Array.isArray(columns) || columns.length === 0) {
-    errors.push('Должна быть добавлена хотя бы одна колонка');
-    return { isValid: false, errors, validatedColumns };
-  }
-
-  // Обязательные поля для B-SIGHT системы
-  const requiredFields = ['Player', 'Time', 'TD'];
-  const requiredFieldNames = ['Игрок', 'Время', 'Общая дистанция'];
-
-  for (let i = 0; i < columns.length; i++) {
-    const column = columns[i];
-    const columnErrors: string[] = [];
-
-    // Проверка обязательных полей
-    if (!column.name || typeof column.name !== 'string') {
-      columnErrors.push('Название колонки обязательно');
-    }
-
-    if (!column.mappedColumn || typeof column.mappedColumn !== 'string') {
-      columnErrors.push('Маппинг колонки обязателен');
-    }
-
-    // Проверка на русские названия в mappedColumn
-    const russianPattern = /[а-яё]/i;
-    if (russianPattern.test(column.mappedColumn)) {
-      // Убираем эту проверку - разрешаем русские названия в mappedColumn
-      // columnErrors.push(`Колонка "${column.name}": используйте английские названия вместо "${column.mappedColumn}"`);
-    }
-
-    // Проверка на специальные символы
-    const specialCharsPattern = /[^a-zA-Z0-9\s\-_]/;
-    if (specialCharsPattern.test(column.mappedColumn)) {
-      // Убираем эту проверку - разрешаем любые символы в mappedColumn
-      // columnErrors.push(`Колонка "${column.name}": избегайте специальных символов в названии колонки`);
-    }
-
-    // Проверка дублирования mappedColumn
-    const duplicateIndex = validatedColumns.findIndex(col => col.mappedColumn === column.mappedColumn);
-    if (duplicateIndex !== -1) {
-      columnErrors.push(`Колонка "${column.name}": дублирует маппинг колонки "${validatedColumns[duplicateIndex].name}"`);
-    }
-
-    if (columnErrors.length > 0) {
-      errors.push(`Колонка "${column.name || `#${i + 1}`}": ${columnErrors.join(', ')}`);
-    } else {
-      // Создаем валидированную колонку с правильной структурой
-      validatedColumns.push({
-        name: column.name,
-        type: column.type || 'column',
-        order: column.order || i + 1,
-        mappedColumn: column.mappedColumn,
-        displayName: column.displayName || column.name,
-        dataType: column.dataType || 'string',
-        isVisible: column.isVisible !== undefined ? column.isVisible : true
-      });
-    }
-  }
-
-  // Проверка наличия обязательных полей
-  const columnNames = validatedColumns.map(col => col.name);
-  const missingRequired = requiredFields.filter(field => !columnNames.includes(field));
-  
-  if (missingRequired.length > 0) {
-    errors.push(`Отсутствуют обязательные поля: ${missingRequired.join(', ')}`);
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-    validatedColumns
-  };
+// Нормализация колонок для сохранения в БД
+function normalizeColumns(columns: any[]): any[] {
+  return columns.map((col, idx) => ({
+    type: col.type ?? 'column',
+    name: col.name,
+    mappedColumn: col.mappedColumn,
+    canonicalKey: col.canonicalKey,
+    isVisible: col.isVisible ?? true,
+    order: Number.isFinite(col.order) ? col.order : idx,
+    ...(col.type === 'formula' && col.formula ? { formula: col.formula } : {})
+  }));
 }
 
 // GET - получение списка GPS профилей
@@ -145,34 +81,18 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
-    const { name, columns, gpsSystem = 'B-SIGHT' } = body;
-
-    // Валидация названия профиля
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return NextResponse.json({ 
-        error: 'Название профиля обязательно',
-        field: 'name'
-      }, { status: 400 });
-    }
-
-    if (name.trim().length < 3) {
-      return NextResponse.json({ 
-        error: 'Название профиля должно содержать минимум 3 символа',
-        field: 'name'
-      }, { status: 400 });
-    }
-
-    // Валидация columnMapping
-    const validation = validateColumnMapping(columns || []);
+    const json = await request.json();
     
-    if (!validation.isValid) {
+    // Валидация с помощью zod схемы
+    const parsed = CreateGpsProfileSchema.safeParse(json);
+    if (!parsed.success) {
       return NextResponse.json({ 
-        error: 'Ошибки валидации колонок',
-        details: validation.errors,
-        field: 'columns'
+        error: 'Validation failed', 
+        details: parsed.error.format() 
       }, { status: 400 });
     }
+
+    const { name, description, gpsSystem, columns } = parsed.data;
 
     // Проверка на дублирование названия профиля
     const existingProfile = await db
@@ -189,6 +109,9 @@ export async function POST(request: NextRequest) {
         field: 'name'
       }, { status: 400 });
     }
+
+    // Нормализация колонок
+    const normalizedColumns = normalizeColumns(columns);
 
     // Создание профиля с валидированными данными
     const visualizationConfig = {
@@ -212,14 +135,14 @@ export async function POST(request: NextRequest) {
       .insert(gpsProfile)
       .values({
         name: name.trim(),
-        description: `Профиль для системы ${gpsSystem}`,
+        description: description || `Профиль для системы ${gpsSystem}`,
         gpsSystem,
         isDefault: false,
         isActive: true,
         visualizationConfig,
         metricsConfig,
         customFormulas: null,
-        columnMapping: validation.validatedColumns,
+        columnMapping: normalizedColumns,
         dataFilters: null,
         clubId: token.clubId,
         createdById: token.id,

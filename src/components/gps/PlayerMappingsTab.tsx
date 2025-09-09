@@ -26,7 +26,7 @@ interface PlayerMapping {
   player: {
     id: string;
     name: string;
-  };
+  } | null;
 }
 
 export default function PlayerMappingsTab({ teamId }: PlayerMappingsTabProps) {
@@ -62,6 +62,39 @@ export default function PlayerMappingsTab({ teamId }: PlayerMappingsTabProps) {
     }
   };
 
+  const resetMappingsForEvent = async () => {
+    if (!selectedTeam) return;
+    
+    if (!confirm('Сбросить сохранённые маппинги для текущей команды?')) return;
+    
+    try {
+      const response = await fetch('/api/player-mappings/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          teamId: selectedTeam
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast({
+          title: "Успешно",
+          description: `Маппинги сброшены. Удалено ${result.deleted} записей`,
+        });
+        fetchMappings(); // Обновляем список
+      } else {
+        throw new Error('Ошибка при сбросе маппингов');
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось сбросить маппинги",
+        variant: "destructive"
+      });
+    }
+  };
+
   const fetchMappings = async () => {
     if (!selectedTeam) return;
 
@@ -70,6 +103,7 @@ export default function PlayerMappingsTab({ teamId }: PlayerMappingsTabProps) {
       const response = await fetch(`/api/player-mappings?teamId=${selectedTeam}`);
       if (response.ok) {
         const data = await response.json();
+        console.log('[GPS-DEBUG] PlayerMappingsTab received data:', JSON.stringify(data, null, 2));
         setMappings(data);
       } else {
         console.error('Ошибка при получении маппингов');
@@ -100,6 +134,40 @@ export default function PlayerMappingsTab({ teamId }: PlayerMappingsTabProps) {
       toast({
         title: "Ошибка",
         description: "Не удалось удалить маппинг игрока",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const resetAllMappings = async () => {
+    if (!selectedTeam) return;
+    
+    if (!confirm('Сбросить все сохранённые маппинги для этой команды и GPS системы?')) return;
+    
+    try {
+      const response = await fetch('/api/player-mappings/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          teamId: selectedTeam, 
+          gpsSystem: 'all' // Сбрасываем для всех GPS систем
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast({
+          title: "Успешно",
+          description: `Удалено ${result.removed} маппингов`,
+        });
+        fetchMappings(); // Обновляем список
+      } else {
+        throw new Error('Ошибка при сбросе маппингов');
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось сбросить маппинги",
         variant: "destructive"
       });
     }
@@ -151,6 +219,28 @@ export default function PlayerMappingsTab({ teamId }: PlayerMappingsTabProps) {
             Управление сопоставлением игроков из отчетов с игроками в команде
           </p>
         </div>
+        {selectedTeam && mappings.length > 0 && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resetMappingsForEvent}
+              className="bg-orange-500/20 text-orange-400 border-orange-500/30 hover:bg-orange-500/30"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Сбросить маппинги
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={resetAllMappings}
+              className="bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Сбросить все
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Выбор команды */}
@@ -184,18 +274,28 @@ export default function PlayerMappingsTab({ teamId }: PlayerMappingsTabProps) {
         </div>
       ) : (
         <div className="grid gap-4">
-          {mappings.map((mapping) => (
+          {mappings.map((mapping) => {
+            const playerName = mapping.player 
+              ? `${(mapping.player as any).firstName || ''} ${(mapping.player as any).lastName || ''}`.trim() || '—'
+              : '—';
+            const playerId = mapping.player?.id;
+            const pct = Math.round((mapping.mapping?.confidenceScore ?? 0) * 100);
+            
+            return (
             <Card key={mapping.mapping.id} className="bg-vista-dark/50 border-vista-secondary/50">
               <CardHeader>
                 <CardTitle className="text-vista-light flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="font-medium">{mapping.mapping.reportName}</span>
                     <span className="text-vista-light/60">→</span>
-                    <span className="text-vista-primary">{mapping.player.name}</span>
+                    <span className="text-vista-primary">{playerName}</span>
+                    {!mapping.player && (
+                      <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">нет в ростере</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge className={getConfidenceColor(mapping.mapping.confidenceScore)}>
-                      {Math.round(mapping.mapping.confidenceScore * 100)}%
+                      {pct}%
                     </Badge>
                     <div className="flex items-center gap-1">
                       {getMappingTypeIcon(mapping.mapping.mappingType)}
@@ -230,7 +330,8 @@ export default function PlayerMappingsTab({ teamId }: PlayerMappingsTabProps) {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 

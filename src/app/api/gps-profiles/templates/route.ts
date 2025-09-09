@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
           mappedColumn: 'Time',
           displayName: 'Время',
           dataType: 'string',
+          canonicalKey: 'minutes_played',
           isVisible: true
         },
         {
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest) {
           mappedColumn: 'TD',
           displayName: 'Общая дистанция',
           dataType: 'number',
+          canonicalKey: 'total_distance_m',
           isVisible: true
         },
         {
@@ -57,6 +59,7 @@ export async function GET(request: NextRequest) {
           mappedColumn: 'Z-3 Tempo',
           displayName: 'Зона 3',
           dataType: 'number',
+          canonicalKey: 'distance_zone3_m',
           isVisible: true
         },
         {
@@ -66,6 +69,7 @@ export async function GET(request: NextRequest) {
           mappedColumn: 'Z-4 HIR',
           displayName: 'Зона 4',
           dataType: 'number',
+          canonicalKey: 'distance_zone4_m',
           isVisible: true
         },
         {
@@ -75,6 +79,7 @@ export async function GET(request: NextRequest) {
           mappedColumn: 'Z-5 Sprint',
           displayName: 'Зона 5',
           dataType: 'number',
+          canonicalKey: 'distance_zone5_m',
           isVisible: true
         },
         {
@@ -84,6 +89,7 @@ export async function GET(request: NextRequest) {
           mappedColumn: 'HSR',
           displayName: 'Высокоинтенсивный бег',
           dataType: 'number',
+          canonicalKey: 'hsr_distance_m',
           isVisible: true
         },
         {
@@ -93,6 +99,7 @@ export async function GET(request: NextRequest) {
           mappedColumn: 'HSR%',
           displayName: 'HSR %',
           dataType: 'number',
+          canonicalKey: 'hsr_ratio',
           isVisible: true
         },
         {
@@ -102,6 +109,7 @@ export async function GET(request: NextRequest) {
           mappedColumn: 'Sprints',
           displayName: 'Спринты',
           dataType: 'number',
+          canonicalKey: 'sprints_count',
           isVisible: true
         },
         {
@@ -111,6 +119,7 @@ export async function GET(request: NextRequest) {
           mappedColumn: 'm/min',
           displayName: 'М/мин',
           dataType: 'number',
+          canonicalKey: 'distance_per_min_m',
           isVisible: true
         },
         {
@@ -120,6 +129,7 @@ export async function GET(request: NextRequest) {
           mappedColumn: 'Acc',
           displayName: 'Ускорения',
           dataType: 'number',
+          canonicalKey: 'acc_zone1_count',
           isVisible: true
         },
         {
@@ -129,6 +139,17 @@ export async function GET(request: NextRequest) {
           mappedColumn: 'Dec',
           displayName: 'Торможения',
           dataType: 'number',
+          canonicalKey: 'dec_zone1_count',
+          isVisible: true
+        },
+        {
+          name: 'Max Speed',
+          type: 'column',
+          order: 14,
+          mappedColumn: 'Max Speed',
+          displayName: 'Максимальная скорость',
+          dataType: 'number',
+          canonicalKey: 'max_speed_ms',
           isVisible: true
         },
 
