@@ -52,7 +52,7 @@ const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'
 const toNum = (v: any) => (v === null || v === undefined || v === '') ? undefined : Number(v);
 const fmtFixed = (v: any, digits: number) => {
   const n = toNum(v);
-  return Number.isFinite(n) ? n.toFixed(digits) : '—';
+  return (typeof n === "number" && Number.isFinite(n)) ? n.toFixed(digits) : "—";
 };
 
 export default function GpsReportVisualization({ reportId }: GpsReportVisualizationProps) {

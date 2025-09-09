@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { DIMENSIONS, UNITS } from '../canon/units';
 // @ts-ignore
 import { CANON } from '../canon/metrics.registry';

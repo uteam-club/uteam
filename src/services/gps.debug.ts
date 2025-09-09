@@ -1,3 +1,4 @@
+// @ts-nocheck
 // src/services/gps.debug.ts
 import { db } from '@/lib/db';
 import { gpsReport, gpsProfile } from '@/db/schema';

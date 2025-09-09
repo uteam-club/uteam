@@ -13,6 +13,40 @@ import { buildProfileSnapshot } from '@/services/gps/profileSnapshot.service';
 import { mapRowsToCanonical } from '@/services/canon.mapper';
 import { CANON } from '@/canon/metrics.registry';
 
+
+/**
+ * Превращает rows (матрицу или массив объектов) в колоночный формат:
+ * { [canonicalKey]: (string|number|null)[] }
+ */
+function makeDataRows(rows: any, columns: any[], headers?: string[]) {
+  const out: Record<string, (string | number | null)[]> = {} as any;
+  for (const col of columns) out[col.canonicalKey] = [];
+
+  if (!Array.isArray(rows) || rows.length === 0) return out;
+
+  // Матрица: rows[0] — массив ячеек
+  if (Array.isArray(rows[0])) {
+    const headerIndex: Record<string, number> = {} as any;
+    (headers || []).forEach((h, i) => { if (h != null) headerIndex[String(h)] = i; });
+
+    for (const row of rows as any[]) {
+      for (const col of columns) {
+        const idx = headerIndex[col.sourceHeader];
+        const val = (idx !== undefined) ? row[idx] : null;
+        out[col.canonicalKey].push((val === undefined) ? null : (val as any));
+      }
+    }
+  } else {
+    // Массив объектов
+    for (const r of rows as any[]) {
+      for (const col of columns) {
+        const val = (r as any)[col.sourceHeader];
+        out[col.canonicalKey].push((val === undefined) ? null : (val as any));
+      }
+    }
+  }
+  return out;
+}
 // Проверка доступа к клубу
 async function checkClubAccess(request: NextRequest, token: any) {
   const host = request.headers.get('host') || '';
@@ -142,7 +176,17 @@ export async function POST(request: NextRequest) {
       unitCanon: 'm', // TODO: получать из канона
     }));
 
-    const canonResult = mapRowsToCanonical(parsed.rows, canonColumns);
+// Приводим canonColumns к формату ProfileSnapshotColumn для mapRowsToCanonical
+const snapshotCols = (canonColumns as any[]).map(c => ({
+  sourceHeader: c.sourceHeader ?? c.canonicalKey,
+  canonicalKey: c.canonicalKey,
+  displayName: (c.displayName ?? c.name ?? c.canonicalKey) as string,
+  order: (Number.isFinite(c.order) ? c.order : 0) as number,
+  isVisible: (c.isVisible ?? true) as boolean,
+  unit: c.unit ?? c.unitCanon ?? c.sourceUnit ?? undefined,
+  transform: c.transform ?? null
+}));
+    const canonResult = mapRowsToCanonical(makeDataRows(parsed.rows, snapshotCols, (parsed as any).headers), snapshotCols);
 
     // 4. Строим снапшот профиля
     const profileSnapshot = buildProfileSnapshot(typedProfile);
