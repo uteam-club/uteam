@@ -27,14 +27,35 @@ export async function GET(
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
-    // Получаем профиль для отчета
-    const [profile] = await db
-      .select()
-      .from(gpsProfile)
-      .where(eq(gpsProfile.id, report.profileId));
+    // Используем profileSnapshot из отчёта, если есть
+    let profile = null;
+    if (report.profileSnapshot) {
+      // Используем snapshot для стабильной визуализации
+      profile = {
+        id: report.profileId,
+        columnMapping: report.profileSnapshot.columns.map((col: any) => ({
+          name: col.displayName,
+          mappedColumn: col.sourceHeader,
+          canonicalKey: col.canonicalKey,
+          isVisible: col.isVisible,
+          order: col.order,
+          unit: col.unit,
+          transform: col.transform,
+        })),
+        gpsSystem: report.profileSnapshot.gpsSystem,
+      };
+    } else {
+      // Fallback для старых отчётов без snapshot
+      const [profileData] = await db
+        .select()
+        .from(gpsProfile)
+        .where(eq(gpsProfile.id, report.profileId));
 
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      if (!profileData) {
+        return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      }
+      
+      profile = profileData;
     }
 
     // Получаем информацию о команде

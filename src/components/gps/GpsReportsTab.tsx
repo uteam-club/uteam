@@ -116,14 +116,40 @@ export default function GpsReportsTab() {
               return;
             }
 
-        const p = await fetch(`/api/gps-profiles/${report.profileId}`);
-        if (!p.ok) throw new Error("Не удалось загрузить профиль отчета");
-        const profile = await p.json();
-
-        if (!cancelled) {
-          setReportCanonRows(canon.rows);
-          setReportProfile(profile);
-          setReportMeta(canon.meta);
+        // Используем profileSnapshot из отчёта вместо живого профиля
+        const profileSnapshot = report.profileSnapshot;
+        
+        if (!profileSnapshot) {
+          // Fallback для старых отчётов без snapshot
+          console.warn('Отчёт без profileSnapshot, загружаем живой профиль');
+          const p = await fetch(`/api/gps-profiles/${report.profileId}`);
+          if (!p.ok) throw new Error("Не удалось загрузить профиль отчета");
+          const profile = await p.json();
+          
+          if (!cancelled) {
+            setReportCanonRows(canon.rows);
+            setReportProfile(profile);
+            setReportMeta(canon.meta);
+          }
+        } else {
+          // Используем snapshot для стабильной визуализации
+          if (!cancelled) {
+            setReportCanonRows(canon.rows);
+            setReportProfile({
+              id: report.profileId,
+              columnMapping: profileSnapshot.columns.map(col => ({
+                name: col.displayName,
+                mappedColumn: col.sourceHeader,
+                canonicalKey: col.canonicalKey,
+                isVisible: col.isVisible,
+                order: col.order,
+                unit: col.unit,
+                transform: col.transform,
+              })),
+              gpsSystem: profileSnapshot.gpsSystem,
+            });
+            setReportMeta(canon.meta);
+          }
         }
       } catch (e:any) {
         if (!cancelled) setTableError(e.message || "Ошибка загрузки данных");
