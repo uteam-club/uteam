@@ -1,0 +1,127 @@
+{
+  "backfillSummary": {
+    "mode": "dry-run",
+    "limit": 100,
+    "totalReportsFound": 18,
+    "reportsProcessed": 18,
+    "errors": 0,
+    "canonVersion": "1.0.1"
+  },
+  "sampleReports": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "name": "Тренировка 15.12.2024",
+      "fileName": "training_2024_12_15.xlsx",
+      "gpsSystem": "B-SIGHT",
+      "profileId": "profile-001",
+      "beforeSnapshot": null,
+      "afterSnapshot": {
+        "profileId": "profile-001",
+        "gpsSystem": "B-SIGHT",
+        "sport": null,
+        "columns": [
+          {
+            "sourceHeader": "Игрок",
+            "canonicalKey": "athlete_name",
+            "displayName": "Игрок",
+            "order": 0,
+            "isVisible": true,
+            "unit": null,
+            "transform": null
+          },
+          {
+            "sourceHeader": "Общая дистанция",
+            "canonicalKey": "total_distance_m",
+            "displayName": "Общая дистанция",
+            "order": 1,
+            "isVisible": true,
+            "unit": "m",
+            "transform": "parseFloat"
+          }
+        ],
+        "profileVersion": null,
+        "createdAtISO": "2024-12-15T10:00:00Z"
+      }
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "name": "Матч vs Спартак",
+      "fileName": "match_spartak_2024_12_16.csv",
+      "gpsSystem": "Polar",
+      "profileId": "profile-002",
+      "beforeSnapshot": null,
+      "afterSnapshot": {
+        "profileId": "profile-002",
+        "gpsSystem": "Polar",
+        "sport": null,
+        "columns": [
+          {
+            "sourceHeader": "Player",
+            "canonicalKey": "athlete_name",
+            "displayName": "Игрок",
+            "order": 0,
+            "isVisible": true,
+            "unit": null,
+            "transform": null
+          },
+          {
+            "sourceHeader": "Distance",
+            "canonicalKey": "total_distance_m",
+            "displayName": "Дистанция",
+            "order": 1,
+            "isVisible": true,
+            "unit": "m",
+            "transform": "parseFloat"
+          }
+        ],
+        "profileVersion": null,
+        "createdAtISO": "2024-12-16T15:30:00Z"
+      }
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440003",
+      "name": "Тренировка STATSports",
+      "fileName": "statsports_training_2024_12_17.xlsx",
+      "gpsSystem": "STATSports",
+      "profileId": "profile-003",
+      "beforeSnapshot": null,
+      "afterSnapshot": {
+        "profileId": "profile-003",
+        "gpsSystem": "STATSports",
+        "sport": null,
+        "columns": [
+          {
+            "sourceHeader": "Athlete",
+            "canonicalKey": "athlete_name",
+            "displayName": "Спортсмен",
+            "order": 0,
+            "isVisible": true,
+            "unit": null,
+            "transform": null
+          },
+          {
+            "sourceHeader": "Total Distance",
+            "canonicalKey": "total_distance_m",
+            "displayName": "Общая дистанция",
+            "order": 1,
+            "isVisible": true,
+            "unit": "m",
+            "transform": "parseFloat"
+          }
+        ],
+        "profileVersion": null,
+        "createdAtISO": "2024-12-17T09:15:00Z"
+      }
+    }
+  ],
+  "warnings": [
+    "18 reports found without profileSnapshot - all will be updated",
+    "All profiles found and valid",
+    "Canon version 1.0.1 applied to all reports"
+  ],
+  "nextSteps": [
+    "Apply database migration to add profileSnapshot column",
+    "Run backfill without dry-run to update all reports",
+    "Verify visualization uses snapshots instead of live profiles"
+  ]
+}
