@@ -267,7 +267,20 @@ export async function DELETE(
     }
 
     // Проверяем, не используется ли профиль в отчетах
-    // TODO: Добавить проверку использования профиля в отчетах
+    const [usageResult] = await db
+      .select({ count: count() })
+      .from(gpsReport)
+      .where(eq(gpsReport.profileId, profileId));
+    
+    const usageCount = usageResult?.count || 0;
+
+    if (usageCount > 0) {
+      return NextResponse.json({ 
+        error: 'PROFILE_IN_USE',
+        message: `Профиль используется в ${usageCount} отчётах`,
+        usageCount 
+      }, { status: 409 });
+    }
 
     // Удаляем профиль
     await db
