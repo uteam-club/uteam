@@ -20,7 +20,8 @@
     "migrate-training-id": "tsx scripts/run-safe-migration.ts",
     "migrate-rpe-schedule": "tsx scripts/run-rpe-schedule-migration.ts",
     "migrate-rpe-recipients": "tsx scripts/apply-rpe-recipients-migration.ts",
-    "test-recipients-fix": "tsx scripts/test-recipients-fix.ts"
+    "test-recipients-fix": "tsx scripts/test-recipients-fix.ts",
+    "gps:backfill": "tsx scripts/gps/backfill-profile-snapshots.ts --dry-run=false"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.828.0",
