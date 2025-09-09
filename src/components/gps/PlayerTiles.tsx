@@ -299,7 +299,7 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
     if (!gameModel) return groups;
 
     // Получаем confidence score из GPS данных
-    const confidenceScore = gpsPlayer.confidenceScore || 0;
+    const confidenceScore = (gpsPlayer?.confidenceScore ?? 0) as number;
     const similarityLevel = getSimilarityLevel(confidenceScore);
 
     if (!groups[similarityLevel]) {
@@ -425,18 +425,19 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
                 
                 <div className="grid grid-cols-1 gap-6">
                   {groupPlayers.map(({ gpsPlayer, player, gameModel, confidenceScore, similarityLevel }) => {
-                    const currentMinutes = currentMatchMinutes[gpsPlayer.name] || 0;
+                    const currentMinutes = (currentMatchMinutes?.[gpsPlayer.name] ?? 0) as number;
                     const styles = getSimilarityStyles(similarityLevel);
 
                     // Получаем метрики из GPS данных текущего матча
-                    const currentMetrics: Record<string, number> = {};
+                    const currentMetrics: Record<string, number | string> = {};
                     
                     if (isCanonical) {
                       // Canonical режим - используем canonicalKey
                       profile?.columnMapping?.forEach((col: any) => {
                         if (col?.type !== 'formula' && col?.canonicalKey && col?.name && !hiddenSet.has(col.canonicalKey)) {
-                          const value = parseFloat(gpsPlayer[col.canonicalKey]) || 0;
-                          const formattedValue = formatValue(col.canonicalKey, value);
+                          const raw = gpsPlayer?.[col.canonicalKey];
+                          const num = (raw === null || raw === undefined || raw === '') ? undefined : Number(raw);
+                          const formattedValue = (num === undefined || !Number.isFinite(num)) ? '—' : formatValue(col.canonicalKey, num);
                           currentMetrics[col.name] = formattedValue;
                         }
                       });
@@ -446,8 +447,9 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
                         const columnName = col.name || col.internalField || '';
                         if (columnName && col.isVisible && columnName !== 'Player' && columnName !== 'Position' && columnName !== 'Time') {
                           const dataKey = col.mappedColumn || columnName;
-                          const value = parseFloat(gpsPlayer[dataKey]) || 0;
-                          currentMetrics[columnName] = value;
+                          const raw = gpsPlayer?.[dataKey];
+                          const num = (raw === null || raw === undefined || raw === '') ? undefined : Number(raw);
+                          currentMetrics[columnName] = (num === undefined || !Number.isFinite(num)) ? '—' : num;
                         }
                       });
                     }
@@ -530,8 +532,8 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
                         ? averageMetric.average
                         : (currentMinutes > 0 ? (averageMetric.average / 90) * currentMinutes : averageMetric.average);
 
-                      const comparison = getComparisonIndicator(currentValue, normalizedAverage);
-                      const cardBackground = getMetricCardBackground(currentValue, normalizedAverage);
+                      const comparison = typeof currentValue === 'number' ? getComparisonIndicator(currentValue, normalizedAverage) : { color: 'text-gray-400', icon: <Minus className="w-3 h-3" />, percentage: 0 };
+                      const cardBackground = typeof currentValue === 'number' ? getMetricCardBackground(currentValue, normalizedAverage) : 'bg-gray-800/50 border-gray-600/30';
 
                                              return (
                          <Card key={metricName} className={`${cardBackground} hover:scale-[1.02] transition-transform duration-200`}>
@@ -556,7 +558,7 @@ export default function PlayerTiles({ gpsData, teamId, profileId, currentMatchMi
                                    {getMetricUnit(metricName)}
                                  </span>
                                </p>
-                               <p className="text-[6px] sm:text-[7px] md:text-[8px] text-vista-light/60">текущий: {currentValue.toFixed(1)}</p>
+                               <p className="text-[6px] sm:text-[7px] md:text-[8px] text-vista-light/60">текущий: {typeof currentValue === 'number' ? currentValue.toFixed(1) : currentValue}</p>
                              </div>
                            </CardContent>
                          </Card>

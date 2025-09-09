@@ -48,6 +48,13 @@ interface ProcessedGpsData {
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 
+// Утилиты для безопасного отображения чисел
+const toNum = (v: any) => (v === null || v === undefined || v === '') ? undefined : Number(v);
+const fmtFixed = (v: any, digits: number) => {
+  const n = toNum(v);
+  return Number.isFinite(n) ? n.toFixed(digits) : '—';
+};
+
 export default function GpsReportVisualization({ reportId }: GpsReportVisualizationProps) {
   const { t } = useTranslation();
   const [data, setData] = useState<ProcessedGpsData | null>(null);
@@ -112,17 +119,17 @@ export default function GpsReportVisualization({ reportId }: GpsReportVisualizat
   // Подготавливаем данные для графиков
   const distanceChartData = data.players.map(player => ({
     name: player.playerName,
-    distance: player.metrics.distance || 0,
-    time: player.metrics.time || 0,
-    maxSpeed: player.metrics.maxSpeed || 0,
-    averageSpeed: player.metrics.averageSpeed || 0,
-    distancePerMinute: player.customMetrics.distancePerMinute || 0
+    distance: toNum(player.metrics.distance) ?? null,
+    time: toNum(player.metrics.time) ?? null,
+    maxSpeed: toNum(player.metrics.maxSpeed) ?? null,
+    averageSpeed: toNum(player.metrics.averageSpeed) ?? null,
+    distancePerMinute: toNum(player.customMetrics.distancePerMinute) ?? null
   }));
 
   const speedChartData = data.players.map(player => ({
     name: player.playerName,
-    maxSpeed: player.metrics.maxSpeed || 0,
-    averageSpeed: player.metrics.averageSpeed || 0
+    maxSpeed: toNum(player.metrics.maxSpeed) ?? null,
+    averageSpeed: toNum(player.metrics.averageSpeed) ?? null
   }));
 
   return (
@@ -252,20 +259,20 @@ export default function GpsReportVisualization({ reportId }: GpsReportVisualizat
                   <tr key={player.playerId} className="border-b hover:bg-muted/50">
                     <td className="py-2 font-medium">{player.playerName}</td>
                     <td className="text-right py-2">
-                      {(player.metrics.distance || 0).toFixed(0)}
+                      {fmtFixed(player.metrics.distance, 0)}
                     </td>
                     <td className="text-right py-2">
-                      {(player.metrics.time || 0).toFixed(0)}
+                      {fmtFixed(player.metrics.time, 0)}
                     </td>
                     <td className="text-right py-2">
-                      {(player.metrics.maxSpeed || 0).toFixed(1)}
+                      {fmtFixed(player.metrics.maxSpeed, 1)}
                     </td>
                     <td className="text-right py-2">
-                      {(player.metrics.averageSpeed || 0).toFixed(1)}
+                      {fmtFixed(player.metrics.averageSpeed, 1)}
                     </td>
                     <td className="text-right py-2">
                       <Badge variant="secondary">
-                        {(player.customMetrics.distancePerMinute || 0).toFixed(1)}
+                        {fmtFixed(player.customMetrics.distancePerMinute, 1)}
                       </Badge>
                     </td>
                   </tr>

@@ -1,6 +1,6 @@
+import { DIMENSIONS, UNITS } from '../canon/units';
 // @ts-ignore
 import { CANON } from '../canon/metrics.registry';
-import { convertUnit } from '../canon/units';
 
 const toNum = (v: any) =>
   (v === null || v === undefined || v === '') ? undefined : Number(v);
@@ -55,19 +55,24 @@ export function toCanonicalValue(
     return { value: num };
   }
 
-  // Конвертируем единицы через CANON
-  const dimension = CANON.dimensions[col.dimension as keyof typeof CANON.dimensions];
+  // Конвертируем единицы
+  const dimension = DIMENSIONS[col.dimension];
   if (!dimension) {
     return { value: num, warning: `Unknown dimension: ${col.dimension}` };
   }
 
-  // Используем convertUnit из CANON
-  try {
-    const canonicalValue = convertUnit(num, col.unit, col.unitCanon, col.dimension as keyof typeof CANON.dimensions);
-    return { value: canonicalValue };
-  } catch (error) {
-    return { value: num, warning: `Conversion failed: ${error}` };
+  const sourceUnit = UNITS[col.unit];
+  const targetUnit = UNITS[col.unitCanon];
+  
+  if (!sourceUnit || !targetUnit) {
+    return { value: num, warning: `Unknown units: ${col.unit} -> ${col.unitCanon}` };
   }
+
+  // Конвертируем через базовую единицу
+  const baseValue = num * sourceUnit.multiplier;
+  const canonicalValue = baseValue / targetUnit.multiplier;
+
+  return { value: canonicalValue };
 }
 
 /**
@@ -155,10 +160,10 @@ export function mapRowsToCanonical(
       summary[metric] = Math.max(...values);
     }
   }
-
+  
   return {
     canonical: {
-    rows: canonRows,
+      rows: canonRows,
       summary
     },
     meta: {
