@@ -280,7 +280,7 @@ describe('canon.mapper', () => {
   describe('filtering unmapped rows', () => {
     it('should include all rows when all are mapped', () => {
       const cols = [
-        { sourceHeader: 'TD', canonicalKey: 'total_distance_m', dimension: 'distance' as const }
+        { sourceHeader: 'TD', canonicalKey: 'total_distance_m', dimension: 'distance' as const, unitCanon: 'm' }
       ];
       
       const rows = [
@@ -307,7 +307,7 @@ describe('canon.mapper', () => {
 
     it('should filter out unmapped rows and return counts', () => {
       const cols = [
-        { sourceHeader: 'TD', canonicalKey: 'total_distance_m', dimension: 'distance' as const }
+        { sourceHeader: 'TD', canonicalKey: 'total_distance_m', dimension: 'distance' as const, unitCanon: 'm' }
       ];
       
       const rows = [
@@ -336,7 +336,7 @@ describe('canon.mapper', () => {
 
     it('should filter all rows when none are mapped', () => {
       const cols = [
-        { sourceHeader: 'TD', canonicalKey: 'total_distance_m', dimension: 'distance' as const }
+        { sourceHeader: 'TD', canonicalKey: 'total_distance_m', dimension: 'distance' as const, unitCanon: 'm' }
       ];
       
       const rows = [

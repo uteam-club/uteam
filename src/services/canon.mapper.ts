@@ -202,9 +202,7 @@ export function toCanonicalValue(
       } catch { return { value: num }; }
     }
     
-    // Для B-SIGHT данных: не конвертируем автоматически, оставляем как есть
-    // Проблема была в том, что все значения > 1 и <= 100 делились на 100
-    // Это неправильно для наших данных
+    // Если нет явной единицы, оставляем как есть
     return { value: num };
   }
 
@@ -292,20 +290,8 @@ export function mapRowsToCanonical(
       const rawVal =
         row[col.sourceHeader] ??
         row[col.sourceHeader.trim()] ??
-        // частый случай: в B-SIGHT мы уже переименовывали поля "TD", "Max Speed" и т.п.
-        row[col.canonicalKey] ?? // на всякий случай
-        row[col.sourceHeader.replace(/\s+/g, ' ')] ??
-        // Дополнительный поиск для B-SIGHT полей
-        row['TD'] ?? // для total_distance
-        row['Time'] ?? // для time
-        row['Max Speed'] ?? // для max_speed
-        row['Z-5 Sprint'] ?? // для zone5_sprint
-        row['HSR'] ?? // для hsr
-        row['HSR%'] ?? // для hsr_percentage
-        row['Z-3 Tempo'] ?? // для zone3_tempo
-        row['Z-4 HIR'] ?? // для zone4_hir
-        row['Acc'] ?? // для accelerations
-        row['Dec']; // для decelerations
+        row[col.canonicalKey] ?? // fallback на canonical key
+        row[col.sourceHeader.replace(/\s+/g, ' ')]; // fallback на нормализованный заголовок
 
       // GPS Debug: логируем процесс маппинга полей
       if (opts?.debug && rowIndex < 3) {
