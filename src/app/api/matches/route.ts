@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
       .where(and(...whereArr))
       .orderBy(desc(match.date));
 
-    // Возвращаем матчи без GPS отчетов
+    // Возвращаем матчи
     const matchesWithReportInfo = rows.map(row => ({
       ...row,
       name: row.teamName,

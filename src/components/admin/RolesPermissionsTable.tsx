@@ -28,8 +28,6 @@ const PERMISSION_CATEGORIES = {
   'matches': 'matches',
   'attendance': 'attendance',
   'fitnessTests': 'fitness_tests',
-  'gpsReports': 'gps_reports',
-  'gpsProfiles': 'gps_profiles',
   'calendar': 'calendar',
   'morningSurvey': 'morning_survey',
   'rpeSurvey': 'rpe_survey',
