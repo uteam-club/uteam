@@ -18,6 +18,35 @@ import { Upload, FileSpreadsheet, CheckCircle, Users, Trash2 } from 'lucide-reac
 import { useToast } from '@/components/ui/use-toast';
 import PlayerMappingModal from './PlayerMappingModal';
 
+type RawMapping = {
+  sourceName?: string | null;
+  selectedPlayerId?: string | null;
+  confidence?: number | null;
+  action?: 'confirm' | 'create' | 'skip' | string;
+};
+
+function sanitizePlayerMappings(input: RawMapping[] | undefined) {
+  if (!Array.isArray(input)) return [];
+  const clean: { sourceName: string; selectedPlayerId: string; confidence?: number }[] = [];
+  const seen = new Set<string>();
+  for (const m of input) {
+    const name = (m?.sourceName ?? '').trim();
+    const pid = (m?.selectedPlayerId ?? '').trim();
+    if (!name || !pid) continue;                 // пропускаем пустые
+    if (m?.action && m.action !== 'confirm') continue; // оставляем только подтверждённые
+    const key = `${name}::${pid}`;
+    if (seen.has(key)) continue;                 // убираем дубликаты
+    seen.add(key);
+    const cm: { sourceName: string; selectedPlayerId: string; confidence?: number } = {
+      sourceName: name,
+      selectedPlayerId: pid,
+    };
+    if (typeof m?.confidence === 'number') cm.confidence = m.confidence;
+    clean.push(cm);
+  }
+  return clean;
+}
+
 interface UploadGpsReportModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -250,66 +279,63 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
     await uploadReport();
   };
 
-  // === REPLACE uploadReport ===
-  const uploadReport = async (playerMappings: Array<any> = []) => {
+  const uploadReport = async (incomingMappings?: RawMapping[]) => {
     try {
-      if (!file) throw new Error('FILE_REQUIRED');
-      const eventId = selectedEvent;
-      const teamId = selectedTeam;
-      const profileId = selectedProfile;
-      const gpsSystem = selectedGpsSystem;
+      if (!file || !selectedEvent || !selectedTeam || !selectedGpsSystem || !selectedProfile) {
+        toast({
+          title: "Ошибка",
+          description: "Заполните все поля и выберите файл",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const eventTypeEnum = String(eventType || 'TRAINING').toUpperCase() === 'MATCH' ? 'MATCH' : 'TRAINING';
-
-      if (!eventId) throw new Error('EVENT_REQUIRED');
-      if (!teamId) throw new Error('TEAM_REQUIRED');
-      if (!profileId) throw new Error('PROFILE_REQUIRED');
-      if (!gpsSystem) throw new Error('GPSSYSTEM_REQUIRED');
-
+      const cleanMappings = sanitizePlayerMappings(incomingMappings ?? playerMappings);
+      
       const meta = {
-        eventId,
-        teamId,
-        gpsSystem,
-        profileId,
-        fileName: file?.name ?? 'report.xlsx',
-        eventType: eventTypeEnum,
-        playerMappings: playerMappings ?? [],
+        eventId: selectedEvent,
+        teamId: selectedTeam,
+        gpsSystem: selectedGpsSystem,
+        profileId: selectedProfile,
+        fileName: file.name,
+        eventType: eventTypeEnum,            // как у вас уже вычисляется выше
+        playerMappings: cleanMappings,       // только валидные пары
       };
 
       const fd = new FormData();
       fd.append('file', file);
-      fd.append('meta', JSON.stringify(meta));
+      fd.append('meta', JSON.stringify(meta));  // никаких других append!
 
-      console.debug('[gps-reports] meta', meta);
-      for (const [k, v] of fd.entries()) {
-        console.debug('FD', k, v instanceof Blob ? `Blob(${(v as Blob).type || 'file'})` : v);
-      }
+      console.debug('[gps-reports] meta.sanitized', meta);
 
       setIsLoading(true);
       const res = await fetch('/api/gps-reports', { method: 'POST', body: fd });
-      const text = await res.text();
-      let json: any = null;
-      try { json = JSON.parse(text); } catch { /* keep text */ }
-
       if (!res.ok) {
-        console.error('Upload failed', res.status, json || text);
-        const code = json?.error ?? 'UPLOAD_FAILED';
-        const details = json?.details;
-        throw new Error(`${code}${details ? `: ${JSON.stringify(details)}` : ''}`);
+        const payload = await res.json().catch(() => ({}));
+        console.error('[uploadReport] error', res.status, payload);
+        toast({
+          title: "Ошибка",
+          description: `Ошибка: ${payload.error ?? res.statusText}`,
+          variant: "destructive"
+        });
+        return;
       }
 
-      console.info('Upload OK', json);
+      const data = await res.json();
+      console.info('[uploadReport] OK', data);
       toast({
         title: "Успешно",
         description: "Отчёт загружен",
       });
-      resetForm();
+      resetForm?.();  // если есть функция сброса
       onClose?.();
       onUploaded?.();
     } catch (e: any) {
-      console.error('[uploadReport] error', e);
+      console.error('[uploadReport] unexpected', e);
       toast({
         title: "Ошибка",
-        description: e.message || String(e),
+        description: "Не удалось загрузить отчёт",
         variant: "destructive"
       });
     } finally {
