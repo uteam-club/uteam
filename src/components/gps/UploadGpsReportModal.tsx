@@ -250,76 +250,112 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
     await uploadReport();
   };
 
-  const uploadReport = async (customMappings?: { reportName: string; selectedPlayerId: string }[]) => {
-    if (!file || !selectedTeam || !eventType || !selectedEvent || !selectedGpsSystem || !selectedProfile) {
-      return;
-    }
-
+  const uploadReport = async () => {
     try {
-      setIsLoading(true);
-      
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('name', file.name.replace(/\.[^/.]+$/, '')); // Используем имя файла без расширения
-      formData.append('teamId', selectedTeam);
-      formData.append('eventType', eventType);
-      formData.append('eventId', selectedEvent);
-      formData.append('gpsSystem', selectedGpsSystem);
-      formData.append('profileId', selectedProfile);
-      
-      // Добавляем маппинги игроков, если они есть
-      const mappingsToUse = customMappings || playerMappings;
-      console.log('🔗 playerMappings перед отправкой:', mappingsToUse);
-      if (mappingsToUse.length > 0) {
-        formData.append('playerMappings', JSON.stringify(mappingsToUse));
-        console.log('🔗 playerMappings добавлены в formData');
-      } else {
-        console.log('⚠️ playerMappings пустые');
+      if (!selectedTeam) {
+        toast({
+          title: "Ошибка",
+          description: "Выберите команду",
+          variant: "destructive"
+        });
+        return;
+      }
+      if (!selectedEvent) {
+        toast({
+          title: "Ошибка",
+          description: "Выберите событие",
+          variant: "destructive"
+        });
+        return;
+      }
+      if (!selectedGpsSystem) {
+        toast({
+          title: "Ошибка",
+          description: "Выберите GPS систему",
+          variant: "destructive"
+        });
+        return;
+      }
+      if (!selectedProfile) {
+        toast({
+          title: "Ошибка",
+          description: "Нужно выбрать профиль GPS",
+          variant: "destructive"
+        });
+        return;
+      }
+      if (!file) {
+        toast({
+          title: "Ошибка",
+          description: "Прикрепите файл отчёта",
+          variant: "destructive"
+        });
+        return;
       }
 
-      const response = await fetch('/api/gps-reports', {
-        method: 'POST',
-        body: formData
-      });
+      // Приводим тип события к enum API
+      const eventTypeEnum =
+        (typeof eventType === 'string' &&
+          eventType.toUpperCase() === 'MATCH')
+          ? 'MATCH'
+          : 'TRAINING';
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        
-        // Обработка специфических ошибок
-        if (response.status === 400 && errorData.error === 'PROFILE_REQUIRED') {
-          toast({
-            title: "Ошибка",
-            description: "Нужно выбрать профиль GPS. Загрузите файл через профиль или укажите профиль перед загрузкой.",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        if (response.status === 404 && errorData.error === 'PROFILE_NOT_FOUND') {
-          toast({
-            title: "Ошибка",
-            description: "Выбранный профиль не найден. Пожалуйста, выберите другой профиль.",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        throw new Error(errorData.error || 'Ошибка при загрузке отчета');
+      const meta = {
+        eventId: selectedEvent,            // UUID
+        teamId: selectedTeam,              // UUID
+        gpsSystem: selectedGpsSystem,      // 'B-SIGHT' | 'POLAR' | ...
+        profileId: selectedProfile,        // UUID
+        fileName: file?.name ?? 'report.xlsx',
+        eventType: eventTypeEnum,          // 'TRAINING' | 'MATCH'
+        playerMappings: playerMappings ?? [],// массив маппингов из PlayerMappingModal
+      };
+
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('meta', JSON.stringify(meta));
+
+      // ВАЖНО: НЕ добавлять никаких других fd.append(...) (особенно playerMappings поштучно)
+
+      setIsLoading(true);
+      const res = await fetch('/api/gps-reports', { method: 'POST', body: fd });
+
+      if (!res.ok) {
+        let msg = 'Не удалось загрузить отчёт';
+        try {
+          const j = await res.json();
+          if (j?.error === 'VALIDATION_ERROR') {
+            msg = 'Ошибка валидации. Проверьте, что выбран профиль и событие';
+            console.debug('[gps-reports] zod details:', j?.details);
+          } else if (j?.error === 'PROFILE_REQUIRED') {
+            msg = 'Нужно выбрать профиль GPS';
+          } else if (j?.error === 'PROFILE_NOT_FOUND') {
+            msg = 'Выбранный профиль не найден';
+          } else if (j?.error === 'META_PARSE_ERROR') {
+            msg = 'Повреждённые метаданные (meta)';
+          } else if (j?.error) {
+            msg = j.error;
+          }
+        } catch {}
+        toast({
+          title: "Ошибка",
+          description: msg,
+          variant: "destructive"
+        });
+        return;
       }
 
       toast({
         title: "Успешно",
-        description: "GPS отчет загружен и обработан",
+        description: "Отчёт загружен",
       });
-
-      // Сброс формы
-      resetForm();
-      onClose();
-      onUploaded();
-    } catch (error: any) {
+      resetForm();             // чтобы очистить состояние
+      onClose?.();             // закрыть модалку
+      onUploaded?.();          // при необходимости дернуть refetch списка отчётов
+    } catch (e) {
+      console.error(e);
       toast({
         title: "Ошибка",
-        description: error.message || "Не удалось загрузить отчет",
+        description: "Неожиданная ошибка при загрузке отчёта",
         variant: "destructive"
       });
     } finally {
@@ -333,7 +369,7 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
     setShowPlayerMapping(false);
     
     // Теперь загружаем отчет с учетом сопоставления игроков
-    await uploadReport(mappings);
+    await uploadReport();
   };
 
   const resetForm = () => {

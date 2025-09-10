@@ -17,14 +17,22 @@ import { validateAthleteNameColumn } from '@/services/gps/validators/nameColumn.
 import { sanitizeRowsWithWarnings } from '@/services/gps/sanitizers/rowSanitizer';
 import { z } from 'zod';
 
-// Схема валидации для загрузки отчёта
+// PATCH: схемы валидации загрузки
+const PlayerMappingSchema = z.object({
+  sourceName: z.string().min(1),
+  selectedPlayerId: z.string().uuid(),
+  confidence: z.number().min(0).max(1).optional(),
+  action: z.enum(['confirm', 'create']).optional(),
+});
+
 const UploadMetaSchema = z.object({
   eventId: z.string().uuid(),
-  gpsSystem: z.string().min(1),
-  profileId: z.string().uuid(),   // ← обязательно
-  fileName: z.string().min(1),
   teamId: z.string().uuid(),
+  gpsSystem: z.string().min(1),
+  profileId: z.string().uuid(),
+  fileName: z.string().min(1),
   eventType: z.enum(['TRAINING', 'MATCH']),
+  playerMappings: z.array(PlayerMappingSchema).default([]),
 });
 
 // Проверка доступа к клубу
@@ -80,7 +88,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - загрузка нового GPS отчета (ОБЯЗАТЕЛЬНЫЙ ПРОФИЛЬ)
+// POST - загрузка нового GPS отчета (ТОЛЬКО file + meta)
 export async function POST(request: NextRequest) {
   const token = await getToken({ req: request });
   if (!token) {
@@ -98,69 +106,61 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Парсим данные в зависимости от content-type
-    let meta: any = null;
-    let file: File | null = null;
-    const ct = request.headers.get('content-type') || '';
-    
-    if (ct.includes('application/json')) {
-      // JSON запрос
-      meta = await request.json();
-    } else {
-      // Multipart запрос
-      const formData = await request.formData();
-      file = formData.get('file') as File;
-      const metaJson = formData.get('meta') as string;
-      if (metaJson) {
-        meta = JSON.parse(metaJson);
-      }
+    const formData = await request.formData();
+    const file = formData.get('file');
+    const metaRaw = formData.get('meta');
+
+    if (!(file instanceof Blob)) {
+      return NextResponse.json({ error: 'FILE_REQUIRED' }, { status: 400 });
+    }
+    if (typeof metaRaw !== 'string') {
+      return NextResponse.json({ error: 'META_REQUIRED' }, { status: 400 });
     }
 
-    // Валидация метаданных
-    const parsed = UploadMetaSchema.safeParse(meta);
+    let metaJson: unknown;
+    try {
+      metaJson = JSON.parse(metaRaw);
+    } catch {
+      return NextResponse.json({ error: 'META_PARSE_ERROR' }, { status: 400 });
+    }
+
+    const parsed = UploadMetaSchema.safeParse(metaJson);
     if (!parsed.success) {
+      console.error('[gps-reports:create] validation failed', parsed.error.flatten());
       return NextResponse.json(
-        { error: 'PROFILE_REQUIRED', details: parsed.error.flatten() },
+        { error: 'VALIDATION_ERROR', details: parsed.error.flatten() },
         { status: 400 }
       );
     }
-    const { eventId, gpsSystem, profileId, fileName, teamId, eventType } = parsed.data;
+    const meta = parsed.data;
 
-    // Если JSON запрос, файл должен быть в meta
-    if (ct.includes('application/json') && !file) {
-      return NextResponse.json({ error: 'FILE_REQUIRED' }, { status: 400 });
-    }
-
-    // Загружаем профиль
+    // --- далее твой текущий пайплайн ---
+    // 1) достаём профиль по meta.profileId
     const [profile] = await db
       .select()
       .from(gpsProfile)
-      .where(and(eq(gpsProfile.id, profileId), eq(gpsProfile.clubId, token.clubId)));
+      .where(and(eq(gpsProfile.id, meta.profileId), eq(gpsProfile.clubId, token.clubId)));
 
     if (!profile) {
       return NextResponse.json({ error: 'PROFILE_NOT_FOUND' }, { status: 404 });
     }
 
-    // Построить snapshot (переносит displayUnit)
+    // 2) строим snapshot (buildProfileSnapshot)
     const profileSnapshot = buildProfileSnapshot(profile as any);
 
-    // Распарсить файл (headers?: string[], rows: any[][] | any[])
-    if (!file) {
-      return NextResponse.json({ error: 'FILE_REQUIRED' }, { status: 400 });
-    }
-    
+    // 3) парсим файл → rawRows (+headers)
     const buffer = await file.arrayBuffer();
     const parsedFile = await parseSpreadsheet(Buffer.from(buffer), file.name);
     const { headers, rows } = parsedFile;
 
-    // Нормализация строк под snapshot
+    // 4) normalizeRowsForMapping(...)
     const { objectRows, warnings: normWarnings, strategy } = normalizeRowsForMapping({
       rows,
       headers,
       snapshot: profileSnapshot,
     });
 
-    // Канонизация
+    // 5) mapRowsToCanonical(...)
     const dataRows: Record<string, (string | number | null)[]> = {};
     objectRows.forEach((row, index) => {
       Object.keys(row).forEach(key => {
@@ -171,19 +171,19 @@ export async function POST(request: NextRequest) {
 
     const canonResult = mapRowsToCanonical(dataRows, profileSnapshot.columns);
 
-    // Создаём отчёт
+    // 6) сохраняем GpsReport с profileSnapshot и processedData
     const [newReport] = await db
       .insert(gpsReport)
       .values({
-        name: fileName,
-        fileName: fileName,
+        name: meta.fileName,
+        fileName: meta.fileName,
         fileUrl: '', // TODO: сохранить файл в storage
         fileSize: file.size.toString(),
-        gpsSystem,
-        eventType,
-        eventId,
-        teamId,
-        profileId,
+        gpsSystem: meta.gpsSystem,
+        eventType: meta.eventType,
+        eventId: meta.eventId,
+        teamId: meta.teamId,
+        profileId: meta.profileId,
         profileSnapshot,            // ← сохраняем snapshot
         rawData: rows,              // сырьё оставляем как есть
         processedData: {
@@ -199,6 +199,7 @@ export async function POST(request: NextRequest) {
           fileSize: file.size,
           normalize: { strategy, warnings: normWarnings },
           mapping: { warnings: canonResult.meta?.warnings || [] },
+          playerMappingsApplied: meta.playerMappings.length, // 7) в importMeta можно положить
           suggestions: {},
           processingTimeMs: 0,
         },
@@ -208,10 +209,11 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
+    // Верни 201/JSON с результатом
     return NextResponse.json({ id: newReport.id }, { status: 201 });
 
-  } catch (error) {
-    console.error('[gps-reports:POST] failed', error);
-    return NextResponse.json({ error: 'INGEST_FAILED' }, { status: 500 });
+  } catch (e) {
+    console.error('[gps-reports:create] unexpected', e);
+    return NextResponse.json({ error: 'UNEXPECTED' }, { status: 500 });
   }
 }
