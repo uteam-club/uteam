@@ -73,7 +73,7 @@ export function buildProfileSnapshot(profile: GpsProfile): ProfileSnapshot {
       const displayName = col.displayName || col.name || canonicalKey;
       
       // Определяем displayUnit (приоритет: профиль > эвристика)
-      const displayUnit = determineDisplayUnit(displayName, canonicalKey, col.displayUnit);
+      const displayUnit = determineDisplayUnit(displayName, canonicalKey, (col as any).displayUnit);
       
       return {
         sourceHeader,

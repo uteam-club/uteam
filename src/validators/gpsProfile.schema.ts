@@ -1,14 +1,15 @@
 import { z } from 'zod';
 import { CANON } from '@/canon/metrics.registry';
+import { allowedDisplayUnitsFor } from '@/canon/displayUnits';
 
 // Множество валидных ключей канонических метрик
 export const CanonKeysSet = new Set(CANON.metrics.map(m => m.key));
 
 // Множество deprecated метрик
-export const DeprecatedKeysSet = new Set(CANON.metrics.filter(m => m.deprecated === true).map(m => m.key));
+export const DeprecatedKeysSet = new Set(CANON.metrics.filter((m: any) => m.deprecated === true).map(m => m.key));
 
 // Множество активных (не deprecated) метрик
-export const ActiveKeysSet = new Set(CANON.metrics.filter(m => m.deprecated !== true).map(m => m.key));
+export const ActiveKeysSet = new Set(CANON.metrics.filter((m: any) => m.deprecated !== true).map(m => m.key));
 
 // Функция для получения метрики по ключу
 const getMetricByKey = (key: string) => CANON.metrics.find(m => m.key === key);
@@ -129,6 +130,18 @@ export const ColumnMappingItemSchema = z.object({
               ctx.addIssue({ 
                 code: z.ZodIssueCode.custom, 
                 message: `Недопустимая единица отображения для «${metric.labels?.ru || val.canonicalKey}». Доступные: ${validUnits.join(', ')}`,
+                path: ['displayUnit']
+              });
+            }
+          }
+          
+          // Общая проверка displayUnit через allowedDisplayUnitsFor
+          if (val.displayUnit) {
+            const allowedUnits = allowedDisplayUnitsFor(val.canonicalKey);
+            if (allowedUnits.length > 0 && !allowedUnits.includes(val.displayUnit)) {
+              ctx.addIssue({ 
+                code: z.ZodIssueCode.custom, 
+                message: `Единица «${val.displayUnit}» недопустима для «${metric.labels?.ru || val.canonicalKey}». Доступные: ${allowedUnits.join(', ')}`,
                 path: ['displayUnit']
               });
             }

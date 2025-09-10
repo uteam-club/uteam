@@ -28,6 +28,7 @@ function normalizeColumns(columns: any[]): any[] {
     canonicalKey: col.canonicalKey,
     isVisible: col.isVisible ?? true,
     order: Number.isFinite(col.order) ? col.order : idx,
+    displayUnit: col.displayUnit, // Сохраняем displayUnit
     ...(col.type === 'formula' && col.formula ? { formula: col.formula } : {})
   }));
 }
@@ -86,9 +87,11 @@ export async function POST(request: NextRequest) {
     // Валидация с помощью zod схемы
     const parsed = CreateGpsProfileSchema.safeParse(json);
     if (!parsed.success) {
+      const details = parsed.error.flatten();
+      console.error('[gps-profiles:create] validation failed', details);
       return NextResponse.json({ 
-        error: 'Validation failed', 
-        details: parsed.error.format() 
+        error: 'VALIDATION_ERROR', 
+        details 
       }, { status: 400 });
     }
 

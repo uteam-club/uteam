@@ -106,4 +106,19 @@ describe('Display Units Helper', () => {
       expect(isValidDisplayUnit('max_speed_ms', undefined as any)).toBe(false);
     });
   });
+
+  describe('API validation integration', () => {
+    test('should reject invalid displayUnit for API validation', () => {
+      // Тест для интеграции с API валидацией
+      const invalidUnit = 'invalid_unit';
+      const canonicalKey = 'max_speed_ms';
+      
+      expect(isValidDisplayUnit(canonicalKey, invalidUnit)).toBe(false);
+      
+      // Проверяем, что allowedDisplayUnitsFor не содержит недопустимую единицу
+      const allowedUnits = allowedDisplayUnitsFor(canonicalKey);
+      expect(allowedUnits).not.toContain(invalidUnit);
+      expect(allowedUnits).toEqual(['m/s', 'km/h', 'm/min']);
+    });
+  });
 });

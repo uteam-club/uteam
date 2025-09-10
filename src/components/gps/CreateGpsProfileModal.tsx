@@ -445,19 +445,24 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
         mappedColumn: col.sourceHeader,
         canonicalKey: col.canonicalKey,
         isVisible: true, // Все колонки видимы по умолчанию
-        order: col.order
+        order: col.order,
+        displayUnit: col.displayUnit // Включаем displayUnit
       }));
+
+      const payload = {
+        name: profileName,
+        gpsSystem: gpsSystem === 'Custom' ? customGpsSystem : gpsSystem,
+        columns: apiColumns
+      };
+      
+      console.debug('[gps-profiles:create] payload', payload);
 
       const response = await fetch('/api/gps-profiles', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: profileName,
-          gpsSystem: gpsSystem === 'Custom' ? customGpsSystem : gpsSystem,
-          columns: apiColumns
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await response.json();
