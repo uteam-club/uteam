@@ -84,6 +84,7 @@ export function buildProfileSnapshot(profile: GpsProfile): ProfileSnapshot {
         unit: col.unit || null,
         transform: col.transform || null,
         displayUnit,
+        sourceIndex: (col as any).mappedColumnIndex ?? (col as any).originalIndex ?? undefined,
       };
     })
     .sort((a, b) => a.order - b.order);

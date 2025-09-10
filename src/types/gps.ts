@@ -9,6 +9,7 @@ export interface ProfileSnapshotColumn {
   unit?: string | null;
   transform?: string | null;
   displayUnit?: 'km/h' | 'm/s' | '%' | 'ratio' | 'm' | 's' | 'min' | string;
+  sourceIndex?: number;
 }
 
 export interface ProfileSnapshot {

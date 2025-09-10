@@ -11,6 +11,7 @@ import { PlayerMappingService } from '@/services/playerMapping.service';
 import { parseSpreadsheet, applyProfile, GpsProfile } from '@/services/gps/ingest.service';
 import { buildProfileSnapshot } from '@/services/gps/profileSnapshot.service';
 import { mapRowsToCanonical } from '@/services/canon.mapper';
+import { normalizeRowsForMapping } from '@/services/gps/normalizeRowsForMapping';
 import { CANON } from '@/canon/metrics.registry';
 import { validateAthleteNameColumn } from '@/services/gps/validators/nameColumn.validator';
 import { sanitizeRowsWithWarnings } from '@/services/gps/sanitizers/rowSanitizer';
@@ -175,21 +176,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Маппим в канонические данные
-    const canonColumns = profileResult.mappedColumns.map(col => ({
-      sourceHeader: col.sourceHeader,
-      canonicalKey: col.canonicalKey,
-      sourceUnit: undefined, // TODO: извлекать из профиля если нужно
-      dimension: 'distance' as const, // TODO: получать из канона
-      unitCanon: 'm', // TODO: получать из канона
-    }));
-
-    // TODO: Convert parsed.rows to dataRows format for mapRowsToCanonical
-    const dataRows: Record<string, (string | number | null)[]> = {};
-    const canonResult = { canonical: { rows: [], summary: {} } };
-
-    // 5. Строим снапшот профиля
+    // 4. Строим снапшот профиля
     const profileSnapshot = buildProfileSnapshot(typedProfile);
+
+    // 5. Нормализуем строки для маппинга
+    const headers = (parsed as any)?.headers ?? null;
+    const rows = (parsed as any)?.rows ?? [];
+
+    const { objectRows, warnings: normWarnings, strategy } = normalizeRowsForMapping({
+      rows,
+      headers,
+      snapshot: profileSnapshot,
+    });
+
+    // 6. Маппим в канонические данные
+    const dataRows: Record<string, (string | number | null)[]> = {};
+    objectRows.forEach((row, index) => {
+      Object.keys(row).forEach(key => {
+        if (!dataRows[key]) dataRows[key] = [];
+        dataRows[key][index] = row[key];
+      });
+    });
+
+    const canonResult = mapRowsToCanonical(dataRows, profileSnapshot.columns);
 
     // 6. Санитизация строк (если есть canonical данные)
     let sanitizedRows = parsed.rows;
@@ -219,10 +228,13 @@ export async function POST(request: NextRequest) {
     const importMeta = {
       fileSize: file.size,
       rowCount: parsed.rows.length,
+      rawHeaders: headers,
+      normalizeStrategy: strategy,
       warnings: [
         ...profileResult.warnings,
         ...nameValidation.warnings,
-        ...sanitizationWarnings
+        ...sanitizationWarnings,
+        ...normWarnings
       ],
       suggestions: nameValidation.suggestions,
       processingTimeMs: 0, // TODO: измерить время обработки
