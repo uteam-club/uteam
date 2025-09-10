@@ -8,6 +8,7 @@ export interface ProfileSnapshotColumn {
   isVisible: boolean;
   unit?: string | null;
   transform?: string | null;
+  displayUnit?: 'km/h' | 'm/s' | '%' | 'ratio' | 'm' | 's' | 'min' | string;
 }
 
 export interface ProfileSnapshot {

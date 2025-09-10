@@ -1,5 +1,8 @@
 import React from "react";
 import { CANON } from "@/canon/metrics.registry";
+import { fromCanonical, formatDisplayValue, getDisplayUnit } from "@/services/units";
+import { filterCanonicalData, getPlayerNameFromRow } from "@/services/gps/dataFilter.service";
+import { ProfileSnapshotColumn } from "@/types/gps";
 
 type CanonicalRow = Record<string, unknown> & {
   athlete_name?: string | null;
@@ -22,6 +25,9 @@ type GpsProfileLite = {
 type Props = { 
   rows: CanonicalRow[]; 
   profile: GpsProfileLite;
+  profileSnapshot?: {
+    columns: ProfileSnapshotColumn[];
+  };
   meta?: { 
     counts?: { 
       input?: number;
@@ -40,48 +46,93 @@ type ColumnMeta = {
   order?: number;
 };
 
-const formatValue = (v: any, col: ColumnMeta) => {
+const formatValue = (v: any, col: ColumnMeta, displayUnit?: string) => {
   if (v == null || v === "") return "—";
-  if (col.dimension === "ratio") {
-    const num = Number(v);
-    if (!isFinite(num)) return "—";
-    return `${(num * 100).toFixed(0)}%`; // 0 знаков для процентов
+  
+  // Если есть displayUnit, используем конвертер
+  if (displayUnit) {
+    const convertedValue = fromCanonical(v, col.key, displayUnit);
+    if (convertedValue !== null) {
+      return formatDisplayValue(convertedValue, displayUnit);
+    }
   }
-  if (col.dimension === "count") return `${Math.round(Number(v)).toLocaleString("ru-RU")}`;
-  if (col.dimension === "speed") return Number(v).toFixed(1); // м/с, 1 знак
-  if (col.dimension === "time") return Math.round(Number(v)).toLocaleString("ru-RU"); // сек
-  if (col.dimension === "distance") return Math.round(Number(v)).toLocaleString("ru-RU"); // м
-  return String(v); // identity / прочее
+  
+  // Fallback: простое отображение без конвертации
+  const num = Number(v);
+  if (!isFinite(num)) return "—";
+  return num.toFixed(1);
 };
 
-export default function GpsReportTable({ rows, profile, meta }: Props) {
+export default function GpsReportTable({ rows, profile, profileSnapshot, meta }: Props) {
   const hiddenSet = new Set(profile?.visualizationConfig?.hiddenCanonicalKeys ?? []);
 
+  // Фильтруем данные если есть profileSnapshot
+  const { filteredRows, filteredCount, warnings } = React.useMemo(() => {
+    if (!profileSnapshot?.columns) {
+      return { filteredRows: rows, filteredCount: 0, warnings: [] };
+    }
+    return filterCanonicalData(rows, profileSnapshot.columns);
+  }, [rows, profileSnapshot]);
+
   const playerHeader = React.useMemo(() => {
+    // Используем profileSnapshot если доступен
+    if (profileSnapshot?.columns) {
+      const col = profileSnapshot.columns.find(c => c.canonicalKey === 'athlete_name');
+      return (col?.displayName || 'Игрок').toUpperCase();
+    }
+    
+    // Fallback к старой логике
     const col = profile?.columnMapping?.find(c => c.canonicalKey === 'athlete_name');
     return (col?.displayName || col?.name || 'Игрок').toUpperCase();
-  }, [profile]);
+  }, [profile, profileSnapshot]);
 
-  const mapped = (profile?.columnMapping ?? [])
-    .filter((c: any) => c && c.canonicalKey && c.type !== "formula");
+  // Используем profileSnapshot если доступен, иначе fallback к profile
+  const columns = React.useMemo(() => {
+    if (profileSnapshot?.columns) {
+      return profileSnapshot.columns
+        .filter(col => col.isVisible && col.canonicalKey !== 'athlete_name')
+        .map(col => {
+          const meta = CANON.metrics.find(m => m.key === col.canonicalKey);
+          if (!meta) return null;
+          
+          const displayUnit = getDisplayUnit(col);
+          const unit = displayUnit !== 'unknown' ? displayUnit : CANON.dimensions[meta.dimension]?.canonical_unit ?? "";
+          
+          return { 
+            key: col.canonicalKey, 
+            label: col.displayName, 
+            unit: unit || undefined, 
+            dimension: meta.dimension as any, 
+            order: col.order,
+            displayUnit: col.displayUnit
+          };
+        })
+        .filter(col => col !== null)
+        .sort((a, b) => (a!.order ?? 9999) - (b!.order ?? 9999)) as (ColumnMeta & { displayUnit?: string })[];
+    }
+    
+    // Fallback к старой логике
+    const mapped = (profile?.columnMapping ?? [])
+      .filter((c: any) => c && c.canonicalKey && c.type !== "formula");
 
-  const columns = mapped
-    .map((c: any) => {
-      const meta = CANON.metrics.find(m => m.key === c.canonicalKey);
-      if (!meta) return null;
-      const label =
-        (c.displayName ?? "").trim() ||
-        (c.name ?? "").trim() ||
-        meta.labels?.ru ||
-        meta.labels?.en ||
-        c.canonicalKey;
+    return mapped
+      .map((c: any) => {
+        const meta = CANON.metrics.find(m => m.key === c.canonicalKey);
+        if (!meta) return null;
+        const label =
+          (c.displayName ?? "").trim() ||
+          (c.name ?? "").trim() ||
+          meta.labels?.ru ||
+          meta.labels?.en ||
+          c.canonicalKey;
 
-      const unit = CANON.dimensions[meta.dimension]?.canonical_unit ?? "";
-      return { key: c.canonicalKey, label, unit: unit || undefined, dimension: meta.dimension as any, order: c.order };
-    })
-    .filter(col => col !== null)
-    .filter(col => col!.key !== "athlete_name" && col!.key !== "player_name")
-    .sort((a, b) => (a!.order ?? 9999) - (b!.order ?? 9999)) as ColumnMeta[];
+        const unit = CANON.dimensions[meta.dimension]?.canonical_unit ?? "";
+        return { key: c.canonicalKey, label, unit: unit || undefined, dimension: meta.dimension as any, order: c.order };
+      })
+      .filter(col => col !== null)
+      .filter(col => col!.key !== "athlete_name" && col!.key !== "player_name")
+      .sort((a, b) => (a!.order ?? 9999) - (b!.order ?? 9999)) as ColumnMeta[];
+  }, [profile, profileSnapshot]);
 
   // ⚠️ исключи возможную колонку имени из профиля — имя и так будет отдельной sticky-колонкой
   const columnsWithoutName = columns;
@@ -95,22 +146,27 @@ export default function GpsReportTable({ rows, profile, meta }: Props) {
     console.debug('[GpsReportTable] columns labels', columns.map(c => c.label));
   }
 
-  if (!rows?.length) {
+  if (!filteredRows?.length) {
     return (
       <div className="mt-6 rounded-lg border border-border/50 bg-card/30 p-10 text-center text-muted-foreground">
         Нет канонических строк для отображения.
+        {filteredCount > 0 && (
+          <div className="mt-2 text-sm">
+            Отфильтровано {filteredCount} строк
+          </div>
+        )}
       </div>
     );
   }
 
   // Временные логи для диагностики
-  console.log('[GPS:UI] row0 keys=', Object.keys(rows[0] ?? {}));
+  console.log('[GPS:UI] row0 keys=', Object.keys(filteredRows[0] ?? {}));
   console.log('[GPS:UI] columns=', columns.map(c => ({id: c.key, accessorKey: c.key, label: c.label})));
 
   const averages = React.useMemo(() => {
     const acc: Record<string, number> = {};
     const cnt: Record<string, number> = {};
-    for (const r of rows) {
+    for (const r of filteredRows) {
       for (const col of columnsWithoutName) {
         const v = r[col.key];
         const num = typeof v === "number" ? v : Number(v);
@@ -125,16 +181,27 @@ export default function GpsReportTable({ rows, profile, meta }: Props) {
       out[col.key] = cnt[col.key] ? acc[col.key] / cnt[col.key] : null;
     }
     return out;
-  }, [rows, columnsWithoutName]);
+  }, [filteredRows, columnsWithoutName]);
 
   return (
     <div className="mt-6">
       {/* Бейдж с количеством отфильтрованных строк */}
-      {meta?.counts?.filtered && meta.counts.filtered > 0 && (
+      {(filteredCount > 0 || (meta?.counts?.filtered && meta.counts.filtered > 0)) && (
         <div className="mb-3 flex items-center gap-2">
           <span className="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800">
-            Отфильтровано: {meta.counts.filtered}
+            Отфильтровано: {filteredCount || meta?.counts?.filtered || 0}
           </span>
+        </div>
+      )}
+      
+      {/* Предупреждения */}
+      {warnings.length > 0 && (
+        <div className="mb-3 flex items-center gap-2">
+          {warnings.map((warning, index) => (
+            <span key={index} className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+              {warning}
+            </span>
+          ))}
         </div>
       )}
       
@@ -157,8 +224,12 @@ export default function GpsReportTable({ rows, profile, meta }: Props) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, rowIdx) => {
-              const name = (r.athlete_name as string) ?? (r.name as string) ?? "—";
+            {filteredRows.map((r, rowIdx) => {
+              // Используем правильное получение имени игрока
+              const name = profileSnapshot?.columns 
+                ? getPlayerNameFromRow(r, profileSnapshot.columns) ?? "—"
+                : (r.athlete_name as string) ?? (r.name as string) ?? "—";
+              
               return (
                 <tr key={rowIdx} className={rowIdx % 2 ? "bg-muted/20" : "bg-background/20"}>
                   <td className="sticky left-0 bg-background px-3 py-2 text-sm font-medium whitespace-nowrap z-10">
@@ -166,7 +237,7 @@ export default function GpsReportTable({ rows, profile, meta }: Props) {
                   </td>
                   {columnsWithoutName.map(col => (
                     <td key={col.key} className="px-3 py-2 text-sm text-right tabular-nums">
-                      {formatValue(r[col.key], col)}
+                      {formatValue(r[col.key], col, (col as any).displayUnit)}
                     </td>
                   ))}
                 </tr>
