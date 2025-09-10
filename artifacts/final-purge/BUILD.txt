@@ -1,0 +1,151 @@
+
+> uteam-multi@1.0.0 build
+> next build
+
+  ▲ Next.js 14.2.2
+  - Environments: .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+ ⨯ ESLint: Invalid Options: - Unknown options: useEslintrc, extensions - 'extensions' has been removed.
+   Collecting page data ...
+API /api/auth/[...nextauth]/auth-options.ts loaded
+API /api/auth/[...nextauth]/route.ts called
+   Generating static pages (0/58) ...
+   Generating static pages (14/58) 
+   Generating static pages (28/58) 
+   Generating static pages (43/58) 
+ ✓ Generating static pages (58/58)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                            Size     First Load JS
+┌ ƒ /                                                  158 B          87.4 kB
+├ ƒ /_not-found                                        879 B          88.1 kB
+├ ƒ /admin                                             179 B          94.2 kB
+├ ƒ /admin/clubs/new                                   179 B          94.2 kB
+├ ƒ /analytics/morning-survey                          215 B           160 kB
+├ ƒ /api/auth/[...nextauth]                            0 B                0 B
+├ ƒ /api/auth/login                                    0 B                0 B
+├ ƒ /api/auth/service-login                            0 B                0 B
+├ ƒ /api/bot/bind-telegram                             0 B                0 B
+├ ƒ /api/clubs                                         0 B                0 B
+├ ƒ /api/clubs/[id]                                    0 B                0 B
+├ ƒ /api/clubs/by-subdomain                            0 B                0 B
+├ ƒ /api/create-admin                                  0 B                0 B
+├ ○ /api/dev/create-bot-user                           0 B                0 B
+├ ƒ /api/documents                                     0 B                0 B
+├ ƒ /api/exercise-categories                           0 B                0 B
+├ ƒ /api/exercise-categories/[id]                      0 B                0 B
+├ ƒ /api/exercise-categories/%5Bid%5D                  0 B                0 B
+├ ƒ /api/exercise-tags                                 0 B                0 B
+├ ƒ /api/exercise-tags/[id]                            0 B                0 B
+├ ƒ /api/exercises                                     0 B                0 B
+├ ƒ /api/exercises/[id]                                0 B                0 B
+├ ƒ /api/exercises/%5Bid%5D                            0 B                0 B
+├ ƒ /api/exercises/filter                              0 B                0 B
+├ ƒ /api/files/[...path]                               0 B                0 B
+├ ƒ /api/files/%5B...path%5D                           0 B                0 B
+├ ƒ /api/fitness-tests                                 0 B                0 B
+├ ƒ /api/fitness-tests/[id]                            0 B                0 B
+├ ƒ /api/fitness-tests/%5Bid%5D                        0 B                0 B
+├ ƒ /api/fitness-tests/results                         0 B                0 B
+├ ƒ /api/matches                                       0 B                0 B
+├ ƒ /api/matches/[id]                                  0 B                0 B
+├ ƒ /api/matches/[id]/players                          0 B                0 B
+├ ƒ /api/muscles                                       0 B                0 B
+├ ƒ /api/pain-areas                                    0 B                0 B
+├ ○ /api/permissions                                   0 B                0 B
+├ ƒ /api/players/[playerId]/available-trainings        0 B                0 B
+├ ƒ /api/players/documents                             0 B                0 B
+├ ƒ /api/public/teams/[teamId]/players                 0 B                0 B
+├ ○ /api/roles                                         0 B                0 B
+├ ƒ /api/roles/[role]/permissions                      0 B                0 B
+├ ƒ /api/rpe-schedules                                 0 B                0 B
+├ ƒ /api/rpe-schedules/[scheduleId]                    0 B                0 B
+├ ƒ /api/rpe-schedules/[scheduleId]/recipients         0 B                0 B
+├ ƒ /api/storage/init                                  0 B                0 B
+├ ƒ /api/survey/active-id                              0 B                0 B
+├ ƒ /api/survey/morning/recipients                     0 B                0 B
+├ ƒ /api/survey/player-by-pin                          0 B                0 B
+├ ƒ /api/survey/response                               0 B                0 B
+├ ƒ /api/survey/rpe/recipients                         0 B                0 B
+├ ƒ /api/survey/rpe/response                           0 B                0 B
+├ ƒ /api/survey/schedules                              0 B                0 B
+├ ƒ /api/surveys/morning                               0 B                0 B
+├ ƒ /api/surveys/rpe                                   0 B                0 B
+├ ƒ /api/surveys/rpe/duration                          0 B                0 B
+├ ƒ /api/surveys/rpe/duration/bulk                     0 B                0 B
+├ ƒ /api/teams                                         0 B                0 B
+├ ƒ /api/teams/[id]                                    0 B                0 B
+├ ƒ /api/teams/[id]/coaches                            0 B                0 B
+├ ƒ /api/teams/[id]/players                            0 B                0 B
+├ ƒ /api/teams/[id]/players/[playerId]                 0 B                0 B
+├ ƒ /api/teams/[id]/players/[playerId]/documents       0 B                0 B
+├ ƒ /api/teams/[id]/players/[playerId]/upload-image    0 B                0 B
+├ ƒ /api/teams/[id]/rpe-schedules                      0 B                0 B
+├ ƒ /api/teams/[id]/trainings                          0 B                0 B
+├ ƒ /api/telegram/broadcast-time                       0 B                0 B
+├ ƒ /api/telegram/test-broadcast                       0 B                0 B
+├ ƒ /api/test                                          0 B                0 B
+├ ƒ /api/test-db                                       0 B                0 B
+├ ○ /api/test-morning-recipients                       0 B                0 B
+├ ƒ /api/training-categories                           0 B                0 B
+├ ƒ /api/training-categories/[id]                      0 B                0 B
+├ ƒ /api/training-categories/%5Bid%5D                  0 B                0 B
+├ ƒ /api/trainings                                     0 B                0 B
+├ ƒ /api/trainings/[id]                                0 B                0 B
+├ ƒ /api/trainings/[id]/attendance                     0 B                0 B
+├ ƒ /api/trainings/[id]/duration                       0 B                0 B
+├ ƒ /api/trainings/[id]/exercises                      0 B                0 B
+├ ƒ /api/trainings/[id]/exercises/[exerciseId]/timing  0 B                0 B
+├ ƒ /api/trainings/[id]/rpe-survey                     0 B                0 B
+├ ƒ /api/trainings/[id]/status                         0 B                0 B
+├ ƒ /api/users                                         0 B                0 B
+├ ƒ /api/users/[id]                                    0 B                0 B
+├ ƒ /api/users/[id]/permissions                        0 B                0 B
+├ ƒ /api/users/coaches                                 0 B                0 B
+├ ƒ /club/[subdomain]                                  158 B          87.4 kB
+├ ƒ /create-admin                                      1.76 kB        95.8 kB
+├ ƒ /dashboard                                         5.53 kB         154 kB
+├ ƒ /dashboard/analytics                               2.09 kB         114 kB
+├ ƒ /dashboard/analytics/attendance                    8.2 kB          153 kB
+├ ƒ /dashboard/analytics/fitness-tests                 111 kB          245 kB
+├ ƒ /dashboard/analytics/fitness-tests/%5BtestId%5D    158 B          87.4 kB
+├ ƒ /dashboard/analytics/morning-survey                516 B           160 kB
+├ ƒ /dashboard/analytics/rpe-survey                    7.33 kB         160 kB
+├ ƒ /dashboard/calendar                                13.2 kB         188 kB
+├ ƒ /dashboard/coaching                                503 B          97.6 kB
+├ ƒ /dashboard/coaching/exercises                      530 B          87.8 kB
+├ ƒ /dashboard/coaching/matches                        10 kB           163 kB
+├ ƒ /dashboard/coaching/matches/[id]                   14 kB           173 kB
+├ ƒ /dashboard/coaching/trainings                      9.47 kB         168 kB
+├ ƒ /dashboard/coaching/trainings/[id]                 22.9 kB         170 kB
+├ ƒ /dashboard/documents                               106 kB          252 kB
+├ ƒ /dashboard/settings                                501 B          97.6 kB
+├ ƒ /dashboard/settings/account                        2.72 kB         110 kB
+├ ƒ /dashboard/settings/admin                          16.5 kB         160 kB
+├ ƒ /dashboard/settings/admin/surveys                  2.15 kB        97.2 kB
+├ ƒ /dashboard/settings/profile                        649 B          97.7 kB
+├ ƒ /dashboard/survey/[surveyId]                       2.68 kB         114 kB
+├ ƒ /dashboard/survey/rpe                              4.71 kB        99.8 kB
+├ ƒ /dashboard/teams/[id]                              13.4 kB         143 kB
+├ ƒ /dashboard/teams/[id]/players/[playerId]           21.8 kB         177 kB
+├ ƒ /dashboard/teams/%5Bid%5D/players/%5BplayerId%5D   158 B          87.4 kB
+├ ƒ /dashboard/teams/create                            4.74 kB         110 kB
+├ ƒ /dashboard/training/exercises                      9.23 kB         161 kB
+├ ƒ /login                                             2.5 kB          135 kB
+├ ƒ /survey                                            5.24 kB         116 kB
+└ ƒ /test-modal                                        560 B           115 kB
++ First Load JS shared by all                          87.2 kB
+  ├ chunks/7023-44f05cae5aa253d4.js                    31.6 kB
+  ├ chunks/fd9d1056-b9fae88d9026c3b9.js                53.6 kB
+  └ other shared chunks (total)                        2.02 kB
+
+
+ƒ Middleware                                           27.2 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
