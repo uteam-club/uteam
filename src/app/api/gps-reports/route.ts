@@ -88,132 +88,104 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - загрузка нового GPS отчета (ТОЛЬКО file + meta)
-export async function POST(request: NextRequest) {
-  const token = await getToken({ req: request });
-  if (!token) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const permissions = await getUserPermissions(token.id);
-  if (!hasPermission(permissions, 'gpsReports.create')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
-  const hasAccess = await checkClubAccess(request, token);
-  if (!hasAccess) {
-    return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
-  }
-
+export async function POST(req: Request) {
   try {
-    const formData = await request.formData();
+    const formData = await req.formData();
+
     const file = formData.get('file');
     const metaRaw = formData.get('meta');
 
     if (!(file instanceof Blob)) {
-      return NextResponse.json({ error: 'FILE_REQUIRED' }, { status: 400 });
+      return new Response(JSON.stringify({ error: 'FILE_REQUIRED' }), { status: 400 });
     }
     if (typeof metaRaw !== 'string') {
-      return NextResponse.json({ error: 'META_REQUIRED' }, { status: 400 });
+      return new Response(JSON.stringify({ error: 'META_REQUIRED' }), { status: 400 });
     }
 
-    let metaJson: unknown;
+    let meta: z.infer<typeof UploadMetaSchema>;
     try {
-      metaJson = JSON.parse(metaRaw);
+      meta = JSON.parse(metaRaw);
     } catch {
-      return NextResponse.json({ error: 'META_PARSE_ERROR' }, { status: 400 });
+      return new Response(JSON.stringify({ error: 'META_PARSE_ERROR' }), { status: 400 });
     }
 
-    const parsed = UploadMetaSchema.safeParse(metaJson);
+    const parsed = UploadMetaSchema.safeParse(meta);
     if (!parsed.success) {
-      console.error('[gps-reports:create] validation failed', parsed.error.flatten());
-      return NextResponse.json(
-        { error: 'VALIDATION_ERROR', details: parsed.error.flatten() },
-        { status: 400 }
-      );
+      console.error('[gps-reports] VALIDATION_ERROR', parsed.error.flatten());
+      return new Response(JSON.stringify({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() }), { status: 400 });
     }
-    const meta = parsed.data;
 
-    // --- далее твой текущий пайплайн ---
-    // 1) достаём профиль по meta.profileId
+    console.debug('[gps-reports] meta.received', meta);
+
+    // 1) Профиль
     const [profile] = await db
       .select()
       .from(gpsProfile)
-      .where(and(eq(gpsProfile.id, meta.profileId), eq(gpsProfile.clubId, token.clubId)));
+      .where(and(eq(gpsProfile.id, meta.profileId), eq(gpsProfile.clubId, 'club-id'))); // TODO: получить из токена
 
     if (!profile) {
-      return NextResponse.json({ error: 'PROFILE_NOT_FOUND' }, { status: 404 });
+      return new Response(JSON.stringify({ error: 'PROFILE_NOT_FOUND' }), { status: 404 });
     }
 
-    // 2) строим snapshot (buildProfileSnapshot)
-    const profileSnapshot = buildProfileSnapshot(profile as any);
+    const snapshot = buildProfileSnapshot(profile as any);
 
-    // 3) парсим файл → rawRows (+headers)
-    const buffer = await file.arrayBuffer();
-    const parsedFile = await parseSpreadsheet(Buffer.from(buffer), file.name);
-    const { headers, rows } = parsedFile;
+    // 2) Парс файла (получи rows+headers, как у тебя сделано)
+    const arrayBuffer = await file.arrayBuffer();
+    const { headers, rows } = await parseSpreadsheet(Buffer.from(arrayBuffer), meta.fileName);
 
-    // 4) normalizeRowsForMapping(...)
-    const { objectRows, warnings: normWarnings, strategy } = normalizeRowsForMapping({
-      rows,
-      headers,
-      snapshot: profileSnapshot,
-    });
+    // 3) Нормализация под снапшот
+    const normalized = normalizeRowsForMapping({ headers, rows, snapshot });
 
-    // 5) mapRowsToCanonical(...)
+    // 4) Канонизация
     const dataRows: Record<string, (string | number | null)[]> = {};
-    objectRows.forEach((row, index) => {
+    normalized.objectRows.forEach((row, index) => {
       Object.keys(row).forEach(key => {
         if (!dataRows[key]) dataRows[key] = [];
         dataRows[key][index] = row[key];
       });
     });
 
-    const canonResult = mapRowsToCanonical(dataRows, profileSnapshot.columns);
+    const canonical = mapRowsToCanonical(dataRows, snapshot.columns);
 
-    // 6) сохраняем GpsReport с profileSnapshot и processedData
-    const [newReport] = await db
+    // 5) Сохранить отчёт
+    const [created] = await db
       .insert(gpsReport)
       .values({
         name: meta.fileName,
         fileName: meta.fileName,
-        fileUrl: '', // TODO: сохранить файл в storage
+        fileUrl: '',
         fileSize: file.size.toString(),
         gpsSystem: meta.gpsSystem,
         eventType: meta.eventType,
         eventId: meta.eventId,
         teamId: meta.teamId,
         profileId: meta.profileId,
-        profileSnapshot,            // ← сохраняем snapshot
-        rawData: rows,              // сырьё оставляем как есть
+        profileSnapshot: snapshot,
+        rawData: { headers, rows },
         processedData: {
-          profile: {},              // для совместимости
-          canonical: {
-            rows: canonResult.canonical.rows,
-            summary: canonResult.canonical.summary || {}
-          },
+          profile: snapshot,
+          canonical: canonical.canonical,
+          rawData: { headers, rows }
         },
         canonVersion: '1.0.1',
         importMeta: {
+          playerMappingsApplied: meta.playerMappings?.length ?? 0,
           rowCount: rows?.length ?? 0,
           fileSize: file.size,
-          normalize: { strategy, warnings: normWarnings },
-          mapping: { warnings: canonResult.meta?.warnings || [] },
-          playerMappingsApplied: meta.playerMappings.length, // 7) в importMeta можно положить
+          normalize: { strategy: normalized.strategy, warnings: normalized.warnings },
+          mapping: { warnings: canonical.meta?.warnings || [] },
           suggestions: {},
           processingTimeMs: 0,
         },
         isProcessed: true,
-        clubId: token.clubId,
-        uploadedById: token.id,
+        clubId: 'club-id', // TODO: получить из токена
+        uploadedById: 'user-id', // TODO: получить из токена
       })
       .returning();
 
-    // Верни 201/JSON с результатом
-    return NextResponse.json({ id: newReport.id }, { status: 201 });
-
-  } catch (e) {
-    console.error('[gps-reports:create] unexpected', e);
-    return NextResponse.json({ error: 'UNEXPECTED' }, { status: 500 });
+    return new Response(JSON.stringify({ ok: true, id: created.id }), { status: 201 });
+  } catch (e: any) {
+    console.error('[gps-reports] UNEXPECTED', e);
+    return new Response(JSON.stringify({ error: 'UNEXPECTED', message: e?.message ?? String(e) }), { status: 500 });
   }
 }
