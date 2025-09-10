@@ -1,0 +1,6 @@
+
+> uteam-multi@1.0.0 guard:no-gps
+> bash scripts/guards/no-gps.sh
+
+== [no-gps guard] scanning workspace ==
+✅ [no-gps guard] нарушений не найдено.

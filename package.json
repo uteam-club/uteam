@@ -25,7 +25,8 @@
     "canon:sync:plan": "tsx scripts/canon/sync-v101.ts",
     "canon:sync:apply": "tsx scripts/canon/sync-v101.ts --apply=true",
     "db:migrate:safe": "tsx scripts/db/apply-safe-migration.ts",
-    "typecheck:ci": "tsc --noEmit"
+    "typecheck:ci": "tsc --noEmit",
+    "guard:no-gps": "bash scripts/guards/no-gps.sh"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.828.0",

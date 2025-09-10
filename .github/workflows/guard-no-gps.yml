@@ -1,0 +1,19 @@
+name: Guard – No GPS v1
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: chmod +x scripts/guards/no-gps.sh
+      - run: npm run guard:no-gps
