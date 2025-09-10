@@ -1,0 +1,17 @@
+
+> uteam-multi@1.0.0 lint
+> next lint
+
+
+   We detected TypeScript in your project and reconfigured your tsconfig.json file for you. Strict-mode is set to false by default.
+   The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:
+
+   	- include was updated to add '.next/types/**/*.ts'
+
+Invalid Options:
+- Unknown options: useEslintrc, extensions, resolvePluginsRelativeTo, rulePaths, ignorePath, reportUnusedDisableDirectives
+- 'extensions' has been removed.
+- 'resolvePluginsRelativeTo' has been removed.
+- 'ignorePath' has been removed.
+- 'rulePaths' has been removed. Please define your rules using plugins.
+- 'reportUnusedDisableDirectives' has been removed. Please use the 'overrideConfig.linterOptions.reportUnusedDisableDirectives' option instead.

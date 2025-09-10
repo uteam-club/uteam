@@ -54,7 +54,6 @@ import { countries as countriesList, countryCodeToEmoji } from '@/lib/countries'
 import { formatDate } from '@/lib/date-utils';
 import { useTranslation } from 'react-i18next';
 import type { SupportedLang } from '@/types/i18n';
-import PlayerGameModelModal from '@/components/players/PlayerGameModelModal';
 
 interface Country {
   code: string;
@@ -228,7 +227,6 @@ export default function PlayerProfilePage() {
   const [fitnessTests, setFitnessTests] = useState<any[]>([]);
   const [isLoadingTests, setIsLoadingTests] = useState(false);
   const [fitnessTestResults, setFitnessTestResults] = useState<Record<string, any>>({});
-  const [isGameModelModalOpen, setIsGameModelModalOpen] = useState(false);
 
   const competitionTypeLabels: Record<string, string> = {
     FRIENDLY: 'товарищеский',
@@ -1183,12 +1181,6 @@ export default function PlayerProfilePage() {
         <div className="w-[420px] h-[480px] bg-vista-dark/40 rounded-md shadow-md flex flex-col p-6 relative">
           <div className="flex flex-row justify-between items-start mb-4">
             <span className="text-xl font-semibold text-vista-light tracking-tight">Игровая модель</span>
-            <button 
-              onClick={() => setIsGameModelModalOpen(true)}
-              className="bg-vista-primary text-vista-dark rounded-md px-4 py-1.5 text-sm font-medium shadow hover:bg-vista-primary/90 transition"
-            >
-              Анализ
-            </button>
           </div>
           <div className="flex flex-col items-center justify-center flex-1 text-center">
             <BarChart3 className="w-16 h-16 text-vista-light/30 mb-4" />
@@ -1211,12 +1203,6 @@ export default function PlayerProfilePage() {
         onDocumentDelete={handleDocumentDelete}
       />
 
-      <PlayerGameModelModal
-        isOpen={isGameModelModalOpen}
-        onClose={() => setIsGameModelModalOpen(false)}
-        playerId={playerId}
-        teamId={teamId}
-      />
     </div>
   );
 } 

@@ -39,7 +39,10 @@
   ],
   "exclude": [
     "node_modules",
+    ".next",
     "legacy",
+    "**/*.e2e.ts",
+    "**/*.e2e.tsx",
     "src/services/canon.mapper.old.ts",
     "src/services/__tests__/**",
     "scripts/**",
