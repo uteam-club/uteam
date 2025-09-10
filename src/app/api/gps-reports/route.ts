@@ -12,6 +12,8 @@ import { parseSpreadsheet, applyProfile, GpsProfile } from '@/services/gps/inges
 import { buildProfileSnapshot } from '@/services/gps/profileSnapshot.service';
 import { mapRowsToCanonical } from '@/services/canon.mapper';
 import { CANON } from '@/canon/metrics.registry';
+import { validateAthleteNameColumn } from '@/services/gps/validators/nameColumn.validator';
+import { sanitizeRowsWithWarnings } from '@/services/gps/sanitizers/rowSanitizer';
 
 // Проверка доступа к клубу
 async function checkClubAccess(request: NextRequest, token: any) {
@@ -133,7 +135,24 @@ export async function POST(request: NextRequest) {
     // 2. Применяем профиль
     const profileResult = applyProfile(parsed, typedProfile);
 
-    // 3. Маппим в канонические данные
+    // 3. Валидация колонки имён игроков
+    const nameColumn = profileResult.mappedColumns.find(col => col.canonicalKey === 'athlete_name');
+    let nameValidation = { warnings: [], suggestions: {} };
+    
+    if (nameColumn && parsed.rows.length > 0) {
+      // Извлекаем значения из колонки имён для валидации
+      const nameValues = parsed.rows
+        .slice(0, 50) // Берем первые 50 строк для анализа
+        .map(row => {
+          const rowArray = row as (string | number | null)[];
+          const nameIndex = parsed.headers.findIndex(h => h === nameColumn.sourceHeader);
+          return nameIndex >= 0 ? String(rowArray[nameIndex] || '') : '';
+        });
+      
+      nameValidation = validateAthleteNameColumn(nameValues, parsed.headers, nameColumn.sourceHeader);
+    }
+
+    // 4. Маппим в канонические данные
     const canonColumns = profileResult.mappedColumns.map(col => ({
       sourceHeader: col.sourceHeader,
       canonicalKey: col.canonicalKey,
@@ -146,14 +165,43 @@ export async function POST(request: NextRequest) {
     const dataRows: Record<string, (string | number | null)[]> = {};
     const canonResult = { canonical: { rows: [], summary: {} } };
 
-    // 4. Строим снапшот профиля
+    // 5. Строим снапшот профиля
     const profileSnapshot = buildProfileSnapshot(typedProfile);
 
-    // 5. Собираем метаданные импорта
+    // 6. Санитизация строк (если есть canonical данные)
+    let sanitizedRows = parsed.rows;
+    let sanitizationWarnings: any[] = [];
+    
+    if (canonResult.canonical.rows.length > 0) {
+      // Получаем ключи метрик для санитизации
+      const metricKeys = profileSnapshot.columns
+        .filter(col => col.canonicalKey !== 'athlete_name' && col.isVisible)
+        .map(col => col.canonicalKey);
+      
+      // Конвертируем canonical rows обратно в формат для санитизации
+      const rowsForSanitization = canonResult.canonical.rows.map(row => {
+        const sanitizedRow: Record<string, any> = {};
+        profileSnapshot.columns.forEach(col => {
+          sanitizedRow[col.canonicalKey] = row[col.canonicalKey];
+        });
+        return sanitizedRow;
+      });
+      
+      const sanitizationResult = sanitizeRowsWithWarnings(rowsForSanitization, metricKeys, {});
+      sanitizedRows = sanitizationResult.sanitizedRows;
+      sanitizationWarnings = sanitizationResult.updatedImportMeta.warnings || [];
+    }
+
+    // 7. Собираем метаданные импорта
     const importMeta = {
       fileSize: file.size,
       rowCount: parsed.rows.length,
-      warnings: profileResult.warnings,
+      warnings: [
+        ...profileResult.warnings,
+        ...nameValidation.warnings,
+        ...sanitizationWarnings
+      ],
+      suggestions: nameValidation.suggestions,
       processingTimeMs: 0, // TODO: измерить время обработки
     };
 
