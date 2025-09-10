@@ -1,3 +1,4 @@
+# deprecated: use gps-ci-lite.yml
 name: GPS Module CI
 
 on:
