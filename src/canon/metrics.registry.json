@@ -102,436 +102,6 @@
   },
   "metrics": [
     {
-      "key": "athlete_name",
-      "labels": {
-        "ru": "Имя игрока",
-        "en": "Athlete Name"
-      },
-      "description": "Отображаемое имя игрока (ФИО или короткое имя).",
-      "unit": "string",
-      "dimension": "identity",
-      "agg": "none",
-      "scaling": "none",
-      "category": "identity",
-      "isDerived": false
-    },
-    {
-      "key": "position",
-      "labels": {
-        "ru": "Позиция",
-        "en": "Position"
-      },
-      "description": "Игровая позиция (свободный текст или код: GK/DF/MF/FW и т.п.).",
-      "unit": "string",
-      "dimension": "identity",
-      "agg": "none",
-      "scaling": "none",
-      "category": "identity",
-      "isDerived": false
-    },
-    {
-      "key": "total_distance_m",
-      "labels": {
-        "ru": "Общая дистанция",
-        "en": "Total Distance"
-      },
-      "description": "Суммарная дистанция за сессию.",
-      "unit": "m",
-      "dimension": "distance",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "distance",
-      "plausibleMin": 0,
-      "plausibleMax": 25000,
-      "isDerived": false
-    },
-    {
-      "key": "duration_s",
-      "labels": {
-        "ru": "Время на поле (сек)",
-        "en": "Time on Pitch (s)"
-      },
-      "description": "Фактическое игровое время игрока в секундах.",
-      "unit": "s",
-      "dimension": "time",
-      "agg": "sum",
-      "scaling": "none",
-      "category": "participation",
-      "plausibleMin": 0,
-      "plausibleMax": 7200,
-      "isDerived": false
-    },
-    {
-      "key": "minutes_played",
-      "labels": {
-        "ru": "Время на поле (мин)",
-        "en": "Minutes Played"
-      },
-      "description": "Игровые минуты; производная от duration_s.",
-      "unit": "min",
-      "dimension": "time",
-      "agg": "sum",
-      "scaling": "none",
-      "category": "participation",
-      "plausibleMin": 0,
-      "plausibleMax": 120,
-      "isDerived": true,
-      "formula_expr": "duration_s / 60"
-    },
-    {
-      "key": "distance_zone1_m",
-      "labels": {
-        "ru": "Дистанция зона 1",
-        "en": "Distance Zone 1"
-      },
-      "description": "Дистанция в зоне скорости 1.",
-      "unit": "m",
-      "dimension": "distance",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 20000,
-      "isDerived": false
-    },
-    {
-      "key": "distance_zone2_m",
-      "labels": {
-        "ru": "Дистанция зона 2",
-        "en": "Distance Zone 2"
-      },
-      "description": "Дистанция в зоне скорости 2.",
-      "unit": "m",
-      "dimension": "distance",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 15000,
-      "isDerived": false
-    },
-    {
-      "key": "distance_zone3_m",
-      "labels": {
-        "ru": "Дистанция зона 3",
-        "en": "Distance Zone 3"
-      },
-      "description": "Дистанция в зоне скорости 3.",
-      "unit": "m",
-      "dimension": "distance",
-      "scaling": "per_time",
-      "agg": "sum",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 10000,
-      "isDerived": false
-    },
-    {
-      "key": "distance_zone4_m",
-      "labels": {
-        "ru": "Дистанция зона 4",
-        "en": "Distance Zone 4"
-      },
-      "description": "Дистанция в зоне скорости 4 (высокая скорость).",
-      "unit": "m",
-      "dimension": "distance",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 8000,
-      "isDerived": false
-    },
-    {
-      "key": "distance_zone5_m",
-      "labels": {
-        "ru": "Дистанция зона 5",
-        "en": "Distance Zone 5"
-      },
-      "description": "Дистанция в зоне скорости 5 (очень высокая скорость).",
-      "unit": "m",
-      "dimension": "distance",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 4000,
-      "isDerived": false
-    },
-    {
-      "key": "distance_zone6_m",
-      "labels": {
-        "ru": "Дистанция зона 6",
-        "en": "Distance Zone 6"
-      },
-      "description": "Дистанция в зоне скорости 6 (спринт-зона, если используется).",
-      "unit": "m",
-      "dimension": "distance",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 3000,
-      "isDerived": false
-    },
-    {
-      "key": "time_in_speed_zone1_s",
-      "labels": {
-        "ru": "Время в зоне скорости 1",
-        "en": "Time in Speed Zone 1"
-      },
-      "description": "Суммарное время в зоне скорости 1.",
-      "unit": "s",
-      "dimension": "time",
-      "agg": "sum",
-      "scaling": "none",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 7200,
-      "isDerived": false
-    },
-    {
-      "key": "time_in_speed_zone2_s",
-      "labels": {
-        "ru": "Время в зоне скорости 2",
-        "en": "Time in Speed Zone 2"
-      },
-      "description": "Суммарное время в зоне скорости 2.",
-      "unit": "s",
-      "dimension": "time",
-      "agg": "sum",
-      "scaling": "none",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 7200,
-      "isDerived": false
-    },
-    {
-      "key": "time_in_speed_zone3_s",
-      "labels": {
-        "ru": "Время в зоне скорости 3",
-        "en": "Time in Speed Zone 3"
-      },
-      "description": "Суммарное время в зоне скорости 3.",
-      "unit": "s",
-      "dimension": "time",
-      "agg": "sum",
-      "scaling": "none",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 7200,
-      "isDerived": false
-    },
-    {
-      "key": "time_in_speed_zone4_s",
-      "labels": {
-        "ru": "Время в зоне скорости 4",
-        "en": "Time in Speed Zone 4"
-      },
-      "description": "Суммарное время в зоне скорости 4.",
-      "unit": "s",
-      "dimension": "time",
-      "agg": "sum",
-      "scaling": "none",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 7200,
-      "isDerived": false
-    },
-    {
-      "key": "time_in_speed_zone5_s",
-      "labels": {
-        "ru": "Время в зоне скорости 5",
-        "en": "Time in Speed Zone 5"
-      },
-      "description": "Суммарное время в зоне скорости 5.",
-      "unit": "s",
-      "dimension": "time",
-      "agg": "sum",
-      "scaling": "none",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 7200,
-      "isDerived": false
-    },
-    {
-      "key": "time_in_speed_zone6_s",
-      "labels": {
-        "ru": "Время в зоне скорости 6",
-        "en": "Time in Speed Zone 6"
-      },
-      "description": "Суммарное время в зоне скорости 6.",
-      "unit": "s",
-      "dimension": "time",
-      "agg": "sum",
-      "scaling": "none",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 7200,
-      "isDerived": false
-    },
-    {
-      "key": "speed_zone1_entries",
-      "labels": {
-        "ru": "Входы в зону скорости 1",
-        "en": "Entries to Speed Zone 1"
-      },
-      "description": "Количество входов в зону скорости 1.",
-      "unit": "count",
-      "dimension": "count",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 500,
-      "isDerived": false
-    },
-    {
-      "key": "speed_zone2_entries",
-      "labels": {
-        "ru": "Входы в зону скорости 2",
-        "en": "Entries to Speed Zone 2"
-      },
-      "description": "Количество входов в зону скорости 2.",
-      "unit": "count",
-      "dimension": "count",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 500,
-      "isDerived": false
-    },
-    {
-      "key": "speed_zone3_entries",
-      "labels": {
-        "ru": "Входы в зону скорости 3",
-        "en": "Entries to Speed Zone 3"
-      },
-      "description": "Количество входов в зону скорости 3.",
-      "unit": "count",
-      "dimension": "count",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 400,
-      "isDerived": false
-    },
-    {
-      "key": "speed_zone4_entries",
-      "labels": {
-        "ru": "Входы в зону скорости 4",
-        "en": "Entries to Speed Zone 4"
-      },
-      "description": "Количество входов в зону скорости 4.",
-      "unit": "count",
-      "dimension": "count",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 400,
-      "isDerived": false
-    },
-    {
-      "key": "speed_zone5_entries",
-      "labels": {
-        "ru": "Входы в зону скорости 5",
-        "en": "Entries to Speed Zone 5"
-      },
-      "description": "Количество входов в зону скорости 5.",
-      "unit": "count",
-      "dimension": "count",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 300,
-      "isDerived": false
-    },
-    {
-      "key": "speed_zone6_entries",
-      "labels": {
-        "ru": "Входы в зону скорости 6",
-        "en": "Entries to Speed Zone 6"
-      },
-      "description": "Количество входов в зону скорости 6.",
-      "unit": "count",
-      "dimension": "count",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "speed_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 300,
-      "isDerived": false
-    },
-    {
-      "key": "hsr_distance_m",
-      "labels": {
-        "ru": "Дистанция HSR",
-        "en": "HSR Distance"
-      },
-      "description": "Дистанция в зоне высокоскоростного бега (порог зависит от системы).",
-      "unit": "m",
-      "dimension": "distance",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "hsr_sprint",
-      "plausibleMin": 0,
-      "plausibleMax": 8000,
-      "isDerived": false
-    },
-    {
-      "key": "hsr_ratio",
-      "labels": {
-        "ru": "HSR % от общей",
-        "en": "HSR % of Total"
-      },
-      "description": "Доля HSR от общей дистанции в процентах.",
-      "unit": "%",
-      "dimension": "ratio",
-      "agg": "avg",
-      "scaling": "ratio",
-      "category": "hsr_sprint",
-      "plausibleMin": 0,
-      "plausibleMax": 100,
-      "isDerived": true,
-      "formula_expr": "(hsr_distance_m / total_distance_m) * 100"
-    },
-    {
-      "key": "sprint_distance_m",
-      "labels": {
-        "ru": "Дистанция в спринте",
-        "en": "Sprint Distance"
-      },
-      "description": "Дистанция на скоростях выше спринт-порога.",
-      "unit": "m",
-      "dimension": "distance",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "hsr_sprint",
-      "plausibleMin": 0,
-      "plausibleMax": 4000,
-      "isDerived": false
-    },
-    {
-      "key": "sprints_count",
-      "labels": {
-        "ru": "Количество спринтов",
-        "en": "Sprints (count)"
-      },
-      "description": "Число спринтов по правилу системы.",
-      "unit": "count",
-      "dimension": "count",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "hsr_sprint",
-      "plausibleMin": 0,
-      "plausibleMax": 200,
-      "isDerived": false
-    },
-    {
       "key": "acc_zone1_count",
       "labels": {
         "ru": "Ускорения зона 1 (шт.)",
@@ -545,7 +115,9 @@
       "category": "acc_dec",
       "plausibleMin": 0,
       "plausibleMax": 500,
-      "isDerived": false
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
     },
     {
       "key": "acc_zone2_count",
@@ -561,7 +133,9 @@
       "category": "acc_dec",
       "plausibleMin": 0,
       "plausibleMax": 400,
-      "isDerived": false
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
     },
     {
       "key": "acc_zone3_count",
@@ -577,7 +151,9 @@
       "category": "acc_dec",
       "plausibleMin": 0,
       "plausibleMax": 300,
-      "isDerived": false
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
     },
     {
       "key": "acc_zone4_count",
@@ -593,7 +169,9 @@
       "category": "acc_dec",
       "plausibleMin": 0,
       "plausibleMax": 200,
-      "isDerived": false
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
     },
     {
       "key": "acc_zone5_count",
@@ -609,7 +187,9 @@
       "category": "acc_dec",
       "plausibleMin": 0,
       "plausibleMax": 150,
-      "isDerived": false
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
     },
     {
       "key": "acc_zone6_count",
@@ -625,183 +205,92 @@
       "category": "acc_dec",
       "plausibleMin": 0,
       "plausibleMax": 100,
-      "isDerived": false
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
     },
     {
-      "key": "dec_zone1_count",
+      "key": "accelerations_count",
       "labels": {
-        "ru": "Торможения зона 1 (шт.)",
-        "en": "Decelerations Zone 1 (count)"
+        "ru": "Кол-во ускорений",
+        "en": ""
       },
-      "description": "Количество торможений в зоне 1.",
       "unit": "count",
       "dimension": "count",
+      "description": "",
       "agg": "sum",
-      "scaling": "per_time",
-      "category": "acc_dec",
-      "plausibleMin": 0,
-      "plausibleMax": 500,
+      "scaling": "none",
+      "category": "metric",
       "isDerived": false
     },
     {
-      "key": "dec_zone2_count",
+      "key": "accelerations_high_count",
       "labels": {
-        "ru": "Торможения зона 2 (шт.)",
-        "en": "Decelerations Zone 2 (count)"
+        "ru": "Кол-во ускорений (высокие)",
+        "en": ""
       },
-      "description": "Количество торможений в зоне 2.",
       "unit": "count",
       "dimension": "count",
+      "description": "",
       "agg": "sum",
-      "scaling": "per_time",
-      "category": "acc_dec",
-      "plausibleMin": 0,
-      "plausibleMax": 400,
+      "scaling": "none",
+      "category": "metric",
       "isDerived": false
     },
     {
-      "key": "dec_zone3_count",
+      "key": "accumulated_load_au",
       "labels": {
-        "ru": "Торможения зона 3 (шт.)",
-        "en": "Decelerations Zone 3 (count)"
+        "ru": "Накопленная нагрузка (AU)",
+        "en": ""
       },
-      "description": "Количество торможений в зоне 3.",
-      "unit": "count",
-      "dimension": "count",
+      "unit": "au",
+      "dimension": "au",
+      "description": "",
       "agg": "sum",
-      "scaling": "per_time",
-      "category": "acc_dec",
-      "plausibleMin": 0,
-      "plausibleMax": 300,
+      "scaling": "none",
+      "category": "metric",
       "isDerived": false
     },
     {
-      "key": "dec_zone4_count",
+      "key": "aee_kcal",
       "labels": {
-        "ru": "Торможения зона 4 (шт.)",
-        "en": "Decelerations Zone 4 (count)"
+        "ru": "Активная энергозатрата (ккал)",
+        "en": ""
       },
-      "description": "Количество торможений в зоне 4.",
-      "unit": "count",
-      "dimension": "count",
+      "unit": "kcal",
+      "dimension": "energy",
+      "description": "",
       "agg": "sum",
-      "scaling": "per_time",
-      "category": "acc_dec",
-      "plausibleMin": 0,
-      "plausibleMax": 200,
+      "scaling": "none",
+      "category": "metric",
       "isDerived": false
     },
     {
-      "key": "dec_zone5_count",
+      "key": "athlete_name",
       "labels": {
-        "ru": "Торможения зона 5 (шт.)",
-        "en": "Decelerations Zone 5 (count)"
+        "ru": "Имя игрока",
+        "en": "Athlete Name"
       },
-      "description": "Количество торможений в зоне 5.",
-      "unit": "count",
-      "dimension": "count",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "acc_dec",
-      "plausibleMin": 0,
-      "plausibleMax": 150,
+      "description": "Отображаемое имя игрока (ФИО или короткое имя).",
+      "unit": "text",
+      "dimension": "text",
+      "agg": "none",
+      "scaling": "none",
+      "category": "identity",
       "isDerived": false
     },
     {
-      "key": "dec_zone6_count",
+      "key": "average_speed_ms",
       "labels": {
-        "ru": "Торможения зона 6 (шт.)",
-        "en": "Decelerations Zone 6 (count)"
+        "ru": "Средняя скорость (м/с)",
+        "en": ""
       },
-      "description": "Количество торможений в зоне 6.",
-      "unit": "count",
-      "dimension": "count",
-      "agg": "sum",
-      "scaling": "per_time",
-      "category": "acc_dec",
-      "plausibleMin": 0,
-      "plausibleMax": 100,
-      "isDerived": false
-    },
-    {
-      "key": "max_acceleration_ms2",
-      "labels": {
-        "ru": "Максимальное ускорение",
-        "en": "Max Acceleration"
-      },
-      "description": "Пиковое ускорение за сессию.",
-      "unit": "m/s^2",
-      "dimension": "acceleration",
-      "agg": "max",
-      "scaling": "peak",
-      "category": "acc_dec",
-      "plausibleMin": 0,
-      "plausibleMax": 12,
-      "isDerived": false
-    },
-    {
-      "key": "max_deceleration_ms2",
-      "labels": {
-        "ru": "Максимальное торможение",
-        "en": "Max Deceleration"
-      },
-      "description": "Пиковое замедление за сессию (модуль).",
-      "unit": "m/s^2",
-      "dimension": "acceleration",
-      "agg": "max",
-      "scaling": "peak",
-      "category": "acc_dec",
-      "plausibleMin": 0,
-      "plausibleMax": 12,
-      "isDerived": false
-    },
-    {
-      "key": "max_speed_ms",
-      "labels": {
-        "ru": "Максимальная скорость",
-        "en": "Max Speed"
-      },
-      "description": "Пиковая скорость за сессию.",
       "unit": "m/s",
       "dimension": "speed",
-      "agg": "max",
-      "scaling": "peak",
-      "category": "speed",
-      "plausibleMin": 0,
-      "plausibleMax": 14,
-      "isDerived": false
-    },
-    {
-      "key": "max_speed_kmh",
-      "labels": {
-        "ru": "Макс. скорость (км/ч)",
-        "en": "Max Speed (km/h)"
-      },
-      "description": "Пиковая скорость за сессию в км/ч (для отображения/экспорта).",
-      "unit": "km/h",
-      "dimension": "speed",
-      "agg": "max",
-      "scaling": "peak",
-      "category": "speed",
-      "plausibleMin": 0,
-      "plausibleMax": 50,
-      "isDerived": true,
-      "formula_expr": "max_speed_ms * 3.6"
-    },
-    {
-      "key": "avg_speed_ms",
-      "labels": {
-        "ru": "Средняя скорость",
-        "en": "Average Speed"
-      },
-      "description": "Средняя скорость за сессию.",
-      "unit": "m/s",
-      "dimension": "speed",
-      "agg": "avg",
-      "scaling": "per_time",
-      "category": "speed",
-      "plausibleMin": 0,
-      "plausibleMax": 8,
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
       "isDerived": false
     },
     {
@@ -818,182 +307,176 @@
       "category": "heart",
       "plausibleMin": 40,
       "plausibleMax": 210,
-      "isDerived": false
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
     },
     {
-      "key": "top_heart_rate_bpm",
+      "key": "avg_speed_ms",
       "labels": {
-        "ru": "Максимальный пульс",
-        "en": "Max Heart Rate"
+        "ru": "Средняя скорость",
+        "en": "Average Speed"
       },
-      "description": "Пиковый ЧСС.",
-      "unit": "bpm",
-      "dimension": "heart_rate",
-      "agg": "max",
-      "scaling": "peak",
-      "category": "heart",
-      "plausibleMin": 60,
-      "plausibleMax": 230,
-      "isDerived": false
-    },
-    {
-      "key": "time_in_hr_zone1_s",
-      "labels": {
-        "ru": "Время в HR-зоне 1",
-        "en": "Time in HR Zone 1"
-      },
-      "description": "Время в пульсовой зоне 1.",
-      "unit": "s",
-      "dimension": "time",
-      "agg": "sum",
-      "scaling": "none",
-      "category": "heart_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 7200,
-      "isDerived": false
-    },
-    {
-      "key": "time_in_hr_zone2_s",
-      "labels": {
-        "ru": "Время в HR-зоне 2",
-        "en": "Time in HR Zone 2"
-      },
-      "description": "Время в пульсовой зоне 2.",
-      "unit": "s",
-      "dimension": "time",
-      "agg": "sum",
-      "scaling": "none",
-      "category": "heart_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 7200,
-      "isDerived": false
-    },
-    {
-      "key": "time_in_hr_zone3_s",
-      "labels": {
-        "ru": "Время в HR-зоне 3",
-        "en": "Time in HR Zone 3"
-      },
-      "description": "Время в пульсовой зоне 3.",
-      "unit": "s",
-      "dimension": "time",
-      "agg": "sum",
-      "scaling": "none",
-      "category": "heart_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 7200,
-      "isDerived": false
-    },
-    {
-      "key": "time_in_hr_zone4_s",
-      "labels": {
-        "ru": "Время в HR-зоне 4",
-        "en": "Time in HR Zone 4"
-      },
-      "description": "Время в пульсовой зоне 4.",
-      "unit": "s",
-      "dimension": "time",
-      "agg": "sum",
-      "scaling": "none",
-      "category": "heart_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 7200,
-      "isDerived": false
-    },
-    {
-      "key": "time_in_hr_zone5_s",
-      "labels": {
-        "ru": "Время в HR-зоне 5",
-        "en": "Time in HR Zone 5"
-      },
-      "description": "Время в пульсовой зоне 5.",
-      "unit": "s",
-      "dimension": "time",
-      "agg": "sum",
-      "scaling": "none",
-      "category": "heart_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 7200,
-      "isDerived": false
-    },
-    {
-      "key": "time_in_hr_zone6_s",
-      "labels": {
-        "ru": "Время в HR-зоне 6",
-        "en": "Time in HR Zone 6"
-      },
-      "description": "Время в пульсовой зоне 6 (Red Zone, если используется).",
-      "unit": "s",
-      "dimension": "time",
-      "agg": "sum",
-      "scaling": "none",
-      "category": "heart_zones",
-      "plausibleMin": 0,
-      "plausibleMax": 7200,
-      "isDerived": false
-    },
-    {
-      "key": "player_load_au",
-      "labels": {
-        "ru": "Игровая нагрузка (AU)",
-        "en": "Player Load (AU)"
-      },
-      "description": "Нагрузка по акселерометру (условные единицы).",
-      "unit": "AU",
-      "dimension": "load",
-      "agg": "sum",
+      "description": "Средняя скорость за сессию.",
+      "unit": "m/s",
+      "dimension": "speed",
+      "agg": "avg",
       "scaling": "per_time",
-      "category": "load",
+      "category": "speed",
       "plausibleMin": 0,
-      "plausibleMax": 1000,
+      "plausibleMax": 8,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "body_mass_kg",
+      "labels": {
+        "ru": "Масса тела (кг)",
+        "en": ""
+      },
+      "unit": "kg",
+      "dimension": "mass",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
       "isDerived": false
     },
     {
-      "key": "impacts_count",
+      "key": "dec_zone1_count",
       "labels": {
-        "ru": "Импакты (шт.)",
-        "en": "Impacts (count)"
+        "ru": "Торможения зона 1 (шт.)",
+        "en": "Decelerations Zone 1 (count)"
       },
-      "description": "Число столкновений/импактов (порог зависит от системы).",
+      "description": "Количество торможений в зоне 1.",
       "unit": "count",
       "dimension": "count",
       "agg": "sum",
       "scaling": "per_time",
-      "category": "load",
+      "category": "acc_dec",
       "plausibleMin": 0,
       "plausibleMax": 500,
-      "isDerived": false
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
     },
     {
-      "key": "power_score_wkg",
+      "key": "dec_zone2_count",
       "labels": {
-        "ru": "Power Score (Вт/кг)",
-        "en": "Power Score (W/kg)"
+        "ru": "Торможения зона 2 (шт.)",
+        "en": "Decelerations Zone 2 (count)"
       },
-      "description": "Индекс мощности/интенсивности, нормированный на массу тела (если доступно).",
-      "unit": "W/kg",
-      "dimension": "power_mass_norm",
-      "agg": "avg",
+      "description": "Количество торможений в зоне 2.",
+      "unit": "count",
+      "dimension": "count",
+      "agg": "sum",
       "scaling": "per_time",
-      "category": "intensity",
+      "category": "acc_dec",
       "plausibleMin": 0,
-      "plausibleMax": 30,
-      "isDerived": false
+      "plausibleMax": 400,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
     },
     {
-      "key": "work_ratio_percent",
+      "key": "dec_zone3_count",
       "labels": {
-        "ru": "Work Ratio (%)",
-        "en": "Work Ratio (%)"
+        "ru": "Торможения зона 3 (шт.)",
+        "en": "Decelerations Zone 3 (count)"
       },
-      "description": "Доля активного времени (проценты).",
-      "unit": "%",
-      "dimension": "ratio",
-      "agg": "avg",
-      "scaling": "ratio",
-      "category": "intensity",
+      "description": "Количество торможений в зоне 3.",
+      "unit": "count",
+      "dimension": "count",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "acc_dec",
+      "plausibleMin": 0,
+      "plausibleMax": 300,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "dec_zone4_count",
+      "labels": {
+        "ru": "Торможения зона 4 (шт.)",
+        "en": "Decelerations Zone 4 (count)"
+      },
+      "description": "Количество торможений в зоне 4.",
+      "unit": "count",
+      "dimension": "count",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "acc_dec",
+      "plausibleMin": 0,
+      "plausibleMax": 200,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "dec_zone5_count",
+      "labels": {
+        "ru": "Торможения зона 5 (шт.)",
+        "en": "Decelerations Zone 5 (count)"
+      },
+      "description": "Количество торможений в зоне 5.",
+      "unit": "count",
+      "dimension": "count",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "acc_dec",
+      "plausibleMin": 0,
+      "plausibleMax": 150,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "dec_zone6_count",
+      "labels": {
+        "ru": "Торможения зона 6 (шт.)",
+        "en": "Decelerations Zone 6 (count)"
+      },
+      "description": "Количество торможений в зоне 6.",
+      "unit": "count",
+      "dimension": "count",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "acc_dec",
       "plausibleMin": 0,
       "plausibleMax": 100,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "decelerations_count",
+      "labels": {
+        "ru": "Кол-во торможений",
+        "en": ""
+      },
+      "unit": "count",
+      "dimension": "count",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "decelerations_high_count",
+      "labels": {
+        "ru": "Кол-во торможений (высокие)",
+        "en": ""
+      },
+      "unit": "count",
+      "dimension": "count",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
       "isDerived": false
     },
     {
@@ -1014,19 +497,211 @@
       "formula_expr": "(total_distance_m / (duration_s / 60))"
     },
     {
-      "key": "hml_distance_m",
+      "key": "distance_zone_0_m",
       "labels": {
-        "ru": "HML дистанция",
-        "en": "High Metabolic Load Distance"
+        "ru": "Дистанция зона 0 (м)",
+        "en": ""
       },
-      "description": "Дистанция в эпизодах высокой метаболической нагрузки (если доступно из вендора).",
+      "unit": "m",
+      "dimension": "distance",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "distance_zone_1_m",
+      "labels": {
+        "ru": "Дистанция зона 1 (м)",
+        "en": ""
+      },
+      "unit": "m",
+      "dimension": "distance",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "distance_zone_2_m",
+      "labels": {
+        "ru": "Дистанция зона 2 (м)",
+        "en": ""
+      },
+      "unit": "m",
+      "dimension": "distance",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "distance_zone_3_m",
+      "labels": {
+        "ru": "Дистанция зона 3 (м)",
+        "en": ""
+      },
+      "unit": "m",
+      "dimension": "distance",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "distance_zone_4_m",
+      "labels": {
+        "ru": "Дистанция зона 4 (м)",
+        "en": ""
+      },
+      "unit": "m",
+      "dimension": "distance",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "distance_zone_5_m",
+      "labels": {
+        "ru": "Дистанция зона 5 (м)",
+        "en": ""
+      },
+      "unit": "m",
+      "dimension": "distance",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "distance_zone1_m",
+      "labels": {
+        "ru": "Дистанция зона 1",
+        "en": "Distance Zone 1"
+      },
+      "description": "Дистанция в зоне скорости 1.",
       "unit": "m",
       "dimension": "distance",
       "agg": "sum",
       "scaling": "per_time",
-      "category": "intensity",
+      "category": "speed_zones",
       "plausibleMin": 0,
-      "plausibleMax": 6000,
+      "plausibleMax": 20000,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "distance_zone2_m",
+      "labels": {
+        "ru": "Дистанция зона 2",
+        "en": "Distance Zone 2"
+      },
+      "description": "Дистанция в зоне скорости 2.",
+      "unit": "m",
+      "dimension": "distance",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 15000,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "distance_zone3_m",
+      "labels": {
+        "ru": "Дистанция зона 3",
+        "en": "Distance Zone 3"
+      },
+      "description": "Дистанция в зоне скорости 3.",
+      "unit": "m",
+      "dimension": "distance",
+      "scaling": "per_time",
+      "agg": "sum",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 10000,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "distance_zone4_m",
+      "labels": {
+        "ru": "Дистанция зона 4",
+        "en": "Distance Zone 4"
+      },
+      "description": "Дистанция в зоне скорости 4 (высокая скорость).",
+      "unit": "m",
+      "dimension": "distance",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 8000,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "distance_zone5_m",
+      "labels": {
+        "ru": "Дистанция зона 5",
+        "en": "Distance Zone 5"
+      },
+      "description": "Дистанция в зоне скорости 5 (очень высокая скорость).",
+      "unit": "m",
+      "dimension": "distance",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 4000,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "distance_zone6_m",
+      "labels": {
+        "ru": "Дистанция зона 6",
+        "en": "Distance Zone 6"
+      },
+      "description": "Дистанция в зоне скорости 6 (спринт-зона, если используется).",
+      "unit": "m",
+      "dimension": "distance",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 3000,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "duration_s",
+      "labels": {
+        "ru": "Длительность (сек)",
+        "en": "Time on Pitch (s)"
+      },
+      "description": "Фактическое игровое время игрока в секундах.",
+      "unit": "s",
+      "dimension": "time",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "participation",
+      "plausibleMin": 0,
+      "plausibleMax": 7200,
       "isDerived": false
     },
     {
@@ -1043,6 +718,1059 @@
       "category": "intensity",
       "plausibleMin": 0,
       "plausibleMax": 3000,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "flying_sprints_count",
+      "labels": {
+        "ru": "Кол-во «летящих» спринтов",
+        "en": ""
+      },
+      "unit": "count",
+      "dimension": "count",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "gps_system",
+      "labels": {
+        "ru": "GPS система",
+        "en": ""
+      },
+      "unit": "text",
+      "dimension": "text",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "hard_running_distance_m",
+      "labels": {
+        "ru": "Дистанция HR (м)",
+        "en": ""
+      },
+      "unit": "m",
+      "dimension": "distance",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "heart_rate_avg_bpm",
+      "labels": {
+        "ru": "Пульс средний (уд/мин)",
+        "en": ""
+      },
+      "unit": "bpm",
+      "dimension": "bpm",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "heart_rate_max_bpm",
+      "labels": {
+        "ru": "Пульс максимум (уд/мин)",
+        "en": ""
+      },
+      "unit": "bpm",
+      "dimension": "bpm",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "heart_rate_time_in_zone_1_s",
+      "labels": {
+        "ru": "Время в пульс-зоне 1 (сек)",
+        "en": ""
+      },
+      "unit": "s",
+      "dimension": "time",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "heart_rate_time_in_zone_2_s",
+      "labels": {
+        "ru": "Время в пульс-зоне 2 (сек)",
+        "en": ""
+      },
+      "unit": "s",
+      "dimension": "time",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "heart_rate_time_in_zone_3_s",
+      "labels": {
+        "ru": "Время в пульс-зоне 3 (сек)",
+        "en": ""
+      },
+      "unit": "s",
+      "dimension": "time",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "heart_rate_time_in_zone_4_s",
+      "labels": {
+        "ru": "Время в пульс-зоне 4 (сек)",
+        "en": ""
+      },
+      "unit": "s",
+      "dimension": "time",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "heart_rate_time_in_zone_5_s",
+      "labels": {
+        "ru": "Время в пульс-зоне 5 (сек)",
+        "en": ""
+      },
+      "unit": "s",
+      "dimension": "time",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "hml_distance_m",
+      "labels": {
+        "ru": "HML дистанция",
+        "en": "High Metabolic Load Distance"
+      },
+      "description": "Дистанция в эпизодах высокой метаболической нагрузки (если доступно из вендора).",
+      "unit": "m",
+      "dimension": "distance",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "intensity",
+      "plausibleMin": 0,
+      "plausibleMax": 6000,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "hsr_distance_m",
+      "labels": {
+        "ru": "Дистанция HSR (м)",
+        "en": "HSR Distance"
+      },
+      "description": "Дистанция в зоне высокоскоростного бега (порог зависит от системы).",
+      "unit": "m",
+      "dimension": "distance",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "hsr_sprint",
+      "plausibleMin": 0,
+      "plausibleMax": 8000,
+      "isDerived": false
+    },
+    {
+      "key": "hsr_ratio",
+      "labels": {
+        "ru": "HSR % от общей",
+        "en": "HSR % of Total"
+      },
+      "description": "Доля HSR от общей дистанции в процентах.",
+      "unit": "ratio",
+      "dimension": "ratio",
+      "agg": "avg",
+      "scaling": "ratio",
+      "category": "hsr_sprint",
+      "plausibleMin": 0,
+      "plausibleMax": 100,
+      "isDerived": true,
+      "formula_expr": "(hsr_distance_m / total_distance_m) * 100"
+    },
+    {
+      "key": "impacts_count",
+      "labels": {
+        "ru": "Импакты (шт.)",
+        "en": "Impacts (count)"
+      },
+      "description": "Число столкновений/импактов (порог зависит от системы).",
+      "unit": "count",
+      "dimension": "count",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "load",
+      "plausibleMin": 0,
+      "plausibleMax": 500,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "left_foot_contacts_count",
+      "labels": {
+        "ru": "Кол-во контактов левой",
+        "en": ""
+      },
+      "unit": "count",
+      "dimension": "count",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "max_acceleration_ms2",
+      "labels": {
+        "ru": "Максимальное ускорение",
+        "en": "Max Acceleration"
+      },
+      "description": "Пиковое ускорение за сессию.",
+      "unit": "m/s^2",
+      "dimension": "acceleration",
+      "agg": "max",
+      "scaling": "peak",
+      "category": "acc_dec",
+      "plausibleMin": 0,
+      "plausibleMax": 12,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "max_deceleration_ms2",
+      "labels": {
+        "ru": "Максимальное торможение",
+        "en": "Max Deceleration"
+      },
+      "description": "Пиковое замедление за сессию (модуль).",
+      "unit": "m/s^2",
+      "dimension": "acceleration",
+      "agg": "max",
+      "scaling": "peak",
+      "category": "acc_dec",
+      "plausibleMin": 0,
+      "plausibleMax": 12,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "max_speed_kmh",
+      "labels": {
+        "ru": "Макс. скорость (км/ч)",
+        "en": "Max Speed (km/h)"
+      },
+      "description": "Пиковая скорость за сессию в км/ч (для отображения/экспорта).",
+      "unit": "km/h",
+      "dimension": "speed",
+      "agg": "max",
+      "scaling": "peak",
+      "category": "speed",
+      "plausibleMin": 0,
+      "plausibleMax": 50,
+      "isDerived": true,
+      "formula_expr": "max_speed_ms * 3.6"
+    },
+    {
+      "key": "max_speed_ms",
+      "labels": {
+        "ru": "Макс. скорость (м/с)",
+        "en": "Max Speed"
+      },
+      "description": "Пиковая скорость за сессию.",
+      "unit": "m/s",
+      "dimension": "speed",
+      "agg": "max",
+      "scaling": "peak",
+      "category": "speed",
+      "plausibleMin": 0,
+      "plausibleMax": 14,
+      "isDerived": false
+    },
+    {
+      "key": "meters_per_acceleration_m",
+      "labels": {
+        "ru": "Метров на ускорение (м)",
+        "en": ""
+      },
+      "unit": "m",
+      "dimension": "distance",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "meters_per_deceleration_m",
+      "labels": {
+        "ru": "Метров на торможение (м)",
+        "en": ""
+      },
+      "unit": "m",
+      "dimension": "distance",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "minutes_played",
+      "labels": {
+        "ru": "Время на поле (мин)",
+        "en": "Minutes Played"
+      },
+      "description": "Игровые минуты; производная от duration_s.",
+      "unit": "min",
+      "dimension": "time",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "participation",
+      "plausibleMin": 0,
+      "plausibleMax": 120,
+      "isDerived": true,
+      "formula_expr": "duration_s / 60"
+    },
+    {
+      "key": "neuromuscular_load_au",
+      "labels": {
+        "ru": "Нейромышечная нагрузка (AU)",
+        "en": ""
+      },
+      "unit": "au",
+      "dimension": "au",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "number_of_sprints_count",
+      "labels": {
+        "ru": "Кол-во спринтов",
+        "en": ""
+      },
+      "unit": "count",
+      "dimension": "count",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "player_external_id",
+      "labels": {
+        "ru": "Внешний ID игрока",
+        "en": ""
+      },
+      "unit": "text",
+      "dimension": "text",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "player_load_au",
+      "labels": {
+        "ru": "Игровая нагрузка (AU)",
+        "en": "Player Load (AU)"
+      },
+      "description": "Нагрузка по акселерометру (условные единицы).",
+      "unit": "AU",
+      "dimension": "load",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "load",
+      "plausibleMin": 0,
+      "plausibleMax": 1000,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "position",
+      "labels": {
+        "ru": "Позиция",
+        "en": "Position"
+      },
+      "description": "Игровая позиция (свободный текст или код: GK/DF/MF/FW и т.п.).",
+      "unit": "text",
+      "dimension": "text",
+      "agg": "none",
+      "scaling": "none",
+      "category": "identity",
+      "isDerived": false
+    },
+    {
+      "key": "power_score_wkg",
+      "labels": {
+        "ru": "Power Score (Вт/кг)",
+        "en": "Power Score (W/kg)"
+      },
+      "description": "Индекс мощности/интенсивности, нормированный на массу тела (если доступно).",
+      "unit": "W/kg",
+      "dimension": "power_mass_norm",
+      "agg": "avg",
+      "scaling": "per_time",
+      "category": "intensity",
+      "plausibleMin": 0,
+      "plausibleMax": 30,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "right_foot_contacts_count",
+      "labels": {
+        "ru": "Кол-во контактов правой",
+        "en": ""
+      },
+      "unit": "count",
+      "dimension": "count",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "session_rpe_au",
+      "labels": {
+        "ru": "sRPE (AU)",
+        "en": ""
+      },
+      "unit": "au",
+      "dimension": "au",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "speed_zone1_entries",
+      "labels": {
+        "ru": "Входы в зону скорости 1",
+        "en": "Entries to Speed Zone 1"
+      },
+      "description": "Количество входов в зону скорости 1.",
+      "unit": "count",
+      "dimension": "count",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 500,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "speed_zone2_entries",
+      "labels": {
+        "ru": "Входы в зону скорости 2",
+        "en": "Entries to Speed Zone 2"
+      },
+      "description": "Количество входов в зону скорости 2.",
+      "unit": "count",
+      "dimension": "count",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 500,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "speed_zone3_entries",
+      "labels": {
+        "ru": "Входы в зону скорости 3",
+        "en": "Entries to Speed Zone 3"
+      },
+      "description": "Количество входов в зону скорости 3.",
+      "unit": "count",
+      "dimension": "count",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 400,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "speed_zone4_entries",
+      "labels": {
+        "ru": "Входы в зону скорости 4",
+        "en": "Entries to Speed Zone 4"
+      },
+      "description": "Количество входов в зону скорости 4.",
+      "unit": "count",
+      "dimension": "count",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 400,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "speed_zone5_entries",
+      "labels": {
+        "ru": "Входы в зону скорости 5",
+        "en": "Entries to Speed Zone 5"
+      },
+      "description": "Количество входов в зону скорости 5.",
+      "unit": "count",
+      "dimension": "count",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 300,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "speed_zone6_entries",
+      "labels": {
+        "ru": "Входы в зону скорости 6",
+        "en": "Entries to Speed Zone 6"
+      },
+      "description": "Количество входов в зону скорости 6.",
+      "unit": "count",
+      "dimension": "count",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 300,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "sprint_distance_m",
+      "labels": {
+        "ru": "Дистанция в спринте",
+        "en": "Sprint Distance"
+      },
+      "description": "Дистанция на скоростях выше спринт-порога.",
+      "unit": "m",
+      "dimension": "distance",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "hsr_sprint",
+      "plausibleMin": 0,
+      "plausibleMax": 4000,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "sprint_max_speed_ms",
+      "labels": {
+        "ru": "Макс. скорость в спринте (м/с)",
+        "en": ""
+      },
+      "unit": "m/s",
+      "dimension": "speed",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "sprint_ratio",
+      "labels": {
+        "ru": "Доля спринта от общей",
+        "en": ""
+      },
+      "unit": "ratio",
+      "dimension": "ratio",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "sprints_count",
+      "labels": {
+        "ru": "Количество спринтов",
+        "en": "Sprints (count)"
+      },
+      "description": "Число спринтов по правилу системы.",
+      "unit": "count",
+      "dimension": "count",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "hsr_sprint",
+      "plausibleMin": 0,
+      "plausibleMax": 200,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "standing_time_s",
+      "labels": {
+        "ru": "Время стоя (сек)",
+        "en": ""
+      },
+      "unit": "s",
+      "dimension": "time",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "steps_total_count",
+      "labels": {
+        "ru": "Кол-во шагов всего",
+        "en": ""
+      },
+      "unit": "count",
+      "dimension": "count",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "time_in_hr_zone1_s",
+      "labels": {
+        "ru": "Время в HR-зоне 1",
+        "en": "Time in HR Zone 1"
+      },
+      "description": "Время в пульсовой зоне 1.",
+      "unit": "s",
+      "dimension": "time",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "heart_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 7200,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "time_in_hr_zone2_s",
+      "labels": {
+        "ru": "Время в HR-зоне 2",
+        "en": "Time in HR Zone 2"
+      },
+      "description": "Время в пульсовой зоне 2.",
+      "unit": "s",
+      "dimension": "time",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "heart_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 7200,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "time_in_hr_zone3_s",
+      "labels": {
+        "ru": "Время в HR-зоне 3",
+        "en": "Time in HR Zone 3"
+      },
+      "description": "Время в пульсовой зоне 3.",
+      "unit": "s",
+      "dimension": "time",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "heart_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 7200,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "time_in_hr_zone4_s",
+      "labels": {
+        "ru": "Время в HR-зоне 4",
+        "en": "Time in HR Zone 4"
+      },
+      "description": "Время в пульсовой зоне 4.",
+      "unit": "s",
+      "dimension": "time",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "heart_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 7200,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "time_in_hr_zone5_s",
+      "labels": {
+        "ru": "Время в HR-зоне 5",
+        "en": "Time in HR Zone 5"
+      },
+      "description": "Время в пульсовой зоне 5.",
+      "unit": "s",
+      "dimension": "time",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "heart_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 7200,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "time_in_hr_zone6_s",
+      "labels": {
+        "ru": "Время в HR-зоне 6",
+        "en": "Time in HR Zone 6"
+      },
+      "description": "Время в пульсовой зоне 6 (Red Zone, если используется).",
+      "unit": "s",
+      "dimension": "time",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "heart_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 7200,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "time_in_speed_zone1_s",
+      "labels": {
+        "ru": "Время в зоне скорости 1",
+        "en": "Time in Speed Zone 1"
+      },
+      "description": "Суммарное время в зоне скорости 1.",
+      "unit": "s",
+      "dimension": "time",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 7200,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "time_in_speed_zone2_s",
+      "labels": {
+        "ru": "Время в зоне скорости 2",
+        "en": "Time in Speed Zone 2"
+      },
+      "description": "Суммарное время в зоне скорости 2.",
+      "unit": "s",
+      "dimension": "time",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 7200,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "time_in_speed_zone3_s",
+      "labels": {
+        "ru": "Время в зоне скорости 3",
+        "en": "Time in Speed Zone 3"
+      },
+      "description": "Суммарное время в зоне скорости 3.",
+      "unit": "s",
+      "dimension": "time",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 7200,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "time_in_speed_zone4_s",
+      "labels": {
+        "ru": "Время в зоне скорости 4",
+        "en": "Time in Speed Zone 4"
+      },
+      "description": "Суммарное время в зоне скорости 4.",
+      "unit": "s",
+      "dimension": "time",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 7200,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "time_in_speed_zone5_s",
+      "labels": {
+        "ru": "Время в зоне скорости 5",
+        "en": "Time in Speed Zone 5"
+      },
+      "description": "Суммарное время в зоне скорости 5.",
+      "unit": "s",
+      "dimension": "time",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 7200,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "time_in_speed_zone6_s",
+      "labels": {
+        "ru": "Время в зоне скорости 6",
+        "en": "Time in Speed Zone 6"
+      },
+      "description": "Суммарное время в зоне скорости 6.",
+      "unit": "s",
+      "dimension": "time",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "speed_zones",
+      "plausibleMin": 0,
+      "plausibleMax": 7200,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "top_heart_rate_bpm",
+      "labels": {
+        "ru": "Максимальный пульс",
+        "en": "Max Heart Rate"
+      },
+      "description": "Пиковый ЧСС.",
+      "unit": "bpm",
+      "dimension": "heart_rate",
+      "agg": "max",
+      "scaling": "peak",
+      "category": "heart",
+      "plausibleMin": 60,
+      "plausibleMax": 230,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "total_distance_m",
+      "labels": {
+        "ru": "Общая дистанция (м)",
+        "en": "Total Distance"
+      },
+      "description": "Суммарная дистанция за сессию.",
+      "unit": "m",
+      "dimension": "distance",
+      "agg": "sum",
+      "scaling": "per_time",
+      "category": "distance",
+      "plausibleMin": 0,
+      "plausibleMax": 25000,
+      "isDerived": false
+    },
+    {
+      "key": "total_load_au",
+      "labels": {
+        "ru": "Общая нагрузка (AU)",
+        "en": ""
+      },
+      "unit": "au",
+      "dimension": "au",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "uptime_s",
+      "labels": {
+        "ru": "Время работы датчика (сек)",
+        "en": ""
+      },
+      "unit": "s",
+      "dimension": "time",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "very_high_speed_distance_m",
+      "labels": {
+        "ru": "Дистанция VHSR (м)",
+        "en": ""
+      },
+      "unit": "m",
+      "dimension": "distance",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "very_high_speed_ratio",
+      "labels": {
+        "ru": "VHSR % от общей",
+        "en": ""
+      },
+      "unit": "ratio",
+      "dimension": "ratio",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "walking_time_s",
+      "labels": {
+        "ru": "Время ходьбы (сек)",
+        "en": ""
+      },
+      "unit": "s",
+      "dimension": "time",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "work_ratio",
+      "labels": {
+        "ru": "Рабочая доля времени",
+        "en": ""
+      },
+      "unit": "ratio",
+      "dimension": "ratio",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "work_ratio_percent",
+      "labels": {
+        "ru": "Work Ratio (%)",
+        "en": "Work Ratio (%)"
+      },
+      "description": "Доля активного времени (проценты).",
+      "unit": "%",
+      "dimension": "ratio",
+      "agg": "avg",
+      "scaling": "ratio",
+      "category": "intensity",
+      "plausibleMin": 0,
+      "plausibleMax": 100,
+      "isDerived": false,
+      "deprecated": true,
+      "deprecatedReason": "Not in canon v1.0.1"
+    },
+    {
+      "key": "work_time_s",
+      "labels": {
+        "ru": "Время работы (сек)",
+        "en": ""
+      },
+      "unit": "s",
+      "dimension": "time",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "x_pos_m",
+      "labels": {
+        "ru": "X позиция (м)",
+        "en": ""
+      },
+      "unit": "m",
+      "dimension": "distance",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
+      "isDerived": false
+    },
+    {
+      "key": "y_pos_m",
+      "labels": {
+        "ru": "Y позиция (м)",
+        "en": ""
+      },
+      "unit": "m",
+      "dimension": "distance",
+      "description": "",
+      "agg": "sum",
+      "scaling": "none",
+      "category": "metric",
       "isDerived": false
     }
   ],

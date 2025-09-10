@@ -1,0 +1,301 @@
+{
+  "missing": [],
+  "mismatch": [],
+  "extra": [
+    {
+      "key": "acc_zone1_count",
+      "nameRu": "Ускорения зона 1 (шт.)",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "acc_zone2_count",
+      "nameRu": "Ускорения зона 2 (шт.)",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "acc_zone3_count",
+      "nameRu": "Ускорения зона 3 (шт.)",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "acc_zone4_count",
+      "nameRu": "Ускорения зона 4 (шт.)",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "acc_zone5_count",
+      "nameRu": "Ускорения зона 5 (шт.)",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "acc_zone6_count",
+      "nameRu": "Ускорения зона 6 (шт.)",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "avg_heart_rate_bpm",
+      "nameRu": "Средний пульс",
+      "dimension": "heart_rate",
+      "unit": "bpm"
+    },
+    {
+      "key": "avg_speed_ms",
+      "nameRu": "Средняя скорость",
+      "dimension": "speed",
+      "unit": "m/s"
+    },
+    {
+      "key": "dec_zone1_count",
+      "nameRu": "Торможения зона 1 (шт.)",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "dec_zone2_count",
+      "nameRu": "Торможения зона 2 (шт.)",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "dec_zone3_count",
+      "nameRu": "Торможения зона 3 (шт.)",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "dec_zone4_count",
+      "nameRu": "Торможения зона 4 (шт.)",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "dec_zone5_count",
+      "nameRu": "Торможения зона 5 (шт.)",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "dec_zone6_count",
+      "nameRu": "Торможения зона 6 (шт.)",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "distance_zone1_m",
+      "nameRu": "Дистанция зона 1",
+      "dimension": "distance",
+      "unit": "m"
+    },
+    {
+      "key": "distance_zone2_m",
+      "nameRu": "Дистанция зона 2",
+      "dimension": "distance",
+      "unit": "m"
+    },
+    {
+      "key": "distance_zone3_m",
+      "nameRu": "Дистанция зона 3",
+      "dimension": "distance",
+      "unit": "m"
+    },
+    {
+      "key": "distance_zone4_m",
+      "nameRu": "Дистанция зона 4",
+      "dimension": "distance",
+      "unit": "m"
+    },
+    {
+      "key": "distance_zone5_m",
+      "nameRu": "Дистанция зона 5",
+      "dimension": "distance",
+      "unit": "m"
+    },
+    {
+      "key": "distance_zone6_m",
+      "nameRu": "Дистанция зона 6",
+      "dimension": "distance",
+      "unit": "m"
+    },
+    {
+      "key": "explosive_distance_m",
+      "nameRu": "Взрывная дистанция",
+      "dimension": "distance",
+      "unit": "m"
+    },
+    {
+      "key": "hml_distance_m",
+      "nameRu": "HML дистанция",
+      "dimension": "distance",
+      "unit": "m"
+    },
+    {
+      "key": "impacts_count",
+      "nameRu": "Импакты (шт.)",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "max_acceleration_ms2",
+      "nameRu": "Максимальное ускорение",
+      "dimension": "acceleration",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "max_deceleration_ms2",
+      "nameRu": "Максимальное торможение",
+      "dimension": "acceleration",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "player_load_au",
+      "nameRu": "Игровая нагрузка (AU)",
+      "dimension": "load",
+      "unit": "AU"
+    },
+    {
+      "key": "power_score_wkg",
+      "nameRu": "Power Score (Вт/кг)",
+      "dimension": "power_mass_norm",
+      "unit": "W/kg"
+    },
+    {
+      "key": "speed_zone1_entries",
+      "nameRu": "Входы в зону скорости 1",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "speed_zone2_entries",
+      "nameRu": "Входы в зону скорости 2",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "speed_zone3_entries",
+      "nameRu": "Входы в зону скорости 3",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "speed_zone4_entries",
+      "nameRu": "Входы в зону скорости 4",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "speed_zone5_entries",
+      "nameRu": "Входы в зону скорости 5",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "speed_zone6_entries",
+      "nameRu": "Входы в зону скорости 6",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "sprint_distance_m",
+      "nameRu": "Дистанция в спринте",
+      "dimension": "distance",
+      "unit": "m"
+    },
+    {
+      "key": "sprints_count",
+      "nameRu": "Количество спринтов",
+      "dimension": "count",
+      "unit": "count"
+    },
+    {
+      "key": "time_in_hr_zone1_s",
+      "nameRu": "Время в HR-зоне 1",
+      "dimension": "time",
+      "unit": "s"
+    },
+    {
+      "key": "time_in_hr_zone2_s",
+      "nameRu": "Время в HR-зоне 2",
+      "dimension": "time",
+      "unit": "s"
+    },
+    {
+      "key": "time_in_hr_zone3_s",
+      "nameRu": "Время в HR-зоне 3",
+      "dimension": "time",
+      "unit": "s"
+    },
+    {
+      "key": "time_in_hr_zone4_s",
+      "nameRu": "Время в HR-зоне 4",
+      "dimension": "time",
+      "unit": "s"
+    },
+    {
+      "key": "time_in_hr_zone5_s",
+      "nameRu": "Время в HR-зоне 5",
+      "dimension": "time",
+      "unit": "s"
+    },
+    {
+      "key": "time_in_hr_zone6_s",
+      "nameRu": "Время в HR-зоне 6",
+      "dimension": "time",
+      "unit": "s"
+    },
+    {
+      "key": "time_in_speed_zone1_s",
+      "nameRu": "Время в зоне скорости 1",
+      "dimension": "time",
+      "unit": "s"
+    },
+    {
+      "key": "time_in_speed_zone2_s",
+      "nameRu": "Время в зоне скорости 2",
+      "dimension": "time",
+      "unit": "s"
+    },
+    {
+      "key": "time_in_speed_zone3_s",
+      "nameRu": "Время в зоне скорости 3",
+      "dimension": "time",
+      "unit": "s"
+    },
+    {
+      "key": "time_in_speed_zone4_s",
+      "nameRu": "Время в зоне скорости 4",
+      "dimension": "time",
+      "unit": "s"
+    },
+    {
+      "key": "time_in_speed_zone5_s",
+      "nameRu": "Время в зоне скорости 5",
+      "dimension": "time",
+      "unit": "s"
+    },
+    {
+      "key": "time_in_speed_zone6_s",
+      "nameRu": "Время в зоне скорости 6",
+      "dimension": "time",
+      "unit": "s"
+    },
+    {
+      "key": "top_heart_rate_bpm",
+      "nameRu": "Максимальный пульс",
+      "dimension": "heart_rate",
+      "unit": "bpm"
+    },
+    {
+      "key": "work_ratio_percent",
+      "nameRu": "Work Ratio (%)",
+      "dimension": "ratio",
+      "unit": "%"
+    }
+  ],
+  "deprecated": []
+}

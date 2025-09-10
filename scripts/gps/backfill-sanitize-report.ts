@@ -173,6 +173,5 @@ async function main() {
   }
 }
 
-if (require.main === module) {
-  main();
-}
+// Запускаем main
+main();
