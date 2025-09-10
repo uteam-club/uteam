@@ -1,8 +1,0 @@
-{
-  "error": "Cannot use import statement outside a module",
-  "step": "load-helpers",
-  "stats": {},
-  "notes": [
-    "DB недоступна или нет переменной DATABASE_URL: column \"processeddata\" does not exist"
-  ]
-}

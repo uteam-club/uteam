@@ -47,8 +47,5 @@
     "src/services/__tests__/**",
     "scripts/**",
     "src/app/dev/**",
-    "src/app/api/gps-reports/route-old.ts",
-    "src/services/gps.debug.ts",
-    "src/app/api/gps-reports/recalculate/route.ts"
   ]
 }

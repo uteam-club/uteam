@@ -1,5 +1,0 @@
-
-> uteam-multi@1.0.0 typecheck:ci
-> tsc --noEmit
-
-src/app/dashboard/teams/[id]/players/[playerId]/page.tsx(57,34): error TS2307: Cannot find module '@/components/players/PlayerGameModelModal' or its corresponding type declarations.

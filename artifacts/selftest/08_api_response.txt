@@ -1,3 +1,0 @@
-STATUS: 404
-
-{"error":"PROFILE_NOT_FOUND"}
