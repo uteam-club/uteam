@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CanonicalRegistry } from '@/canon/types';
 import { suggestCanonical } from '@/canon/suggest';
+import { allowedDisplayUnitsFor, suggestDefaultDisplayUnit } from '@/canon/displayUnits';
 import CanonicalMetricSelector from './CanonicalMetricSelector';
 
 interface CreateGpsProfileModalProps {
@@ -37,6 +38,7 @@ type ColumnMappingItem = {
   displayName: string;
   canonicalKey: string;
   order: number;
+  displayUnit?: string;
 };
 
 interface ValidationError {
@@ -243,11 +245,13 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
       // Создаем маппинг колонок из заголовков Excel
       const newSelectedColumns: ColumnMappingItem[] = data.headers.map((header: string, index: number) => {
         const suggestedKey = suggestCanonical(header);
+        const suggestedDisplayUnit = suggestedKey ? suggestDefaultDisplayUnit(suggestedKey) : undefined;
         return {
           sourceHeader: header,
           displayName: header,
           canonicalKey: suggestedKey || '',
-          order: index + 1
+          order: index + 1,
+          displayUnit: suggestedDisplayUnit || undefined
         };
       });
       
@@ -270,9 +274,20 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
 
   // Обновление выбранной колонки
   const updateSelectedColumn = useCallback((index: number, field: keyof ColumnMappingItem, value: any) => {
-    setSelectedColumns(prev => prev.map((col, i) => 
-      i === index ? { ...col, [field]: value } : col
-    ));
+    setSelectedColumns(prev => prev.map((col, i) => {
+      if (i === index) {
+        const updatedCol = { ...col, [field]: value };
+        
+        // Если изменился canonicalKey, сбрасываем displayUnit и устанавливаем новый по умолчанию
+        if (field === 'canonicalKey') {
+          const newDisplayUnit = suggestDefaultDisplayUnit(value);
+          updatedCol.displayUnit = newDisplayUnit || undefined;
+        }
+        
+        return updatedCol;
+      }
+      return col;
+    }));
   }, []);
 
   // Удаление выбранной колонки
@@ -673,6 +688,7 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
                         <th className="text-left p-2 text-vista-light/60 font-normal">Оригинальное имя</th>
                         <th className="text-left p-2 text-vista-light/60 font-normal">Кастомное имя</th>
                         <th className="text-left p-2 text-vista-light/60 font-normal w-64">Каноническая метрика</th>
+                        <th className="text-left p-2 text-vista-light/60 font-normal w-32">Единица отображения</th>
                         <th className="text-left p-2 w-20"></th>
                       </tr>
                     </thead>
@@ -714,6 +730,29 @@ export default function CreateGpsProfileModal({ isOpen, onClose, onCreated }: Cr
                                 {getSelectedMetricLabel(column.canonicalKey)}
                               </span>
                             </Button>
+                          </td>
+                          <td className="p-2">
+                            {column.canonicalKey && allowedDisplayUnitsFor(column.canonicalKey).length > 0 ? (
+                              <Select
+                                value={column.displayUnit || suggestDefaultDisplayUnit(column.canonicalKey) || ''}
+                                onValueChange={(value) => updateSelectedColumn(index, 'displayUnit', value)}
+                              >
+                                <SelectTrigger className="w-full bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0">
+                                  <SelectValue placeholder="Выберите единицу" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {allowedDisplayUnitsFor(column.canonicalKey).map((unit) => (
+                                    <SelectItem key={unit} value={unit}>
+                                      {unit}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <div className="text-sm text-vista-light/40 italic">
+                                {column.canonicalKey ? 'Не требуется' : 'Выберите метрику'}
+                              </div>
+                            )}
                           </td>
                           <td className="p-2">
                             <div className="flex items-center gap-2">

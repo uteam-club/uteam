@@ -18,6 +18,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CanonicalRegistry } from '@/canon/types';
 import { suggestCanonical } from '@/canon/suggest';
+import { allowedDisplayUnitsFor, suggestDefaultDisplayUnit } from '@/canon/displayUnits';
 import RecalcCanonicalModal from './RecalcCanonicalModal';
 import CanonicalMetricSelector from './CanonicalMetricSelector';
 import { cn } from '@/lib/utils';
@@ -44,6 +45,7 @@ interface Column {
   dataType?: string;
   isVisible?: boolean;
   canonicalKey?: string;
+  displayUnit?: string;
 }
 
 type ColumnMappingItem = {
@@ -52,6 +54,7 @@ type ColumnMappingItem = {
   canonicalKey: string;
   order: number;
   mappedColumn?: string;
+  displayUnit?: string;
 };
 
 // Ключ "смысла" строки — только canonicalKey + mappedColumn
@@ -411,9 +414,20 @@ export default function EditGpsProfileModal({ isOpen, profileId, onClose, onUpda
 
   // Обновление выбранной колонки
   const updateSelectedColumn = useCallback((index: number, field: keyof ColumnMappingItem, value: any) => {
-    setSelectedColumns(prev => prev.map((col, i) => 
-      i === index ? { ...col, [field]: value } : col
-    ));
+    setSelectedColumns(prev => prev.map((col, i) => {
+      if (i === index) {
+        const updatedCol = { ...col, [field]: value };
+        
+        // Если изменился canonicalKey, сбрасываем displayUnit и устанавливаем новый по умолчанию
+        if (field === 'canonicalKey') {
+          const newDisplayUnit = suggestDefaultDisplayUnit(value);
+          updatedCol.displayUnit = newDisplayUnit || undefined;
+        }
+        
+        return updatedCol;
+      }
+      return col;
+    }));
   }, []);
 
   // Удаление выбранной колонки
@@ -873,6 +887,7 @@ export default function EditGpsProfileModal({ isOpen, profileId, onClose, onUpda
                         <th className="text-left p-2 text-vista-light/60 font-normal">Оригинальное имя</th>
                         <th className="text-left p-2 text-vista-light/60 font-normal">Кастомное имя</th>
                         <th className="text-left p-2 text-vista-light/60 font-normal w-64">Каноническая метрика</th>
+                        <th className="text-left p-2 text-vista-light/60 font-normal w-32">Единица отображения</th>
                         <th className="text-left p-2 w-20"></th>
                       </tr>
                     </thead>
@@ -938,6 +953,33 @@ export default function EditGpsProfileModal({ isOpen, profileId, onClose, onUpda
                                 </TooltipProvider>
                 )}
               </div>
+                          </td>
+                          <td className="p-2">
+                            {column.canonicalKey && allowedDisplayUnitsFor(column.canonicalKey).length > 0 ? (
+                              <Select
+                                value={column.displayUnit || suggestDefaultDisplayUnit(column.canonicalKey) || ''}
+                                onValueChange={(value) => updateSelectedColumn(index, 'displayUnit', value)}
+                                disabled={isRowLocked}
+                              >
+                                <SelectTrigger className={cn(
+                                  "w-full bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0",
+                                  isRowLocked && "opacity-50 cursor-not-allowed"
+                                )}>
+                                  <SelectValue placeholder="Выберите единицу" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {allowedDisplayUnitsFor(column.canonicalKey).map((unit) => (
+                                    <SelectItem key={unit} value={unit}>
+                                      {unit}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <div className="text-sm text-vista-light/40 italic">
+                                {column.canonicalKey ? 'Не требуется' : 'Выберите метрику'}
+                              </div>
+                            )}
                           </td>
                           <td className="p-2">
                             <div className="flex items-center gap-2">
