@@ -70,21 +70,21 @@ export function formatDisplayValue(value: number | null, displayUnit: string): s
 
   switch (displayUnit) {
     case '%':
-      return `${value.toFixed(1)}%`;
+      return `${Number(value).toFixed(1)}%`;
     case 'km/h':
-      return `${value.toFixed(1)} км/ч`;
+      return `${Number(value).toFixed(1)} км/ч`;
     case 'm/s':
-      return `${value.toFixed(1)} м/с`;
+      return `${Number(value).toFixed(1)} м/с`;
     case 'm':
-      return `${Math.round(value)} м`;
+      return `${Math.round(Number(value))} м`;
     case 's':
-      return `${Math.round(value)} с`;
+      return `${Math.round(Number(value))} с`;
     case 'min':
-      return `${value.toFixed(1)} мин`;
+      return `${Number(value).toFixed(1)} мин`;
     case 'ratio':
-      return value.toFixed(3);
+      return Number(value).toFixed(3);
     default:
-      return value.toFixed(1);
+      return Number(value).toFixed(1);
   }
 }
 

@@ -150,6 +150,29 @@ export async function POST(request: NextRequest) {
         });
       
       nameValidation = validateAthleteNameColumn(nameValues, parsed.headers, nameColumn.sourceHeader);
+      
+      // Дополнительная проверка на подозрительные имена (позиции)
+      const positionPatterns = [
+        'CB', 'MF', 'W', 'S', 'GK', 'ST', 'CM', 'DM', 'AM', 'RM', 'LM', 'RW', 'LW', 'CF', 'SS',
+        'ВР', 'ЦЗ', 'ЛЗ', 'ПЗ', 'Н', 'ПФ', 'ЛФ', 'ЦП', 'ОП', 'АП', 'ПП', 'ЛП', 'Ф'
+      ];
+      
+      const positionCount = nameValues.filter(name => {
+        const trimmed = name.trim().toUpperCase();
+        return positionPatterns.includes(trimmed) || 
+               (trimmed.length <= 3 && /^[A-ZА-ЯЁ]+$/.test(trimmed));
+      }).length;
+      
+      const totalValidNames = nameValues.filter(name => name.trim().length > 0).length;
+      const positionRatio = totalValidNames > 0 ? positionCount / totalValidNames : 0;
+      
+      if (positionRatio > 0.6) {
+        nameValidation.warnings.push({
+          code: 'ATHLETE_NAME_SUSPECT',
+          message: 'Колонка имени содержит, похоже, позиции. Проверьте маппинг в профиле.',
+          column: nameColumn.sourceHeader
+        });
+      }
     }
 
     // 4. Маппим в канонические данные

@@ -4,6 +4,46 @@ import { CANON } from '@/canon/metrics.registry';
 // Множество валидных ключей канонических метрик
 export const CanonKeysSet = new Set(CANON.metrics.map(m => m.key));
 
+// Множество deprecated метрик
+export const DeprecatedKeysSet = new Set(CANON.metrics.filter(m => m.deprecated === true).map(m => m.key));
+
+// Множество активных (не deprecated) метрик
+export const ActiveKeysSet = new Set(CANON.metrics.filter(m => m.deprecated !== true).map(m => m.key));
+
+// Функция для получения метрики по ключу
+const getMetricByKey = (key: string) => CANON.metrics.find(m => m.key === key);
+
+// Функция для определения displayUnit по умолчанию
+const getDefaultDisplayUnit = (canonicalKey: string): string => {
+  const metric = getMetricByKey(canonicalKey);
+  if (!metric) return '';
+  
+  const { dimension, unit } = metric;
+  
+  // ratio/ratio → по умолчанию '%'
+  if (dimension === 'ratio' && unit === 'ratio') {
+    return '%';
+  }
+  
+  // speed m/s → по умолчанию 'km/h'
+  if (dimension === 'speed' && unit === 'm/s') {
+    return 'km/h';
+  }
+  
+  // time s → по умолчанию 'min'
+  if (dimension === 'time' && unit === 's') {
+    return 'min';
+  }
+  
+  // distance m → по умолчанию 'km'
+  if (dimension === 'distance' && unit === 'm') {
+    return 'km';
+  }
+  
+  // Для остальных возвращаем canonical unit
+  return unit;
+};
+
 export const ColumnMappingItemSchema = z.object({
   type: z.enum(['column', 'formula']).default('column'),
   name: z.string().min(1, 'Название колонки обязательно'),
@@ -11,7 +51,8 @@ export const ColumnMappingItemSchema = z.object({
   canonicalKey: z.string().optional(),
   isVisible: z.boolean().default(true),
   order: z.number().int().nonnegative().default(0),
-  formula: z.string().optional()
+  formula: z.string().optional(),
+  displayUnit: z.string().optional()
 }).superRefine((val, ctx) => {
   if (val.type === 'column') {
     if (!val.mappedColumn) {
@@ -27,12 +68,73 @@ export const ColumnMappingItemSchema = z.object({
         message: 'canonicalKey обязателен для type=column',
         path: ['canonicalKey']
       });
-    } else if (!CanonKeysSet.has(val.canonicalKey)) {
-      ctx.addIssue({ 
-        code: z.ZodIssueCode.custom, 
-        message: `Неизвестный canonicalKey: ${val.canonicalKey}. Доступные ключи: ${Array.from(CanonKeysSet).slice(0, 5).join(', ')}...`,
-        path: ['canonicalKey']
-      });
+    } else {
+      // Проверяем, что метрика существует
+      if (!CanonKeysSet.has(val.canonicalKey)) {
+        ctx.addIssue({ 
+          code: z.ZodIssueCode.custom, 
+          message: `Неизвестный canonicalKey: ${val.canonicalKey}. Доступные ключи: ${Array.from(ActiveKeysSet).slice(0, 5).join(', ')}...`,
+          path: ['canonicalKey']
+        });
+      }
+      // Проверяем, что метрика не deprecated
+      else if (DeprecatedKeysSet.has(val.canonicalKey)) {
+        const metric = getMetricByKey(val.canonicalKey);
+        ctx.addIssue({ 
+          code: z.ZodIssueCode.custom, 
+          message: `Метрика «${metric?.labels?.ru || val.canonicalKey}» устарела и недоступна`,
+          path: ['canonicalKey']
+        });
+      }
+      // Проверяем displayUnit
+      else {
+        const metric = getMetricByKey(val.canonicalKey);
+        if (metric) {
+          const { dimension, unit } = metric;
+          
+          // Для ratio/ratio требуем displayUnit
+          if (dimension === 'ratio' && unit === 'ratio' && !val.displayUnit) {
+            ctx.addIssue({ 
+              code: z.ZodIssueCode.custom, 
+              message: `Не указана единица отображения для «${metric.labels?.ru || val.canonicalKey}». Доступные: %, ratio`,
+              path: ['displayUnit']
+            });
+          }
+          // Для speed m/s проверяем валидность displayUnit
+          else if (dimension === 'speed' && unit === 'm/s' && val.displayUnit) {
+            const validUnits = ['m/s', 'km/h'];
+            if (!validUnits.includes(val.displayUnit)) {
+              ctx.addIssue({ 
+                code: z.ZodIssueCode.custom, 
+                message: `Недопустимая единица отображения для «${metric.labels?.ru || val.canonicalKey}». Доступные: ${validUnits.join(', ')}`,
+                path: ['displayUnit']
+              });
+            }
+          }
+          // Для time проверяем валидность displayUnit
+          else if (dimension === 'time' && val.displayUnit) {
+            const validUnits = ['s', 'min', 'h'];
+            if (!validUnits.includes(val.displayUnit)) {
+              ctx.addIssue({ 
+                code: z.ZodIssueCode.custom, 
+                message: `Недопустимая единица отображения для «${metric.labels?.ru || val.canonicalKey}». Доступные: ${validUnits.join(', ')}`,
+                path: ['displayUnit']
+              });
+            }
+          }
+          // Для distance проверяем валидность displayUnit
+          else if (dimension === 'distance' && val.displayUnit) {
+            const validUnits = ['m', 'km', 'yd'];
+            if (!validUnits.includes(val.displayUnit)) {
+              ctx.addIssue({ 
+                code: z.ZodIssueCode.custom, 
+                message: `Недопустимая единица отображения для «${metric.labels?.ru || val.canonicalKey}». Доступные: ${validUnits.join(', ')}`,
+                path: ['displayUnit']
+              });
+            }
+          }
+        }
+      }
     }
   }
 });

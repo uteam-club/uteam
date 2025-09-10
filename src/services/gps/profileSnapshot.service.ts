@@ -5,7 +5,12 @@ import { CANON } from '@/canon/metrics.registry';
 /**
  * Определяет displayUnit на основе названия колонки и канонического ключа
  */
-function determineDisplayUnit(columnName: string, canonicalKey: string): string | undefined {
+function determineDisplayUnit(columnName: string, canonicalKey: string, profileDisplayUnit?: string): string | undefined {
+  // Если displayUnit указан в профиле, используем его
+  if (profileDisplayUnit) {
+    return profileDisplayUnit;
+  }
+
   // Алиасы для метрик с единицами в названии
   const aliasMap: Record<string, { baseKey: string; displayUnit: string }> = {
     'max_speed_kmh': { baseKey: 'max_speed_ms', displayUnit: 'km/h' },
@@ -67,8 +72,8 @@ export function buildProfileSnapshot(profile: GpsProfile): ProfileSnapshot {
       const canonicalKey = col.canonicalKey!;
       const displayName = col.displayName || col.name || canonicalKey;
       
-      // Определяем displayUnit
-      const displayUnit = determineDisplayUnit(displayName, canonicalKey);
+      // Определяем displayUnit (приоритет: профиль > эвристика)
+      const displayUnit = determineDisplayUnit(displayName, canonicalKey, col.displayUnit);
       
       return {
         sourceHeader,
