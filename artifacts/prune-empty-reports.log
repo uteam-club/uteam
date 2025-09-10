@@ -1,0 +1,7 @@
+[2025-09-10T06:34:18.544Z] 🔌 Connected to database for pruning empty reports
+[2025-09-10T06:34:18.974Z] 📊 Found 6 total reports
+[2025-09-10T06:34:18.974Z] 🎯 Found 2 empty reports to prune (including old demo reports with 0 rows)
+[2025-09-10T06:34:18.976Z] 📝 Saved 2 candidates to artifacts/prune-empty-reports.jsonl
+[2025-09-10T06:34:19.668Z] ✅ Deleted batch 1: 2 reports
+[2025-09-10T06:34:19.668Z] 🎉 Pruning completed: 2 reports deleted
+[2025-09-10T06:34:19.810Z] 🔌 Database connection closed

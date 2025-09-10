@@ -1,0 +1,69 @@
+{
+  "reports": {
+    "R1": {
+      "count": 16,
+      "ids": [
+        "5f4a16ee-b3b9-4b85-b87e-9bb0272a3da2",
+        "d81f08a2-e4e0-4cde-a8c2-87cc978e2ec1",
+        "225794f5-143b-448b-a872-53b92c997d40",
+        "18590fb0-817f-4cea-bf54-067570c77fb6",
+        "c5b4c12e-4722-453b-a52d-aa3c09bbf62e",
+        "4946dd36-f116-45e1-a30c-0aada41c775c",
+        "64069ad5-93b3-404c-9feb-5667121a9888",
+        "33adbdac-75bb-4d6f-9e0f-47af7680472f",
+        "9a2cb71b-7564-465d-87c9-9c9d9cbe04e3",
+        "f9ff239a-f461-4885-b302-67e3f6af1433",
+        "5398b62b-b12e-4136-b754-e475ce0480ef",
+        "fb115fe6-27f8-4f09-a64e-e8f16ed70da5",
+        "fd6fba95-3154-413c-8f5c-c30d9f63f450",
+        "38a9daca-7068-4bcc-a12b-590a51322649",
+        "a1e5df58-6e49-4748-b7ae-3ad8256f54a7",
+        "d27f434e-5305-49fe-8cbc-c841fcc41a8e"
+      ]
+    },
+    "R2": {
+      "count": 0,
+      "ids": []
+    },
+    "R3": {
+      "count": 0,
+      "ids": []
+    },
+    "R4": {
+      "count": 0,
+      "ids": []
+    },
+    "R5": {
+      "count": 0,
+      "ids": []
+    }
+  },
+  "profiles": {
+    "P1": {
+      "count": 0,
+      "ids": []
+    },
+    "P2": {
+      "count": 0,
+      "ids": []
+    },
+    "removable_after_reports": {
+      "count": 0,
+      "ids": []
+    }
+  },
+  "ageBuckets": {
+    "gt365": 0,
+    "d180_365": 0,
+    "d90_180": 0,
+    "lt90": 18
+  },
+  "sizeEstimate": {
+    "rawBytes": 26190,
+    "processedBytes": 39124
+  },
+  "fks": {
+    "GpsReport": [],
+    "GpsProfile": []
+  }
+}

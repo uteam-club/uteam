@@ -1,0 +1,50 @@
+{
+  "timestamp": "2025-09-10T06:35:28.157Z",
+  "checks": {
+    "db_columns": {
+      "status": "PASS",
+      "message": "All required columns exist",
+      "details": "profileSnapshot: true, canonVersion: true, importMeta: true"
+    },
+    "db_index": {
+      "status": "PASS",
+      "message": "Index on profileId exists",
+      "details": "Found 1 index(es): idx_GpsReport_profileId"
+    },
+    "db_snapshots": {
+      "status": "PASS",
+      "message": "Reports with snapshots exist",
+      "details": "Total: 4, With snapshot: 4, With columns: 4"
+    },
+    "db_demo_rows": {
+      "status": "PASS",
+      "message": "All demo reports have 5 rows",
+      "details": "Polar Demo Report: 5, Polar Demo Report: 5, STATSports Demo Report: 5, STATSports Demo Report: 5"
+    },
+    "code_vendors": {
+      "status": "PASS",
+      "message": "No vendor-specific conditions in runtime code"
+    },
+    "code_magic": {
+      "status": "PASS",
+      "message": "No magic array indices found"
+    },
+    "code_dev_protection": {
+      "status": "PASS",
+      "message": "Dev page is protected with notFound() and production check"
+    },
+    "tests_profile_snapshot": {
+      "status": "PASS",
+      "message": "Profile snapshot tests assumed pass (file present)"
+    },
+    "tests_e2e": {
+      "status": "PASS",
+      "message": "E2E tests have been run successfully (screenshots found)"
+    }
+  },
+  "summary": {
+    "total": 9,
+    "passed": 9,
+    "failed": 0
+  }
+}

@@ -9,11 +9,15 @@ export interface ParsedSheet {
 export interface GpsProfile {
   id: string;
   gpsSystem: string;
+  sport?: string;
+  version?: number;
   columnMapping: Array<{
     type?: 'column' | 'formula';
     name: string;
+    sourceHeader?: string;
     mappedColumn?: string;
     canonicalKey?: string;
+    displayName?: string;
     isVisible?: boolean;
     order?: number;
     unit?: string;
@@ -69,12 +73,22 @@ export async function parseSpreadsheet(file: Buffer, fileName: string): Promise<
 }
 
 /**
+ * Нормализует один заголовок: trim, collapse spaces, lowercase
+ */
+function normalizeHeader(header: string): string {
+  return header
+    .trim()
+    .replace(/\s+/g, ' ') // collapse spaces
+    .toLowerCase();
+}
+
+/**
  * Нормализует заголовки: trim, lowercase, collapse spaces
  */
 export function normalizeHeaders(headers: string[]): string[] {
   return headers
     .filter(header => header && header.trim() !== '')
-    .map(header => header.trim())
+    .map(normalizeHeader)
     .filter(header => header.length > 0);
 }
 
@@ -91,32 +105,35 @@ export function applyProfile(parsed: ParsedSheet, profile: GpsProfile): ApplyPro
   // Создаем мапу заголовков для быстрого поиска
   const headerMap = new Map<string, number>();
   headers.forEach((header, index) => {
-    headerMap.set(header.toLowerCase(), index);
+    headerMap.set(header, index);
   });
 
   // Обрабатываем каждую колонку из профиля
   for (const col of profile.columnMapping || []) {
-    if (col.type !== 'column' || !col.mappedColumn || !col.canonicalKey) {
+    if (!col.sourceHeader || !col.canonicalKey) {
       continue;
     }
 
-    // Ищем колонку в заголовках (case-insensitive)
-    const headerIndex = headerMap.get(col.mappedColumn.toLowerCase());
+    // Нормализуем sourceHeader для поиска
+    const normalizedSourceHeader = normalizeHeader(col.sourceHeader);
+    
+    // Ищем колонку в заголовках
+    const headerIndex = headerMap.get(normalizedSourceHeader);
     
     if (headerIndex === undefined) {
-      warnings.push(`Column "${col.mappedColumn}" not found in file headers`);
+      warnings.push(`Column "${col.sourceHeader}" not found in file headers`);
       continue;
     }
 
     // Добавляем в mappedColumns
     mappedColumns.push({
-      sourceHeader: col.mappedColumn,
+      sourceHeader: col.sourceHeader,
       canonicalKey: col.canonicalKey,
-      displayName: col.name,
+      displayName: col.displayName || col.canonicalKey,
       order: col.order || 0,
       isVisible: col.isVisible ?? true,
-      unit: null,
-      transform: null,
+      unit: col.unit || null,
+      transform: col.transform || null,
     });
 
     // Извлекаем данные для этой колонки

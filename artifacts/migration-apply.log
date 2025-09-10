@@ -1,0 +1,25 @@
+[2025-09-09T17:20:24.868Z] 🔄 Starting GPS safe migration...
+[2025-09-09T17:20:25.628Z] 🔌 Connected to database
+[2025-09-09T17:20:25.774Z] ⏱️ Set statement_timeout = 0
+[2025-09-09T17:20:25.920Z] 📊 Database: uteam
+[2025-09-09T17:20:25.920Z] 📊 Schema: public
+[2025-09-09T17:20:25.920Z] 📊 PostgreSQL version: PostgreSQL
+[2025-09-09T17:20:25.920Z] 🔧 Starting transaction...
+[2025-09-09T17:20:26.065Z] 🔧 Step 1/5: Add profileSnapshot column
+[2025-09-09T17:20:26.066Z] 📝 SQL: ALTER TABLE "GpsReport" ADD COLUMN IF NOT EXISTS "profileSnapshot" jsonb;
+[2025-09-09T17:20:26.210Z] ✅ Step 1 completed successfully
+[2025-09-09T17:20:26.210Z] 🔧 Step 2/5: Add canonVersion column
+[2025-09-09T17:20:26.211Z] 📝 SQL: ALTER TABLE "GpsReport" ADD COLUMN IF NOT EXISTS "canonVersion" text;
+[2025-09-09T17:20:26.361Z] ✅ Step 2 completed successfully
+[2025-09-09T17:20:26.361Z] 🔧 Step 3/5: Add importMeta column
+[2025-09-09T17:20:26.361Z] 📝 SQL: ALTER TABLE "GpsReport" ADD COLUMN IF NOT EXISTS "importMeta" jsonb;
+[2025-09-09T17:20:26.511Z] ✅ Step 3 completed successfully
+[2025-09-09T17:20:26.511Z] 🔧 Step 4/5: Set importMeta default
+[2025-09-09T17:20:26.511Z] 📝 SQL: ALTER TABLE "GpsReport" ALTER COLUMN "importMeta" SET DEFAULT '{}'::jsonb;
+[2025-09-09T17:20:26.656Z] ✅ Step 4 completed successfully
+[2025-09-09T17:20:26.656Z] 🔧 Step 5/5: Create profileId index
+[2025-09-09T17:20:26.656Z] 📝 SQL: CREATE INDEX IF NOT EXISTS "idx_GpsReport_profileId" ON "GpsReport" ("profileId");
+[2025-09-09T17:20:26.801Z] ✅ Step 5 completed successfully
+[2025-09-09T17:20:26.946Z] ✅ Transaction committed successfully
+[2025-09-09T17:20:26.946Z] 🎉 All GPS columns and index added safely
+[2025-09-09T17:20:27.093Z] 🔌 Database connection closed

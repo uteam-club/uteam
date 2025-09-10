@@ -4,26 +4,30 @@ describe('Profile Snapshot Service', () => {
   it('should build snapshot from profile with column mapping', () => {
     const profile = {
       id: 'profile-1',
-      gpsSystem: 'B-SIGHT',
+      gpsSystem: 'Polar',
+      sport: 'football',
+      version: 1,
       columnMapping: [
         {
           type: 'column' as const,
           name: 'Player Name',
-          mappedColumn: 'Name',
+          sourceHeader: 'Player',
           canonicalKey: 'athlete_name',
+          displayName: 'Игрок',
           isVisible: true,
-          order: 0,
+          order: 1,
           unit: 'string',
           transform: undefined,
         },
         {
           type: 'column' as const,
           name: 'Total Distance',
-          mappedColumn: 'Distance',
+          sourceHeader: 'Total distance (km)',
           canonicalKey: 'total_distance_m',
+          displayName: 'TD',
           isVisible: true,
-          order: 1,
-          unit: 'm',
+          order: 2,
+          unit: 'km',
           transform: 'parseFloat',
         },
         {
@@ -38,30 +42,123 @@ describe('Profile Snapshot Service', () => {
     const snapshot = buildProfileSnapshot(profile);
 
     expect(snapshot.profileId).toBe('profile-1');
-    expect(snapshot.gpsSystem).toBe('B-SIGHT');
-    expect(snapshot.sport).toBeNull();
-    expect(snapshot.profileVersion).toBeNull();
-    expect(snapshot.createdAtISO).toBe('2024-01-01T00:00:00Z');
+    expect(snapshot.gpsSystem).toBe('Polar');
+    expect(snapshot.sport).toBe('football');
+    expect(snapshot.profileVersion).toBe(1);
+    expect(snapshot.createdAtISO).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
 
     expect(snapshot.columns).toHaveLength(2); // Only column types
     expect(snapshot.columns[0]).toEqual({
-      sourceHeader: 'Name',
+      sourceHeader: 'Player',
       canonicalKey: 'athlete_name',
-      displayName: 'Player Name',
-      order: 0,
+      displayName: 'Игрок',
+      order: 1,
       isVisible: true,
       unit: 'string',
       transform: null,
     });
 
     expect(snapshot.columns[1]).toEqual({
-      sourceHeader: 'Distance',
+      sourceHeader: 'Total distance (km)',
       canonicalKey: 'total_distance_m',
-      displayName: 'Total Distance',
-      order: 1,
+      displayName: 'TD',
+      order: 2,
       isVisible: true,
-      unit: 'm',
+      unit: 'km',
       transform: 'parseFloat',
+    });
+  });
+
+  it('should sort columns by order', () => {
+    const profile = {
+      id: 'profile-1',
+      gpsSystem: 'Test',
+      columnMapping: [
+        {
+          name: 'Third',
+          sourceHeader: 'C',
+          canonicalKey: 'third',
+          order: 3,
+        },
+        {
+          name: 'First',
+          sourceHeader: 'A',
+          canonicalKey: 'first',
+          order: 1,
+        },
+        {
+          name: 'Second',
+          sourceHeader: 'B',
+          canonicalKey: 'second',
+          order: 2,
+        },
+      ],
+      createdAt: '2024-01-01T00:00:00Z',
+    };
+
+    const snapshot = buildProfileSnapshot(profile);
+    
+    expect(snapshot.columns[0].canonicalKey).toBe('first');
+    expect(snapshot.columns[1].canonicalKey).toBe('second');
+    expect(snapshot.columns[2].canonicalKey).toBe('third');
+  });
+
+  it('should filter invisible columns', () => {
+    const profile = {
+      id: 'profile-1',
+      gpsSystem: 'Test',
+      columnMapping: [
+        {
+          name: 'Visible',
+          sourceHeader: 'A',
+          canonicalKey: 'visible',
+          isVisible: true,
+        },
+        {
+          name: 'Hidden',
+          sourceHeader: 'B',
+          canonicalKey: 'hidden',
+          isVisible: false,
+        },
+        {
+          name: 'Default',
+          sourceHeader: 'C',
+          canonicalKey: 'default',
+        },
+      ],
+      createdAt: '2024-01-01T00:00:00Z',
+    };
+
+    const snapshot = buildProfileSnapshot(profile);
+    
+    expect(snapshot.columns).toHaveLength(2);
+    expect(snapshot.columns.map(c => c.canonicalKey)).toEqual(['visible', 'default']);
+  });
+
+  it('should handle missing displayName and unit', () => {
+    const profile = {
+      id: 'profile-1',
+      gpsSystem: 'Test',
+      columnMapping: [
+        {
+          name: 'Test Column',
+          sourceHeader: 'test',
+          canonicalKey: 'test_key',
+        },
+      ],
+      createdAt: '2024-01-01T00:00:00Z',
+    };
+
+    const snapshot = buildProfileSnapshot(profile);
+    
+    expect(snapshot.columns[0]).toEqual({
+      sourceHeader: 'test',
+      canonicalKey: 'test_key',
+      displayName: 'Test Column',
+      order: 0,
+      isVisible: true,
+      unit: null,
+      transform: null,
     });
   });
 

@@ -1,64 +1,170 @@
-name: GPS CI
+name: GPS Module CI
 
 on:
   push:
     paths:
-      - "src/**"
-      - "scripts/**"
-      - "docs/**"
-      - ".github/workflows/gps-ci.yml"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "yarn.lock"
+      - 'src/services/gps/**'
+      - 'src/canon/**'
+      - 'e2e/gps-report-dev.spec.ts'
+      - 'scripts/gps/**'
   pull_request:
+    paths:
+      - 'src/services/gps/**'
+      - 'src/canon/**'
+      - 'e2e/gps-report-dev.spec.ts'
+      - 'scripts/gps/**'
 
 jobs:
-  build-test-readiness:
+  lint:
+    name: Lint GPS Code
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: "npm"
+          node-version: '18'
+          cache: 'npm'
 
-      - name: Install
+      - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        run: |
-          if npm pkg get scripts | grep -q '"lint"'; then
-            npm run lint
-          else
-            echo "No lint script — skipping"
-          fi
+      - name: Run ESLint
+        run: npm run lint -- src/services/gps/ src/canon/ e2e/gps-report-dev.spec.ts
 
-      - name: Unit tests
-        run: |
-          if npm pkg get scripts | grep -q '"test"'; then
-            npm test --silent -- --watchAll=false
-          else
-            echo "No test script — skipping"
-          fi
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Readiness (read-only)
-        env:
-          PGHOST: ${{ secrets.PGHOST }}
-          PGPORT: ${{ secrets.PGPORT }}
-          PGDATABASE: ${{ secrets.PGDATABASE }}
-          PGUSER: ${{ secrets.PGUSER }}
-          PGPASSWORD: ${{ secrets.PGPASSWORD }}
-        run: |
-          bash scripts/gps_readiness_check.sh
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
 
-      - name: Upload artifacts
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test -- src/services/gps/ src/canon/
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
         if: always()
+        with:
+          name: unit-test-results
+          path: coverage/
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Optional job - may fail if no CI database
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Setup environment
+        run: |
+          echo "NODE_ENV=development" >> $GITHUB_ENV
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> $GITHUB_ENV
+
+      - name: Run E2E tests
+        run: npx playwright test e2e/gps-report-dev.spec.ts --reporter=html
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Upload E2E results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: test-results/
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-screenshots
+          path: artifacts/screens/
+
+  readiness-check:
+    name: GPS Readiness Check
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Optional job - may fail if no CI database
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run readiness check
+        run: npx tsx scripts/gps/readiness-check.ts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Upload readiness report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gps-readiness-report
+          path: artifacts/GPS_READINESS_SUMMARY.*
+
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [lint, unit-tests, e2e-tests, readiness-check]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Generate summary
+        run: |
+          echo "# GPS CI Summary" > gps-ci-summary.md
+          echo "" >> gps-ci-summary.md
+          echo "## Job Results" >> gps-ci-summary.md
+          echo "- Lint: ${{ needs.lint.result }}" >> gps-ci-summary.md
+          echo "- Unit Tests: ${{ needs.unit-tests.result }}" >> gps-ci-summary.md
+          echo "- E2E Tests: ${{ needs.e2e-tests.result }}" >> gps-ci-summary.md
+          echo "- Readiness Check: ${{ needs.readiness-check.result }}" >> gps-ci-summary.md
+          echo "" >> gps-ci-summary.md
+          echo "## Artifacts" >> gps-ci-summary.md
+          echo "- Unit test results: unit-test-results/" >> gps-ci-summary.md
+          echo "- E2E test results: e2e-test-results/" >> gps-ci-summary.md
+          echo "- E2E screenshots: e2e-screenshots/" >> gps-ci-summary.md
+          echo "- Readiness report: gps-readiness-report/" >> gps-ci-summary.md
+
+      - name: Upload summary
         uses: actions/upload-artifact@v4
         with:
-          name: gps-readiness-artifacts
-          path: artifacts/*
+          name: gps-ci-summary
+          path: gps-ci-summary.md

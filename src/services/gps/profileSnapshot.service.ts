@@ -7,13 +7,13 @@ import { GpsProfile } from './ingest.service';
  */
 export function buildProfileSnapshot(profile: GpsProfile): ProfileSnapshot {
   const columns: ProfileSnapshotColumn[] = (profile.columnMapping || [])
-    .filter(col => col.type === 'column' && col.canonicalKey && col.mappedColumn)
+    .filter(col => col.canonicalKey && (col.sourceHeader || col.mappedColumn) && col.isVisible !== false)
     .map(col => ({
-      sourceHeader: col.mappedColumn!,
+      sourceHeader: col.sourceHeader || col.mappedColumn || '',
       canonicalKey: col.canonicalKey!,
-      displayName: col.name,
+      displayName: col.displayName || col.name || col.canonicalKey!,
       order: col.order || 0,
-      isVisible: col.isVisible ?? true,
+      isVisible: col.isVisible !== false,
       unit: col.unit || null,
       transform: col.transform || null,
     }))
@@ -22,9 +22,9 @@ export function buildProfileSnapshot(profile: GpsProfile): ProfileSnapshot {
   return {
     profileId: profile.id,
     gpsSystem: profile.gpsSystem || null,
-    sport: null, // TODO: добавить поле sport в профиль если нужно
+    sport: profile.sport || null,
     columns,
-    profileVersion: null, // TODO: добавить версионирование профилей
-    createdAtISO: profile.createdAt,
+    profileVersion: profile.version || null,
+    createdAtISO: new Date().toISOString(),
   };
 }

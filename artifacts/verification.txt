@@ -1,0 +1,185 @@
+
+=== Структура столбцов GpsReport ===
+[
+  {
+    "column_name": "canonVersion",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "clubId",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "column_name": "createdAt",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "now()"
+  },
+  {
+    "column_name": "eventId",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "column_name": "eventType",
+    "data_type": "character varying",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "column_name": "fileName",
+    "data_type": "character varying",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "column_name": "filePath",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "fileSize",
+    "data_type": "character varying",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "fileUrl",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "column_name": "gpsSystem",
+    "data_type": "character varying",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "column_name": "importMeta",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "column_name": "ingestError",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "ingestStatus",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "NO",
+    "column_default": "'new'::ingest_status"
+  },
+  {
+    "column_name": "isProcessed",
+    "data_type": "boolean",
+    "is_nullable": "NO",
+    "column_default": "false"
+  },
+  {
+    "column_name": "metadata",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "name",
+    "data_type": "character varying",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "column_name": "processedData",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "profileId",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "profileSnapshot",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "rawData",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "teamId",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "column_name": "updatedAt",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "now()"
+  },
+  {
+    "column_name": "uploadedById",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  }
+]
+
+=== Статистика новых полей ===
+[
+  {
+    "total_reports": "18",
+    "with_snapshot": "0",
+    "with_canon_ver": "0",
+    "with_import_meta": "0"
+  }
+]
+
+=== Проверка OID индекса idx_GpsReport_profileId ===
+[
+  {
+    "idx_oid": "\"idx_GpsReport_profileId\""
+  }
+]
+
+=== Все индексы таблицы GpsReport ===
+[
+  {
+    "indexname": "GpsReport_pkey",
+    "indexdef": "CREATE UNIQUE INDEX \"GpsReport_pkey\" ON public.\"GpsReport\" USING btree (id)"
+  },
+  {
+    "indexname": "idx_GpsReport_profileId",
+    "indexdef": "CREATE INDEX \"idx_GpsReport_profileId\" ON public.\"GpsReport\" USING btree (\"profileId\")"
+  }
+]
+
+=== Индексы по колонке profileId ===
+[
+  {
+    "indexname": "idx_GpsReport_profileId",
+    "indexdef": "CREATE INDEX \"idx_GpsReport_profileId\" ON public.\"GpsReport\" USING btree (\"profileId\")"
+  }
+]

@@ -2,9 +2,6 @@
 import { CANON } from '../canon/metrics.registry';
 import { convertUnit } from '../canon/units';
 
-const toNum = (v: any) =>
-  (v === null || v === undefined || v === '') ? undefined : Number(v);
-
 export interface CanonColumn {
   sourceHeader: string;
   canonicalKey: string;
@@ -109,8 +106,17 @@ export function mapRowsToCanonical(
       const rawValue = columnData[rowIndex];
       
       // Конвертируем в число
-      const n = toNum(rawValue);
-      const numValue = Number.isFinite(n) ? n as number : null;
+      let numValue: number | null = null;
+      if (rawValue !== null && rawValue !== undefined && rawValue !== '') {
+        if (typeof rawValue === 'number') {
+          numValue = rawValue;
+        } else if (typeof rawValue === 'string') {
+          const parsed = parseFloat(rawValue);
+          if (!isNaN(parsed)) {
+            numValue = parsed;
+          }
+        }
+      }
       
       // Применяем конвертацию единиц если нужно
       if (numValue !== null && col.unit) {

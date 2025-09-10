@@ -40,31 +40,19 @@ type ColumnMeta = {
   order?: number;
 };
 
-const formatValue = (v: any, col: { dimension?: string | number | symbol }) => {
-  // 1) Пусто → "—"
-  if (v === null || v === undefined || v === '') return '—';
-
-  // 2) Пробуем привести к числу
-  const n = Number(v);
-  if (!Number.isFinite(n)) return '—';
-
-  // 3) Форматирование по размерности
-  switch (col?.dimension) {
-    case 'ratio':      // доли: 0.085 -> "9%"
-      return `${(n * 100).toFixed(0)}%`;
-    case 'count':      // целые: 1234 -> "1 234"
-    case 'time':
-    case 'distance':
-      return Math.round(n).toLocaleString('ru-RU');
-    case 'speed':      // скорость: 8.53 -> "8.5"
-      return n.toFixed(1);
-    default:
-      return String(v);
+const formatValue = (v: any, col: ColumnMeta) => {
+  if (v == null || v === "") return "—";
+  if (col.dimension === "ratio") {
+    const num = Number(v);
+    if (!isFinite(num)) return "—";
+    return `${(num * 100).toFixed(0)}%`; // 0 знаков для процентов
   }
+  if (col.dimension === "count") return `${Math.round(Number(v)).toLocaleString("ru-RU")}`;
+  if (col.dimension === "speed") return Number(v).toFixed(1); // м/с, 1 знак
+  if (col.dimension === "time") return Math.round(Number(v)).toLocaleString("ru-RU"); // сек
+  if (col.dimension === "distance") return Math.round(Number(v)).toLocaleString("ru-RU"); // м
+  return String(v); // identity / прочее
 };
-
-const toNum = (x: any) =>
-  (x === null || x === undefined || x === '') ? undefined : Number(x);
 
 export default function GpsReportTable({ rows, profile, meta }: Props) {
   const hiddenSet = new Set(profile?.visualizationConfig?.hiddenCanonicalKeys ?? []);
@@ -120,24 +108,23 @@ export default function GpsReportTable({ rows, profile, meta }: Props) {
   console.log('[GPS:UI] columns=', columns.map(c => ({id: c.key, accessorKey: c.key, label: c.label})));
 
   const averages = React.useMemo(() => {
-    const sum: Record<string, number> = {};
+    const acc: Record<string, number> = {};
     const cnt: Record<string, number> = {};
-
     for (const r of rows) {
       for (const col of columnsWithoutName) {
-        const n = toNum((r as any)[col.key]);
-        if (Number.isFinite(n)) {
-          sum[col.key] = (sum[col.key] ?? 0) + (n as number);
+        const v = r[col.key];
+        const num = typeof v === "number" ? v : Number(v);
+        if (Number.isFinite(num)) {
+          acc[col.key] = (acc[col.key] ?? 0) + num;
           cnt[col.key] = (cnt[col.key] ?? 0) + 1;
         }
       }
     }
-
-    const avg: Record<string, number | undefined> = {};
+    const out: Record<string, number | null> = {};
     for (const col of columnsWithoutName) {
-      avg[col.key] = cnt[col.key] ? (sum[col.key] / cnt[col.key]) : undefined;
+      out[col.key] = cnt[col.key] ? acc[col.key] / cnt[col.key] : null;
     }
-    return avg;
+    return out;
   }, [rows, columnsWithoutName]);
 
   return (

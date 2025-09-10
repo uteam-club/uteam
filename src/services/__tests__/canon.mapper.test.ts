@@ -129,7 +129,7 @@ describe('canon.mapper', () => {
     const cols = buildCanonColumns(profileColumns as any);
     const { rows: out } = mapRowsToCanonical(rows as any, cols);
     expect(out[0].hsr_ratio).toBeCloseTo(0.07, 6);  // 7% -> 0.07
-    expect(out[1].hsr_ratio).toBeCloseTo(0.42, 6); // Уже доля
+    expect(out[1].hsr_ratio).toBe(0.42); // 0.42 уже доля, остается как есть
   });
 
   test('generates warnings for values below minimum', () => {
@@ -237,7 +237,7 @@ describe('canon.mapper', () => {
 
     const { rows: result } = mapRowsToCanonical(rows, cols);
 
-    // 8.5 должно конвертироваться в 0.085 (как проценты)
+    // 8.5% должно конвертироваться в 0.085 (как проценты)
     expect(result[0].hsr_ratio).toBe(0.085);
   });
 

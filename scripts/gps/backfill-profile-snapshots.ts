@@ -1,14 +1,14 @@
 #!/usr/bin/env ts-node
 
 // @ts-ignore
-import { db } from '../src/lib/db';
+import { db } from '../../src/lib/db';
 // @ts-ignore
-import { gpsReport, gpsProfile } from '../src/db/schema';
+import { gpsReport, gpsProfile } from '../../src/db/schema';
 import { eq, isNull } from 'drizzle-orm';
 // @ts-ignore
-import { buildProfileSnapshot } from '../src/services/gps/profileSnapshot.service';
+import { buildProfileSnapshot } from '../../src/services/gps/profileSnapshot.service';
 // @ts-ignore
-import { CANON } from '../src/canon/metrics.registry';
+import { CANON } from '../../src/canon/metrics.registry';
 
 interface BackfillOptions {
   dryRun: boolean;
@@ -29,7 +29,7 @@ async function backfillProfileSnapshots(options: BackfillOptions) {
       .where(isNull(gpsReport.profileSnapshot));
 
     if (options.limit) {
-      query = query.limit(options.limit);
+      query = query.limit(options.limit) as any;
     }
 
     const reports = await query;

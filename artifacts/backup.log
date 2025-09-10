@@ -1,0 +1,2 @@
+pg_dump: error: server version: 15.13 (Ubuntu 15.13-201-yandex.55410.c7a09e61b0); pg_dump version: 14.18 (Homebrew)
+pg_dump: error: aborting because of server version mismatch

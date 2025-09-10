@@ -1,0 +1,8 @@
+[2025-09-09T19:52:40.122Z] 🔌 Connected to database for backfill
+[2025-09-09T19:52:40.338Z] 📊 Found 4 reports with empty snapshot.columns
+[2025-09-09T19:52:40.740Z] ✅ Updated report 5ebf6c41-0ca0-454b-9c8e-9716db0c8e90 (Polar Demo Report) - 4 columns
+[2025-09-09T19:52:41.036Z] ✅ Updated report e413149d-ff7f-4f91-a20c-16a2036649d5 (STATSports Demo Report) - 4 columns
+[2025-09-09T19:52:41.332Z] ✅ Updated report 1a994235-624e-41b9-89a7-243a8f7a394e (Polar Demo Report) - 4 columns
+[2025-09-09T19:52:41.629Z] ✅ Updated report 6a82ae9c-d4fd-4a03-ab52-9d29b4d35cec (STATSports Demo Report) - 4 columns
+[2025-09-09T19:52:41.629Z] 🎉 Backfill completed: 4 reports updated
+[2025-09-09T19:52:41.777Z] 🔌 Database connection closed

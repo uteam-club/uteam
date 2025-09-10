@@ -199,20 +199,10 @@ export class GpsDataProcessor {
     let maxSpeed = 0;
     let totalTime = 0;
 
-    const toNum = (v: any) => (v === null || v === undefined || v === '') ? undefined : Number(v);
-    const addIfNum = (sum: number, v: any) => {
-      const n = toNum(v);
-      return Number.isFinite(n) ? sum + (n as number) : sum;
-    };
-
     players.forEach(player => {
-      totalDistance = addIfNum(totalDistance, player.metrics.distance);
-      totalTime     = addIfNum(totalTime,     player.metrics.time);
-
-      const nMax = toNum(player.metrics.maxSpeed);
-      if (Number.isFinite(nMax)) {
-        maxSpeed = Math.max(maxSpeed, nMax as number);
-      }
+      totalDistance += player.metrics.distance || 0;
+      maxSpeed = Math.max(maxSpeed, player.metrics.maxSpeed || 0);
+      totalTime += player.metrics.time || 0;
     });
 
     return {
