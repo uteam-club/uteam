@@ -205,8 +205,7 @@ function TopBar({ userName, userRole }: TopBarProps) {
       // Для раздела "ФИТНЕС" проверяем также страницы аналитики фитнеса
       if (item.key === 'fitness') {
         return pathname.startsWith(item.href) || 
-               pathname.startsWith('/dashboard/analytics/fitness-tests') ||
-               pathname.startsWith('/dashboard/gps-reports');
+               pathname.startsWith('/dashboard/analytics/fitness-tests');
       }
       // Для раздела "АНАЛИТИКА" проверяем также страницы опросов (но не посещаемости и не фитнеса)
       if (item.key === 'analytics') {
@@ -247,10 +246,6 @@ function TopBar({ userName, userRole }: TopBarProps) {
     // Для фитнес-тестов проверяем только страницу фитнес-тестов
     if (dropdownItem.href === '/dashboard/analytics/fitness-tests') {
       return pathname === dropdownItem.href || pathname.startsWith('/dashboard/analytics/fitness-tests');
-    }
-    // Для GPS отчетов проверяем только страницу GPS отчетов
-    if (dropdownItem.href === '/dashboard/fitness/gps-reports') {
-      return pathname === dropdownItem.href || pathname.startsWith('/dashboard/fitness/gps-reports');
     }
     return pathname === dropdownItem.href;
   };
@@ -303,7 +298,6 @@ function TopBar({ userName, userRole }: TopBarProps) {
     },
     { key: 'fitness', label: t('topbar.fitness'), href: '/dashboard/fitness', icon: <Dumbbell className="w-4 h-4 text-vista-primary flex-shrink-0" />, hasDropdown: true, dropdownItems: [
       { key: 'fitness-tests', label: t('dropdown.fitness_tests'), href: '/dashboard/analytics/fitness-tests' },
-      { key: 'gps-reports', label: t('dropdown.gps_reports'), href: '/dashboard/fitness/gps-reports' },
     ] },
     { key: 'calendar', label: t('topbar.calendar'), href: '/dashboard/calendar', icon: <CalendarDays className="w-4 h-4 text-vista-primary flex-shrink-0" /> },
     { 

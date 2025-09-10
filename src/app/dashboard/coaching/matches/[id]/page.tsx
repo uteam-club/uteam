@@ -53,7 +53,6 @@ import { Player as FieldPlayer, type PlayerPosition as FieldPlayerPosition } fro
 import { formationPositions } from '@/components/matches/FootballField';
 import SquadSelectionModal, { PlayerSquadStatus } from '@/components/matches/SquadSelectionModal';
 import DeleteMatchModal from '@/components/matches/DeleteMatchModal';
-import GpsReportModal from '@/components/gps/GpsReportModal';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { TeamSelect } from '@/components/ui/team-select';
@@ -144,8 +143,6 @@ export default function MatchDetailsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Состояние для модального окна GPS отчета
-  const [isGpsReportModalOpen, setIsGpsReportModalOpen] = useState(false);
 
   // Add new state for status
   const [selectedStatus, setSelectedStatus] = useState<string>('SCHEDULED');
@@ -1067,14 +1064,6 @@ export default function MatchDetailsPage() {
 
           {/* Кнопки действий */}
           <div className="space-y-1">
-            <Button 
-              variant="outline" 
-              className="w-full h-[52px] bg-vista-dark/50 border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 shadow-sm flex items-center justify-center"
-              onClick={() => setIsGpsReportModalOpen(true)}
-            >
-              <Activity className="w-4 h-4 mr-2 text-vista-primary" />
-              {t('matchPage.gps_report')}
-            </Button>
             
             <Button 
               variant="outline" 
@@ -1539,16 +1528,6 @@ export default function MatchDetailsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Модальное окно GPS отчета */}
-      <GpsReportModal
-        isOpen={isGpsReportModalOpen}
-        onClose={() => setIsGpsReportModalOpen(false)}
-        matchId={matchId}
-        matchName={match ? `${match.team.name} ${match.teamGoals}:${match.opponentGoals} ${match.opponentName}` : 'Матч'}
-        matchDate={match ? format(new Date(match.date), 'dd.MM.yyyy', { locale: ru }) : ''}
-        teamId={match?.teamId}
-        teamName={match?.team.name}
-      />
 
       {/* Пустое пространство основного фона */}
       <div className="h-10"></div>

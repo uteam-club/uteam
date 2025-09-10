@@ -115,12 +115,6 @@ export async function GET(request: NextRequest) {
       LEFT JOIN "Team" tm ON t."teamId" = tm."id"
       LEFT JOIN "TrainingCategory" c ON t."categoryId" = c."id"
       WHERE ${sql.join(whereArr, sql` AND `)}
-        AND NOT EXISTS (
-          SELECT 1 FROM "GpsReport" gr 
-          WHERE gr."eventId" = t."id" 
-            AND gr."eventType" = 'TRAINING' 
-            AND gr."clubId" = ${clubId}::uuid
-        )
       ORDER BY t."date" DESC
     `);
   } else {
@@ -130,12 +124,11 @@ export async function GET(request: NextRequest) {
         t."id", t."title", t."teamId", t."date", t."time", t."categoryId", t."status", t."type", t."createdAt", t."updatedAt",
         tm."name" as "teamName",
         c."name" as "categoryName",
-        gr."id" as "reportId",
-        gr."name" as "reportName"
+        NULL as "reportId",
+        NULL as "reportName"
       FROM "Training" t
       LEFT JOIN "Team" tm ON t."teamId" = tm."id"
       LEFT JOIN "TrainingCategory" c ON t."categoryId" = c."id"
-      LEFT JOIN "GpsReport" gr ON gr."eventId" = t."id" AND gr."eventType" = 'TRAINING' AND gr."clubId" = ${clubId}::uuid
       WHERE ${sql.join(whereArr, sql` AND `)}
       ORDER BY t."date" DESC
     `;

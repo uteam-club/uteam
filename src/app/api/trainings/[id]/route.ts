@@ -2,7 +2,7 @@ import { getUserPermissions } from '@/services/user.service';
 import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { training, team, trainingCategory, gpsReport } from '@/db/schema';
+import { training, team, trainingCategory } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
@@ -282,13 +282,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Training not found' }, { status: 404 });
     }
     
-    // Каскадное удаление: сначала удаляем связанные GPS отчеты
-    await db.delete(gpsReport).where(
-      and(
-        eq(gpsReport.eventId, trainingId),
-        eq(gpsReport.eventType, 'TRAINING')
-      )
-    );
     
     // Удаляем тренировку
     await db.delete(training).where(eq(training.id, trainingId));

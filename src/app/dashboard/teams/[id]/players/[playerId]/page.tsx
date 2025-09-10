@@ -1194,7 +1194,7 @@ export default function PlayerProfilePage() {
             <BarChart3 className="w-16 h-16 text-vista-light/30 mb-4" />
             <p className="text-vista-light/50 text-sm mb-2">Анализ игровой модели</p>
             <p className="text-vista-light/40 text-xs">
-              На основе GPS данных из матчей
+              Анализ игровой модели игрока
             </p>
           </div>
         </div>

@@ -31,7 +31,4 @@ export * from './fitnessTestResult.ts';
 export * from './permission.ts';
 export * from './rolePermission.ts';
 export * from './userPermission.ts';
-export * from './gpsReport.ts';
-export * from './gpsProfile.ts';
-export * from './gpsMetric.ts';
 export * from './playerMapping.ts'; 

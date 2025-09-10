@@ -103,26 +103,14 @@ export async function GET(request: NextRequest) {
       .where(and(...whereArr))
       .orderBy(desc(match.date));
 
-    // Проверяем наличие GPS отчетов для каждого матча
-    const matchesWithReportInfo = await Promise.all(rows.map(async (row) => {
-      const report = await db.select({ 
-        id: sql`gr."id"`,
-        name: sql`gr."name"`
-      })
-        .from(sql`"GpsReport" gr`)
-        .where(sql`gr."eventId" = ${row.id} AND gr."eventType" = 'MATCH' AND gr."clubId" = ${token.clubId}::uuid`)
-        .limit(1);
-      
-      const hasReport = report.length > 0;
-      
-      return {
-        ...row,
-        name: row.teamName,
-        opponent: row.opponentName,
-        reportId: hasReport ? report[0].id : null,
-        reportName: hasReport ? report[0].name : null,
-        hasReport
-      };
+    // Возвращаем матчи без GPS отчетов
+    const matchesWithReportInfo = rows.map(row => ({
+      ...row,
+      name: row.teamName,
+      opponent: row.opponentName,
+      reportId: null,
+      reportName: null,
+      hasReport: false
     }));
 
     // Фильтруем в зависимости от параметра forUpload
