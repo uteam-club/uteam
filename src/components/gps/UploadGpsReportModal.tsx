@@ -62,6 +62,7 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
   const [eventType, setEventType] = useState<'TRAINING' | 'MATCH' | ''>('');
   const [selectedEvent, setSelectedEvent] = useState<string>('');
   const [selectedProfile, setSelectedProfile] = useState<string>('');
+  const [selectedGpsSystem, setSelectedGpsSystem] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
   
   // Данные для выбора
@@ -99,6 +100,14 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
     }
   }, [selectedTeam, eventType]);
 
+  // Загрузка профилей при выборе GPS системы
+  useEffect(() => {
+    if (selectedGpsSystem) {
+      fetchProfiles(selectedGpsSystem);
+      setSelectedProfile(''); // Сбрасываем выбранный профиль
+    }
+  }, [selectedGpsSystem]);
+
   const fetchTeams = async () => {
     try {
       const response = await fetch('/api/teams');
@@ -111,9 +120,10 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
     }
   };
 
-  const fetchProfiles = async () => {
+  const fetchProfiles = async (gpsSystem?: string) => {
     try {
-      const response = await fetch('/api/gps-profiles');
+      const url = gpsSystem ? `/api/gps-profiles?gpsSystem=${gpsSystem}` : '/api/gps-profiles';
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         setProfiles(data);
@@ -221,7 +231,7 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
   };
 
   const handleSubmit = async () => {
-    if (!file || !selectedTeam || !eventType || !selectedEvent || !selectedProfile) {
+    if (!file || !selectedTeam || !eventType || !selectedEvent || !selectedGpsSystem || !selectedProfile) {
       toast({
         title: "Ошибка",
         description: "Заполните все обязательные поля",
@@ -241,7 +251,7 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
   };
 
   const uploadReport = async (customMappings?: { reportName: string; selectedPlayerId: string }[]) => {
-    if (!file || !selectedTeam || !eventType || !selectedEvent || !selectedProfile) {
+    if (!file || !selectedTeam || !eventType || !selectedEvent || !selectedGpsSystem || !selectedProfile) {
       return;
     }
 
@@ -254,6 +264,7 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
       formData.append('teamId', selectedTeam);
       formData.append('eventType', eventType);
       formData.append('eventId', selectedEvent);
+      formData.append('gpsSystem', selectedGpsSystem);
       formData.append('profileId', selectedProfile);
       
       // Добавляем маппинги игроков, если они есть
@@ -273,6 +284,26 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // Обработка специфических ошибок
+        if (response.status === 400 && errorData.error === 'PROFILE_REQUIRED') {
+          toast({
+            title: "Ошибка",
+            description: "Нужно выбрать профиль GPS. Загрузите файл через профиль или укажите профиль перед загрузкой.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        if (response.status === 404 && errorData.error === 'PROFILE_NOT_FOUND') {
+          toast({
+            title: "Ошибка",
+            description: "Выбранный профиль не найден. Пожалуйста, выберите другой профиль.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
         throw new Error(errorData.error || 'Ошибка при загрузке отчета');
       }
 
@@ -310,6 +341,7 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
     setEventType('');
     setSelectedEvent('');
     setSelectedProfile('');
+    setSelectedGpsSystem('');
     setFile(null);
     setTrainings([]);
     setMatches([]);
@@ -434,8 +466,30 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
             </div>
           )}
 
-          {/* Профиль отчета */}
+          {/* GPS система */}
           {selectedEvent && (
+            <div className="space-y-2">
+              <Label htmlFor="gps-system" className="text-vista-light/40 font-normal">GPS система</Label>
+              <Select value={selectedGpsSystem} onValueChange={setSelectedGpsSystem}>
+                <SelectTrigger 
+                  id="gps-system"
+                  className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
+                >
+                  <SelectValue placeholder="Выберите GPS систему" />
+                </SelectTrigger>
+                <SelectContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-lg">
+                  <SelectItem value="B-SIGHT">B-SIGHT</SelectItem>
+                  <SelectItem value="STATSPORTS">STATSPORTS</SelectItem>
+                  <SelectItem value="CATAPULT">CATAPULT</SelectItem>
+                  <SelectItem value="GPSPORTS">GPSPORTS</SelectItem>
+                  <SelectItem value="OTHER">Другая</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Профиль отчета */}
+          {selectedGpsSystem && (
             <div className="space-y-2">
               <Label htmlFor="profile" className="text-vista-light/40 font-normal">Профиль отчета</Label>
               <Select value={selectedProfile} onValueChange={setSelectedProfile}>
@@ -446,11 +500,17 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
                   <SelectValue placeholder="Выберите профиль отчета" />
                 </SelectTrigger>
                 <SelectContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-lg">
-                  {profiles.map(profile => (
-                    <SelectItem key={profile.id} value={profile.id}>
-                      {profile.name}
-                    </SelectItem>
-                  ))}
+                  {profiles.length > 0 ? (
+                    profiles.map(profile => (
+                      <SelectItem key={profile.id} value={profile.id}>
+                        {profile.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="px-2 py-1 text-sm text-vista-light/50">
+                      Нет профилей для выбранной GPS системы
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -564,7 +624,7 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
           <Button 
             type="button" 
             onClick={handleSubmit}
-            disabled={!file || !selectedTeam || !eventType || !selectedEvent || !selectedProfile || isLoading}
+            disabled={!file || !selectedTeam || !eventType || !selectedEvent || !selectedGpsSystem || !selectedProfile || isLoading}
             className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
           >
             {isLoading ? 'Загрузка...' : 'Загрузить отчет'}

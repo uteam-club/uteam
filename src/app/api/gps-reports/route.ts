@@ -15,6 +15,17 @@ import { normalizeRowsForMapping } from '@/services/gps/normalizeRowsForMapping'
 import { CANON } from '@/canon/metrics.registry';
 import { validateAthleteNameColumn } from '@/services/gps/validators/nameColumn.validator';
 import { sanitizeRowsWithWarnings } from '@/services/gps/sanitizers/rowSanitizer';
+import { z } from 'zod';
+
+// Схема валидации для загрузки отчёта
+const UploadMetaSchema = z.object({
+  eventId: z.string().uuid(),
+  gpsSystem: z.string().min(1),
+  profileId: z.string().uuid(),   // ← обязательно
+  fileName: z.string().min(1),
+  teamId: z.string().uuid(),
+  eventType: z.enum(['TRAINING', 'MATCH']),
+});
 
 // Проверка доступа к клубу
 async function checkClubAccess(request: NextRequest, token: any) {
@@ -69,7 +80,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - загрузка нового GPS отчета (ЧИСТАЯ ВЕРСИЯ)
+// POST - загрузка нового GPS отчета (ОБЯЗАТЕЛЬНЫЙ ПРОФИЛЬ)
 export async function POST(request: NextRequest) {
   const token = await getToken({ req: request });
   if (!token) {
@@ -87,28 +98,37 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const name = formData.get('name') as string;
-    const teamId = formData.get('teamId') as string;
-    const eventType = formData.get('eventType') as 'TRAINING' | 'MATCH';
-    const eventId = formData.get('eventId') as string;
-    const profileId = formData.get('profileId') as string;
-    const playerMappingsJson = formData.get('playerMappings') as string;
-
-    // Валидация входных данных
-    if (!file || !name || !teamId || !eventType || !eventId || !profileId) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    // Парсим данные в зависимости от content-type
+    let meta: any = null;
+    let file: File | null = null;
+    const ct = request.headers.get('content-type') || '';
+    
+    if (ct.includes('application/json')) {
+      // JSON запрос
+      meta = await request.json();
+    } else {
+      // Multipart запрос
+      const formData = await request.formData();
+      file = formData.get('file') as File;
+      const metaJson = formData.get('meta') as string;
+      if (metaJson) {
+        meta = JSON.parse(metaJson);
+      }
     }
 
-    // Парсим маппинги игроков
-    let playerMappings = [];
-    if (playerMappingsJson) {
-      try {
-        playerMappings = JSON.parse(playerMappingsJson);
-      } catch (error) {
-        console.error('Ошибка парсинга маппингов игроков:', error);
-      }
+    // Валидация метаданных
+    const parsed = UploadMetaSchema.safeParse(meta);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'PROFILE_REQUIRED', details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+    const { eventId, gpsSystem, profileId, fileName, teamId, eventType } = parsed.data;
+
+    // Если JSON запрос, файл должен быть в meta
+    if (ct.includes('application/json') && !file) {
+      return NextResponse.json({ error: 'FILE_REQUIRED' }, { status: 400 });
     }
 
     // Загружаем профиль
@@ -118,78 +138,29 @@ export async function POST(request: NextRequest) {
       .where(and(eq(gpsProfile.id, profileId), eq(gpsProfile.clubId, token.clubId)));
 
     if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      return NextResponse.json({ error: 'PROFILE_NOT_FOUND' }, { status: 404 });
     }
 
-    // Приводим к нужному типу
-    const typedProfile: GpsProfile = {
-      id: profile.id,
-      gpsSystem: profile.gpsSystem,
-      columnMapping: (profile.columnMapping as any) || [],
-      createdAt: profile.createdAt.toISOString(),
-    };
+    // Построить snapshot (переносит displayUnit)
+    const profileSnapshot = buildProfileSnapshot(profile as any);
 
-    // 1. Парсим файл
-    const buffer = await file.arrayBuffer();
-    const parsed = await parseSpreadsheet(Buffer.from(buffer), file.name);
-
-    // 2. Применяем профиль
-    const profileResult = applyProfile(parsed, typedProfile);
-
-    // 3. Валидация колонки имён игроков
-    const nameColumn = profileResult.mappedColumns.find(col => col.canonicalKey === 'athlete_name');
-    let nameValidation = { warnings: [], suggestions: {} };
+    // Распарсить файл (headers?: string[], rows: any[][] | any[])
+    if (!file) {
+      return NextResponse.json({ error: 'FILE_REQUIRED' }, { status: 400 });
+    }
     
-    if (nameColumn && parsed.rows.length > 0) {
-      // Извлекаем значения из колонки имён для валидации
-      const nameValues = parsed.rows
-        .slice(0, 50) // Берем первые 50 строк для анализа
-        .map(row => {
-          const rowArray = row as (string | number | null)[];
-          const nameIndex = parsed.headers.findIndex(h => h === nameColumn.sourceHeader);
-          return nameIndex >= 0 ? String(rowArray[nameIndex] || '') : '';
-        });
-      
-      nameValidation = validateAthleteNameColumn(nameValues, parsed.headers, nameColumn.sourceHeader);
-      
-      // Дополнительная проверка на подозрительные имена (позиции)
-      const positionPatterns = [
-        'CB', 'MF', 'W', 'S', 'GK', 'ST', 'CM', 'DM', 'AM', 'RM', 'LM', 'RW', 'LW', 'CF', 'SS',
-        'ВР', 'ЦЗ', 'ЛЗ', 'ПЗ', 'Н', 'ПФ', 'ЛФ', 'ЦП', 'ОП', 'АП', 'ПП', 'ЛП', 'Ф'
-      ];
-      
-      const positionCount = nameValues.filter(name => {
-        const trimmed = name.trim().toUpperCase();
-        return positionPatterns.includes(trimmed) || 
-               (trimmed.length <= 3 && /^[A-ZА-ЯЁ]+$/.test(trimmed));
-      }).length;
-      
-      const totalValidNames = nameValues.filter(name => name.trim().length > 0).length;
-      const positionRatio = totalValidNames > 0 ? positionCount / totalValidNames : 0;
-      
-      if (positionRatio > 0.6) {
-        nameValidation.warnings.push({
-          code: 'ATHLETE_NAME_SUSPECT',
-          message: 'Колонка имени содержит, похоже, позиции. Проверьте маппинг в профиле.',
-          column: nameColumn.sourceHeader
-        });
-      }
-    }
+    const buffer = await file.arrayBuffer();
+    const parsedFile = await parseSpreadsheet(Buffer.from(buffer), file.name);
+    const { headers, rows } = parsedFile;
 
-    // 4. Строим снапшот профиля
-    const profileSnapshot = buildProfileSnapshot(typedProfile);
-
-    // 5. Нормализуем строки для маппинга
-    const headers = (parsed as any)?.headers ?? null;
-    const rows = (parsed as any)?.rows ?? [];
-
+    // Нормализация строк под snapshot
     const { objectRows, warnings: normWarnings, strategy } = normalizeRowsForMapping({
       rows,
       headers,
       snapshot: profileSnapshot,
     });
 
-    // 6. Маппим в канонические данные
+    // Канонизация
     const dataRows: Record<string, (string | number | null)[]> = {};
     objectRows.forEach((row, index) => {
       Object.keys(row).forEach(key => {
@@ -200,82 +171,47 @@ export async function POST(request: NextRequest) {
 
     const canonResult = mapRowsToCanonical(dataRows, profileSnapshot.columns);
 
-    // 6. Санитизация строк (если есть canonical данные)
-    let sanitizedRows = parsed.rows;
-    let sanitizationWarnings: any[] = [];
-    
-    if (canonResult.canonical.rows.length > 0) {
-      // Получаем ключи метрик для санитизации
-      const metricKeys = profileSnapshot.columns
-        .filter(col => col.canonicalKey !== 'athlete_name' && col.isVisible)
-        .map(col => col.canonicalKey);
-      
-      // Конвертируем canonical rows обратно в формат для санитизации
-      const rowsForSanitization = canonResult.canonical.rows.map(row => {
-        const sanitizedRow: Record<string, any> = {};
-        profileSnapshot.columns.forEach(col => {
-          sanitizedRow[col.canonicalKey] = row[col.canonicalKey];
-        });
-        return sanitizedRow;
-      });
-      
-      const sanitizationResult = sanitizeRowsWithWarnings(rowsForSanitization, metricKeys, {});
-      sanitizedRows = sanitizationResult.sanitizedRows;
-      sanitizationWarnings = sanitizationResult.updatedImportMeta.warnings || [];
-    }
-
-    // 7. Собираем метаданные импорта
-    const importMeta = {
-      fileSize: file.size,
-      rowCount: parsed.rows.length,
-      rawHeaders: headers,
-      normalizeStrategy: strategy,
-      warnings: [
-        ...profileResult.warnings,
-        ...nameValidation.warnings,
-        ...sanitizationWarnings,
-        ...normWarnings
-      ],
-      suggestions: nameValidation.suggestions,
-      processingTimeMs: 0, // TODO: измерить время обработки
-    };
-
-    // 6. Сохраняем отчёт
+    // Создаём отчёт
     const [newReport] = await db
       .insert(gpsReport)
       .values({
-        name: name.trim(),
-        fileName: file.name,
+        name: fileName,
+        fileName: fileName,
         fileUrl: '', // TODO: сохранить файл в storage
         fileSize: file.size.toString(),
-        gpsSystem: profile.gpsSystem,
+        gpsSystem,
         eventType,
         eventId,
         teamId,
         profileId,
-        profileSnapshot,
-        canonVersion: CANON.__meta.version,
-        rawData: parsed.rows,
+        profileSnapshot,            // ← сохраняем snapshot
+        rawData: rows,              // сырьё оставляем как есть
         processedData: {
-          canonical: canonResult,
-          profile: profileSnapshot,
+          profile: {},              // для совместимости
+          canonical: {
+            rows: canonResult.canonical.rows,
+            summary: canonResult.canonical.summary || {}
+          },
         },
-        importMeta,
+        canonVersion: '1.0.1',
+        importMeta: {
+          rowCount: rows?.length ?? 0,
+          fileSize: file.size,
+          normalize: { strategy, warnings: normWarnings },
+          mapping: { warnings: canonResult.meta?.warnings || [] },
+          suggestions: {},
+          processingTimeMs: 0,
+        },
         isProcessed: true,
         clubId: token.clubId,
         uploadedById: token.id,
       })
       .returning();
 
-    return NextResponse.json({
-      reportId: newReport.id,
-      profileSnapshot: profileSnapshot.columns,
-      warnings: importMeta.warnings,
-      message: 'Отчёт успешно загружен'
-    });
+    return NextResponse.json({ id: newReport.id }, { status: 201 });
 
   } catch (error) {
-    console.error('Ошибка при загрузке GPS отчёта:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[gps-reports:POST] failed', error);
+    return NextResponse.json({ error: 'INGEST_FAILED' }, { status: 500 });
   }
 }
