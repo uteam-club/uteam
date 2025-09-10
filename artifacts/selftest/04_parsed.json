@@ -1,0 +1,40 @@
+{
+  "headers": [
+    "Athlete",
+    "Distance all (m)",
+    "MaxSpeed (m/s)",
+    "Duration (s)"
+  ],
+  "sampleRows": [
+    {
+      "Athlete": "Ivan Petrov",
+      "Distance all (m)": "5200",
+      "MaxSpeed (m/s)": "7.89",
+      "Duration (s)": "2100"
+    },
+    {
+      "Athlete": "Oleg Sidorov",
+      "Distance all (m)": "6100",
+      "MaxSpeed (m/s)": "8.11",
+      "Duration (s)": "2520"
+    },
+    {
+      "Athlete": "Pavel Ivanov",
+      "Distance all (m)": "4700",
+      "MaxSpeed (m/s)": "7.50",
+      "Duration (s)": "1980"
+    },
+    {
+      "Athlete": "Dmitry Orlov",
+      "Distance all (m)": "5900",
+      "MaxSpeed (m/s)": "8.36",
+      "Duration (s)": "2760"
+    },
+    {
+      "Athlete": "Sergey Smirnov",
+      "Distance all (m)": "3800",
+      "MaxSpeed (m/s)": "7.08",
+      "Duration (s)": "1620"
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -85,6 +86,7 @@ interface GpsProfile {
 export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: UploadGpsReportModalProps) {
   const { toast } = useToast();
   const { data: session } = useSession();
+  const router = useRouter();
   
   // Состояние формы
   const [selectedTeam, setSelectedTeam] = useState<string>('');
@@ -165,7 +167,9 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
   const fetchTrainings = async (teamId: string) => {
     try {
       setIsLoadingData(true);
-      const response = await fetch(`/api/trainings?teamId=${teamId}&forUpload=true`);
+      const response = await fetch(`/api/trainings?teamId=${teamId}&forUpload=true`, { 
+        cache: "no-store" 
+      });
       if (response.ok) {
         const data = await response.json();
         setTrainings(data);
@@ -180,7 +184,9 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
   const fetchMatches = async (teamId: string) => {
     try {
       setIsLoadingData(true);
-      const response = await fetch(`/api/matches?teamId=${teamId}&forUpload=true`);
+      const response = await fetch(`/api/matches?teamId=${teamId}&forUpload=true`, { 
+        cache: "no-store" 
+      });
       if (response.ok) {
         const data = await response.json();
         setMatches(data);
@@ -291,46 +297,75 @@ export default function UploadGpsReportModal({ isOpen, onClose, onUploaded }: Up
       }
 
       const eventTypeEnum = String(eventType || 'TRAINING').toUpperCase() === 'MATCH' ? 'MATCH' : 'TRAINING';
-      const cleanMappings = sanitizePlayerMappings(incomingMappings ?? playerMappings);
       
+      const rawMappings = Array.isArray(incomingMappings) ? incomingMappings : [];
+      const sanitizedMappings = rawMappings
+        .filter(m => m && typeof m.sourceName === 'string' && m.sourceName.trim())
+        .filter(m => !m.action || m.action === 'confirm' ? m.selectedPlayerId : true)
+        .map(m => ({
+          sourceName: String(m.sourceName),
+          selectedPlayerId: m.selectedPlayerId ? String(m.selectedPlayerId) : undefined,
+          confidence: typeof m.confidence === 'number' ? m.confidence : undefined,
+          action: m.action === 'confirm' || m.action === 'create' ? m.action : undefined,
+        }));
+
       const meta = {
         eventId: selectedEvent,
         teamId: selectedTeam,
         gpsSystem: selectedGpsSystem,
         profileId: selectedProfile,
-        fileName: file.name,
-        eventType: eventTypeEnum,            // как у вас уже вычисляется выше
-        playerMappings: cleanMappings,       // только валидные пары
+        fileName: file?.name ?? "report.xlsx",
+        eventType: eventTypeEnum,
+        playerMappings: sanitizedMappings.length ? sanitizedMappings : []
       };
 
       const fd = new FormData();
-      fd.append('file', file);
-      fd.append('meta', JSON.stringify(meta));  // никаких других append!
+      fd.append("file", file);
+      fd.append("meta", JSON.stringify(meta));
 
       console.debug('[gps-reports] meta.sanitized', meta);
 
       setIsLoading(true);
       const res = await fetch('/api/gps-reports', { method: 'POST', body: fd });
       if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        console.error('[uploadReport] error', res.status, payload);
+        let j: any = null;
+        try { j = await res.json(); } catch {}
+        const msg =
+          j?.error
+            ? `Ошибка: ${j.error}${j.step ? ` @ ${j.step}` : ''}${j.message ? ` — ${j.message}` : ''}`
+            : `Upload failed (${res.status})`;
         toast({
           title: "Ошибка",
-          description: `Ошибка: ${payload.error ?? res.statusText}`,
+          description: msg,
           variant: "destructive"
         });
+        console.error('[uploadReport] failed', res.status, j);
         return;
       }
 
-      const data = await res.json();
-      console.info('[uploadReport] OK', data);
+      const json = await res.json();
+      if (!res.ok || !json?.ok) {
+        throw new Error((json?.message || json?.error || "Upload failed"));
+      }
       toast({
         title: "Успешно",
-        description: "Отчёт загружен",
+        description: `Отчёт загружен: канонических строк ${json.canonRows ?? 0}`
       });
-      resetForm?.();  // если есть функция сброса
+      if (json?.canonRows === 0) {
+        toast({
+          title: "Предупреждение",
+          description: "Отчёт загружен, но канонических строк = 0. Проверьте профиль/маппинг.",
+          variant: "destructive"
+        });
+      }
+      try {
+        // если у модалки есть состояние выбранного события — зафиксируем его
+        if (json?.eventId && typeof setSelectedEvent === "function") {
+          setSelectedEvent(json.eventId);
+        }
+      } catch {}
+      router.refresh();
       onClose?.();
-      onUploaded?.();
     } catch (e: any) {
       console.error('[uploadReport] unexpected', e);
       toast({

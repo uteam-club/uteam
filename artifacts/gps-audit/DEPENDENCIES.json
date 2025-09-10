@@ -1,0 +1,893 @@
+{
+  "nodes": [
+    {
+      "id": "src/app/api/canonical/metrics/route.ts",
+      "kind": "api-route",
+      "size": 274
+    },
+    {
+      "id": "src/app/api/clean-gps-data/route.ts",
+      "kind": "api-route",
+      "size": 2301
+    },
+    {
+      "id": "src/app/api/debug/gps-reports/[id]/route.ts",
+      "kind": "api-route",
+      "size": 1086
+    },
+    {
+      "id": "src/app/api/gps-profiles/__tests__/profiles.canonical.test.ts",
+      "kind": "api-route",
+      "size": 9001
+    },
+    {
+      "id": "src/app/api/gps-profiles/[id]/route.ts",
+      "kind": "api-route",
+      "size": 10578
+    },
+    {
+      "id": "src/app/api/gps-profiles/[id]/usage/route.ts",
+      "kind": "api-route",
+      "size": 1264
+    },
+    {
+      "id": "src/app/api/gps-profiles/parse-excel/route.ts",
+      "kind": "api-route",
+      "size": 4867
+    },
+    {
+      "id": "src/app/api/gps-profiles/route.ts",
+      "kind": "api-route",
+      "size": 5551
+    },
+    {
+      "id": "src/app/api/gps-profiles/templates/route.ts",
+      "kind": "api-route",
+      "size": 7671
+    },
+    {
+      "id": "src/app/api/gps-reports/[id]/process/route.ts",
+      "kind": "api-route",
+      "size": 1808
+    },
+    {
+      "id": "src/app/api/gps-reports/[id]/route.ts",
+      "kind": "api-route",
+      "size": 8597
+    },
+    {
+      "id": "src/app/api/gps-reports/debug/route.ts",
+      "kind": "api-route",
+      "size": 1832
+    },
+    {
+      "id": "src/app/api/gps-reports/diag/route.ts",
+      "kind": "api-route",
+      "size": 5830
+    },
+    {
+      "id": "src/app/api/gps-reports/extract-players/route.ts",
+      "kind": "api-route",
+      "size": 5415
+    },
+    {
+      "id": "src/app/api/gps-reports/fix-canonical/route.ts",
+      "kind": "api-route",
+      "size": 2030
+    },
+    {
+      "id": "src/app/api/gps-reports/recalculate/route.ts",
+      "kind": "api-route",
+      "size": 8760
+    },
+    {
+      "id": "src/app/api/gps-reports/route-old.ts",
+      "kind": "api-route",
+      "size": 35327
+    },
+    {
+      "id": "src/app/api/gps-reports/route.ts",
+      "kind": "api-route",
+      "size": 10349
+    },
+    {
+      "id": "src/app/api/public/gps-reports/[token]/route.ts",
+      "kind": "api-route",
+      "size": 5106
+    },
+    {
+      "id": "src/app/clean-gps/page.tsx",
+      "kind": "page",
+      "size": 3928
+    },
+    {
+      "id": "src/app/dashboard/fitness/gps-reports/page.tsx",
+      "kind": "page",
+      "size": 1843
+    },
+    {
+      "id": "src/app/debug-gps/page.tsx",
+      "kind": "page",
+      "size": 10158
+    },
+    {
+      "id": "src/app/dev/gps-report/[id]/page.tsx",
+      "kind": "page",
+      "size": 6814
+    },
+    {
+      "id": "src/app/public/gps-report/[token]/page.tsx",
+      "kind": "page",
+      "size": 6109
+    },
+    {
+      "id": "src/canon/__tests__/displayUnits.test.ts",
+      "kind": "canon",
+      "size": 5668
+    },
+    {
+      "id": "src/canon/__tests__/registry.v101.test.ts",
+      "kind": "canon",
+      "size": 5234
+    },
+    {
+      "id": "src/canon/__tests__/suggest.test.ts",
+      "kind": "canon",
+      "size": 4116
+    },
+    {
+      "id": "src/canon/__tests__/units.conversion.test.ts",
+      "kind": "canon",
+      "size": 2383
+    },
+    {
+      "id": "src/canon/__tests__/units.test.ts",
+      "kind": "canon",
+      "size": 1038
+    },
+    {
+      "id": "src/canon/displayUnits.ts",
+      "kind": "canon",
+      "size": 3128
+    },
+    {
+      "id": "src/canon/index.ts",
+      "kind": "canon",
+      "size": 104
+    },
+    {
+      "id": "src/canon/metrics.registry.ts",
+      "kind": "canon",
+      "size": 294
+    },
+    {
+      "id": "src/canon/suggest.ts",
+      "kind": "canon",
+      "size": 4400
+    },
+    {
+      "id": "src/canon/types.ts",
+      "kind": "canon",
+      "size": 1278
+    },
+    {
+      "id": "src/canon/units.ts",
+      "kind": "canon",
+      "size": 2399
+    },
+    {
+      "id": "src/components/gps/__tests__/GpsReportTable.units.test.ts",
+      "kind": "ui-component",
+      "size": 4736
+    },
+    {
+      "id": "src/components/gps/CanonicalMetricSelector.tsx",
+      "kind": "ui-component",
+      "size": 7371
+    },
+    {
+      "id": "src/components/gps/CreateGpsProfileModal.tsx",
+      "kind": "ui-component",
+      "size": 35309
+    },
+    {
+      "id": "src/components/gps/EditGpsProfileModal.tsx",
+      "kind": "ui-component",
+      "size": 48306
+    },
+    {
+      "id": "src/components/gps/GpsProfilesTab.tsx",
+      "kind": "ui-component",
+      "size": 6691
+    },
+    {
+      "id": "src/components/gps/GpsReportModal.tsx",
+      "kind": "ui-component",
+      "size": 7425
+    },
+    {
+      "id": "src/components/gps/GpsReportsTab.tsx",
+      "kind": "ui-component",
+      "size": 20450
+    },
+    {
+      "id": "src/components/gps/GpsReportTable.tsx",
+      "kind": "ui-component",
+      "size": 10334
+    },
+    {
+      "id": "src/components/gps/GpsReportVisualization.tsx",
+      "kind": "ui-component",
+      "size": 9823
+    },
+    {
+      "id": "src/components/gps/GpsVisualization.tsx",
+      "kind": "ui-component",
+      "size": 243
+    },
+    {
+      "id": "src/components/gps/PlayerMappingModal.tsx",
+      "kind": "ui-component",
+      "size": 31135
+    },
+    {
+      "id": "src/components/gps/PlayerMappingsTab.tsx",
+      "kind": "ui-component",
+      "size": 13961
+    },
+    {
+      "id": "src/components/gps/PlayerTiles.tsx",
+      "kind": "ui-component",
+      "size": 25540
+    },
+    {
+      "id": "src/components/gps/RecalcCanonicalModal.tsx",
+      "kind": "ui-component",
+      "size": 13219
+    },
+    {
+      "id": "src/components/gps/SimpleCreateGpsProfileModal.tsx",
+      "kind": "ui-component",
+      "size": 0
+    },
+    {
+      "id": "src/components/gps/UploadGpsReportModal.tsx",
+      "kind": "ui-component",
+      "size": 26919
+    },
+    {
+      "id": "src/db/schema/gpsMetric.ts",
+      "kind": "db",
+      "size": 1539
+    },
+    {
+      "id": "src/db/schema/gpsProfile.ts",
+      "kind": "db",
+      "size": 1421
+    },
+    {
+      "id": "src/db/schema/gpsReport.ts",
+      "kind": "db",
+      "size": 1786
+    },
+    {
+      "id": "src/services/__tests__/canon.mapper.test.ts",
+      "kind": "service",
+      "size": 13009
+    },
+    {
+      "id": "src/services/canon.mapper.new.ts",
+      "kind": "service",
+      "size": 6038
+    },
+    {
+      "id": "src/services/canon.mapper.old.ts",
+      "kind": "service",
+      "size": 17358
+    },
+    {
+      "id": "src/services/canon.mapper.ts",
+      "kind": "service",
+      "size": 5947
+    },
+    {
+      "id": "src/services/gps.debug.ts",
+      "kind": "service",
+      "size": 7684
+    },
+    {
+      "id": "src/services/gps.service.ts",
+      "kind": "service",
+      "size": 10273
+    },
+    {
+      "id": "src/services/gps/__tests__/bsight-integration.test.ts",
+      "kind": "service",
+      "size": 6838
+    },
+    {
+      "id": "src/services/gps/__tests__/dataFilter.service.test.ts",
+      "kind": "service",
+      "size": 5188
+    },
+    {
+      "id": "src/services/gps/__tests__/ingest-sanitization.test.ts",
+      "kind": "service",
+      "size": 8103
+    },
+    {
+      "id": "src/services/gps/__tests__/ingest.fixtures.e2e.test.ts",
+      "kind": "service",
+      "size": 4052
+    },
+    {
+      "id": "src/services/gps/__tests__/ingest.service.test.ts",
+      "kind": "service",
+      "size": 5689
+    },
+    {
+      "id": "src/services/gps/__tests__/normalizeRowsForMapping.improved.test.ts",
+      "kind": "service",
+      "size": 12071
+    },
+    {
+      "id": "src/services/gps/__tests__/normalizeRowsForMapping.test.ts",
+      "kind": "service",
+      "size": 4372
+    },
+    {
+      "id": "src/services/gps/__tests__/profileSnapshot.service.test.ts",
+      "kind": "service",
+      "size": 6972
+    },
+    {
+      "id": "src/services/gps/dataFilter.service.ts",
+      "kind": "service",
+      "size": 4869
+    },
+    {
+      "id": "src/services/gps/ingest.service.ts",
+      "kind": "service",
+      "size": 4606
+    },
+    {
+      "id": "src/services/gps/normalizeRowsForMapping.ts",
+      "kind": "service",
+      "size": 6250
+    },
+    {
+      "id": "src/services/gps/profileSnapshot.service.ts",
+      "kind": "service",
+      "size": 3885
+    },
+    {
+      "id": "src/services/gps/sanitizers/__tests__/rowSanitizer.test.ts",
+      "kind": "service",
+      "size": 9750
+    },
+    {
+      "id": "src/services/gps/sanitizers/rowSanitizer.ts",
+      "kind": "service",
+      "size": 4956
+    },
+    {
+      "id": "src/services/gps/validators/__tests__/nameColumn.validator.test.ts",
+      "kind": "service",
+      "size": 6169
+    },
+    {
+      "id": "src/services/gps/validators/nameColumn.validator.ts",
+      "kind": "service",
+      "size": 3789
+    },
+    {
+      "id": "src/types/gps.ts",
+      "kind": "types",
+      "size": 695
+    },
+    {
+      "id": "src/validators/gpsProfile.schema.ts",
+      "kind": "validator",
+      "size": 9320
+    },
+    {
+      "id": "src/validators/gpsUpload.schema.ts",
+      "kind": "validator",
+      "size": 680
+    },
+    {
+      "id": "scripts/audit/canon-audit.ts",
+      "kind": "misc",
+      "size": 16401
+    },
+    {
+      "id": "scripts/canon/audit-canon-dynamic.ts",
+      "kind": "canon",
+      "size": 4451
+    },
+    {
+      "id": "scripts/canon/audit-canon.ts",
+      "kind": "canon",
+      "size": 9337
+    },
+    {
+      "id": "scripts/canon/scan-deprecated-usage.ts",
+      "kind": "canon",
+      "size": 7667
+    },
+    {
+      "id": "scripts/canon/sync-v101.ts",
+      "kind": "canon",
+      "size": 15060
+    },
+    {
+      "id": "scripts/check-gps-data.cjs",
+      "kind": "misc",
+      "size": 10688
+    },
+    {
+      "id": "scripts/check-gps-data.js",
+      "kind": "misc",
+      "size": 3089
+    },
+    {
+      "id": "scripts/check-gps-db.cjs",
+      "kind": "misc",
+      "size": 5986
+    },
+    {
+      "id": "scripts/check-gps-reports.cjs",
+      "kind": "misc",
+      "size": 4625
+    },
+    {
+      "id": "scripts/check-matches-gps.cjs",
+      "kind": "misc",
+      "size": 6013
+    },
+    {
+      "id": "scripts/checks/gps-readiness.ci.cjs",
+      "kind": "misc",
+      "size": 7415
+    },
+    {
+      "id": "scripts/clean-gps-reports.cjs",
+      "kind": "misc",
+      "size": 2443
+    },
+    {
+      "id": "scripts/fix-gps-reports.js",
+      "kind": "misc",
+      "size": 3242
+    },
+    {
+      "id": "scripts/gps-diagnose-detailed.cjs",
+      "kind": "misc",
+      "size": 11130
+    },
+    {
+      "id": "scripts/gps-diagnose.cjs",
+      "kind": "misc",
+      "size": 8563
+    },
+    {
+      "id": "scripts/gps-fix-canonical.cjs",
+      "kind": "misc",
+      "size": 13832
+    },
+    {
+      "id": "scripts/gps-recalculate-direct.cjs",
+      "kind": "misc",
+      "size": 6665
+    },
+    {
+      "id": "scripts/gps-recalculate.cjs",
+      "kind": "misc",
+      "size": 5755
+    },
+    {
+      "id": "scripts/gps/audit-test-profile.ts",
+      "kind": "misc",
+      "size": 6123
+    },
+    {
+      "id": "scripts/gps/backfill-empty-snapshot-columns.ts",
+      "kind": "misc",
+      "size": 3478
+    },
+    {
+      "id": "scripts/gps/backfill-profile-snapshots.ts",
+      "kind": "misc",
+      "size": 3793
+    },
+    {
+      "id": "scripts/gps/backfill-sanitize-report.ts",
+      "kind": "misc",
+      "size": 5922
+    },
+    {
+      "id": "scripts/gps/debug-test-data.ts",
+      "kind": "misc",
+      "size": 3298
+    },
+    {
+      "id": "scripts/gps/diagnose-test-report.ts",
+      "kind": "misc",
+      "size": 8164
+    },
+    {
+      "id": "scripts/gps/dryrun-backfill-snapshot.ts",
+      "kind": "misc",
+      "size": 9173
+    },
+    {
+      "id": "scripts/gps/dryrun-prune.ts",
+      "kind": "misc",
+      "size": 18689
+    },
+    {
+      "id": "scripts/gps/dryrun-recover-snapshot.ts",
+      "kind": "misc",
+      "size": 10551
+    },
+    {
+      "id": "scripts/gps/export-gps-metadata.ts",
+      "kind": "misc",
+      "size": 3354
+    },
+    {
+      "id": "scripts/gps/import-demo.ts",
+      "kind": "misc",
+      "size": 8185
+    },
+    {
+      "id": "scripts/gps/inspect-report.ts",
+      "kind": "misc",
+      "size": 4378
+    },
+    {
+      "id": "scripts/gps/prune-empty-reports.ts",
+      "kind": "misc",
+      "size": 3699
+    },
+    {
+      "id": "scripts/gps/readiness-check.ts",
+      "kind": "misc",
+      "size": 14752
+    },
+    {
+      "id": "scripts/gps/readonly-audit-test-fixed.ts",
+      "kind": "misc",
+      "size": 16339
+    },
+    {
+      "id": "scripts/gps/readonly-audit-test.ts",
+      "kind": "misc",
+      "size": 13883
+    },
+    {
+      "id": "scripts/gps/seed-demo.ts",
+      "kind": "misc",
+      "size": 6988
+    },
+    {
+      "id": "scripts/gps/selftest-upload.cjs",
+      "kind": "misc",
+      "size": 11629
+    },
+    {
+      "id": "scripts/gps/simple-audit-test.ts",
+      "kind": "misc",
+      "size": 10169
+    },
+    {
+      "id": "scripts/gps/test-debug-api.cjs",
+      "kind": "misc",
+      "size": 5776
+    },
+    {
+      "id": "scripts/gps/test-debug-upload.cjs",
+      "kind": "misc",
+      "size": 3311
+    },
+    {
+      "id": "scripts/gps/verify-demo.ts",
+      "kind": "misc",
+      "size": 5790
+    },
+    {
+      "id": "scripts/gps/verify-fix-results.ts",
+      "kind": "misc",
+      "size": 8025
+    },
+    {
+      "id": "scripts/gps/verify-wipe.ts",
+      "kind": "misc",
+      "size": 2827
+    },
+    {
+      "id": "scripts/gps/wipe-gps.ts",
+      "kind": "misc",
+      "size": 4408
+    },
+    {
+      "id": "scripts/reprocess-gps-report.cjs",
+      "kind": "misc",
+      "size": 3899
+    }
+  ],
+  "edges": [
+    {
+      "from": "src/app/api/canonical/metrics/route.ts",
+      "to": "src/canon/metrics.registry.ts"
+    },
+    {
+      "from": "src/app/api/clean-gps-data/route.ts",
+      "to": "src/db/schema/gpsMetric.ts"
+    },
+    {
+      "from": "src/app/api/debug/gps-reports/[id]/route.ts",
+      "to": "src/services/gps.debug.ts"
+    },
+    {
+      "from": "src/app/api/gps-profiles/__tests__/profiles.canonical.test.ts",
+      "to": "src/validators/gpsProfile.schema.ts"
+    },
+    {
+      "from": "src/app/api/gps-profiles/[id]/route.ts",
+      "to": "src/db/schema/gpsMetric.ts"
+    },
+    {
+      "from": "src/app/api/gps-profiles/[id]/route.ts",
+      "to": "src/validators/gpsProfile.schema.ts"
+    },
+    {
+      "from": "src/app/api/gps-profiles/[id]/usage/route.ts",
+      "to": "src/db/schema/gpsMetric.ts"
+    },
+    {
+      "from": "src/app/api/gps-profiles/route.ts",
+      "to": "src/db/schema/gpsProfile.ts"
+    },
+    {
+      "from": "src/app/api/gps-profiles/route.ts",
+      "to": "src/validators/gpsProfile.schema.ts"
+    },
+    {
+      "from": "src/app/api/gps-reports/[id]/process/route.ts",
+      "to": "src/services/gps.service.ts"
+    },
+    {
+      "from": "src/app/api/gps-reports/[id]/route.ts",
+      "to": "src/db/schema/gpsMetric.ts"
+    },
+    {
+      "from": "src/app/api/gps-reports/debug/route.ts",
+      "to": "src/db/schema/gpsMetric.ts"
+    },
+    {
+      "from": "src/app/api/gps-reports/diag/route.ts",
+      "to": "src/db/schema/gpsMetric.ts"
+    },
+    {
+      "from": "src/app/api/gps-reports/fix-canonical/route.ts",
+      "to": "src/db/schema/gpsMetric.ts"
+    },
+    {
+      "from": "src/app/api/gps-reports/recalculate/route.ts",
+      "to": "src/db/schema/gpsMetric.ts"
+    },
+    {
+      "from": "src/app/api/gps-reports/recalculate/route.ts",
+      "to": "src/services/canon.mapper.new.ts"
+    },
+    {
+      "from": "src/app/api/gps-reports/route-old.ts",
+      "to": "src/db/schema/gpsMetric.ts"
+    },
+    {
+      "from": "src/app/api/gps-reports/route-old.ts",
+      "to": "src/services/canon.mapper.new.ts"
+    },
+    {
+      "from": "src/app/api/gps-reports/route.ts",
+      "to": "src/validators/gpsUpload.schema.ts"
+    },
+    {
+      "from": "src/app/api/gps-reports/route.ts",
+      "to": "src/services/gps/profileSnapshot.service.ts"
+    },
+    {
+      "from": "src/app/api/gps-reports/route.ts",
+      "to": "src/services/gps/normalizeRowsForMapping.ts"
+    },
+    {
+      "from": "src/app/api/gps-reports/route.ts",
+      "to": "src/services/canon.mapper.new.ts"
+    },
+    {
+      "from": "src/app/api/gps-reports/route.ts",
+      "to": "src/services/gps.service.ts"
+    },
+    {
+      "from": "src/app/api/public/gps-reports/[token]/route.ts",
+      "to": "src/db/schema/gpsMetric.ts"
+    },
+    {
+      "from": "src/app/dashboard/fitness/gps-reports/page.tsx",
+      "to": "src/components/gps/GpsReportsTab.tsx"
+    },
+    {
+      "from": "src/app/dashboard/fitness/gps-reports/page.tsx",
+      "to": "src/components/gps/GpsProfilesTab.tsx"
+    },
+    {
+      "from": "src/app/dashboard/fitness/gps-reports/page.tsx",
+      "to": "src/components/gps/PlayerMappingsTab.tsx"
+    },
+    {
+      "from": "src/components/gps/CanonicalMetricSelector.tsx",
+      "to": "src/canon/types.ts"
+    },
+    {
+      "from": "src/components/gps/CreateGpsProfileModal.tsx",
+      "to": "src/canon/types.ts"
+    },
+    {
+      "from": "src/components/gps/CreateGpsProfileModal.tsx",
+      "to": "src/canon/suggest.ts"
+    },
+    {
+      "from": "src/components/gps/CreateGpsProfileModal.tsx",
+      "to": "src/canon/displayUnits.ts"
+    },
+    {
+      "from": "src/components/gps/EditGpsProfileModal.tsx",
+      "to": "src/canon/types.ts"
+    },
+    {
+      "from": "src/components/gps/EditGpsProfileModal.tsx",
+      "to": "src/canon/suggest.ts"
+    },
+    {
+      "from": "src/components/gps/EditGpsProfileModal.tsx",
+      "to": "src/canon/displayUnits.ts"
+    },
+    {
+      "from": "src/components/gps/GpsReportsTab.tsx",
+      "to": "src/components/gps/GpsReportTable.tsx"
+    },
+    {
+      "from": "src/components/gps/GpsReportTable.tsx",
+      "to": "src/canon/metrics.registry.ts"
+    },
+    {
+      "from": "src/components/gps/GpsReportTable.tsx",
+      "to": "src/services/gps/dataFilter.service.ts"
+    },
+    {
+      "from": "src/components/gps/GpsReportTable.tsx",
+      "to": "src/types/gps.ts"
+    },
+    {
+      "from": "src/components/gps/PlayerTiles.tsx",
+      "to": "src/canon/metrics.registry.ts"
+    },
+    {
+      "from": "src/components/gps/RecalcCanonicalModal.tsx",
+      "to": "src/canon/metrics.registry.ts"
+    },
+    {
+      "from": "src/services/canon.mapper.old.ts",
+      "to": "src/canon/metrics.registry.ts"
+    },
+    {
+      "from": "src/services/canon.mapper.old.ts",
+      "to": "src/canon/units.ts"
+    },
+    {
+      "from": "src/services/gps.debug.ts",
+      "to": "src/db/schema/gpsMetric.ts"
+    },
+    {
+      "from": "src/services/gps.service.ts",
+      "to": "src/db/schema/gpsMetric.ts"
+    },
+    {
+      "from": "src/services/gps/__tests__/dataFilter.service.test.ts",
+      "to": "src/types/gps.ts"
+    },
+    {
+      "from": "src/services/gps/__tests__/ingest-sanitization.test.ts",
+      "to": "src/services/canon.mapper.new.ts"
+    },
+    {
+      "from": "src/services/gps/__tests__/normalizeRowsForMapping.improved.test.ts",
+      "to": "src/types/gps.ts"
+    },
+    {
+      "from": "src/services/gps/__tests__/normalizeRowsForMapping.test.ts",
+      "to": "src/services/gps/normalizeRowsForMapping.ts"
+    },
+    {
+      "from": "src/services/gps/dataFilter.service.ts",
+      "to": "src/types/gps.ts"
+    },
+    {
+      "from": "src/services/gps/ingest.service.ts",
+      "to": "src/types/gps.ts"
+    },
+    {
+      "from": "src/services/gps/normalizeRowsForMapping.ts",
+      "to": "src/types/gps.ts"
+    },
+    {
+      "from": "src/services/gps/profileSnapshot.service.ts",
+      "to": "src/types/gps.ts"
+    },
+    {
+      "from": "src/services/gps/profileSnapshot.service.ts",
+      "to": "src/canon/metrics.registry.ts"
+    },
+    {
+      "from": "src/validators/gpsProfile.schema.ts",
+      "to": "src/canon/metrics.registry.ts"
+    },
+    {
+      "from": "src/validators/gpsProfile.schema.ts",
+      "to": "src/canon/displayUnits.ts"
+    },
+    {
+      "from": "scripts/canon/audit-canon-dynamic.ts",
+      "to": "src/canon/units.ts"
+    },
+    {
+      "from": "scripts/gps/backfill-empty-snapshot-columns.ts",
+      "to": "src/services/gps/profileSnapshot.service.ts"
+    },
+    {
+      "from": "scripts/gps/backfill-profile-snapshots.ts",
+      "to": "src/services/gps/profileSnapshot.service.ts"
+    },
+    {
+      "from": "scripts/gps/backfill-profile-snapshots.ts",
+      "to": "src/canon/metrics.registry.ts"
+    },
+    {
+      "from": "scripts/gps/backfill-sanitize-report.ts",
+      "to": "src/services/gps/validators/nameColumn.validator.ts"
+    },
+    {
+      "from": "scripts/gps/backfill-sanitize-report.ts",
+      "to": "src/services/gps/sanitizers/rowSanitizer.ts"
+    },
+    {
+      "from": "scripts/gps/dryrun-backfill-snapshot.ts",
+      "to": "src/services/gps/profileSnapshot.service.ts"
+    },
+    {
+      "from": "scripts/gps/dryrun-backfill-snapshot.ts",
+      "to": "src/canon/metrics.registry.ts"
+    },
+    {
+      "from": "scripts/gps/dryrun-recover-snapshot.ts",
+      "to": "src/canon/metrics.registry.ts"
+    },
+    {
+      "from": "scripts/gps/import-demo.ts",
+      "to": "src/services/gps/ingest.service.ts"
+    },
+    {
+      "from": "scripts/gps/import-demo.ts",
+      "to": "src/services/canon.mapper.ts"
+    },
+    {
+      "from": "scripts/gps/import-demo.ts",
+      "to": "src/services/gps/profileSnapshot.service.ts"
+    },
+    {
+      "from": "scripts/gps/import-demo.ts",
+      "to": "src/canon/metrics.registry.ts"
+    }
+  ]
+}

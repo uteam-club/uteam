@@ -1,0 +1,35 @@
+{
+  "columns": [
+    {
+      "name": "Игрок",
+      "sourceHeader": "Игрок",
+      "canonicalKey": "athlete_name",
+      "isVisible": true,
+      "order": 1
+    },
+    {
+      "name": "Индивидуальное время",
+      "sourceHeader": "Индивидуальное время",
+      "canonicalKey": "minutes_played",
+      "displayUnit": "min",
+      "isVisible": true,
+      "order": 2
+    },
+    {
+      "name": "Дистанция общая, м",
+      "sourceHeader": "Дистанция общая м",
+      "canonicalKey": "total_distance_m",
+      "displayUnit": "m",
+      "isVisible": true,
+      "order": 3
+    },
+    {
+      "name": "Макс. скорость, км/ч",
+      "sourceHeader": "Макс. скорость км/ч",
+      "canonicalKey": "max_speed_ms",
+      "displayUnit": "km/h",
+      "isVisible": true,
+      "order": 4
+    }
+  ]
+}

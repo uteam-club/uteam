@@ -1,0 +1,5 @@
+{
+  "gpsSystem": "B-SIGHT",
+  "applyApi": true,
+  "fixture": "/Users/artem/Desktop/uteam-multi/fixtures/gps/statsports_demo.csv"
+}

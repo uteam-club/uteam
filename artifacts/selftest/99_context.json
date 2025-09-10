@@ -1,0 +1,19 @@
+{
+  "step": "done",
+  "stats": {
+    "rawHeaders": 4,
+    "rawRows": 5,
+    "normRows": 5,
+    "canonRows": 5,
+    "apiStatus": 404
+  },
+  "notes": [
+    "DB недоступна или нет переменной DATABASE_URL: column \"processeddata\" does not exist",
+    "API call done: http://localhost:3000/api/gps-reports (status: 404)"
+  ],
+  "env": {
+    "gpsSystem": "B-SIGHT",
+    "applyApi": true,
+    "fixture": "/Users/artem/Desktop/uteam-multi/fixtures/gps/statsports_demo.csv"
+  }
+}

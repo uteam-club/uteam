@@ -38,7 +38,11 @@
     "lint:gps:ci": "npx eslint@8 --max-warnings=20 --ext .ts,.tsx --rule 'react-hooks/rules-of-hooks: warn' src/canon src/services/gps src/components/gps || exit 1",
     "typecheck:ci": "tsc --noEmit",
     "test:gps:unit:ci": "jest --runInBand --silent --testPathPatterns='(src/services/gps|src/canon)/.*\\.test\\.(ts|tsx)$' || true",
-    "gps:readiness:ci": "node scripts/checks/gps-readiness.ci.cjs"
+    "gps:readiness:ci": "node scripts/checks/gps-readiness.ci.cjs",
+    "gps:selftest": "node scripts/gps/selftest-upload.cjs",
+    "gps:selftest:api": "GPS_SELFTEST_API=1 node scripts/gps/selftest-upload.cjs",
+    "gps:test-debug": "node scripts/gps/test-debug-upload.cjs",
+    "gps:test-debug:api": "node scripts/gps/test-debug-api.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.828.0",
