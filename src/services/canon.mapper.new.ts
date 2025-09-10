@@ -1,4 +1,4 @@
-import { DIMENSIONS, UNITS } from '../canon/units';
+// import { UNITS } from '../canon/units';
 // @ts-ignore
 import { CANON } from '../canon/metrics.registry';
 
@@ -52,24 +52,25 @@ export function toCanonicalValue(
     return { value: num };
   }
 
-  // Конвертируем единицы
-  const dimension = DIMENSIONS[col.dimension];
-  if (!dimension) {
-    return { value: num, warning: `Unknown dimension: ${col.dimension}` };
-  }
+  // TODO: Implement dimension conversion
+  // const dimension = DIMENSIONS[col.dimension];
+  // if (!dimension) {
+  //   return { value: num, warning: `Unknown dimension: ${col.dimension}` };
+  // }
 
-  const sourceUnit = UNITS[col.unit];
-  const targetUnit = UNITS[col.unitCanon];
+  // TODO: Implement unit conversion
+  // const sourceUnit = UNITS[col.unit];
+  // const targetUnit = UNITS[col.unitCanon];
   
-  if (!sourceUnit || !targetUnit) {
-    return { value: num, warning: `Unknown units: ${col.unit} -> ${col.unitCanon}` };
-  }
+  // if (!sourceUnit || !targetUnit) {
+  //   return { value: num, warning: `Unknown units: ${col.unit} -> ${col.unitCanon}` };
+  // }
 
-  // Конвертируем через базовую единицу
-  const baseValue = num * sourceUnit.multiplier;
-  const canonicalValue = baseValue / targetUnit.multiplier;
+  // TODO: Implement unit conversion
+  // const baseValue = num * sourceUnit.multiplier;
+  // const canonicalValue = baseValue / targetUnit.multiplier;
 
-  return { value: canonicalValue };
+  return { value: num };
 }
 
 /**

@@ -22,7 +22,10 @@ export default defineConfig({
     command: 'next dev -p 3000',
     port: 3000,
     reuseExistingServer: true,
-    timeout: 120000,
-    env: { NODE_ENV: 'development' }
+    timeout: 180000,
+    env: {
+      ...process.env,
+      NODE_ENV: 'development'
+    }
   },
 });

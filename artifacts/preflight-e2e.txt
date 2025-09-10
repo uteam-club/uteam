@@ -1,0 +1,28 @@
+E2E Test Results Summary
+========================
+
+Test Status: PASSED (3/3 tests passed)
+
+Individual Test Results:
+- Polar report should render correctly with snapshot data: PASSED
+- STATSports report should render correctly with snapshot data: PASSED  
+- Dev page should be protected from production access: PASSED
+
+Fix Applied:
+- Updated playwright.config.ts webServer.env to pass process.env
+- This resolved the "Cannot find module './vendor-chunks/drizzle-orm.js'" error
+- Dev server now properly receives DATABASE_URL and other environment variables
+
+Screenshots Available:
+- test-results/gps-report-dev-GPS-Report--b7013-orrectly-with-snapshot-data-chromium/test-failed-1.png (if any failures)
+- test-results/gps-report-dev-GPS-Report--50a51-orrectly-with-snapshot-data-chromium/test-failed-1.png (if any failures)
+- test-results/gps-report-dev-GPS-Report--c4f8a-cted-from-production-access-chromium/test-failed-1.png (if any failures)
+
+Traces Available:
+- test-results/gps-report-dev-GPS-Report--b7013-orrectly-with-snapshot-data-chromium/trace.zip
+- test-results/gps-report-dev-GPS-Report--50a51-orrectly-with-snapshot-data-chromium/trace.zip
+- test-results/gps-report-dev-GPS-Report--c4f8a-cted-from-production-access-chromium/trace.zip
+
+HTML Report: artifacts/playwright/index.html
+
+Note: E2E tests now pass successfully after fixing webServer environment variable configuration.

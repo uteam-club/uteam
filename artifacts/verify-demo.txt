@@ -6,10 +6,6 @@ With profileSnapshot: 6
 With canonVersion: 6
 
 📋 Demo Reports Check:
-Polar Demo Report: 5ebf6c41-0ca0-454b-9c8e-9716db0c8e90
-  seedDemo: true
-  hasColumns: true
-  canonVersion: undefined
 Polar Demo Report: 1a994235-624e-41b9-89a7-243a8f7a394e
   seedDemo: true
   hasColumns: true
@@ -18,7 +14,7 @@ Polar Demo Report: dbaa0539-fe5c-466c-a55f-b6df475816f5
   seedDemo: true
   hasColumns: true
   canonVersion: undefined
-STATSports Demo Report: e413149d-ff7f-4f91-a20c-16a2036649d5
+Polar Demo Report: dff5ed53-7648-42f1-9cc9-ae7d02720e8b
   seedDemo: true
   hasColumns: true
   canonVersion: undefined
@@ -27,6 +23,10 @@ STATSports Demo Report: 77098a04-53af-44b0-a30d-f711e3ef96bc
   hasColumns: true
   canonVersion: undefined
 STATSports Demo Report: 6a82ae9c-d4fd-4a03-ab52-9d29b4d35cec
+  seedDemo: true
+  hasColumns: true
+  canonVersion: undefined
+STATSports Demo Report: f52de449-adfa-470c-a3be-0fd8f4b0e7f5
   seedDemo: true
   hasColumns: true
   canonVersion: undefined
@@ -70,25 +70,29 @@ STATSports Demo Report:
   4. Сек (duration_s) - order: 4
 
 🔢 Canonical Data Unification:
-Polar total_distance_m sum: 51400
-STATSports total_distance_m sum: 51400
-Polar (converted to km): 51.40 km
-STATSports (converted to km): 51.40 km
+Polar total_distance_m sum: 77100
+STATSports total_distance_m sum: 77100
+Polar (converted to km): 77.10 km
+STATSports (converted to km): 77.10 km
 Difference: 0.00 km
 
 📊 GPS Profiles:
 Polar Demo (Polar): 6d1afd09-4ee2-4c9a-9fa0-938971c6dc3f
   Column mappings: 4
+Polar Demo (Polar): f8e2abac-533d-451c-a050-9e344f7698f4
+  Column mappings: 4
 STATSports Demo (STATSports): caabd654-012b-499e-b70c-dff8ab5abc22
+  Column mappings: 4
+STATSports Demo (STATSports): 116775f3-be4e-49fa-98b8-172e6d6d2211
   Column mappings: 4
 
 👥 Players: Skipped (schema not supported)
 
 🌐 Dev URLs for Report Viewing:
-Polar Demo Report: http://localhost:3000/dev/gps-report/5ebf6c41-0ca0-454b-9c8e-9716db0c8e90
 Polar Demo Report: http://localhost:3000/dev/gps-report/1a994235-624e-41b9-89a7-243a8f7a394e
 Polar Demo Report: http://localhost:3000/dev/gps-report/dbaa0539-fe5c-466c-a55f-b6df475816f5
-STATSports Demo Report: http://localhost:3000/dev/gps-report/e413149d-ff7f-4f91-a20c-16a2036649d5
+Polar Demo Report: http://localhost:3000/dev/gps-report/dff5ed53-7648-42f1-9cc9-ae7d02720e8b
 STATSports Demo Report: http://localhost:3000/dev/gps-report/77098a04-53af-44b0-a30d-f711e3ef96bc
 STATSports Demo Report: http://localhost:3000/dev/gps-report/6a82ae9c-d4fd-4a03-ab52-9d29b4d35cec
+STATSports Demo Report: http://localhost:3000/dev/gps-report/f52de449-adfa-470c-a3be-0fd8f4b0e7f5
 🔌 Database connection closed

@@ -1,0 +1,62 @@
+name: GPS E2E Tests (Manual)
+
+# NOTICE: This workflow requires database access and browser installation.
+# It should only be run manually when full E2E testing is needed.
+# The main CI uses gps-ci-lite.yml for code-only checks.
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to test'
+        required: true
+        default: 'main'
+        type: string
+
+jobs:
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --no-audit --fund=false
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Setup environment
+        run: |
+          echo "NODE_ENV=development" >> $GITHUB_ENV
+          # NOTE: Database connection required for E2E tests
+          # echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> $GITHUB_ENV
+
+      - name: Run E2E tests
+        run: npx playwright test e2e/gps-report-dev.spec.ts --reporter=html
+        env:
+          # DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: "postgresql://test:test@localhost:5432/test"
+
+      - name: Upload E2E results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: test-results/
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-screenshots
+          path: artifacts/screens/

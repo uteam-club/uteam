@@ -1,25 +1,41 @@
 # Page snapshot
 
 ```yaml
-- generic [active] [ref=e1]:
-  - generic [ref=e3]:
-    - heading "GPS Report Viewer (Dev Mode)" [level=1] [ref=e4]
+- generic [active]:
+  - alert [ref=e1]
+  - dialog "Server Error" [ref=e4]:
     - generic [ref=e5]:
-      - heading "Report Info" [level=2] [ref=e6]
-      - generic [ref=e7]:
-        - generic [ref=e8]:
-          - generic [ref=e9]: "Name:"
-          - text: Polar Demo Report
-        - generic [ref=e11]: "File:"
-        - generic [ref=e13]: "System:"
-        - generic [ref=e14]:
-          - generic [ref=e15]: "Rows:"
-          - text: "0"
-    - heading "Profile Snapshot Columns" [level=2] [ref=e17]
-    - generic [ref=e18]:
-      - heading "Report Data" [level=2] [ref=e19]
-      - generic [ref=e20]: No data available
-  - region "Notifications (F8)":
-    - list
-  - alert [ref=e21]
+      - generic [ref=e6]:
+        - navigation [ref=e8]:
+          - button "previous" [disabled] [ref=e9]:
+            - img "previous" [ref=e10]
+          - button "next" [disabled] [ref=e12]:
+            - img "next" [ref=e13]
+          - generic [ref=e15]:
+            - generic [ref=e16]: "1"
+            - text: of
+            - generic [ref=e17]: "1"
+            - text: error
+          - generic [ref=e18]:
+            - generic "An outdated version detected (latest is 15.5.2), upgrade is highly recommended!" [ref=e20]: Next.js (14.2.2) is outdated
+            - link "(learn more)" [ref=e21] [cursor=pointer]:
+              - /url: https://nextjs.org/docs/messages/version-staleness
+        - heading "Server Error" [level=1] [ref=e22]
+        - paragraph [ref=e23]: "Error: Cannot find module './vendor-chunks/drizzle-orm.js' Require stack: - /Users/artem/Desktop/uteam-multi/.next/server/webpack-runtime.js - /Users/artem/Desktop/uteam-multi/.next/server/app/dev/gps-report/[id]/page.js - /Users/artem/Desktop/uteam-multi/node_modules/next/dist/server/require.js - /Users/artem/Desktop/uteam-multi/node_modules/next/dist/server/load-components.js - /Users/artem/Desktop/uteam-multi/node_modules/next/dist/build/utils.js - /Users/artem/Desktop/uteam-multi/node_modules/next/dist/server/dev/static-paths-worker.js - /Users/artem/Desktop/uteam-multi/node_modules/next/dist/compiled/jest-worker/processChild.js"
+        - generic [ref=e25]: This error happened while generating the page. Any console logs will be displayed in the terminal window.
+      - generic [ref=e26]:
+        - heading "Call Stack" [level=2] [ref=e27]
+        - group [ref=e28]:
+          - generic "Next.js" [ref=e29] [cursor=pointer]:
+            - img [ref=e30] [cursor=pointer]
+            - img [ref=e32] [cursor=pointer]
+            - text: Next.js
+        - generic [ref=e37]:
+          - heading "Array.reduce" [level=3] [ref=e38]
+          - generic [ref=e40]: <anonymous>
+        - group [ref=e41]:
+          - generic "Next.js" [ref=e42] [cursor=pointer]:
+            - img [ref=e43] [cursor=pointer]
+            - img [ref=e45] [cursor=pointer]
+            - text: Next.js
 ```

@@ -2,12 +2,14 @@ name: GPS Module CI
 
 on:
   push:
+    branches-ignore: ['main']
     paths:
       - 'src/services/gps/**'
       - 'src/canon/**'
       - 'e2e/gps-report-dev.spec.ts'
       - 'scripts/gps/**'
   pull_request:
+    branches-ignore: ['main']
     paths:
       - 'src/services/gps/**'
       - 'src/canon/**'

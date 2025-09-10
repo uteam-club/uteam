@@ -1,0 +1,87 @@
+name: GPS Module CI (lite)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: gps-ci-lite-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci --no-audit --fund=false
+        env:
+          CI: true
+          NEXT_TELEMETRY_DISABLED: '1'
+
+  lint:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci --no-audit --fund=false
+      - run: npm run lint:gps:ci
+
+  typecheck:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci --no-audit --fund=false
+      - run: npm run typecheck:ci
+
+  unit-gps:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci --no-audit --fund=false
+      - run: npm run test:gps:unit:ci
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jest-gps-report
+          path: artifacts/jest-gps-*.*
+
+  readiness-code:
+    needs: [lint, typecheck, unit-gps]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci --no-audit --fund=false
+      - run: npm run gps:readiness:ci
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: readiness-summary
+          path: artifacts/GPS_READINESS_SUMMARY.*

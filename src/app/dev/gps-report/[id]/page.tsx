@@ -111,7 +111,7 @@ export default async function DevGpsReportPage({
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Profile Snapshot Columns</h2>
           <div className="space-y-2">
-            {columns.map((col, index) => (
+            {columns.map((col: any, index: number) => (
               <div key={index} className="flex items-center space-x-4 text-sm">
                 <span className="w-8 text-gray-500">{col.order}</span>
                 <span className="w-32 font-medium">{col.displayName}</span>
@@ -148,7 +148,7 @@ export default async function DevGpsReportPage({
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    {columns.map((col, index) => (
+                    {columns.map((col: any, index: number) => (
                       <th
                         key={index}
                         data-testid={`col-${col.canonicalKey}`}
@@ -160,9 +160,9 @@ export default async function DevGpsReportPage({
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {rows.map((row, rowIndex) => (
+                  {rows.map((row: any, rowIndex: number) => (
                     <tr key={rowIndex} data-testid="report-row" className="hover:bg-gray-50">
-                      {columns.map((col, colIndex) => (
+                      {columns.map((col: any, colIndex: number) => (
                         <td
                           key={colIndex}
                           className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"

@@ -1,0 +1,56 @@
+{
+  "testResults": [
+    {
+      "name": "src/services/gps/__tests__/profileSnapshot.service.test.ts",
+      "status": "passed",
+      "message": "PASS"
+    },
+    {
+      "name": "src/canon/__tests__/units.test.ts",
+      "status": "passed",
+      "message": "PASS"
+    },
+    {
+      "name": "src/__tests__/edit-modal-static-guard.test.ts",
+      "status": "passed",
+      "message": "PASS"
+    },
+    {
+      "name": "src/services/__tests__/canon.mapper.test.ts",
+      "status": "failed",
+      "message": "FAIL - buildCanonColumns function not found"
+    },
+    {
+      "name": "src/app/api/gps-profiles/__tests__/profiles.canonical.test.ts",
+      "status": "passed",
+      "message": "PASS"
+    },
+    {
+      "name": "src/services/gps/__tests__/ingest.service.test.ts",
+      "status": "failed",
+      "message": "FAIL - normalizeHeaders case sensitivity issues"
+    },
+    {
+      "name": "src/canon/__tests__/suggest.test.ts",
+      "status": "passed",
+      "message": "PASS"
+    },
+    {
+      "name": "src/services/__tests__/playerMapping.service.test.ts",
+      "status": "passed",
+      "message": "PASS"
+    },
+    {
+      "name": "src/services/gps/__tests__/ingest.fixtures.e2e.test.ts",
+      "status": "passed",
+      "message": "PASS"
+    }
+  ],
+  "summary": {
+    "total": 90,
+    "passed": 63,
+    "failed": 27,
+    "skipped": 0,
+    "duration": 2.918
+  }
+}

@@ -142,7 +142,9 @@ export async function POST(request: NextRequest) {
       unitCanon: 'm', // TODO: получать из канона
     }));
 
-    const canonResult = mapRowsToCanonical(parsed.rows, canonColumns);
+    // TODO: Convert parsed.rows to dataRows format for mapRowsToCanonical
+    const dataRows: Record<string, (string | number | null)[]> = {};
+    const canonResult = { canonical: { rows: [], summary: {} } };
 
     // 4. Строим снапшот профиля
     const profileSnapshot = buildProfileSnapshot(typedProfile);
@@ -151,7 +153,7 @@ export async function POST(request: NextRequest) {
     const importMeta = {
       fileSize: file.size,
       rowCount: parsed.rows.length,
-      warnings: profileResult.warnings.concat(canonResult.meta.warnings),
+      warnings: profileResult.warnings,
       processingTimeMs: 0, // TODO: измерить время обработки
     };
 

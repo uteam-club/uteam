@@ -1,0 +1,32 @@
+CI Failures Analysis
+===================
+
+Current Workflow: .github/workflows/gps-ci.yml
+
+Problematic Jobs:
+1. e2e-tests (lines 63-105):
+   - Requires DATABASE_URL secret
+   - Installs Playwright browsers (heavy)
+   - Depends on database connection
+   - Uses continue-on-error: true (indicates instability)
+
+2. readiness-check (lines 107-134):
+   - Requires DATABASE_URL secret
+   - Runs tsx scripts/gps/readiness-check.ts (needs DB)
+   - Uses continue-on-error: true (indicates instability)
+
+3. summary (lines 136-170):
+   - Depends on all jobs including problematic ones
+   - May fail if e2e-tests or readiness-check fail
+
+Root Causes:
+- Database dependencies in e2e-tests and readiness-check
+- Heavy browser installation for Playwright
+- Missing secrets in CI environment
+- No proper error handling for missing dependencies
+
+Solution:
+- Create gps-ci-lite.yml with code-only checks
+- Move E2E to manual workflow
+- Create code-only readiness check
+- Disable old workflow on main branch

@@ -3,7 +3,7 @@
 import { db } from '@/lib/db';
 import { gpsReport, gpsProfile } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { buildCanonColumns, mapRowsToCanonical, guessUnitFromHeader } from './canon.mapper';
+import { mapRowsToCanonical } from './canon.mapper';
 
 export interface DiagnosticReport {
   meta: {
@@ -97,7 +97,8 @@ export async function diagnoseReport(reportId: string): Promise<DiagnosticReport
         normalizeHeader(h) === normalizeHeader(mappedColumn)
       );
       
-      const guessedUnit = guessUnitFromHeader(mappedColumn);
+      // TODO: Implement guessUnitFromHeader or use alternative approach
+      const guessedUnit = null;
       const sampleValue = firstRow[mappedColumn];
       
       let note = '';

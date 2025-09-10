@@ -1,0 +1,181 @@
+ .eslintrc.json                                     |    9 +
+ .github/workflows/gps-ci.yml                       |  170 +
+ DATABASE_URL.txt                                   |    1 +
+ GPS_DEBUG_GUIDE.md                                 |   86 +
+ GPS_FOUNDATION_COMPLETE.md                         |  125 +
+ GPS_Inventory_Report.md                            |  385 ++
+ artifacts/EXECUTION_STATUS.md                      |   40 +
+ artifacts/GPS_READINESS_SUMMARY.json               |   50 +
+ artifacts/GPS_READINESS_SUMMARY.md                 |   30 +
+ artifacts/RELEASE_SUMMARY.md                       |   96 +
+ artifacts/REPORT.md                                |  177 +
+ artifacts/ROLL-OUT.md                              |  119 +
+ artifacts/UI_SMOKE_SUMMARY.md                      |   58 +
+ artifacts/backfill-dryrun.json                     |  250 ++
+ artifacts/backfill-dryrun.md                       |   37 +
+ artifacts/backfill-empty-snapshot-columns.log      |    8 +
+ artifacts/backfill-report.json                     |  127 +
+ artifacts/backup.log                               |    2 +
+ artifacts/db-migration-safe.sql                    |    7 +
+ artifacts/db-migration.sql                         |   29 +
+ artifacts/grep-vendor-and-indexes.txt              |   84 +
+ artifacts/import-demo.md                           |   15 +
+ artifacts/index-verification.txt                   |  185 +
+ artifacts/migration-apply.log                      |   25 +
+ .../error-context.md                               |   25 +
+ .../test-failed-1.png                              |  Bin 0 -> 28072 bytes
+ .../trace.zip                                      |  Bin 0 -> 126375 bytes
+ .../error-context.md                               |   25 +
+ .../test-failed-1.png                              |  Bin 0 -> 27646 bytes
+ .../trace.zip                                      |  Bin 0 -> 127097 bytes
+ .../trace.zip                                      |  Bin 0 -> 107102 bytes
+ artifacts/pre-wipe-gpsprofile.jsonl                |    1 +
+ artifacts/pre-wipe-gpsreport.jsonl                 |   18 +
+ artifacts/pre_gps_snapshot.backup                  |    0
+ artifacts/prune-dryrun.json                        |   69 +
+ artifacts/prune-dryrun.md                          |   54 +
+ artifacts/prune-empty-reports.jsonl                |    2 +
+ artifacts/prune-empty-reports.log                  |    7 +
+ artifacts/recover-dryrun.json                      |  286 ++
+ artifacts/recover-dryrun.md                        |   38 +
+ artifacts/screens/polar-report.png                 |  Bin 0 -> 61424 bytes
+ artifacts/screens/statsports-report.png            |  Bin 0 -> 64058 bytes
+ artifacts/seed-demo.ids.json                       |   43 +
+ artifacts/smoke-notes.md                           |  116 +
+ artifacts/sql/delete_reports_R1_R2_R3_R4_R5.sql    |   15 +
+ artifacts/ui-inspect.json                          |   34 +
+ artifacts/ui-inspect.md                            |   57 +
+ artifacts/vendor-check.txt                         |   59 +
+ artifacts/verification.txt                         |  185 +
+ artifacts/verify-demo.txt                          |   94 +
+ artifacts/verify-wipe.txt                          |    7 +
+ artifacts/wipe-gps.log                             |   14 +
+ docs/adr/ADR-0001-gps-canonical-snapshot.md        |  120 +
+ .../0025_add_profile_snapshot_to_gps_report.sql    |   11 +
+ drizzle/0025_gps_snapshot_safe.sql                 |   29 +
+ drizzle/1757437762_gps_snapshot_safe.sql           |    7 +
+ e2e/gps-report-dev.spec.ts                         |  120 +
+ eslint.config.mjs                                  |   16 -
+ fixtures/gps/polar_demo.csv                        |    6 +
+ fixtures/gps/statsports_demo.csv                   |    6 +
+ gps/CONTEXT.md                                     |   46 +
+ jest.config.cjs                                    |   18 +
+ jest.config.js                                     |   16 -
+ package-lock.json                                  | 4504 +++++++++++++++++---
+ package.json                                       |   21 +-
+ .../846fad276560b4ce5bf41a8dd4018af7aae384f4.zip   |  Bin 0 -> 127097 bytes
+ .../9b5ce178b20191b262299e0cf690595b07a32fb8.zip   |  Bin 0 -> 126375 bytes
+ .../9bc92c88fb9284d86e6c62dae5c5bf50d8514b4a.zip   |  Bin 0 -> 107102 bytes
+ playwright-report/index.html                       |   76 +
+ .../trace/assets/codeMirrorModule-B9MwJ51G.js      |   24 +
+ .../trace/assets/defaultSettingsView-Do_wwdKw.js   |  256 ++
+ .../trace/codeMirrorModule.C3UTv-Ge.css            |    1 +
+ playwright-report/trace/codicon.DCmgc-ay.ttf       |  Bin 0 -> 80340 bytes
+ .../trace/defaultSettingsView.DVJHpiGt.css         |    1 +
+ playwright-report/trace/index.BFsek2M6.css         |    1 +
+ playwright-report/trace/index.BZPYnuWQ.js          |    2 +
+ playwright-report/trace/index.html                 |   43 +
+ playwright-report/trace/playwright-logo.svg        |    9 +
+ playwright-report/trace/snapshot.html              |   21 +
+ playwright-report/trace/sw.bundle.js               |    3 +
+ playwright-report/trace/uiMode.9zHYMU6d.js         |    5 +
+ playwright-report/trace/uiMode.BatfzHMG.css        |    1 +
+ playwright-report/trace/uiMode.html                |   17 +
+ playwright-report/trace/xtermModule.Beg8tuEN.css   |   32 +
+ playwright.config.ts                               |   28 +
+ scripts/clean-gps-reports.cjs                      |   55 +
+ scripts/db/apply-safe-migration.ts                 |  117 +
+ scripts/db/verify-migration.ts                     |   73 +
+ scripts/db/verify-safe-migration.ts                |   98 +
+ scripts/gps/backfill-empty-snapshot-columns.ts     |  109 +
+ scripts/gps/backfill-profile-snapshots.ts          |  137 +
+ scripts/gps/dryrun-backfill-snapshot.ts            |  288 ++
+ scripts/gps/dryrun-prune.ts                        |  496 +++
+ scripts/gps/dryrun-recover-snapshot.ts             |  322 ++
+ scripts/gps/export-gps-metadata.ts                 |  103 +
+ scripts/gps/import-demo.ts                         |  225 +
+ scripts/gps/inspect-report.ts                      |  130 +
+ scripts/gps/prune-empty-reports.ts                 |  118 +
+ scripts/gps/readiness-check.ts                     |  341 ++
+ scripts/gps/seed-demo.ts                           |  211 +
+ scripts/gps/verify-demo.ts                         |  163 +
+ scripts/gps/verify-wipe.ts                         |   84 +
+ scripts/gps/wipe-gps.ts                            |  129 +
+ src/__tests__/edit-modal-static-guard.test.ts      |   60 +
+ src/app/api/canonical/metrics/route.ts             |    8 +
+ src/app/api/clean-gps-data/route.ts                |   57 +
+ src/app/api/debug/gps-reports/[id]/route.ts        |   43 +
+ src/app/api/gps-profiles/[id]/route.ts             |  295 +-
+ src/app/api/gps-profiles/[id]/usage/route.ts       |   39 +
+ .../__tests__/profiles.canonical.test.ts           |  308 ++
+ src/app/api/gps-profiles/route.ts                  |  127 +-
+ src/app/api/gps-profiles/templates/route.ts        |   21 +
+ src/app/api/gps-reports/[id]/route.ts              |   36 +-
+ src/app/api/gps-reports/debug/route.ts             |   47 +
+ src/app/api/gps-reports/diag/route.ts              |  177 +
+ src/app/api/gps-reports/fix-canonical/route.ts     |   60 +
+ src/app/api/gps-reports/recalculate/route.ts       |  254 ++
+ src/app/api/gps-reports/route-old.ts               |  840 ++++
+ src/app/api/gps-reports/route.ts                   |  484 +--
+ src/app/api/player-mappings/[id]/route.ts          |   67 +-
+ src/app/api/player-mappings/auto-match/route.ts    |   23 +
+ src/app/api/player-mappings/reset/route.ts         |   75 +
+ src/app/api/public/gps-reports/[token]/route.ts    |   37 +-
+ src/app/clean-gps/page.tsx                         |   97 +
+ src/app/debug-gps/page.tsx                         |  226 +
+ src/app/dev/gps-report/[id]/page.tsx               |  197 +
+ src/app/public/gps-report/[token]/page.tsx         |   14 +-
+ src/canon/__tests__/suggest.test.ts                |   96 +
+ src/canon/__tests__/units.test.ts                  |   35 +
+ src/canon/index.ts                                 |    4 +
+ src/canon/metrics.registry.json                    | 1233 ++++++
+ src/canon/metrics.registry.ts                      |    7 +
+ src/canon/suggest.ts                               |  121 +
+ src/canon/types.ts                                 |   49 +
+ src/canon/units.ts                                 |   73 +
+ src/components/gps/CanonicalMetricSelector.tsx     |  184 +
+ src/components/gps/CreateGpsProfileModal.tsx       |  857 ++--
+ src/components/gps/EditGpsProfileModal.tsx         | 1189 ++++--
+ src/components/gps/GpsProfilesTab.tsx              |   17 +-
+ src/components/gps/GpsReportModal.tsx              |   15 +-
+ src/components/gps/GpsReportTable.tsx              |  193 +
+ src/components/gps/GpsReportsTab.tsx               |  566 +--
+ src/components/gps/GpsVisualization.tsx            |  671 +--
+ src/components/gps/PlayerMappingModal.tsx          |  609 ++-
+ src/components/gps/PlayerMappingsTab.tsx           |  111 +-
+ src/components/gps/PlayerTiles.tsx                 |  306 +-
+ src/components/gps/RecalcCanonicalModal.tsx        |  325 ++
+ src/components/gps/SimpleCreateGpsProfileModal.tsx |    0
+ src/components/gps/UploadGpsReportModal.tsx        |  226 +-
+ src/components/surveys/RPESchedulingModal.tsx      |    2 +-
+ src/components/surveys/TrainingDurationManager.tsx |   44 +-
+ src/db/schema/gpsReport.ts                         |    9 +-
+ src/services/__tests__/canon.mapper.test.ts        |  362 ++
+ .../__tests__/playerMapping.service.test.ts        |  119 +
+ src/services/canon.mapper.new.ts                   |  198 +
+ src/services/canon.mapper.old.ts                   |  451 ++
+ src/services/canon.mapper.ts                       |  193 +
+ src/services/gps.debug.ts                          |  234 +
+ src/services/gps.service.ts                        |    7 +
+ .../gps/__tests__/ingest.fixtures.e2e.test.ts      |  110 +
+ src/services/gps/__tests__/ingest.service.test.ts  |  204 +
+ .../gps/__tests__/profileSnapshot.service.test.ts  |  271 ++
+ src/services/gps/ingest.service.ts                 |  156 +
+ src/services/gps/profileSnapshot.service.ts        |   30 +
+ src/services/playerMapping.service.ts              |  196 +-
+ src/types/gps.ts                                   |   27 +
+ src/validators/gpsProfile.schema.ts                |  106 +
+ test-canonical-api.cjs                             |   59 +
+ test-canonical-fix.js                              |  119 +
+ test-gps-data.cjs                                  |   21 +
+ test-gps-data.csv                                  |   11 +
+ test-gps-data.xlsx                                 |   11 +
+ test-gps-report.xlsx                               |  Bin 0 -> 16687 bytes
+ test-ratio-conversion.js                           |   24 +
+ test-results/.last-run.json                        |    4 +
+ .../trace.zip                                      |  Bin 0 -> 126375 bytes
+ .../trace.zip                                      |  Bin 0 -> 127097 bytes
+ .../trace.zip                                      |  Bin 0 -> 107102 bytes
+ tsconfig.backup.json                               |   29 +
+ tsconfig.json                                      |   29 +-
+ 180 files changed, 21884 insertions(+), 3524 deletions(-)

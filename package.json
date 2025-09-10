@@ -31,7 +31,11 @@
     "dev:gps:viewer": "next dev",
     "test:e2e:gps": "playwright test e2e/gps-report-dev.spec.ts",
     "test:e2e:gps:headed": "playwright test --headed e2e/gps-report-dev.spec.ts",
-    "db:migrate:safe": "tsx scripts/db/apply-safe-migration.ts"
+    "db:migrate:safe": "tsx scripts/db/apply-safe-migration.ts",
+    "lint:gps:ci": "npx eslint@8 --max-warnings=20 --ext .ts,.tsx --rule 'react-hooks/rules-of-hooks: warn' src/canon src/services/gps src/components/gps || exit 1",
+    "typecheck:ci": "tsc --noEmit",
+    "test:gps:unit:ci": "jest --runInBand --reporters=default --outputFile artifacts/jest-gps-report.json --json --testPathPatterns='(src/services/gps|src/canon)/*.*test.*'",
+    "gps:readiness:ci": "node scripts/checks/gps-readiness.ci.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.828.0",

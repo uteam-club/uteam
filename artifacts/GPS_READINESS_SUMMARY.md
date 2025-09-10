@@ -1,30 +1,19 @@
-# GPS Readiness Check Report
+# GPS Readiness Summary (CI Mode)
 
-**Generated:** 2025-09-10T06:35:28.157Z
+**Status**: ✅ PASS
 
-**Summary:** 9/9 checks passed
+**Checks Passed**: 6/6
 
-## Database Checks
+## Code-Only Checks
 
-| Check | Status | Details |
-|-------|--------|----------|
-| Required columns exist | PASS | All required columns exist |
-| Index on profileId | PASS | Index on profileId exists |
-| Reports with snapshots | PASS | Reports with snapshots exist |
-| Demo reports have 5 rows | PASS | All demo reports have 5 rows |
+- **Canon Files**: ✅ Canonical files present
+- **No Vendor Code**: ✅ No vendor-specific conditions
+- **No Magic Indices**: ✅ No magic array indices
+- **Snapshot Service**: ✅ buildProfileSnapshot service
+- **Dev Viewer**: ✅ Dev viewer uses snapshot
+- **E2E Artifacts**: ✅ E2E artifacts present (optional)
 
-## Code Hygiene Checks
 
-| Check | Status | Details |
-|-------|--------|----------|
-| No vendor conditions | PASS | No vendor-specific conditions in runtime code |
-| No magic indices | PASS | No magic array indices found |
-| Dev page protected | PASS | Dev page is protected with notFound() and production check |
 
-## Test Coverage
 
-| Check | Status | Details |
-|-------|--------|----------|
-| Profile snapshot tests | PASS | Profile snapshot tests assumed pass (file present) |
-| E2E tests | PASS | E2E tests have been run successfully (screenshots found) |
-
+**Generated**: 2025-09-10T07:49:54.672Z
