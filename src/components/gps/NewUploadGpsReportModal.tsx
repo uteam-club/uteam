@@ -793,7 +793,15 @@ export default function NewUploadGpsReportModal({
 
         {step === 'mapping' && USE_INLINE_MAPPING && selectedFile && selectedProfile && selectedTeam && selectedEvent && (
           <UploadWizardMappingStep
-            report={null}
+            report={{
+              eventId: selectedEvent.id,
+              teamId: selectedTeam.id,
+              gpsSystem: selectedProfile.gpsSystem,
+              profileId: selectedProfile.id,
+              fileName: selectedFile.name,
+              eventType: eventType!.toLowerCase() as 'training' | 'match',
+              file: selectedFile
+            }}
             reportId=""
             teamId={selectedTeam.id}
             profileId={selectedProfile.id}

@@ -446,11 +446,12 @@ export default function UploadWizardMappingStep({
   
   // Принудительный лог для отладки
   if (process.env.NODE_ENV !== 'production') {
+    const hasFile = !!(report?.file);
     console.log('[MAPPING-COMPONENT] UploadWizardMappingStep v2 loaded', { 
       reportId, 
       teamId, 
       profileId, 
-      hasFile: false,
+      hasFile,
       fileName: report?.fileName,
       reportKeys: Object.keys(report || {})
     });
@@ -558,10 +559,11 @@ export default function UploadWizardMappingStep({
 
   // Строгая загрузка данных по профилю
   useEffect(() => {
+    const hasFile = !!(report?.file);
     console.log('[mapping] useEffect triggered:', { 
       reportId, 
       profileId, 
-      hasFile: false,
+      hasFile,
       fileName: report?.fileName,
       rawRowsLength: rawRows.length,
       allColumnsLength: allColumns.length
@@ -593,17 +595,22 @@ export default function UploadWizardMappingStep({
         
         if (rawRows.length === 0) {
           
+          const hasFile = !!(report?.file);
           console.log('[mapping] Loading data:', { 
             hasReportId: !!reportId, 
-            hasFile: false,
+            hasFile,
             reportId,
             fileName: report?.fileName
           });
           
           if (reportId) {
             // Если есть reportId, загружаем данные отчета
-            
             const data = await fetchReportData(reportId);
+            rows = data.rows;
+            headers = data.headers;
+          } else if (hasFile) {
+            // Если есть файл, обрабатываем его
+            const data = await processFile(report!.file);
             rows = data.rows;
             headers = data.headers;
           } else {
