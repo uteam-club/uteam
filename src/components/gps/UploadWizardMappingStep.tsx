@@ -358,8 +358,18 @@ function extractNames(rows: any[], column: string): string[] {
     .filter(Boolean);
 }
 
+interface ReportWithFile {
+  eventId: string;
+  teamId: string;
+  gpsSystem: string;
+  profileId: string;
+  fileName: string;
+  eventType: 'training' | 'match';
+  file: File;
+}
+
 interface UploadWizardMappingStepProps {
-  report: GpsReport | null;
+  report: ReportWithFile | null;
   reportId: string;
   teamId: string;
   profileId: string;
