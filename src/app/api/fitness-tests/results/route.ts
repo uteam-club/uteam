@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { fitnessTestResult } from '@/db/schema/fitnessTestResult';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 import { getSubdomain } from '@/lib/utils';

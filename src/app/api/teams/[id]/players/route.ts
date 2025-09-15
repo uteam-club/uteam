@@ -8,7 +8,7 @@ import { deleteFile as deleteYandexFile } from "@/lib/yandex-storage";
 import { getSubdomain } from '@/lib/utils';
 import { getClubBySubdomain } from '@/services/user.service';
 import { getServerSession } from "next-auth/next";
-import { authOptions } from '@/lib/auth-options';
+import { authOptions } from '@/lib/auth';
 import { getToken } from 'next-auth/jwt';
 
 

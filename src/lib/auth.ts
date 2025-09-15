@@ -4,8 +4,8 @@ import { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
 
-// Экспортируем authOptions из локального файла
-export { authOptions } from './auth-options';
+// Экспортируем authOptions из API роута (единая конфигурация)
+export { authOptions } from '../app/api/auth/[...nextauth]/auth-options';
 
 export async function getSession() {
   return await nextAuthGetSession();

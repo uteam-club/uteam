@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 import { player, team, club } from '@/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { authOptions } from '@/lib/auth';
 import { getToken } from 'next-auth/jwt';
 
 // Указываем, что этот маршрут должен быть динамическим

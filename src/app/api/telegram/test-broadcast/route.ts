@@ -8,7 +8,7 @@ import { player, team } from '@/db/schema';
 import { eq, and, isNotNull, desc } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { authOptions } from '@/lib/auth';
 import { survey } from '@/db/schema/survey';
 
 // Токен должен быть от @UTEAM_infoBot
