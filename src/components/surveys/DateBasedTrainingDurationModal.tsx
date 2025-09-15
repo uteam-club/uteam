@@ -202,7 +202,7 @@ export function DateBasedTrainingDurationModal({
                   min="1"
                   max="300"
                   value={globalDuration || ''}
-                  onChange={(e) => handleGlobalDurationChange(e.target.value)}
+                  onChange={e => handleGlobalDurationChange(e.target.value)}
                   placeholder="мин"
                   className="w-24 bg-vista-dark border-vista-secondary/50 text-vista-light"
                 />
@@ -244,7 +244,7 @@ export function DateBasedTrainingDurationModal({
                         min="1"
                         max="300"
                         value={individualDurations[player.id] || ''}
-                        onChange={(e) => handleIndividualDurationChange(player.id, e.target.value)}
+                        onChange={e => handleIndividualDurationChange(player.id, e.target.value)}
                         placeholder="мин"
                         className="w-20 bg-vista-dark border-vista-secondary/50 text-vista-light"
                       />

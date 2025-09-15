@@ -9,6 +9,7 @@ import { authOptions } from '@/lib/auth';
 import { getSubdomain } from '@/lib/utils';
 import { getClubBySubdomain } from '@/services/user.service';
 import { getToken } from 'next-auth/jwt';
+import { getMatchById, updateMatch, deleteMatch } from '@/services/matches.service';
 
 
 export const dynamic = 'force-dynamic';
@@ -41,6 +42,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Нет доступа к этому клубу' }, { status: 403 });
     }
     const matchId = params.id;
+    
+    // Проверяем существование матча и принадлежность к клубу
+    const matchData = await getMatchById(matchId, token.clubId);
+    if (!matchData) {
+      return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
+    }
+    
     // Получаем детали матча с join
     const [row] = await db.select({
       id: match.id,
@@ -116,11 +124,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const matchId = params.id;
     const body = await request.json();
     // Проверяем, существует ли матч и принадлежит ли он клубу пользователя
-    if (!token) {
-      console.log('RETURNING 401: Нет токена', { token, params });
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
-    }
-    const [existing] = await db.select().from(match).where(and(eq(match.id, matchId), eq(match.clubId, token.clubId)));
+    const existing = await getMatchById(matchId, token.clubId);
     if (!existing) {
       return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
     }
@@ -140,10 +144,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if ('playerPositions' in body) updateData.playerPositions = JSON.stringify(body.playerPositions);
     if ('positionAssignments' in body) updateData.positionAssignments = JSON.stringify(body.positionAssignments);
     if ('status' in body) updateData.status = body.status;
-    const [updated] = await db.update(match)
-      .set(updateData)
-      .where(eq(match.id, matchId))
-      .returning();
+    const updated = await updateMatch(matchId, token.clubId, updateData);
+    if (!updated) {
+      return NextResponse.json({ error: 'Failed to update match' }, { status: 500 });
+    }
     return NextResponse.json(updated);
   } catch (error) {
     console.error('Ошибка при обновлении матча:', error);
@@ -167,11 +171,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   try {
     const matchId = params.id;
     // Проверяем, существует ли матч и принадлежит ли он клубу пользователя
-    if (!token) {
-      console.log('RETURNING 401: Нет токена', { token, params });
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
-    }
-    const [existing] = await db.select().from(match).where(and(eq(match.id, matchId), eq(match.clubId, token.clubId)));
+    const existing = await getMatchById(matchId, token.clubId);
     if (!existing) {
       return NextResponse.json({ error: 'Матч не найден' }, { status: 404 });
     }
@@ -179,8 +179,11 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     // Удаляем playerMatchStat
     await db.delete(playerMatchStat).where(eq(playerMatchStat.matchId, matchId));
     
-    // Удаляем сам матч
-    await db.delete(match).where(eq(match.id, matchId));
+    // Удаляем сам матч через сервис
+    const success = await deleteMatch(matchId, token.clubId);
+    if (!success) {
+      return NextResponse.json({ error: 'Failed to delete match' }, { status: 500 });
+    }
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Ошибка при удалении матча:', error);

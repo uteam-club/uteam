@@ -237,7 +237,7 @@ export default function ExerciseTimingModal({
                 min="1"
                 max="20"
                 value={series}
-                onChange={(e) => handleNumberInputChange(e.target.value, setSeries, 1, 20)}
+                onChange={e => handleNumberInputChange(e.target.value, setSeries, 1, 20)}
                 className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 h-10"
               />
             </div>
@@ -254,7 +254,7 @@ export default function ExerciseTimingModal({
                 min="1"
                 max="50"
                 value={repetitions}
-                onChange={(e) => handleNumberInputChange(e.target.value, setRepetitions, 1, 50)}
+                onChange={e => handleNumberInputChange(e.target.value, setRepetitions, 1, 50)}
                 className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 h-10"
               />
             </div>
@@ -279,7 +279,7 @@ export default function ExerciseTimingModal({
                     min="0"
                     max="59"
                     value={repetitionTimeMinutes}
-                    onChange={(e) => handleInputWithZero(e.target.value, setRepetitionTimeMinutes, 0, 59)}
+                    onChange={e => handleInputWithZero(e.target.value, setRepetitionTimeMinutes, 0, 59)}
                     onFocus={handleFocus}
                     className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 h-9 text-center"
                   />
@@ -294,7 +294,7 @@ export default function ExerciseTimingModal({
                     min="0"
                     max="59"
                     value={repetitionTimeSeconds}
-                    onChange={(e) => handleInputWithZero(e.target.value, setRepetitionTimeSeconds, 0, 59)}
+                    onChange={e => handleInputWithZero(e.target.value, setRepetitionTimeSeconds, 0, 59)}
                     onFocus={handleFocus}
                     className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 h-9 text-center"
                   />
@@ -319,7 +319,7 @@ export default function ExerciseTimingModal({
                     min="0"
                     max="59"
                     value={pauseBetweenRepetitionsMinutes}
-                    onChange={(e) => handleInputWithZero(e.target.value, setPauseBetweenRepetitionsMinutes, 0, 59)}
+                    onChange={e => handleInputWithZero(e.target.value, setPauseBetweenRepetitionsMinutes, 0, 59)}
                     onFocus={handleFocus}
                     className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 h-9 text-center"
                   />
@@ -334,7 +334,7 @@ export default function ExerciseTimingModal({
                     min="0"
                     max="59"
                     value={pauseBetweenRepetitionsSeconds}
-                    onChange={(e) => handleInputWithZero(e.target.value, setPauseBetweenRepetitionsSeconds, 0, 59)}
+                    onChange={e => handleInputWithZero(e.target.value, setPauseBetweenRepetitionsSeconds, 0, 59)}
                     onFocus={handleFocus}
                     className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 h-9 text-center"
                   />
@@ -359,7 +359,7 @@ export default function ExerciseTimingModal({
                         min="0"
                         max="59"
                         value={pauseBetweenSeriesMinutes}
-                        onChange={(e) => handleInputWithZero(e.target.value, setPauseBetweenSeriesMinutes, 0, 59)}
+                        onChange={e => handleInputWithZero(e.target.value, setPauseBetweenSeriesMinutes, 0, 59)}
                         onFocus={handleFocus}
                         className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 h-9 text-center"
                       />
@@ -374,7 +374,7 @@ export default function ExerciseTimingModal({
                         min="0"
                         max="59"
                         value={pauseBetweenSeriesSeconds}
-                        onChange={(e) => handleInputWithZero(e.target.value, setPauseBetweenSeriesSeconds, 0, 59)}
+                        onChange={e => handleInputWithZero(e.target.value, setPauseBetweenSeriesSeconds, 0, 59)}
                         onFocus={handleFocus}
                         className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 h-9 text-center"
                       />

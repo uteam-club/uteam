@@ -356,7 +356,7 @@ export default function DocumentsPage() {
                 type="text"
                 placeholder={t('documentsPage.search_player')}
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={e => setSearchQuery(e.target.value)}
                 className="bg-vista-dark/70 border-vista-secondary/50 text-vista-light pr-9 focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
               />
               <SearchIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-vista-light/50" />

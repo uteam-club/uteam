@@ -55,9 +55,8 @@ export default function EditFitnessTestModal({ open, onOpenChange, test, onSucce
             <span className="block text-xs text-vista-light/60 mb-1">
               {t('fitnessTest.test_name_label')}
             </span>
-            <Input
-              value={name}
-              onChange={e => setName(e.target.value)}
+            <Input value={name}
+              onChange={e => setName(e.target.value)} autoComplete="off"
               disabled={loading}
               className="bg-vista-dark text-vista-light border-vista-secondary/30"
             />
@@ -66,9 +65,8 @@ export default function EditFitnessTestModal({ open, onOpenChange, test, onSucce
             <span className="block text-xs text-vista-light/60 mb-1">
               {t('fitnessTest.test_description_label')}
             </span>
-            <Input
-              value={description}
-              onChange={e => setDescription(e.target.value)}
+            <Input value={description}
+              onChange={e => setDescription(e.target.value)} autoComplete="off"
               disabled={loading}
               className="bg-vista-dark text-vista-light border-vista-secondary/30"
             />

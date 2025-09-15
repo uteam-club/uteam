@@ -72,9 +72,8 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = ({ value, onChange,
         </SelectTrigger>
         <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light max-h-60 overflow-y-auto custom-scrollbar">
           <div className="p-2">
-            <Input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+            <Input value={search}
+              onChange={e => setSearch(e.target.value)} autoComplete="off"
               placeholder="Поиск..."
               className="mb-2 bg-vista-dark border-vista-secondary/30 text-vista-light"
             />

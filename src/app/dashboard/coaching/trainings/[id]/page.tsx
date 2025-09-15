@@ -1131,7 +1131,7 @@ export default function TrainingPage() {
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-title" className="text-vista-light/40 font-normal">{t('trainingsPage.title_label')}</Label>
-                <Input id="edit-title" value={editTraining.title} onChange={e => handleEditTrainingChange('title', e.target.value)} className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50" placeholder={t('trainingsPage.training_title_placeholder')} />
+                <Input id="edit-title" value={editTraining.title} onChange={e => handleEditTrainingChange('title', e.target.value)} autoComplete="off" className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50" placeholder={t('trainingsPage.training_title_placeholder')} />
               </div>
               <div className="space-y-2">
                 {!isSingleTeam && (
@@ -1154,10 +1154,10 @@ export default function TrainingPage() {
                 <Label htmlFor="edit-date" className="text-vista-light/40 font-normal">{t('trainingsPage.date_and_time_label')}</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="relative">
-                    <Input id="edit-date" type="date" value={editTraining.date} onChange={e => handleEditTrainingChange('date', e.target.value)} className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden" onClick={e => { try { (e.target as HTMLInputElement).showPicker(); } catch (error) {} }} />
+                    <Input id="edit-date" type="date" value={editTraining.date} onChange={e => handleEditTrainingChange('date', e.target.value)} autoComplete="off" className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden" onClick={e => { try { (e.target as HTMLInputElement).showPicker(); } catch (error) {} }} />
                   </div>
                   <div className="relative">
-                    <Input id="edit-time" type="time" value={editTraining.time} onChange={e => handleEditTrainingChange('time', e.target.value)} className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden" onClick={e => { try { (e.target as HTMLInputElement).showPicker(); } catch (error) {} }} />
+                    <Input id="edit-time" type="time" value={editTraining.time} onChange={e => handleEditTrainingChange('time', e.target.value)} autoComplete="off" className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden" onClick={e => { try { (e.target as HTMLInputElement).showPicker(); } catch (error) {} }} />
                   </div>
                 </div>
               </div>

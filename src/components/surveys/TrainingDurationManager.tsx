@@ -56,22 +56,6 @@ export function TrainingDurationManager({
     }
   }, [teamId, date]);
 
-  // Проверяем, есть ли данные для отображения
-  const hasData = safeResponses.length > 0 && safeResponses.some(response => response && response.player);
-
-  // Проверяем, что у нас есть необходимые данные
-  if (!teamId || !date) {
-    return (
-      <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md mb-6">
-        <CardContent className="p-4">
-          <div className="text-center text-vista-light/50 text-sm">
-            Выберите команду и дату для управления длительностью тренировки
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   const loadDurationSettings = useCallback(async () => {
     try {
       const response = await fetch(`/api/surveys/rpe/duration?teamId=${teamId}&date=${date}`);
@@ -195,6 +179,22 @@ export function TrainingDurationManager({
     return durationSettings.individualDurations[playerId] || durationSettings.globalDuration;
   };
 
+  // Проверяем, есть ли данные для отображения
+  const hasData = safeResponses.length > 0 && safeResponses.some(response => response && response.player);
+
+  // Проверяем, что у нас есть необходимые данные
+  if (!teamId || !date) {
+    return (
+      <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md mb-6">
+        <CardContent className="p-4">
+          <div className="text-center text-vista-light/50 text-sm">
+            Выберите команду и дату для управления длительностью тренировки
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const calculateRPEWorkload = (rpeScore: number, duration: number | null) => {
     if (!duration || !rpeScore) return null;
     return rpeScore * duration;
@@ -223,7 +223,7 @@ export function TrainingDurationManager({
                   type="number"
                   min="1"
                   value={tempDuration}
-                  onChange={(e) => setTempDuration(Number(e.target.value))}
+                  onChange={e => setTempDuration(Number(e.target.value))}
                   className="w-20 bg-vista-dark border-vista-secondary/50 text-vista-light"
                   placeholder="мин"
                 />
@@ -324,7 +324,7 @@ export function TrainingDurationManager({
                                 type="number"
                                 min="1"
                                 value={tempDuration}
-                                onChange={(e) => setTempDuration(Number(e.target.value))}
+                                onChange={e => setTempDuration(Number(e.target.value))}
                                 className="w-20 bg-vista-dark border-vista-secondary/50 text-vista-light text-center"
                                 placeholder="мин"
                               />

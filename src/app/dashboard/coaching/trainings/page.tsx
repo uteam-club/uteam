@@ -143,19 +143,44 @@ export default function TrainingsPage() {
         if (!response.ok) throw new Error('Не удалось загрузить тренировки');
         const data = await response.json();
         
-        console.log('🔍 Полученные тренировки:', data);
-        console.log('🔍 Пример первой тренировки:', data[0]);
-        console.log('🔍 Поля тренировки:', data[0] ? Object.keys(data[0]) : 'Нет данных');
+        // Проверим типы тренировок из API
+        const apiTypes = data.reduce((acc: Record<string, number>, t: any) => {
+          acc[t.type] = (acc[t.type] || 0) + 1;
+          return acc;
+        }, {});
+        // API работает правильно
         
-        const trainingsWithData = data.map((training: Training) => {
+        const trainingsWithData = data.map((training: any) => {
           const isCompleted = training.status === 'COMPLETED';
-          return {
+          // Находим команду и категорию по ID
+          const team = teams.find((t: Team) => t.id === training.teamId);
+          const category = categories.find((c: Category) => c.id === training.categoryId);
+          
+          
+          const processedTraining = {
             ...training,
+            name: training.title, // маппинг title -> name
+            team: team?.name || 'Неизвестная команда',
+            category: category?.name || 'Без категории',
             isCompleted
           };
+          
+          // console.log(`🔍 Обработанная тренировка ${training.id}:`, {
+          //   title: training.title,
+          //   originalType: training.type,
+          //   processedType: processedTraining.type,
+          //   displayType: getTrainingTypeDisplay(processedTraining.type)
+          // });
+          
+          return processedTraining;
         });
         
-        console.log('🔍 Обработанные тренировки:', trainingsWithData);
+        // Проверим типы после обработки
+        const processedTypes = trainingsWithData.reduce((acc: Record<string, number>, t: Training) => {
+          acc[t.type] = (acc[t.type] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        // Обработка данных работает правильно
         
         const sortedTrainings = trainingsWithData.sort((a: Training, b: Training) => {
           return new Date(b.date).getTime() - new Date(a.date).getTime();
@@ -170,34 +195,18 @@ export default function TrainingsPage() {
       }
     }
     
-    if (session?.user) {
+    if (session?.user && teams.length > 0 && categories.length > 0) {
       fetchTrainings();
     }
-  }, [session]);
+  }, [session, teams, categories]);
   
   // Фильтрация тренировок
   const filteredTrainings = useMemo(() => {
-    console.log('🔍 Фильтрация тренировок:');
-    console.log('🔍 Поиск:', searchQuery);
-    console.log('🔍 Команда:', selectedTeam);
-    console.log('🔍 Категория:', selectedCategory);
-    console.log('🔍 Дата начала:', startDate);
-    console.log('🔍 Дата окончания:', endDate);
-    console.log('🔍 Всего тренировок:', trainings.length);
-    console.log('🔍 Доступные команды:', teams.map(t => ({ id: t.id, name: t.name })));
-    console.log('🔍 Доступные категории:', categories.map((c: Category) => ({ id: c.id, name: c.name })));
+    // Фильтрация тренировок
     
     const filtered = trainings.filter(training => {
-      console.log('🔍 Проверяем тренировку:', {
-        name: training.name,
-        teamId: training.teamId,
-        team: training.team,
-        categoryId: training.categoryId,
-        category: training.category
-      });
       
       if (searchQuery && !training.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-        console.log('❌ Отфильтровано по поиску');
         return false;
       }
       
@@ -205,11 +214,6 @@ export default function TrainingsPage() {
         // Находим команду по ID и сравниваем название
         const selectedTeamName = teams.find(t => t.id === selectedTeam)?.name;
         if (selectedTeamName && training.team !== selectedTeamName) {
-          console.log('❌ Отфильтровано по команде:', {
-            trainingTeamName: training.team,
-            selectedTeamName: selectedTeamName,
-            isEqual: training.team === selectedTeamName
-          });
           return false;
         }
       }
@@ -218,30 +222,23 @@ export default function TrainingsPage() {
         // Находим категорию по ID и сравниваем название
         const selectedCategoryName = categories.find((c: Category) => c.id === selectedCategory)?.name;
         if (selectedCategoryName && training.category !== selectedCategoryName) {
-          console.log('❌ Отфильтровано по категории:', {
-            trainingCategoryName: training.category,
-            selectedCategoryName: selectedCategoryName,
-            isEqual: training.category === selectedCategoryName
-          });
           return false;
         }
       }
       
       if (startDate && training.date < startDate) {
-        console.log('❌ Отфильтровано по дате начала');
         return false;
       }
       
       if (endDate && training.date > endDate) {
-        console.log('❌ Отфильтровано по дате окончания');
         return false;
       }
       
-      console.log('✅ Тренировка прошла фильтрацию');
       return true;
     });
     
-    console.log('🔍 Результат фильтрации:', filtered.length, 'тренировок');
+    // Фильтрация завершена
+    
     return filtered;
   }, [trainings, searchQuery, selectedTeam, selectedCategory, startDate, endDate, teams, categories]);
 
@@ -250,16 +247,12 @@ export default function TrainingsPage() {
   const startIndex = (currentPage - 1) * trainingsPerPage;
   const endIndex = startIndex + trainingsPerPage;
   const paginatedTrainings = filteredTrainings.slice(startIndex, endIndex);
+  
+  // Пагинация работает
 
   // Сброс страницы при изменении фильтров
   useEffect(() => {
-    console.log('🔍 Сброс страницы при изменении фильтров:', {
-      searchQuery,
-      selectedTeam,
-      selectedCategory,
-      startDate,
-      endDate
-    });
+    // Сброс страницы при изменении фильтров
     setCurrentPage(1);
   }, [searchQuery, selectedTeam, selectedCategory, startDate, endDate]);
   
@@ -282,7 +275,7 @@ export default function TrainingsPage() {
   };
   
   // Функция для определения отображаемого названия тренировки в зависимости от типа
-  const getTrainingTypeDisplay = (type: string) => {
+  const getTrainingTypeDisplay = (type: string | null | undefined) => {
     switch(type) {
       case 'GYM':
         return t('trainingsPage.type_gym');
@@ -390,7 +383,7 @@ export default function TrainingsPage() {
                 <Input 
                   placeholder={t('trainingsPage.search_placeholder')}
                   value={searchQuery}
-                  onChange={(e) => {
+                  onChange={e => {
                     console.log('🔍 Изменение поиска:', e.target.value);
                     setSearchQuery(e.target.value);
                   }}
@@ -480,7 +473,7 @@ export default function TrainingsPage() {
                     id="filter-start-date"
                     type="date"
                     value={startDate}
-                    onChange={(e) => {
+                    onChange={e => {
                       console.log('🔍 Изменение даты начала:', e.target.value);
                       setStartDate(e.target.value);
                     }}
@@ -516,7 +509,7 @@ export default function TrainingsPage() {
                     id="filter-end-date"
                     type="date"
                     value={endDate}
-                    onChange={(e) => {
+                    onChange={e => {
                       console.log('🔍 Изменение даты окончания:', e.target.value);
                       setEndDate(e.target.value);
                     }}

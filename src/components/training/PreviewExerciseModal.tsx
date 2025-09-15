@@ -101,14 +101,13 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
               <div className="grid gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="edit-title" className="text-vista-light/40 font-normal">{t('exercisesPage.title_label')}</Label>
-                  <Input
-                    id="edit-title"
+                  <Input id="edit-title"
                     name="title"
                     value={editForm.title}
                     onChange={onEditChange}
                     className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
                     disabled={loading}
-                  />
+                   autoComplete="off" />
                   {editErrors.title && <p className="text-red-400 text-sm">{editErrors.title}</p>}
                 </div>
                 <div className="space-y-2">
@@ -126,29 +125,25 @@ const PreviewExerciseModal: React.FC<PreviewExerciseModalProps> = ({
                               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-width" className="text-vista-light/40 font-normal">{t('exercisesPage.width_label')}</Label>
-                  <Input
-                    id="edit-width"
+                  <Input id="edit-width"
                     name="width"
                     type="number"
                     value={editForm.width}
                     onChange={onEditChange}
                     className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
                     disabled={loading}
-                    onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
-                  />
+                    onFocus={e => { if (e.target.value === '0') e.target.value = ''; }} autoComplete="off" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-length" className="text-vista-light/40 font-normal">{t('exercisesPage.length_label')}</Label>
-                  <Input
-                    id="edit-length"
+                  <Input id="edit-length"
                     name="length"
                     type="number"
                     value={editForm.length}
                     onChange={onEditChange}
                     className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
                     disabled={loading}
-                    onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
-                  />
+                    onFocus={e => { if (e.target.value === '0') e.target.value = ''; }} autoComplete="off" />
                 </div>
               </div>
               

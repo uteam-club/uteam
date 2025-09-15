@@ -33,7 +33,7 @@ export const AddExerciseTagModal: React.FC<AddExerciseTagModalProps> = ({ open, 
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label htmlFor="exercise-tag-name" className="text-vista-light/70 font-normal">{t('adminPage.tag_name')}</Label>
-            <Input id="exercise-tag-name" name="name" value={newTag.name} onChange={onChange} className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light" placeholder={t('adminPage.placeholder_tagName')} disabled={loading} />
+            <Input id="exercise-tag-name" name="name" value={newTag.name} onChange={onChange} className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light" placeholder={t('adminPage.placeholder_tagName')} disabled={loading}  autoComplete="off" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="exercise-tag-category" className="text-vista-light/70 font-normal">{t('adminPage.category')}</Label>

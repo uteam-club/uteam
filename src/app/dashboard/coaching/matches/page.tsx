@@ -90,18 +90,61 @@ export default function MatchesPage() {
   };
 
   useEffect(() => {
-    fetchMatches();
     fetchTeams();
   }, []);
+
+  useEffect(() => {
+    if (teams.length > 0) {
+      fetchMatches();
+    }
+  }, [selectedTeam, teams]);
 
   const fetchMatches = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/matches');
+      console.log('[MatchesPage] Загружаем матчи для команды:', selectedTeam);
+      console.log('[MatchesPage] Доступные команды:', teams);
       
-      if (response.ok) {
-        const data = await response.json();
-        setMatches(data);
+      // Если выбрана конкретная команда, загружаем матчи только для неё
+      if (selectedTeam && selectedTeam !== "all") {
+        console.log('[MatchesPage] Загружаем матчи для команды:', selectedTeam);
+        const response = await fetch(`/api/matches?teamId=${selectedTeam}`);
+        console.log('[MatchesPage] Ответ API:', response.status, response.ok);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('[MatchesPage] Данные матчей:', data);
+          setMatches(data);
+        } else {
+          const errorData = await response.json();
+          console.error('[MatchesPage] Ошибка API:', errorData);
+        }
+      } else {
+        // Если выбраны все команды, загружаем матчи для всех команд
+        console.log('[MatchesPage] Загружаем матчи для всех команд');
+        const allMatches: Match[] = [];
+        
+        for (const team of teams) {
+          try {
+            console.log(`[MatchesPage] Загружаем матчи для команды: ${team.name} (${team.id})`);
+            const response = await fetch(`/api/matches?teamId=${team.id}`);
+            console.log(`[MatchesPage] Ответ для команды ${team.name}:`, response.status, response.ok);
+            
+            if (response.ok) {
+              const data = await response.json();
+              console.log(`[MatchesPage] Матчи для команды ${team.name}:`, data);
+              allMatches.push(...data);
+            } else {
+              const errorData = await response.json();
+              console.error(`[MatchesPage] Ошибка для команды ${team.name}:`, errorData);
+            }
+          } catch (error) {
+            console.error(`Ошибка при загрузке матчей для команды ${team.name}:`, error);
+          }
+        }
+        
+        console.log('[MatchesPage] Всего матчей загружено:', allMatches.length);
+        setMatches(allMatches);
       }
     } catch (error) {
       console.error('Ошибка при получении матчей:', error);
@@ -252,12 +295,11 @@ export default function MatchesPage() {
                          {/* Строка поиска */}
              <div className="relative flex-1">
                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-vista-light/50" />
-               <Input 
-                 className="pl-10 bg-vista-dark/30 border-vista-light/20 text-vista-light/90 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 font-normal shadow-lg w-full" 
+               <Input className="pl-10 bg-vista-dark/30 border-vista-light/20 text-vista-light/90 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 font-normal shadow-lg w-full" 
                  placeholder={t('matchesPage.search_placeholder')} 
                  value={searchValue}
                  onChange={handleSearchChange}
-               />
+                autoComplete="off" />
              </div>
             
             {/* Фильтр по команде */}
@@ -310,7 +352,7 @@ export default function MatchesPage() {
                                id="filter-start-date"
                                type="date"
                                value={startDate}
-                               onChange={(e) => setStartDate(e.target.value)}
+                               onChange={e => setStartDate(e.target.value)}
                                className="pl-10 bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 font-normal shadow-lg cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
                                placeholder={t('matchesPage.date_placeholder')}
                                onClick={(e) => {
@@ -343,7 +385,7 @@ export default function MatchesPage() {
                                id="filter-end-date"
                                type="date"
                                value={endDate}
-                               onChange={(e) => setEndDate(e.target.value)}
+                               onChange={e => setEndDate(e.target.value)}
                                className="pl-10 bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 font-normal shadow-lg cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
                                placeholder={t('matchesPage.date_placeholder')}
                                onClick={(e) => {

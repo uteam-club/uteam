@@ -28,7 +28,7 @@ export const EditTeamModal: React.FC<EditTeamModalProps> = ({ open, onOpenChange
       <div className="space-y-4 py-2">
         <div className="space-y-2">
           <Label htmlFor="team-name" className="text-vista-light/70 font-normal">Название команды</Label>
-          <Input id="team-name" name="name" value={team.name} onChange={onChange} className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light" placeholder="Введите название" disabled={loading} />
+          <Input id="team-name" name="name" value={team.name} onChange={onChange} className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light" placeholder="Введите название" disabled={loading}  autoComplete="off" />
         </div>
         <div className="space-y-2">
           <TimezoneSelect

@@ -8,6 +8,7 @@ import { getToken } from 'next-auth/jwt';
 import * as jwt from 'jsonwebtoken';
 import { getSubdomain } from '@/lib/utils';
 import { getClubBySubdomain } from '@/services/user.service';
+import { getTrainingById, updateTraining, deleteTraining } from '@/services/trainings.service';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -89,7 +90,14 @@ export async function GET(
     
     const clubId = token.clubId as string;
     
-    // Получаем тренировку с join
+    // Получаем тренировку через сервис
+    const trainingData = await getTrainingById(trainingId, clubId);
+    
+    if (!trainingData) {
+      return NextResponse.json({ error: 'Training not found' }, { status: 404 });
+    }
+    
+    // Получаем дополнительную информацию с join
     const [row] = await db.select({
       id: training.id,
       title: training.title,
@@ -176,7 +184,7 @@ export async function PUT(
     // }
     
     // Проверяем существование тренировки и принадлежность к клубу
-    const [existing] = await db.select().from(training).where(and(eq(training.id, trainingId), eq(training.clubId, clubId)));
+    const existing = await getTrainingById(trainingId, clubId);
     
     if (!existing) {
       console.log('Тренировка не найдена или принадлежит другому клубу');
@@ -201,11 +209,12 @@ export async function PUT(
     if ('status' in data) trainingData.status = data.status;
     if ('type' in data) trainingData.type = data.type;
     
-    // Обновляем тренировку
-    const [updated] = await db.update(training)
-      .set(trainingData)
-      .where(eq(training.id, trainingId))
-      .returning();
+    // Обновляем тренировку через сервис
+    const updated = await updateTraining(trainingId, clubId, trainingData);
+    
+    if (!updated) {
+      return NextResponse.json({ error: 'Failed to update training' }, { status: 500 });
+    }
     
     console.log('Тренировка успешно обновлена:', updated.id);
     
@@ -275,16 +284,19 @@ export async function DELETE(
     // }
     
     // Проверяем существование тренировки и принадлежность к клубу
-    const [existing] = await db.select().from(training).where(and(eq(training.id, trainingId), eq(training.clubId, clubId)));
+    const existing = await getTrainingById(trainingId, clubId);
     
     if (!existing) {
       console.log('Тренировка не найдена или принадлежит другому клубу');
       return NextResponse.json({ error: 'Training not found' }, { status: 404 });
     }
     
+    // Удаляем тренировку через сервис
+    const success = await deleteTraining(trainingId, clubId);
     
-    // Удаляем тренировку
-    await db.delete(training).where(eq(training.id, trainingId));
+    if (!success) {
+      return NextResponse.json({ error: 'Failed to delete training' }, { status: 500 });
+    }
     
     console.log('Тренировка успешно удалена:', trainingId);
     

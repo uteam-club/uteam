@@ -33,11 +33,11 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ open, onOpenChange
       <div className="space-y-4 py-2">
         <div className="space-y-2">
           <Label htmlFor="name" className="text-vista-light/70 font-normal">Имя</Label>
-          <Input id="name" name="name" value={user.name} onChange={onChange} className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light" placeholder="Введите имя" disabled={loading} />
+          <Input id="name" name="name" value={user.name} onChange={onChange} className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light" placeholder="Введите имя" disabled={loading}  autoComplete="off" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="email" className="text-vista-light/70 font-normal">Email</Label>
-          <Input id="email" name="email" value={user.email} onChange={onChange} className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light" placeholder="Введите email" disabled={loading} />
+          <Input id="email" name="email" value={user.email} onChange={onChange} className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light" placeholder="Введите email" disabled={loading}  autoComplete="off" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="role" className="text-vista-light/70 font-normal">Роль</Label>
@@ -185,19 +185,19 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <div>
               <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.last_name')}</label>
-              <Input value={form.lastName || ''} onChange={e => handleChange('lastName', e.target.value)} required />
+              <Input value={form.lastName || ''} onChange={e => handleChange('lastName', e.target.value)} required autoComplete="off" />
             </div>
             <div>
               <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.middle_name')}</label>
-              <Input value={form.middleName || ''} onChange={e => handleChange('middleName', e.target.value)} />
+              <Input value={form.middleName || ''} onChange={e => handleChange('middleName', e.target.value)} autoComplete="off" />
             </div>
             <div>
               <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.first_name')}</label>
-              <Input value={form.firstName || ''} onChange={e => handleChange('firstName', e.target.value)} required />
+              <Input value={form.firstName || ''} onChange={e => handleChange('firstName', e.target.value)} required autoComplete="off" />
             </div>
             <div>
               <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.number')}</label>
-              <Input type="number" value={form.number || ''} onChange={e => handleChange('number', e.target.value)} onFocus={e => { if (e.target.value === '0') e.target.value = ''; }} />
+              <Input type="number" value={form.number || ''} onChange={e => handleChange('number', e.target.value)} onFocus={e => { if (e.target.value === '0') e.target.value = ''; }} autoComplete="off" />
             </div>
             <div>
               <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.position')}</label>
@@ -231,22 +231,22 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
             </div>
             <div>
               <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.birth_date')}</label>
-              <Input type="date" value={form.dateOfBirth ? String(form.dateOfBirth).slice(0,10) : ''} onChange={e => handleChange('dateOfBirth', e.target.value)} />
+              <Input type="date" value={form.dateOfBirth ? String(form.dateOfBirth).slice(0,10) : ''} onChange={e => handleChange('dateOfBirth', e.target.value)} autoComplete="off" />
             </div>
             {teamType === 'academy' ? (
               <div>
                 <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.editModal.academy_join_date')}</label>
-                <Input type="date" value={form.academyJoinDate ? String(form.academyJoinDate).slice(0,10) : ''} onChange={e => handleChange('academyJoinDate', e.target.value)} placeholder={t('playerProfile.editModal.date_placeholder')} />
+                <Input type="date" value={form.academyJoinDate ? String(form.academyJoinDate).slice(0,10) : ''} onChange={e => handleChange('academyJoinDate', e.target.value)} placeholder={t('playerProfile.editModal.date_placeholder')} autoComplete="off" />
               </div>
             ) : (
               <>
                 <div>
                   <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.editModal.contract_start')}</label>
-                  <Input type="date" value={form.contractStartDate ? String(form.contractStartDate).slice(0,10) : ''} onChange={e => handleChange('contractStartDate', e.target.value)} />
+                  <Input type="date" value={form.contractStartDate ? String(form.contractStartDate).slice(0,10) : ''} onChange={e => handleChange('contractStartDate', e.target.value)} autoComplete="off" />
                 </div>
                 <div>
                   <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.editModal.contract_end')}</label>
-                  <Input type="date" value={form.contractEndDate ? String(form.contractEndDate).slice(0,10) : ''} onChange={e => handleChange('contractEndDate', e.target.value)} />
+                  <Input type="date" value={form.contractEndDate ? String(form.contractEndDate).slice(0,10) : ''} onChange={e => handleChange('contractEndDate', e.target.value)} autoComplete="off" />
                 </div>
               </>
             )}
@@ -275,7 +275,7 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
             )}
             <div>
               <label className="text-vista-light/70 text-sm mb-2 block">{t('playerProfile.pin_code')}</label>
-              <Input value={form.pinCode || ''} disabled />
+              <Input value={form.pinCode || ''} disabled  autoComplete="off" />
             </div>
           </div>
           <div className="mt-8">
@@ -285,12 +285,10 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
               <div className="flex flex-col gap-1">
                 <span className="text-vista-light/60 text-xs mb-1">{t('playerProfile.passport')}</span>
                 <div className="flex items-center gap-2">
-                  <Input
-                    className="flex-1 min-w-0"
+                  <Input className="flex-1 min-w-0"
                     placeholder={t('playerProfile.passport_placeholder')}
                     value={form.passportData || ''}
-                    onChange={e => handleChange('passportData', e.target.value)}
-                  />
+                    onChange={e => handleChange('passportData', e.target.value)} autoComplete="off" />
                   <DocumentUpload
                     onUpload={async (file, type) => { await onDocumentUpload(file, type); }}
                     onDelete={getDeleteHandler(onDocumentDelete, documents, 'PASSPORT')}
@@ -308,12 +306,10 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
               <div className="flex flex-col gap-1">
                 <span className="text-vista-light/60 text-xs mb-1">{t('playerProfile.birth_certificate')}</span>
                 <div className="flex items-center gap-2">
-                  <Input
-                    className="flex-1 min-w-0"
+                  <Input className="flex-1 min-w-0"
                     placeholder={t('playerProfile.birth_certificate_placeholder')}
                     value={form.birthCertificateNumber || ''}
-                    onChange={e => handleChange('birthCertificateNumber', e.target.value)}
-                  />
+                    onChange={e => handleChange('birthCertificateNumber', e.target.value)} autoComplete="off" />
                   <DocumentUpload
                     onUpload={async (file, type) => { await onDocumentUpload(file, type); }}
                     onDelete={getDeleteHandler(onDocumentDelete, documents, 'BIRTH_CERTIFICATE')}
@@ -331,12 +327,10 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
               <div className="flex flex-col gap-1">
                 <span className="text-vista-light/60 text-xs mb-1">{t('playerProfile.medical_insurance')}</span>
                 <div className="flex items-center gap-2">
-                  <Input
-                    className="flex-1 min-w-0"
+                  <Input className="flex-1 min-w-0"
                     placeholder={t('playerProfile.medical_insurance_placeholder')}
                     value={form.insuranceNumber || ''}
-                    onChange={e => handleChange('insuranceNumber', e.target.value)}
-                  />
+                    onChange={e => handleChange('insuranceNumber', e.target.value)} autoComplete="off" />
                   <DocumentUpload
                     onUpload={async (file, type) => { await onDocumentUpload(file, type); }}
                     onDelete={getDeleteHandler(onDocumentDelete, documents, 'MEDICAL_INSURANCE')}
@@ -355,12 +349,10 @@ export default function EditPlayerModal({ open, onOpenChange, player, teams, doc
                 <span className="text-vista-light/60 text-xs mb-1">{t('playerProfile.visa')}</span>
                 <div className="flex items-center gap-2">
                   <span className="text-vista-light/60 text-xs mb-1">{t('playerProfile.visa_expiry_date')}</span>
-                  <Input
-                    className="flex-1 min-w-0 text-xs"
+                  <Input className="flex-1 min-w-0 text-xs"
                     type="date"
                     value={form.visaExpiryDate ? String(form.visaExpiryDate).slice(0,10) : ''}
-                    onChange={e => handleChange('visaExpiryDate', e.target.value)}
-                  />
+                    onChange={e => handleChange('visaExpiryDate', e.target.value)} autoComplete="off" />
                   <DocumentUpload
                     onUpload={async (file, type) => { await onDocumentUpload(file, type); }}
                     onDelete={getDeleteHandler(onDocumentDelete, documents, 'VISA')}

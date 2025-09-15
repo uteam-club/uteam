@@ -62,10 +62,9 @@ const SelectExercisesModal: React.FC<SelectExercisesModalProps> = (props) => {
             {/* Поиск по названию */}
             <div className="relative col-span-1 sm:col-span-2 lg:col-span-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-light/50" />
-              <Input
-                placeholder={t('exercisesModal.search_placeholder')}
+              <Input placeholder={t('exercisesModal.search_placeholder')}
                 value={props.searchQuery}
-                onChange={e => props.setSearchQuery(e.target.value)}
+                onChange={e => props.setSearchQuery(e.target.value)} autoComplete="off"
                 className="pl-10 bg-vista-dark/70 shadow-sm border-vista-secondary/50 text-vista-light focus:outline-none focus:ring-0"
               />
               {props.searchQuery && (

@@ -28,11 +28,11 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ open, onOpenChange, 
       <div className="space-y-4 py-2">
         <div className="space-y-2">
           <Label htmlFor="name" className="text-vista-light/70 font-normal">Имя</Label>
-          <Input id="name" name="name" value={newUser.name} onChange={onChange} className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light" placeholder="Введите имя" disabled={loading} />
+          <Input id="name" name="name" value={newUser.name} onChange={onChange} className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light" placeholder="Введите имя" disabled={loading}  autoComplete="off" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="email" className="text-vista-light/70 font-normal">Email</Label>
-          <Input id="email" name="email" value={newUser.email} onChange={onChange} className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light" placeholder="Введите email" disabled={loading} />
+          <Input id="email" name="email" value={newUser.email} onChange={onChange} className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light" placeholder="Введите email" disabled={loading}  autoComplete="off" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="role" className="text-vista-light/70 font-normal">Роль</Label>

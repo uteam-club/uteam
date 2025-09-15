@@ -534,7 +534,7 @@ export default function AttendanceAnalyticsPage() {
                       id="attendance-start-date"
                       type="date"
                       value={startDate}
-                      onChange={(e) => {
+                      onChange={e => {
                         setStartDate(e.target.value);
                         setQuickFilter(null); // Сбрасываем выделение быстрых фильтров
                       }}
@@ -570,7 +570,7 @@ export default function AttendanceAnalyticsPage() {
                       id="attendance-end-date"
                       type="date"
                       value={endDate}
-                      onChange={(e) => {
+                      onChange={e => {
                         setEndDate(e.target.value);
                         setQuickFilter(null); // Сбрасываем выделение быстрых фильтров
                       }}

@@ -64,14 +64,13 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
       <div className="grid gap-4 py-4 custom-scrollbar">
         <div className="space-y-2">
             <Label htmlFor="new-title" className="text-vista-light/40 font-normal">{t('exercisesPage.title_label')}</Label>
-          <Input
-            id="new-title"
+          <Input id="new-title"
             name="title"
             value={newExercise.title}
             onChange={onChange}
             className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
             disabled={loading}
-          />
+           autoComplete="off" />
           {errors.title && (
             <p className="text-red-400 text-sm">{errors.title}</p>
           )}
@@ -93,29 +92,25 @@ const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
               <Label htmlFor="new-width" className="text-vista-light/40 font-normal">{t('exercisesPage.width_label')}</Label>
-            <Input
-              id="new-width"
+            <Input id="new-width"
               name="width"
               type="number"
               value={newExercise.width || ''}
               onChange={onChange}
               className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
               disabled={loading}
-              onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
-            />
+              onFocus={e => { if (e.target.value === '0') e.target.value = ''; }} autoComplete="off" />
           </div>
           <div className="space-y-2">
               <Label htmlFor="new-length" className="text-vista-light/40 font-normal">{t('exercisesPage.length_label')}</Label>
-            <Input
-              id="new-length"
+            <Input id="new-length"
               name="length"
               type="number"
               value={newExercise.length || ''}
               onChange={onChange}
               className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
               disabled={loading}
-              onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
-            />
+              onFocus={e => { if (e.target.value === '0') e.target.value = ''; }} autoComplete="off" />
           </div>
         </div>
         <div className="space-y-2">

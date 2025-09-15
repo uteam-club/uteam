@@ -44,31 +44,25 @@ export function AddPlayerModal({
               <Label htmlFor="firstName" className="text-vista-light/40 font-normal">
                 {t('teamPage.first_name_label')} <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="firstName"
+              <Input id="firstName"
                 name="firstName"
                 value={firstName}
                 onChange={onChange}
                 className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
                 placeholder={t('teamPage.first_name_placeholder')}
-                disabled={isSubmitting}
-                autoComplete="off"
-              />
+                disabled={isSubmitting}  autoComplete="off" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="lastName" className="text-vista-light/40 font-normal">
                 {t('teamPage.last_name_label')} <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="lastName"
+              <Input id="lastName"
                 name="lastName"
                 value={lastName}
                 onChange={onChange}
                 className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
                 placeholder={t('teamPage.last_name_placeholder')}
-                disabled={isSubmitting}
-                autoComplete="off"
-              />
+                disabled={isSubmitting}  autoComplete="off" />
             </div>
           </div>
           <DialogFooter>

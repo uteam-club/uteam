@@ -873,7 +873,7 @@ export default function ExercisesPage() {
                 <Input 
                   placeholder={t('exercisesPage.search_placeholder')}
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={e => setSearchQuery(e.target.value)}
                   className="pl-10 bg-vista-dark/30 border-vista-light/20 text-vista-light/90 placeholder-vista-light/60 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 font-normal text-sm shadow-lg"
                 />
                 {searchQuery && (
@@ -947,10 +947,9 @@ export default function ExercisesPage() {
                     <div className="p-2">
                       <div className="relative mb-2">
                         <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-light/50" />
-                        <Input 
-                          placeholder={t('exercisesPage.search_tag_placeholder')} 
+                        <Input placeholder={t('exercisesPage.search_tag_placeholder')} 
                           className="pl-8 pr-2 h-9 text-vista-light/60 bg-vista-dark/50 border-vista-light/30 placeholder-vista-light/60 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 font-normal text-sm shadow-md"
-                        />
+                         autoComplete="off" />
                       </div>
                       
                       <div className="max-h-[300px] overflow-y-auto space-y-1 pr-1 custom-scrollbar">

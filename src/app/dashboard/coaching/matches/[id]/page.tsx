@@ -1416,21 +1416,19 @@ export default function MatchDetailsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="matchDate" className="text-vista-light/40 font-normal">{t('matchPage.match_date')}</Label>
-                <Input
-                  id="matchDate"
+                <Input id="matchDate"
                   type="date"
                   value={editForm.date}
-                  onChange={e => handleEditFormChange('date', e.target.value)}
+                  onChange={e => handleEditFormChange('date', e.target.value)} autoComplete="off"
                   className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="matchTime" className="text-vista-light/40 font-normal">{t('matchPage.match_time')}</Label>
-                <Input
-                  id="matchTime"
+                <Input id="matchTime"
                   type="time"
                   value={editForm.time}
-                  onChange={e => handleEditFormChange('time', e.target.value)}
+                  onChange={e => handleEditFormChange('time', e.target.value)} autoComplete="off"
                   className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
                 />
               </div>
@@ -1478,12 +1476,11 @@ export default function MatchDetailsPage() {
               </div>
               <div className="w-20 flex flex-col space-y-2">
                 <Label htmlFor="teamGoals" className="text-vista-light/40 font-normal mb-2">{t('matchPage.goals')}</Label>
-                <Input
-                  id="teamGoals"
+                <Input id="teamGoals"
                   type="number"
                   min="0"
                   value={editForm.teamGoals}
-                  onChange={e => handleEditFormChange('teamGoals', Number(e.target.value))}
+                  onChange={e => handleEditFormChange('teamGoals', Number(e.target.value))} autoComplete="off"
                   className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
                   disabled={editForm.status !== 'FINISHED' && selectedStatus !== 'FINISHED'}
                   onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
@@ -1494,22 +1491,20 @@ export default function MatchDetailsPage() {
             <div className="flex gap-4">
               <div className="flex-1 flex flex-col space-y-2">
                 <Label htmlFor="opponentName" className="text-vista-light/40 font-normal mb-2">{t('matchPage.opponent_team')}</Label>
-                <Input
-                  id="opponentName"
+                <Input id="opponentName"
                   value={editForm.opponentName}
-                  onChange={e => handleEditFormChange('opponentName', e.target.value)}
+                  onChange={e => handleEditFormChange('opponentName', e.target.value)} autoComplete="off"
                   placeholder={t('matchPage.enter_opponent_name')}
                   className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
                 />
               </div>
               <div className="w-20 flex flex-col space-y-2">
                 <Label htmlFor="opponentGoals" className="text-vista-light/40 font-normal mb-2">{t('matchPage.goals')}</Label>
-                <Input
-                  id="opponentGoals"
+                <Input id="opponentGoals"
                   type="number"
                   min="0"
                   value={editForm.opponentGoals}
-                  onChange={e => handleEditFormChange('opponentGoals', Number(e.target.value))}
+                  onChange={e => handleEditFormChange('opponentGoals', Number(e.target.value))} autoComplete="off"
                   className="bg-vista-dark-lighter border-vista-secondary/30 text-vista-light"
                   disabled={editForm.status !== 'FINISHED' && selectedStatus !== 'FINISHED'}
                   onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}

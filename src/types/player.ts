@@ -1,0 +1,32 @@
+export interface Player {
+  id: string;
+  firstName: string;
+  lastName: string;
+  middleName?: string | null;
+  number?: number | null;
+  position?: string | null;
+  strongFoot?: string | null;
+  dateOfBirth?: Date | null;
+  academyJoinDate?: Date | null;
+  contractStartDate?: Date | null;
+  contractEndDate?: Date | null;
+  nationality?: string | null;
+  imageUrl?: string | null;
+  status?: string | null;
+  birthCertificateNumber?: string | null;
+  passportData?: string | null;
+  insuranceNumber?: string | null;
+  visaExpiryDate?: Date | null;
+  pinCode: string;
+  telegramId?: number | null;
+  language?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  teamId: string;
+  format1?: string | null;
+  formation1?: string | null;
+  positionIndex1?: number | null;
+  format2?: string | null;
+  formation2?: string | null;
+  positionIndex2?: number | null;
+}

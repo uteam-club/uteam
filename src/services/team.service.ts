@@ -1,7 +1,8 @@
 import { db } from '@/lib/db';
 import { team } from '@/db/schema';
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { ensureTeamOwned } from '@/services/guards/ownership';
 
 export async function getTeamsByClubId(clubId: string) {
   try {
@@ -12,9 +13,10 @@ export async function getTeamsByClubId(clubId: string) {
   }
 }
 
-export async function getTeamById(id: string) {
+export async function getTeamById(id: string, clubId: string) {
   try {
-    const [result] = await db.select().from(team).where(eq(team.id, id));
+    const [result] = await db.select().from(team)
+      .where(and(eq(team.id, id), eq(team.clubId, clubId)));
     return result ?? null;
   } catch (error) {
     console.error("Error fetching team by id:", error);
@@ -44,13 +46,17 @@ export async function createTeam(data: {
 
 export async function updateTeam(
   id: string,
+  clubId: string,
   data: {
     name?: string;
     description?: string;
     logoUrl?: string;
+    timezone?: string;
+    order?: number;
   }
 ) {
   try {
+    await ensureTeamOwned(id, clubId);
     const [updated] = await db.update(team)
       .set(data)
       .where(eq(team.id, id))
@@ -62,8 +68,9 @@ export async function updateTeam(
   }
 }
 
-export async function deleteTeam(id: string) {
+export async function deleteTeam(id: string, clubId: string) {
   try {
+    await ensureTeamOwned(id, clubId);
     await db.delete(team).where(eq(team.id, id));
     return true;
   } catch (error) {

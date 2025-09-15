@@ -123,7 +123,7 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
             <Input
               id="title"
               value={newTraining.title}
-              onChange={(e) => handleInputChange('title', e.target.value)}
+              onChange={e => handleInputChange('title', e.target.value)}
               className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0"
               placeholder={t('trainingsPage.title_placeholder')}
             />
@@ -163,7 +163,7 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
                   id="modal-training-date"
                   type="date"
                   value={newTraining.date}
-                  onChange={(e) => handleInputChange('date', e.target.value)}
+                  onChange={e => handleInputChange('date', e.target.value)}
                   className="pl-10 bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
                   onClick={(e) => {
                     try {
@@ -182,7 +182,7 @@ export function CreateTrainingModal({ isOpen, initialDate, onClose, onCreated }:
                   id="modal-training-time"
                   type="time"
                   value={newTraining.time}
-                  onChange={(e) => handleInputChange('time', e.target.value)}
+                  onChange={e => handleInputChange('time', e.target.value)}
                   className="pl-10 bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
                   onClick={(e) => {
                     try {

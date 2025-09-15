@@ -107,15 +107,14 @@ export default function CreateTeamPage() {
               <Label htmlFor="name" className="text-vista-light">
                 Название команды <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="name"
+              <Input id="name"
                 name="name"
                 value={teamData.name}
                 onChange={handleChange}
                 placeholder="Введите название команды"
                 className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light"
                 disabled={isLoading}
-              />
+               autoComplete="off" />
             </div>
             
             <div className="space-y-2">

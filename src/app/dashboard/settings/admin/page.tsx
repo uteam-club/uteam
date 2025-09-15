@@ -1092,6 +1092,13 @@ export default function AdminPage() {
       const updatedTeam = { ...team, order: adjacentTeam.order };
       const updatedAdjacentTeam = { ...adjacentTeam, order: team.order };
       
+      console.log('handleMoveTeam - Team data:');
+      console.log('team:', team);
+      console.log('adjacentTeam:', adjacentTeam);
+      console.log('updatedTeam:', updatedTeam);
+      console.log('updatedAdjacentTeam:', updatedAdjacentTeam);
+      console.log('Sending order to API:', updatedTeam.order, 'Type:', typeof updatedTeam.order);
+      
       // Отправляем запрос на обновление порядка первой команды
       const teamResponse = await fetch(`/api/teams/${team.id}`, {
         method: 'PUT',
@@ -1102,7 +1109,9 @@ export default function AdminPage() {
       });
       
       if (!teamResponse.ok) {
-        throw new Error('Ошибка при обновлении порядка команды');
+        const errorData = await teamResponse.json();
+        console.error('Team response error:', teamResponse.status, errorData);
+        throw new Error(`Ошибка при обновлении порядка команды: ${errorData.error || teamResponse.status}`);
       }
       
       // Отправляем запрос на обновление порядка второй команды
@@ -1115,7 +1124,9 @@ export default function AdminPage() {
       });
       
       if (!adjacentTeamResponse.ok) {
-        throw new Error('Ошибка при обновлении порядка команды');
+        const errorData = await adjacentTeamResponse.json();
+        console.error('Adjacent team response error:', adjacentTeamResponse.status, errorData);
+        throw new Error(`Ошибка при обновлении порядка команды: ${errorData.error || adjacentTeamResponse.status}`);
       }
       
       // Обновляем список команд

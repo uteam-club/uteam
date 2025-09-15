@@ -203,7 +203,7 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
                   id="matchDate"
                   type="date"
                   value={matchDate}
-                  onChange={(e) => setMatchDate(e.target.value)}
+                  onChange={e => setMatchDate(e.target.value)}
                   className="pl-10 bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
                   onClick={(e) => {
                     try {
@@ -221,7 +221,7 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
                   id="matchTime"
                   type="time"
                   value={matchTime}
-                  onChange={(e) => setMatchTime(e.target.value)}
+                  onChange={e => setMatchTime(e.target.value)}
                   className="pl-10 bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
                   onClick={(e) => {
                     try {
@@ -298,7 +298,7 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
                   type="number"
                   min="0"
                   value={teamGoals}
-                  onChange={(e) => setTeamGoals(parseInt(e.target.value))}
+                  onChange={e => setTeamGoals(parseInt(e.target.value))}
                   className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0 h-9"
                 disabled={matchStatus !== 'FINISHED'}
                   onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}
@@ -313,7 +313,7 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
                 <Input
                   id="opponentName"
                   value={opponentName}
-                  onChange={(e) => setOpponentName(e.target.value)}
+                  onChange={e => setOpponentName(e.target.value)}
                   placeholder={t('addMatchModal.opponent_placeholder')}
                   className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0 h-9"
                 />
@@ -325,7 +325,7 @@ export function AddMatchModal({ isOpen, onClose, onMatchAdded, initialDate }: Ad
                   type="number"
                   min="0"
                   value={opponentGoals}
-                  onChange={(e) => setOpponentGoals(parseInt(e.target.value))}
+                  onChange={e => setOpponentGoals(parseInt(e.target.value))}
                   className="bg-vista-dark border-vista-secondary/30 text-vista-light focus:outline-none focus:ring-0 h-9"
                 disabled={matchStatus !== 'FINISHED'}
                   onFocus={e => { if (e.target.value === '0') e.target.value = ''; }}

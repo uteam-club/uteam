@@ -27,7 +27,7 @@ export const EditTrainingCategoryModal: React.FC<EditTrainingCategoryModalProps>
       <div className="space-y-4 py-2">
         <div className="space-y-2">
           <Label htmlFor="training-category-name" className="text-vista-light/70 font-normal">Название категории</Label>
-          <Input id="training-category-name" name="name" value={category.name} onChange={onChange} className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light" placeholder="Введите название" disabled={loading} />
+          <Input id="training-category-name" name="name" value={category.name} onChange={onChange} className="bg-vista-dark/70 border-vista-secondary/30 text-vista-light" placeholder="Введите название" disabled={loading}  autoComplete="off" />
         </div>
       </div>
       <DialogFooter className="flex justify-end gap-2 mt-4">

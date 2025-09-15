@@ -308,7 +308,7 @@ export function RPESchedulingModal({
                     id="start-date"
                     type="date"
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={e => setStartDate(e.target.value)}
                     className="bg-vista-dark border-vista-secondary/50 text-vista-light"
                   />
                 </div>
@@ -318,7 +318,7 @@ export function RPESchedulingModal({
                     id="end-date"
                     type="date"
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={e => setEndDate(e.target.value)}
                     className="bg-vista-dark border-vista-secondary/50 text-vista-light"
                   />
                 </div>
@@ -407,7 +407,7 @@ export function RPESchedulingModal({
                               <Input
                                 type="time"
                                 value={tempTime}
-                                onChange={(e) => handleTimeChange(training.id, e.target.value)}
+                                onChange={e => handleTimeChange(training.id, e.target.value)}
                                 className="w-24 text-sm bg-vista-dark border-vista-secondary/50 text-vista-light"
                                 placeholder="--:--"
                               />
