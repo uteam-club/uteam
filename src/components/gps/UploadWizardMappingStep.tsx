@@ -817,7 +817,15 @@ export default function UploadWizardMappingStep({
 
       // Создаем FormData для отправки файла
       const formData = new FormData();
-      // Файл не доступен в report, пропускаем его
+      
+      // Добавляем файл если он доступен
+      if (report?.file) {
+        formData.append('file', report.file);
+        console.debug('📁 File added to FormData:', report.fileName);
+      } else {
+        console.warn('⚠️ No file available in report object');
+      }
+      
       formData.append('meta', JSON.stringify(meta));
 
       const response = await fetch('/api/gps/reports', {
