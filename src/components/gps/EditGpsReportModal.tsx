@@ -77,7 +77,7 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
       console.log('EditGpsReportModal: Data length:', dataResult.data?.length || 0);
       if (dataResult.data && dataResult.data.length > 0) {
         console.log('EditGpsReportModal: First data item:', dataResult.data[0]);
-        console.log('EditGpsReportModal: Unique canonical metrics:', [...new Set(dataResult.data.map(item => item.canonicalMetric))]);
+        console.log('EditGpsReportModal: Unique canonical metrics:', [...new Set(dataResult.data.map((item: any) => item.canonicalMetric))]);
       }
       setData(dataResult.data || []);
     } catch (error) {
@@ -288,8 +288,11 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
                         <h3 className="text-sm font-semibold text-vista-light">Игроки</h3>
                       </div>
                       {/* Заголовки метрик - скроллируемые */}
-                      {console.log('EditGpsReportModal: Rendering', uniqueMetrics.length, 'metric headers')}
-                      {console.log('EditGpsReportModal: Metrics list:', uniqueMetrics)}
+                      {(() => {
+                        console.log('EditGpsReportModal: Rendering', uniqueMetrics.length, 'metric headers');
+                        console.log('EditGpsReportModal: Metrics list:', uniqueMetrics);
+                        return null;
+                      })()}
                       {uniqueMetrics.map((metric, index) => {
                         console.log(`EditGpsReportModal: Rendering metric ${index + 1}/${uniqueMetrics.length}: ${metric}`);
                         const sampleData = data.find(d => (d.canonicalMetric || d.fieldName) === metric);
@@ -314,7 +317,10 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
 
                     {/* Данные игроков */}
                     <div className="divide-y divide-vista-secondary/20">
-                      {console.log('EditGpsReportModal: Rendering data for', players.length, 'players')}
+                      {(() => {
+                        console.log('EditGpsReportModal: Rendering data for', players.length, 'players');
+                        return null;
+                      })()}
                       {players.map((playerId, playerIndex) => (
                         <div key={playerId} className="flex hover:bg-vista-dark/10">
                           {/* Столбец с именем игрока - зафиксированный */}

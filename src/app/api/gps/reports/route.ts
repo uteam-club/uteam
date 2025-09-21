@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
       
       console.log(`API: Processing player ${player.filePlayerName}...`);
 
-      const playerMetrics: Record<string, { value: number; unit: string }> = {};
+      const playerMetrics: Record<string, { value: number | string; unit: string }> = {};
       
       // Находим строку данных для игрока
       // Ищем колонку, которая сопоставлена с метрикой "Имя игрока"
@@ -330,7 +330,7 @@ export async function POST(request: NextRequest) {
           
           if (timeFormats.includes(mapping.sourceUnit)) {
             // Специальная обработка для времени в различных форматах
-            canonicalValue = convertUnit(rawValue, mapping.sourceUnit, canonicalMetric.canonicalUnit);
+            canonicalValue = Number(convertUnit(rawValue, mapping.sourceUnit, canonicalMetric.canonicalUnit));
             if (isNaN(canonicalValue)) {
               console.log(`Failed to parse time: ${rawValue} with format: ${mapping.sourceUnit}`);
               continue;
@@ -340,7 +340,7 @@ export async function POST(request: NextRequest) {
             // Не добавляем в playerMetrics, обработаем отдельно
             continue;
           } else {
-            canonicalValue = convertUnit(Number(rawValue), mapping.sourceUnit, canonicalMetric.canonicalUnit);
+            canonicalValue = Number(convertUnit(Number(rawValue), mapping.sourceUnit, canonicalMetric.canonicalUnit));
           }
         } catch (error) {
           console.log(`Error processing value: ${rawValue} with unit: ${mapping.sourceUnit}, error: ${error}`);

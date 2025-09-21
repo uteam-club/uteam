@@ -283,7 +283,7 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
         if (!metric || metricCode === 'athlete_name' || metricCode === 'position') {
           return null;
         }
-        return parseFloat(metric.value);
+        return parseFloat(String(metric.value));
       })
       .filter(value => value !== null && !isNaN(value)) as number[];
   };
@@ -314,8 +314,8 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
       }
 
       // Для числовых значений
-      const aNum = parseFloat(aValue || '0');
-      const bNum = parseFloat(bValue || '0');
+      const aNum = parseFloat(String(aValue || '0'));
+      const bNum = parseFloat(String(bValue || '0'));
       return sortDirection === 'asc' ? aNum - bNum : bNum - aNum;
     });
   };
@@ -518,7 +518,7 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
                         const hasData = value !== '-';
                         
                         // Получаем числовое значение для графика
-                        const numericValue = hasData ? parseFloat(value.replace(/[^\d.-]/g, '')) : 0;
+                        const numericValue = hasData ? parseFloat(String(value).replace(/[^\d.-]/g, '')) : 0;
                         
                         // Получаем все значения в колонке для нормализации
                         const columnValues = getColumnValues(column.canonicalMetricCode);

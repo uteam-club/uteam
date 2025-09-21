@@ -788,7 +788,7 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
       const profileData = await profileResponse.json();
       const profileId = profileData.profile?.id || null;
       formData.append('profileId', profileId);
-      formData.append('file', file);
+      formData.append('file', file!);
       formData.append('parsedData', JSON.stringify(parsedData));
       // Фильтруем только активные колонки с выбранными метриками
       const activeColumnMappings = columnMappings.filter(mapping => 
@@ -822,7 +822,7 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
       formData.append('playerMappings', JSON.stringify(playerMappingsArray));
 
       console.log('Sending request to /api/gps/reports...');
-      console.log('FormData size:', formData.get('file')?.size || 'unknown');
+      console.log('FormData size:', file?.size || 'unknown');
       console.log('Player mappings count:', playerMappingsArray.length);
       console.log('Column mappings count:', activeColumnMappings.length);
       
