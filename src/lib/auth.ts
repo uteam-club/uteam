@@ -1,4 +1,5 @@
 import { getSession as nextAuthGetSession } from "next-auth/react";
+import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';

@@ -32,8 +32,8 @@ export * from './permission.ts';
 export * from './rolePermission.ts';
 export * from './userPermission.ts';
 // GPS Reports schemas
-export * from './gpsProfile.ts';
+export * from './gpsCanonicalMetric.ts';
 export * from './gpsReport.ts';
-export * from './gpsColumnMapping.ts';
-export * from './gpsPlayerMapping.ts';
 export * from './gpsReportData.ts';
+export * from './gpsColumnMapping.ts';
+export * from './gpsPermissions.ts';

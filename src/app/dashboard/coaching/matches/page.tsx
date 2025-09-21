@@ -305,10 +305,10 @@ export default function MatchesPage() {
             {/* Фильтр по команде */}
             {!isSingleTeam && (
               <Select value={selectedTeam || "all"} onValueChange={setSelectedTeam}>
-                <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal shadow-lg data-[value]:text-vista-light">
+                <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-primary/50 focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/30 h-9 px-3 font-normal shadow-lg data-[value]:text-vista-light transition-all duration-200 group">
                   <SelectValue placeholder={t('matchesPage.all_teams')} />
                 </SelectTrigger>
-                <SelectContent className="bg-vista-dark border border-vista-light/20 shadow-2xl rounded-lg">
+                <SelectContent className="bg-vista-dark border border-vista-light/20 text-vista-light shadow-2xl rounded-lg custom-scrollbar">
                   <SelectItem value="all">{t('matchesPage.all_teams')}</SelectItem>
                   {teams.map(team => (
                     <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
@@ -319,10 +319,10 @@ export default function MatchesPage() {
             
             {/* Фильтр по типу соревнований */}
             <Select value={selectedCompetitionType || "all"} onValueChange={setSelectedCompetitionType}>
-              <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal shadow-lg data-[value]:text-vista-light">
+              <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-primary/50 focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/30 h-9 px-3 font-normal shadow-lg data-[value]:text-vista-light transition-all duration-200 group">
                 <SelectValue placeholder={t('matchesPage.all_competition_types')} />
               </SelectTrigger>
-              <SelectContent className="bg-vista-dark border border-vista-light/20 shadow-2xl rounded-lg">
+              <SelectContent className="bg-vista-dark border border-vista-light/20 text-vista-light shadow-2xl rounded-lg custom-scrollbar">
                 <SelectItem value="all">{t('matchesPage.all_competition_types')}</SelectItem>
                 <SelectItem value="FRIENDLY">{t('matchesPage.friendly')}</SelectItem>
                 <SelectItem value="LEAGUE">{t('matchesPage.league')}</SelectItem>

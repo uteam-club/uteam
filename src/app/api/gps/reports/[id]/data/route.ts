@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { getGpsReportById } from '@/services/gps.service';
-import { readFile } from 'fs/promises';
-import { join } from 'path';
-import * as XLSX from 'xlsx';
-import Papa from 'papaparse';
+import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
+import { db } from '@/lib/db';
+import { gpsReportData } from '@/db/schema/gpsReportData';
+import { gpsReport } from '@/db/schema/gpsReport';
+import { player } from '@/db/schema/player';
+import { eq, inArray } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
@@ -13,106 +13,113 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.clubId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if report exists and belongs to user's club
-    const report = await getGpsReportById(params.id, session.user.clubId);
+    const reportId = params.id;
+
+    // Получаем данные отчета
+    const reportData = await db.select()
+      .from(gpsReportData)
+      .where(eq(gpsReportData.gpsReportId, reportId));
+
+    console.log('GPS Report Data API: Found', reportData.length, 'data records for report', reportId);
+
+    // Получаем информацию об отчете
+    const [report] = await db.select()
+      .from(gpsReport)
+      .where(eq(gpsReport.id, reportId));
+
     if (!report) {
-      return NextResponse.json({ error: 'GPS report not found' }, { status: 404 });
+      console.log('GPS Report Data API: Report not found for ID', reportId);
+      return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
-    const hasPath = !!report.filePath;
-    if (!hasPath) {
-      console.warn('[dev][report-data]', params.id, 'no filePath on report');
-      return NextResponse.json({ columns: [], rawData: [], dataKeys: [] });
+    console.log('GPS Report Data API: Report found:', report.name);
+
+    // Если нет данных, возвращаем пустой массив
+    if (reportData.length === 0) {
+      console.log('GPS Report Data API: No data found for report', reportId);
+      return NextResponse.json({
+        report: {
+          id: report.id,
+          name: report.name,
+          fileName: report.fileName,
+          gpsSystem: report.gpsSystem,
+          eventType: report.eventType,
+          isProcessed: report.isProcessed,
+          playersCount: report.playersCount,
+          createdAt: report.createdAt,
+        },
+        data: [],
+      });
     }
 
-    // Read and parse file as in /api/gps/process-file
-    try {
-      const fileBuffer = await readFile(report.filePath as string);
-      let rawData: any[] = [];
-
-      // Process file based on extension
-      const fileExtension = report.fileName?.split('.').pop()?.toLowerCase();
+    // Получаем уникальные ID игроков
+    const playerIds = [...new Set(reportData.map(item => item.playerId))];
+    
+    console.log('GPS Report Data API: Found', playerIds.length, 'unique players:', playerIds);
+    
+    // Создаем мапу игроков
+    const playerMap = new Map();
+    
+    if (playerIds.length > 0) {
+      // Получаем информацию об игроках
+      const players = await db.select({
+        id: player.id,
+        firstName: player.firstName,
+        lastName: player.lastName,
+      }).from(player).where(inArray(player.id, playerIds));
       
-      if (fileExtension === 'csv') {
-        // Process CSV file
-        const csvText = fileBuffer.toString('utf-8');
-        const result = Papa.parse(csvText, {
-          header: true,
-          skipEmptyLines: true,
-          transformHeader: (header) => header.trim(),
-        });
-        
-        if (result.errors.length > 0) {
-          console.warn('CSV parsing errors:', result.errors);
-        }
-        
-        rawData = result.data as any[];
-      } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
-        // Process Excel file
-        const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-        
-        if (rawData.length > 0) {
-          const headers = rawData[0] as string[];
-          const rows = rawData.slice(1);
-          rawData = rows.map((row: any[]) => {
-            const obj: any = {};
-            headers.forEach((header, index) => {
-              obj[header] = row[index];
-            });
-            return obj;
-          });
-        }
-      } else {
-        return NextResponse.json(
-          { error: 'Unsupported file format' },
-          { status: 400 }
-        );
+      console.log('GPS Report Data API: Loaded', players.length, 'players from database');
+      
+      for (const p of players) {
+        playerMap.set(p.id, `${p.firstName} ${p.lastName}`);
       }
-
-      const columns = Array.isArray(rawData) && rawData.length > 0
-        ? Object.keys(rawData[0])
-        : [];
-      const dataKeys = columns;
-
-      // dev-only server-side logging
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('[dev][report-data]', params.id, 'columns=', columns.length, 'rows=', rawData.length, 'dataKeys=', dataKeys.length);
-        
-        // Debug time columns
-        if (rawData.length > 0) {
-          const sampleRow = rawData[0];
-          const timeColumns = Object.keys(sampleRow).filter(key => 
-            typeof sampleRow[key] === 'string' && sampleRow[key].includes(':')
-          );
-          if (timeColumns.length > 0) {
-            console.log('[dev][report-data] time columns found:', timeColumns);
-            timeColumns.forEach(col => {
-              console.log(`[dev][report-data] sample time value in ${col}:`, sampleRow[col]);
-            });
-          }
-        }
-      }
-
-      return NextResponse.json({ columns, rawData, dataKeys });
-    } catch (fileError) {
-      console.error('Error reading file:', fileError);
-      return NextResponse.json(
-        { error: 'Failed to read file' },
-        { status: 500 }
-      );
     }
+    
+    // Преобразуем данные в формат для редактирования
+    const editData = reportData.map(item => {
+      // Для строковых значений (позиция, имя игрока) не парсим как число
+      const isStringValue = item.unit === 'string' || item.canonicalMetric === 'athlete_name' || item.canonicalMetric === 'position';
+      
+      let numericValue = 0;
+      if (!isStringValue) {
+        const parsed = parseFloat(item.value);
+        numericValue = isNaN(parsed) ? 0 : parsed;
+      }
+      
+      return {
+        id: item.id,
+        playerId: item.playerId,
+        playerName: playerMap.get(item.playerId) || `Player ${item.playerId.slice(-4)}`,
+        fieldName: item.canonicalMetric,
+        fieldLabel: item.canonicalMetric, // Можно добавить маппинг на человекочитаемые названия
+        canonicalMetric: item.canonicalMetric,
+        value: isStringValue ? item.value : numericValue,
+        unit: item.unit,
+        canonicalValue: isStringValue ? 0 : numericValue,
+        canonicalUnit: item.unit,
+      };
+    });
+
+    return NextResponse.json({
+      report: {
+        id: report.id,
+        name: report.name,
+        fileName: report.fileName,
+        gpsSystem: report.gpsSystem,
+        eventType: report.eventType,
+        isProcessed: report.isProcessed,
+        playersCount: report.playersCount,
+        createdAt: report.createdAt,
+      },
+      data: editData,
+    });
+
   } catch (error) {
-    console.error('Error fetching GPS report data:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch GPS report data' },
-      { status: 500 }
-    );
+    console.error('Error fetching report data:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

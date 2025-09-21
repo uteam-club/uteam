@@ -1,47 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
-import { z } from 'zod';
-import { 
-  getGpsPlayerMappingsByReportId, 
-  createGpsPlayerMapping, 
-  deleteGpsPlayerMappingsByReportId,
-  bulkCreateGpsPlayerMappings
-} from '@/services/gps.service';
+import { db } from '@/lib/db';
+import { gpsReport, gpsColumnMapping } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 
-// Валидация для батч-создания маппингов
-const CreateMappingItemSchema = z.object({
-  rowIndex: z.number().int().min(0),
-  playerId: z.string().uuid().nullable(),
-  similarity: z.number().int().min(0).max(100).nullable().optional(),
-  isManual: z.boolean().default(false)
-});
-
-const CreateMappingBatchSchema = z.object({
-  items: z.array(CreateMappingItemSchema).max(5000)
-});
-
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.clubId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const mappings = await getGpsPlayerMappingsByReportId(params.id, session.user.clubId);
-    return NextResponse.json(mappings);
-  } catch (error) {
-    console.error('Error fetching GPS player mappings:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch GPS player mappings' },
-      { status: 500 }
-    );
-  }
-}
-
+// POST /api/gps/reports/[id]/mappings - Сохранить маппинг колонок для отчета
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -53,88 +17,111 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { playerId, rowIndex, isManual, similarity } = body;
+    const { mappings } = body;
 
-    if (rowIndex === undefined) {
+    if (!mappings || !Array.isArray(mappings)) {
       return NextResponse.json(
-        { error: 'Row index is required' },
+        { error: 'Mappings array is required' },
         { status: 400 }
       );
     }
 
-    const mapping = await createGpsPlayerMapping({
-      gpsReportId: params.id,
-      playerId,
-      rowIndex: parseInt(rowIndex),
-      isManual,
-      similarity,
-    });
+    // Проверяем, что отчет принадлежит клубу
+    const report = await db
+      .select()
+      .from(gpsReport)
+      .where(
+        and(
+          eq(gpsReport.id, params.id),
+          eq(gpsReport.clubId, session.user.clubId)
+        )
+      )
+      .limit(1);
 
-    return NextResponse.json(mapping, { status: 201 });
-  } catch (error) {
-    console.error('Error creating GPS player mapping:', error);
-    return NextResponse.json(
-      { error: 'Failed to create GPS player mapping' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.clubId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (report.length === 0) {
+      return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
-    const body = await request.json();
-    
-    // Валидация с zod
-    const validationResult = CreateMappingBatchSchema.safeParse(body);
-    if (!validationResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: validationResult.error.errors },
-        { status: 400 }
-      );
-    }
+    // Удаляем старые маппинги
+    await db
+      .delete(gpsColumnMapping)
+      .where(eq(gpsColumnMapping.gpsProfileId, params.id));
 
-    const { items } = validationResult.data;
+    // Создаем новые маппинги
+    const columnMappings = mappings.map((mapping: any, index: number) => ({
+      clubId: session.user.clubId || 'default-club',
+      teamId: report[0].teamId,
+      gpsProfileId: params.id,
+      sourceColumn: mapping.sourceColumn,
+      customName: mapping.customName || mapping.sourceColumn,
+      canonicalMetric: mapping.canonicalMetricCode,
+      sourceUnit: mapping.sourceUnit,
+      displayOrder: mapping.displayOrder || index,
+      isVisible: mapping.isActive !== false,
+    }));
 
-    // Обработка пустого массива
-    if (items.length === 0) {
-      return NextResponse.json({ created: 0 });
-    }
+    await db.insert(gpsColumnMapping).values(columnMappings);
 
-    const created = await bulkCreateGpsPlayerMappings(params.id, session.user.clubId, items);
-    return NextResponse.json({ created });
-  } catch (error) {
-    console.error('Error bulk creating GPS player mappings:', error);
-    return NextResponse.json(
-      { error: 'Failed to create GPS player mappings' },
-      { status: 500 }
-    );
-  }
-}
+    // Обновляем статус отчета
+    await db
+      .update(gpsReport)
+      .set({
+        status: 'processed',
+        isProcessed: true,
+        processedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(gpsReport.id, params.id));
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.clubId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    await deleteGpsPlayerMappingsByReportId(params.id, session.user.clubId);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting GPS player mappings:', error);
+    console.error('Error saving column mappings:', error);
     return NextResponse.json(
-      { error: 'Failed to delete GPS player mappings' },
+      { error: 'Failed to save column mappings' },
+      { status: 500 }
+    );
+  }
+}
+
+// GET /api/gps/reports/[id]/mappings - Получить маппинг колонок для отчета
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.clubId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Проверяем, что отчет принадлежит клубу
+    const report = await db
+      .select()
+      .from(gpsReport)
+      .where(
+        and(
+          eq(gpsReport.id, params.id),
+          eq(gpsReport.clubId, session.user.clubId)
+        )
+      )
+      .limit(1);
+
+    if (report.length === 0) {
+      return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+    }
+
+    // Получаем маппинги колонок
+    const mappings = await db
+      .select()
+      .from(gpsColumnMapping)
+      .where(eq(gpsColumnMapping.gpsProfileId, params.id))
+      .orderBy(gpsColumnMapping.displayOrder);
+
+    return NextResponse.json(mappings);
+  } catch (error) {
+    console.error('Error fetching column mappings:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch column mappings' },
       { status: 500 }
     );
   }

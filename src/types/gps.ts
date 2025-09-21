@@ -1,134 +1,37 @@
-// GPS Profile types
-export interface GpsProfile {
-  id: string;
-  name: string;
-  gpsSystem: string;
-  description: string | null;
-  clubId: string;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface CreateGpsProfileRequest {
-  name: string;
-  gpsSystem: string;
-  description?: string;
-}
-
-export interface UpdateGpsProfileRequest {
-  name?: string;
-  gpsSystem?: string;
-  description?: string;
-  isActive?: boolean;
-}
-
 // GPS Report types
 export interface GpsReport {
   id: string;
   name: string;
   fileName: string;
   fileUrl: string;
-  filePath?: string | null; // дополнительное поле для совместимости
-  fileSize: number | null;
   gpsSystem: string;
   eventType: 'training' | 'match';
   eventId: string;
   profileId: string | null;
-  gpsProfileId?: string | null; // дополнительное поле для совместимости
-  trainingId?: string | null; // дополнительное поле для совместимости
-  matchId?: string | null; // дополнительное поле для совместимости
-  rawData?: any;
-  processedData?: any;
-  metadata?: any;
+  rawData: any;
+  processedData: any;
+  metadata: any;
   isProcessed: boolean;
-  status: 'uploaded' | 'processed' | 'error';
+  createdAt: Date;
+  updatedAt: Date;
+  clubId: string;
+  uploadedById: string;
+  teamId: string;
+  ingestStatus: string;
+  ingestError: string | null;
+  filePath: string | null;
+  profileSnapshot: any;
+  canonVersion: string | null;
+  importMeta: any;
+  fileSize: number | null;
+  gpsProfileId: string | null;
+  trainingId: string | null;
+  matchId: string | null;
+  status: string;
   processedAt: Date | null;
   errorMessage: string | null;
-  ingestStatus: 'pending' | 'processing' | 'completed' | 'failed';
-  ingestError: string | null;
-  profileSnapshot?: any | null;
-  canonVersion?: string | null;
-  importMeta?: any | null;
-  clubId: string;
-  uploadedById: string;
-  teamId: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface CreateGpsReportRequest {
-  name: string;
-  fileName: string;
-  fileUrl: string;
-  filePath?: string | null; // дополнительное поле для совместимости
-  fileSize?: number;
-  gpsSystem: string;
-  eventType: 'training' | 'match';
-  eventId: string;
-  profileId?: string;
-  gpsProfileId?: string | null; // дополнительное поле для совместимости
-  trainingId?: string; // дополнительное поле для совместимости
-  matchId?: string; // дополнительное поле для совместимости
-  clubId: string;
-  uploadedById: string;
-  teamId: string;
-}
-
-// GPS Column Mapping types
-export interface GpsColumnMapping {
-  id: string;
-  gpsProfileId: string;
-  sourceColumn: string;
-  customName: string;
-  canonicalMetric: string;
-  displayUnit?: string | null;
-  isVisible: boolean;
-  displayOrder: number;
-  description: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface CreateGpsColumnMappingRequest {
-  sourceColumn: string;
-  customName: string;
-  canonicalMetric: string;
-  displayUnit?: string | null;
-  isVisible?: boolean;
-  displayOrder?: number;
-  description?: string;
-}
-
-export interface UpdateGpsColumnMappingRequest {
-  customName?: string;
-  canonicalMetric?: string;
-  displayUnit?: string | null;
-  isVisible?: boolean;
-  displayOrder?: number;
-  description?: string;
-}
-
-// GPS Player Mapping types
-export interface GpsPlayerMapping {
-  id: string;
-  gpsReportId: string;
-  playerId: string | null; // nullable для "Без привязки"
-  rowIndex: number;
-  isManual: boolean;
-  similarity?: number | null; // nullable, процент сходства
-  createdAt: Date;
-}
-
-export interface CreateGpsPlayerMappingRequest {
-  playerId: string | null;
-  rowIndex: number;
-  isManual?: boolean;
-  similarity?: number | null;
-}
-
-export interface CreateGpsPlayerMappingBatchRequest {
-  items: CreateGpsPlayerMappingRequest[];
+  playersCount: number;
+  hasEdits: boolean;
 }
 
 // GPS Report Data types
@@ -142,82 +45,161 @@ export interface GpsReportData {
   createdAt: Date;
 }
 
-// Canonical Metrics types
-export interface CanonicalMetric {
-  key: string;
-  labels: {
-    ru: string;
-    en: string;
-  };
-  description: string;
-  unit: string;
-  dimension: string;
-  agg: 'sum' | 'avg' | 'max' | 'min' | 'none';
-  scaling: 'per_time' | 'peak' | 'ratio' | 'none';
-  category: string;
-  plausibleMin?: number;
-  plausibleMax?: number;
-  isDerived: boolean;
-  formula_expr?: string;
-}
-
-export interface CanonicalMetricsGroup {
-  key: string;
-  labels: {
-    ru: string;
-    en: string;
-  };
-  description: string;
-  metrics: string[];
-}
-
-export interface CanonicalMetricsData {
-  __meta: {
-    version: string;
-    generated_at: string;
-    notes: string;
-  };
-  dimensions: Record<string, {
-    canonical_unit: string;
-    allowed_units: string[];
-    conversions?: Record<string, number>;
-    notes?: string;
-  }>;
-  metrics: CanonicalMetric[];
-  groups: CanonicalMetricsGroup[];
-}
-
-// GPS Analysis types
-export interface GpsAnalysisData {
+// GPS Data Change Log types
+export interface GpsDataChangeLog {
+  id: string;
+  reportDataId: string;
+  reportId: string;
   playerId: string;
-  playerName: string;
-  position?: string;
-  metrics: Record<string, {
+  clubId: string;
+  fieldName: string;
+  fieldLabel: string;
+  oldValue: any;
+  newValue: any;
+  changedById: string;
+  changedByName: string;
+  changedAt: Date;
+  changeReason: string | null;
+  changeType: string;
+}
+
+// GPS Canonical Metric types
+export interface GpsCanonicalMetric {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+  dimension: string;
+  canonicalUnit: string;
+  supportedUnits: any;
+  isDerived: boolean;
+  formula: string | null;
+  metadata: any;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// GPS Unit types
+export interface GpsUnit {
+  id: string;
+  code: string;
+  name: string;
+  dimension: string;
+  conversionFactor: number;
+  isCanonical: boolean;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// GPS Column Mapping types
+export interface GpsColumnMapping {
+  id: string;
+  gpsProfileId: string;
+  sourceColumn: string;
+  customName: string;
+  canonicalMetric: string;
+  isVisible: boolean;
+  displayOrder: number;
+  description: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  displayUnit: string | null;
+  sourceUnit: string | null;
+}
+
+// GPS Visualization Profile types
+export interface GpsVisualizationProfile {
+  id: string;
+  name: string;
+  description: string | null;
+  clubId: string;
+  createdById: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// GPS Profile Column types
+export interface GpsProfileColumn {
+  id: string;
+  profileId: string;
+  canonicalMetricId: string;
+  displayName: string;
+  displayUnit: string;
+  displayOrder: number;
+  isVisible: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// GPS Profile Team types
+export interface GpsProfileTeam {
+  id: string;
+  profileId: string;
+  teamId: string;
+  clubId: string;
+  createdAt: Date;
+}
+
+// GPS Permission types
+export interface GpsPermission {
+  id: string;
+  name: string;
+  description: string;
+  resource: string;
+  action: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// GPS User Permission types
+export interface GpsUserPermission {
+  id: string;
+  userId: string;
+  permissionId: string;
+  resourceId: string | null;
+  grantedAt: Date;
+  grantedBy: string;
+  expiresAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Request types
+export interface CreateGpsReportRequest {
+  name: string;
+  fileName: string;
+  fileSize: number;
+  eventType: 'training' | 'match';
+  eventId: string;
+  teamId: string;
+  profileId?: string;
+  columnMappings: Array<{
+    originalColumn: string;
+    canonicalMetric: string;
+    sourceUnit: string;
+    isActive: boolean;
+  }>;
+  playerMappings: Array<{
+    filePlayerName: string;
+    playerId: string | null;
+    similarity: 'high' | 'medium' | 'low' | 'not_found';
+  }>;
+  parsedData: {
+    rows: Array<Record<string, any>>;
+  };
+}
+
+export interface UpdateGpsReportDataRequest {
+  dataId: string;
+  fieldName: string;
+  fieldLabel: string;
+  newValue: {
     value: number;
     unit: string;
-    customName: string;
-    canonicalMetric: string;
-  }>;
-}
-
-export interface GpsAnalysisRequest {
-  gpsReportId: string;
-  playerIds?: string[];
-  metrics?: string[];
-  groupBy?: 'player' | 'position' | 'team';
-}
-
-// File upload types
-export interface GpsFileUpload {
-  file: File;
-  gpsProfileId: string;
-  trainingId?: string;
-  matchId?: string;
-}
-
-export interface GpsFileParseResult {
-  columns: string[];
-  data: Record<string, any>[];
-  rowCount: number;
-  errors: string[];
+  };
+  changeReason?: string;
 }

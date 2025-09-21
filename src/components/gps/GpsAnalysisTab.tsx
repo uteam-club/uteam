@@ -1,139 +1,209 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Loader2, Upload, BarChart3 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { getGpsReportById, getGpsProfileById, getGpsColumnMappingsByProfileId, fetchGpsPlayerMappings } from '@/lib/gps-api';
-import { GpsReport, GpsProfile, GpsColumnMapping, GpsPlayerMapping } from '@/types/gps';
-import GpsReportSelector from './GpsReportSelector';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GpsReportVisualization from './GpsReportVisualization';
-import NewUploadGpsReportModal from './NewUploadGpsReportModal';
 
-export default function GpsAnalysisTab() {
-  const { toast } = useToast();
+interface Team {
+  id: string;
+  name: string;
+}
+
+interface Training {
+  id: string;
+  name: string;
+  date: string;
+  type: 'training' | 'match';
+  // Поля для матчей
+  isHome?: boolean;
+  opponentName?: string;
+  teamGoals?: number;
+  opponentGoals?: number;
+  teamName?: string;
+  time?: string;
+}
+
+interface GpsProfile {
+  id: string;
+  name: string;
+  description?: string;
+  columnsCount: number;
+  createdAt: string;
+}
+
+export function GpsAnalysisTab() {
+  const [selectedTeam, setSelectedTeam] = useState('');
+  const [selectedEvent, setSelectedEvent] = useState('');
+  const [selectedProfile, setSelectedProfile] = useState('');
+  const [eventType, setEventType] = useState<'training' | 'match' | ''>('');
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [trainings, setTrainings] = useState<Training[]>([]);
+  const [profiles, setProfiles] = useState<GpsProfile[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedReport, setSelectedReport] = useState<GpsReport | null>(null);
-  const [gpsProfile, setGpsProfile] = useState<GpsProfile | null>(null);
-  const [columnMappings, setColumnMappings] = useState<GpsColumnMapping[]>([]);
-  const [playerMappings, setPlayerMappings] = useState<GpsPlayerMapping[]>([]);
-  const [showUploadModal, setShowUploadModal] = useState(false);
 
-  const handleReportSelected = async (report: GpsReport) => {
-    setSelectedReport(report);
-    setLoading(true);
-    
+  // Загрузка данных
+  useEffect(() => {
+    loadTeams();
+    loadProfiles();
+  }, []);
+
+  // Загрузка событий при выборе команды
+  useEffect(() => {
+    if (selectedTeam && eventType) {
+      loadEvents();
+    } else {
+      setTrainings([]);
+    }
+  }, [selectedTeam, eventType]);
+
+  const loadTeams = async () => {
     try {
-      // Загружаем GPS профиль
-      if (!report.profileId) {
-        throw new Error('GPS профиль не указан в отчете');
+      const response = await fetch('/api/gps/teams');
+      if (response.ok) {
+        const data = await response.json();
+        setTeams(data.teams || []);
       }
-      
-      const profile = await getGpsProfileById(report.profileId);
-      if (!profile) {
-        throw new Error('GPS профиль не найден');
-      }
-      setGpsProfile(profile);
-
-      // Загружаем настройки колонок
-      const mappings = await getGpsColumnMappingsByProfileId(profile.id);
-      setColumnMappings(mappings);
-
-      // Загружаем маппинги игроков
-      const playerMaps = await fetchGpsPlayerMappings(report.id);
-      setPlayerMappings(playerMaps);
-
-      // Загружаем данные отчета (rawData)
-      const reportDataResponse = await fetch(`/api/gps/reports/${report.id}/data`);
-      if (!reportDataResponse.ok) {
-        throw new Error('Не удалось загрузить данные отчета');
-      }
-      const reportData = await reportDataResponse.json();
-      
-      // Обновляем отчет с загруженными данными
-      const updatedReport = {
-        ...report,
-        rawData: reportData.rawData || [],
-        columns: reportData.columns || []
-      };
-      setSelectedReport(updatedReport);
-
     } catch (error) {
-      console.error('Error loading report data:', error);
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось загрузить данные отчета',
-        variant: 'destructive',
-      });
+      console.error('Error loading teams:', error);
+    }
+  };
+
+  const loadProfiles = async () => {
+    try {
+      const response = await fetch('/api/gps/profiles');
+      if (response.ok) {
+        const data = await response.json();
+        setProfiles(data.profiles || []);
+      }
+    } catch (error) {
+      console.error('Error loading profiles:', error);
+    }
+  };
+
+  const loadEvents = async () => {
+    try {
+      setLoading(true);
+      const endpoint = `/api/gps/events?teamId=${selectedTeam}&eventType=${eventType}&withReports=true`;
+      
+      const response = await fetch(endpoint);
+      if (response.ok) {
+        const data = await response.json();
+        setTrainings(data.events || []);
+      }
+    } catch (error) {
+      console.error('Error loading events:', error);
     } finally {
       setLoading(false);
     }
   };
 
+
+
+  const handleTeamChange = (teamId: string) => {
+    setSelectedTeam(teamId);
+    // Сбрасываем все последующие выборы при смене команды
+    setEventType('');
+    setSelectedEvent('');
+    setSelectedProfile('');
+  };
+
+  const handleEventTypeChange = (type: 'training' | 'match') => {
+    setEventType(type);
+    // Сбрасываем выбор события и профиля при смене типа события
+    setSelectedEvent('');
+    setSelectedProfile('');
+  };
+
+  const handleEventChange = (eventId: string) => {
+    setSelectedEvent(eventId);
+    // Сбрасываем выбор профиля при смене события
+    setSelectedProfile('');
+  };
+
   return (
     <div className="space-y-6">
-      {/* Заголовок с кнопкой загрузки и селектором отчетов */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex-1 w-full sm:w-auto">
-          <GpsReportSelector onReportSelected={handleReportSelected} />
+
+
+      {/* Селекторы для просмотра отчетов */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Select value={selectedTeam} onValueChange={handleTeamChange}>
+            <SelectTrigger className="w-full bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal text-sm shadow-lg transition-all duration-200 group">
+              <SelectValue placeholder="Выберите команду" />
+            </SelectTrigger>
+            <SelectContent className="bg-vista-dark border-vista-light/20 text-vista-light shadow-2xl rounded-lg custom-scrollbar">
+              {teams.map((team) => (
+                <SelectItem key={team.id} value={team.id} className="text-vista-light hover:bg-vista-primary/20 hover:text-vista-primary data-[state=checked]:bg-vista-primary/30 data-[state=checked]:text-vista-primary data-[highlighted]:bg-vista-primary/20 data-[highlighted]:text-vista-primary">
+                  {team.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={eventType} onValueChange={handleEventTypeChange} disabled={!selectedTeam}>
+            <SelectTrigger className="w-full bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal text-sm shadow-lg transition-all duration-200 group">
+              <SelectValue placeholder="Выберите тип события" />
+            </SelectTrigger>
+            <SelectContent className="bg-vista-dark border-vista-light/20 text-vista-light shadow-2xl rounded-lg custom-scrollbar">
+              <SelectItem value="training" className="text-vista-light hover:bg-vista-primary/20 hover:text-vista-primary data-[state=checked]:bg-vista-primary/30 data-[state=checked]:text-vista-primary data-[highlighted]:bg-vista-primary/20 data-[highlighted]:text-vista-primary">Тренировка</SelectItem>
+              <SelectItem value="match" className="text-vista-light hover:bg-vista-primary/20 hover:text-vista-primary data-[state=checked]:bg-vista-primary/30 data-[state=checked]:text-vista-primary data-[highlighted]:bg-vista-primary/20 data-[highlighted]:text-vista-primary">Матч</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedEvent} onValueChange={handleEventChange} disabled={!selectedTeam || !eventType || loading}>
+            <SelectTrigger className="w-full bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal text-sm shadow-lg transition-all duration-200 group">
+              <SelectValue placeholder="Выберите событие" />
+            </SelectTrigger>
+            <SelectContent className="bg-vista-dark border-vista-light/20 text-vista-light shadow-2xl rounded-lg custom-scrollbar">
+              {trainings.map((training) => {
+                // Для матчей формируем специальное отображение
+                const getDisplayName = () => {
+                  if (training.type === 'match' && training.isHome !== undefined) {
+                    const homeTeam = training.isHome ? training.teamName : training.opponentName;
+                    const awayTeam = training.isHome ? training.opponentName : training.teamName;
+                    const homeGoals = training.isHome ? training.teamGoals : training.opponentGoals;
+                    const awayGoals = training.isHome ? training.opponentGoals : training.teamGoals;
+                    
+                    return `${homeTeam} ${homeGoals ?? 0} - ${awayGoals ?? 0} ${awayTeam}`;
+                  }
+                  return training.name;
+                };
+
+                return (
+                  <SelectItem key={training.id} value={training.id} className="text-vista-light hover:bg-vista-primary/20 hover:text-vista-primary data-[state=checked]:bg-vista-primary/30 data-[state=checked]:text-vista-primary data-[highlighted]:bg-vista-primary/20 data-[highlighted]:text-vista-primary">
+                    <span>
+                      {getDisplayName()} <span className="text-vista-light/50 text-xs">({new Date(training.date).toLocaleDateString('ru-RU')})</span>
+                    </span>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedProfile} onValueChange={setSelectedProfile} disabled={!selectedTeam || !eventType || !selectedEvent}>
+            <SelectTrigger className="w-full bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal text-sm shadow-lg transition-all duration-200 group">
+              <SelectValue placeholder="Выберите профиль" />
+            </SelectTrigger>
+            <SelectContent className="bg-vista-dark border-vista-light/20 text-vista-light shadow-2xl rounded-lg custom-scrollbar">
+              {profiles.map((profile) => (
+                <SelectItem key={profile.id} value={profile.id} className="text-vista-light hover:bg-vista-primary/20 hover:text-vista-primary data-[state=checked]:bg-vista-primary/30 data-[state=checked]:text-vista-primary data-[highlighted]:bg-vista-primary/20 data-[highlighted]:text-vista-primary">
+                  {profile.name} ({profile.columnsCount} метрик)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => setShowUploadModal(true)}
-          className="w-full sm:w-[200px] bg-transparent border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-2 font-normal text-sm flex-shrink-0"
-        >
-          <Upload className="mr-1.5 h-4 w-4" />
-          Новый отчет
-        </Button>
-      </div>
 
       {/* Визуализация отчета */}
-      {selectedReport && (
-        <div>
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-vista-primary"></div>
-            </div>
-          ) : gpsProfile && columnMappings.length > 0 ? (
-            <GpsReportVisualization
-              gpsReport={selectedReport}
-              gpsProfile={gpsProfile}
-              columnMappings={columnMappings}
-              playerMappings={playerMappings}
-            />
-          ) : (
-            <div className="text-center py-8 border border-dashed border-vista-secondary/50 shadow-md rounded-md">
-              <p className="text-vista-light/60">Не удалось загрузить данные отчета</p>
-            </div>
-          )}
-        </div>
+      {selectedTeam && selectedEvent && selectedProfile && (
+        <GpsReportVisualization
+          teamId={selectedTeam}
+          eventId={selectedEvent}
+          eventType={eventType as 'training' | 'match'}
+          profileId={selectedProfile}
+        />
       )}
-
-      {/* Пустое состояние */}
-      {!selectedReport && (
-        <div className="text-center py-8 border border-dashed border-vista-secondary/50 shadow-md rounded-md">
-          <BarChart3 className="h-12 w-12 text-vista-light/30 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2 text-vista-light">Нет выбранного отчета</h3>
-          <p className="text-vista-light/60 text-center">
-            Выберите GPS отчет для анализа данных
-          </p>
-          <p className="text-sm mt-2 text-vista-light/50">Используйте селектор выше для выбора команды и события</p>
-        </div>
-      )}
-
-      {/* Модал загрузки отчета */}
-      <NewUploadGpsReportModal
-        open={showUploadModal}
-        onOpenChange={setShowUploadModal}
-        onReportUploaded={() => {
-          setShowUploadModal(false);
-          toast({
-            title: 'Успех',
-            description: 'GPS отчет успешно загружен',
-          });
-        }}
-      />
     </div>
   );
 }
+
+export default GpsAnalysisTab;

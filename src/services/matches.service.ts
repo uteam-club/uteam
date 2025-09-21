@@ -92,6 +92,39 @@ export async function updateMatch(id: string, clubId: string, data: Partial<type
   }
 }
 
+export async function createMatch(data: {
+  competitionType: string;
+  date: string;
+  time: string;
+  isHome: boolean;
+  teamId: string;
+  opponentName: string;
+  teamGoals?: number | null;
+  opponentGoals?: number | null;
+  status: string;
+  clubId: string;
+}) {
+  try {
+    const [newMatch] = await db.insert(match).values({
+      competitionType: data.competitionType,
+      date: data.date,
+      time: data.time,
+      isHome: data.isHome,
+      teamId: data.teamId,
+      opponentName: data.opponentName,
+      teamGoals: data.teamGoals,
+      opponentGoals: data.opponentGoals,
+      status: data.status,
+      clubId: data.clubId,
+    }).returning();
+    
+    return newMatch ?? null;
+  } catch (error) {
+    console.error('Error creating match:', error);
+    return null;
+  }
+}
+
 export async function deleteMatch(id: string, clubId: string) {
   try {
     await ensureMatchOwned(id, clubId);

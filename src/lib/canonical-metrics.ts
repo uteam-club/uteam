@@ -1,13 +1,12 @@
-import canonicalMetricsData from '@/canon/canonical_metrics_grouped_v1.0.1.json';
-import { CanonicalMetric, CanonicalMetricsGroup, CanonicalMetricsData } from '@/types/gps';
-
-// Type assertion for the imported JSON
-const metricsData = canonicalMetricsData as CanonicalMetricsData;
+import { db } from '@/lib/db';
+import { gpsCanonicalMetric, gpsUnit } from '@/db/schema/gpsCanonicalMetric';
+import { eq } from 'drizzle-orm';
+import { GpsCanonicalMetric, GpsUnit } from '@/types/gps';
 
 // Unit conversion factors to base units
-const UNIT_FACTORS = {
+export const UNIT_FACTORS = {
   distance: { m: 1, km: 1000, yd: 0.9144 },
-  time: { s: 1, min: 60, h: 3600, ms: 0.001 },
+  time: { s: 1, min: 60, h: 3600, 'hh:mm': 3600, 'hh:mm:ss': 1 },
   speed: { 'm/s': 1, 'km/h': 0.2777777778, 'm/min': 0.0166666667, 'mph': 0.44704 },
   acceleration: { 'm/s^2': 1, g: 9.80665 },
   heart_rate: { bpm: 1, '%HRmax': 1 }, // Восстановили - есть в реестре
@@ -18,19 +17,7 @@ const UNIT_FACTORS = {
   identity: { string: 1 }
 } as const;
 
-// Base unit for each dimension
-const BASE_UNIT = {
-  distance: 'm',
-  time: 's',
-  speed: 'm/s',
-  acceleration: 'm/s^2',
-  heart_rate: 'bpm', // Восстановили - есть в реестре
-  power_mass_norm: 'W/kg',
-  load: 'AU',
-  count: 'count',
-  ratio: 'ratio',
-  identity: 'string'
-} as const;
+// Base unit for each dimension - REMOVED: теперь берется из JSON метрик
 
 // Track warnings to avoid spam
 const warnedUnits = new Set<string>();
@@ -38,46 +25,108 @@ const warnedUnits = new Set<string>();
 /**
  * Get all canonical metrics
  */
-export function getAllCanonicalMetrics(): CanonicalMetric[] {
-  return metricsData.metrics;
+export async function getAllCanonicalMetrics(): Promise<GpsCanonicalMetric[]> {
+  try {
+    const metrics = await db
+      .select()
+      .from(gpsCanonicalMetric)
+      .where(eq(gpsCanonicalMetric.isActive, true))
+      .orderBy(gpsCanonicalMetric.category, gpsCanonicalMetric.name);
+    
+    return metrics.map(metric => ({
+      ...metric,
+      supportedUnits: metric.supportedUnits as string[] || []
+    }));
+  } catch (error) {
+    console.error('Error fetching canonical metrics:', error);
+    return [];
+  }
 }
 
 /**
- * Get canonical metric by key
+ * Get canonical metric by code
  */
-export function getCanonicalMetricByKey(key: string): CanonicalMetric | undefined {
-  return metricsData.metrics.find(metric => metric.key === key);
+export async function getCanonicalMetricByCode(code: string): Promise<GpsCanonicalMetric | null> {
+  try {
+    const metrics = await db
+      .select()
+      .from(gpsCanonicalMetric)
+      .where(eq(gpsCanonicalMetric.code, code))
+      .limit(1);
+    
+    if (metrics.length === 0) return null;
+    
+    return {
+      ...metrics[0],
+      supportedUnits: metrics[0].supportedUnits as string[] || []
+    };
+  } catch (error) {
+    console.error('Error fetching canonical metric by code:', error);
+    return null;
+  }
 }
 
 /**
  * Get canonical metrics by category
  */
-export function getCanonicalMetricsByCategory(category: string): CanonicalMetric[] {
-  return metricsData.metrics.filter(metric => metric.category === category);
+export async function getCanonicalMetricsByCategory(category: string): Promise<GpsCanonicalMetric[]> {
+  try {
+    const metrics = await db
+      .select()
+      .from(gpsCanonicalMetric)
+      .where(eq(gpsCanonicalMetric.category, category))
+      .orderBy(gpsCanonicalMetric.name);
+    
+    return metrics.map(metric => ({
+      ...metric,
+      supportedUnits: metric.supportedUnits as string[] || []
+    }));
+  } catch (error) {
+    console.error('Error fetching canonical metrics by category:', error);
+    return [];
+  }
 }
 
 /**
- * Get all metric groups
+ * Get all units
  */
-export function getAllMetricGroups(): CanonicalMetricsGroup[] {
-  return metricsData.groups;
+export async function getAllUnits(): Promise<GpsUnit[]> {
+  try {
+    const units = await db
+      .select()
+      .from(gpsUnit)
+      .where(eq(gpsUnit.isActive, true))
+      .orderBy(gpsUnit.dimension, gpsUnit.name);
+    
+    return units.map(unit => ({
+      ...unit,
+      conversionFactor: parseFloat(unit.conversionFactor.toString())
+    }));
+  } catch (error) {
+    console.error('Error fetching units:', error);
+    return [];
+  }
 }
 
 /**
- * Get metric group by key
+ * Get units by dimension
  */
-export function getMetricGroupByKey(key: string): CanonicalMetricsGroup | undefined {
-  return metricsData.groups.find(group => group.key === key);
-}
-
-/**
- * Get metrics for a specific group
- */
-export function getMetricsForGroup(groupKey: string): CanonicalMetric[] {
-  const group = getMetricGroupByKey(groupKey);
-  if (!group) return [];
-  
-  return metricsData.metrics.filter(metric => group.metrics.includes(metric.key));
+export async function getUnitsByDimension(dimension: string): Promise<GpsUnit[]> {
+  try {
+    const units = await db
+      .select()
+      .from(gpsUnit)
+      .where(eq(gpsUnit.dimension, dimension))
+      .orderBy(gpsUnit.name);
+    
+    return units.map(unit => ({
+      ...unit,
+      conversionFactor: parseFloat(unit.conversionFactor.toString())
+    }));
+  } catch (error) {
+    console.error('Error fetching units by dimension:', error);
+    return [];
+  }
 }
 
 /**
@@ -100,41 +149,51 @@ export function convertValue(value: number, fromUnit: string, toUnit: string, di
 /**
  * Convert value to canonical unit
  */
-export function convertToCanonicalUnit(value: number, unit: string, dimension: keyof typeof UNIT_FACTORS): number {
-  const baseUnit = BASE_UNIT[dimension];
-  if (unit === baseUnit) return value;
+export async function convertToCanonicalUnit(value: number, unit: string, dimension: string): Promise<number> {
+  try {
+    // Получаем каноническую единицу для измерения из БД
+    const units = await getUnitsByDimension(dimension);
+    const canonicalUnit = units.find(u => u.code === unit);
+    
+    if (!canonicalUnit) {
+      console.warn(`[convertToCanonicalUnit] No canonical unit found for dimension: ${dimension}`);
+      return value;
+    }
+    
+    if (unit === canonicalUnit.code) return value;
 
-  return convertValue(value, unit, baseUnit, dimension);
+    return convertValue(value, unit, canonicalUnit.code, dimension as keyof typeof UNIT_FACTORS);
+  } catch (error) {
+    console.error('Error converting to canonical unit:', error);
+    return value;
+  }
 }
 
 /**
  * Get display unit for a metric
  */
-export function getDisplayUnit(metricKey: string, preferredUnit?: string): string {
-  const metric = getCanonicalMetricByKey(metricKey);
+export async function getDisplayUnit(metricCode: string, preferredUnit?: string): Promise<string> {
+  const metric = await getCanonicalMetricByCode(metricCode);
   if (!metric) return preferredUnit || '';
 
-  const dimensionData = metricsData.dimensions[metric.dimension];
-  if (!dimensionData) return metric.unit;
-
-  // If preferred unit is provided and is allowed, use it
-  if (preferredUnit && dimensionData.allowed_units.includes(preferredUnit)) {
+  // If preferred unit is provided and is supported, use it
+  if (preferredUnit && metric.supportedUnits.includes(preferredUnit)) {
     return preferredUnit;
   }
 
-  // Otherwise use the metric's default unit
-  return metric.unit;
+  // Otherwise use the metric's canonical unit
+  return metric.canonicalUnit;
 }
 
 /**
  * Format value with appropriate unit
  */
-export function formatMetricValue(value: number, metricKey: string, unit?: string): string {
-  const metric = getCanonicalMetricByKey(metricKey);
+export async function formatMetricValue(value: number, metricCode: string, unit?: string): Promise<string> {
+  const metric = await getCanonicalMetricByCode(metricCode);
   if (!metric) return `${value} ${unit || ''}`;
 
   const dimension = metric.dimension as keyof typeof UNIT_FACTORS;
-  const displayUnit = getDisplayUnit(metricKey, unit);
+  const displayUnit = await getDisplayUnit(metricCode, unit);
   
   // Special handling for identity (string) values
   if (dimension === 'identity') {
@@ -163,93 +222,75 @@ export function formatMetricValue(value: number, metricKey: string, unit?: strin
     }
   }
 
-  // Format based on unit type with localization
+  // Format based on unit type without units
   switch (displayUnit) {
     case 'bpm':
     case 'count':
-      return `${Math.round(convertedValue)} ${displayUnit}`;
+      return `${Math.round(convertedValue)}`;
     case 'm':
-      return `${Math.round(convertedValue)} м`;
+      return `${Math.round(convertedValue)}`;
     case 'km':
-      return `${convertedValue.toFixed(2)} км`;
+      return `${convertedValue.toFixed(2)}`;
     case 'yd':
-      return `${convertedValue.toFixed(1)} ярд`;
-    case 's':
-      return `${Math.round(convertedValue)} с`;
+      return `${convertedValue.toFixed(1)}`;
     case 'min':
-      return `${convertedValue.toFixed(1)} мин`;
-    case 'h':
-      return `${convertedValue.toFixed(2)} ч`;
-    case 'ms':
-      return `${Math.round(convertedValue)} мс`;
+      return `${Math.round(convertedValue)}`;
+    case 'hh:mm':
+      // Конвертируем часы в формат hh:mm
+      const totalMinutes = Math.round(convertedValue * 60);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return `${hours}:${minutes.toString().padStart(2, '0')}`;
     case 'm/s':
-      return `${convertedValue.toFixed(2)} м/с`;
+      return `${convertedValue.toFixed(2)}`;
     case 'km/h':
-      return `${convertedValue.toFixed(1)} км/ч`;
+      return `${convertedValue.toFixed(1)}`;
     case 'm/min':
-      return `${convertedValue.toFixed(1)} м/мин`;
+      return `${convertedValue.toFixed(1)}`;
     case 'mph':
-      return `${convertedValue.toFixed(1)} миль/ч`;
+      return `${convertedValue.toFixed(1)}`;
     case 'm/s^2':
-      return `${convertedValue.toFixed(2)} м/с²`;
+      return `${convertedValue.toFixed(2)}`;
     case 'g':
-      return `${convertedValue.toFixed(2)} g`;
+      return `${convertedValue.toFixed(2)}`;
     case '%':
-      return `${convertedValue.toFixed(1)}%`;
+      return `${convertedValue.toFixed(1)}`;
     case 'ratio':
       return `${convertedValue.toFixed(3)}`;
     case 'AU':
-      return `${convertedValue.toFixed(1)} AU`;
+      return `${convertedValue.toFixed(1)}`;
     case 'W/kg':
-      return `${convertedValue.toFixed(2)} Вт/кг`;
+      return `${convertedValue.toFixed(2)}`;
     default:
-      return `${convertedValue.toFixed(2)} ${displayUnit}`;
+      return `${convertedValue.toFixed(2)}`;
   }
 }
 
 /**
- * Get metric label in specified language
+ * Get metric label
  */
-export function getMetricLabel(metricKey: string, language: 'ru' | 'en' = 'ru'): string {
-  const metric = getCanonicalMetricByKey(metricKey);
-  if (!metric) return metricKey;
+export async function getMetricLabel(metricCode: string): Promise<string> {
+  const metric = await getCanonicalMetricByCode(metricCode);
+  if (!metric) return metricCode;
   
-  return metric.labels[language] || metric.labels.en || metricKey;
+  return metric.name;
 }
 
 /**
- * Get group label in specified language
+ * Validate metric value (basic validation only)
  */
-export function getGroupLabel(groupKey: string, language: 'ru' | 'en' = 'ru'): string {
-  const group = getMetricGroupByKey(groupKey);
-  if (!group) return groupKey;
-  
-  return group.labels[language] || group.labels.en || groupKey;
-}
-
-/**
- * Validate metric value against plausible range
- */
-export function validateMetricValue(value: number, metricKey: string): {
+export async function validateMetricValue(value: number, metricCode: string): Promise<{
   isValid: boolean;
   warning?: string;
-} {
-  const metric = getCanonicalMetricByKey(metricKey);
+}> {
+  const metric = await getCanonicalMetricByCode(metricCode);
   if (!metric) return { isValid: true };
 
-  const { plausibleMin, plausibleMax } = metric;
-  
-  if (plausibleMin !== undefined && value < plausibleMin) {
+  // Basic validation: check if value is a valid number
+  if (typeof value !== 'number' || isNaN(value)) {
     return {
       isValid: false,
-      warning: `Значение ${value} меньше минимального ожидаемого (${plausibleMin})`
-    };
-  }
-  
-  if (plausibleMax !== undefined && value > plausibleMax) {
-    return {
-      isValid: false,
-      warning: `Значение ${value} больше максимального ожидаемого (${plausibleMax})`
+      warning: `Значение ${value} не является корректным числом`
     };
   }
   
@@ -273,107 +314,58 @@ export function getAvailableGpsSystems(): string[] {
 }
 
 /**
+ * Check if a value is in hh:mm:ss format
+ */
+export function isTimeString(value: any): boolean {
+  if (typeof value !== 'string') return false;
+  return /^(\d{1,2}):(\d{2}):(\d{2})$/.test(value);
+}
+
+/**
  * Get suggested column mappings for a GPS system
  */
 export function getSuggestedColumnMappings(gpsSystem: string): Record<string, string> {
   const suggestions: Record<string, Record<string, string>> = {
     'Polar': {
-      'Total distance': 'total_distance_m',
-      'Duration': 'duration_s',
-      'Average speed': 'avg_speed_ms',
-      'Max speed': 'max_speed_ms',
-      'Average heart rate': 'avg_heart_rate_bpm',
-      'Max heart rate': 'top_heart_rate_bpm',
+      'Total distance': 'total_distance',
+      'Duration': 'duration',
+      'Average speed': 'avg_speed',
+      'Max speed': 'max_speed',
+      'Average heart rate': 'avg_heart_rate',
+      'Max heart rate': 'max_heart_rate',
     },
     'Statsport': {
-      'Distance all': 'total_distance_m',
-      'Time on pitch': 'duration_s',
-      'Avg speed': 'avg_speed_ms',
-      'Max speed': 'max_speed_ms',
-      'Avg HR': 'avg_heart_rate_bpm',
-      'Max HR': 'top_heart_rate_bpm',
+      'Distance all': 'total_distance',
+      'Time on pitch': 'duration',
+      'Avg speed': 'avg_speed',
+      'Max speed': 'max_speed',
+      'Avg HR': 'avg_heart_rate',
+      'Max HR': 'max_heart_rate',
     },
     'Catapult': {
-      'Total Distance': 'total_distance_m',
-      'Duration': 'duration_s',
-      'Avg Speed': 'avg_speed_ms',
-      'Max Speed': 'max_speed_ms',
-      'Avg HR': 'avg_heart_rate_bpm',
-      'Max HR': 'top_heart_rate_bpm',
+      'Total Distance': 'total_distance',
+      'Duration': 'duration',
+      'Avg Speed': 'avg_speed',
+      'Max Speed': 'max_speed',
+      'Avg HR': 'avg_heart_rate',
+      'Max HR': 'max_heart_rate',
     }
   };
   
   return suggestions[gpsSystem] || {};
 }
 
-// DEV-проверка соответствия реестра и конвертера
-if (process.env.NODE_ENV !== 'production') {
-  const checkRegistryConsistency = () => {
-    const missingInCode: Record<string, string[]> = {};
-    const orphansInCode: Record<string, string[]> = {};
-    
-    // Проверяем каждый dimension
-    Object.entries(metricsData.dimensions).forEach(([dimension, data]) => {
-      const registryUnits = new Set([data.canonical_unit, ...data.allowed_units]);
-      const codeUnits = new Set(Object.keys(UNIT_FACTORS[dimension as keyof typeof UNIT_FACTORS] || {}));
-      
-      const missing = [...registryUnits].filter(unit => !codeUnits.has(unit));
-      const orphans = [...codeUnits].filter(unit => !registryUnits.has(unit));
-      
-      if (missing.length > 0) {
-        missingInCode[dimension] = missing;
-      }
-      if (orphans.length > 0) {
-        orphansInCode[dimension] = orphans;
-      }
-    });
-    
-    if (Object.keys(missingInCode).length > 0 || Object.keys(orphansInCode).length > 0) {
-      console.error('[canonical-metrics] Registry/Converter mismatch detected:');
-      if (Object.keys(missingInCode).length > 0) {
-        console.error('Missing in code:', missingInCode);
-      }
-      if (Object.keys(orphansInCode).length > 0) {
-        console.error('Orphans in code:', orphansInCode);
-      }
-    } else {
-      console.log('[canonical-metrics] Registry/Converter consistency check passed ✓');
-    }
-  };
-  
-  // Запускаем проверку при загрузке модуля
-  checkRegistryConsistency();
-}
-
-// Get allowed units for a specific metric
-export function getAllowedUnitsForMetric(metricKey: string): string[] {
+/**
+ * Get supported units for a specific metric
+ */
+export async function getSupportedUnitsForMetric(metricCode: string): Promise<string[]> {
   try {
-    // Find the metric in the registry
-    for (const group of metricsData.groups) {
-      for (const metricKeyInGroup of group.metrics) {
-        if (metricKeyInGroup === metricKey) {
-          // Find the actual metric object
-          const metric = metricsData.metrics.find(m => m.key === metricKey);
-          if (metric) {
-            // Get dimension from the metric
-            const dimension = metric.dimension;
-            
-            // Get allowed units from the dimensions section
-            if (metricsData.dimensions && metricsData.dimensions[dimension]) {
-              return metricsData.dimensions[dimension].allowed_units || [];
-            }
-          }
-          
-          // Fallback: return empty array if no units found
-          return [];
-        }
-      }
-    }
+    const metric = await getCanonicalMetricByCode(metricCode);
+    if (!metric) return [];
     
-    // If metric not found, return empty array
-    return [];
+    return metric.supportedUnits || [];
   } catch (error) {
-    console.error('Error getting allowed units for metric:', metricKey, error);
+    console.error('Error getting supported units for metric:', metricCode, error);
     return [];
   }
 }

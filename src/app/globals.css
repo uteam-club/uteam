@@ -411,6 +411,20 @@ html, body {
 }
 
 /* Скрываем все элементы с бирюзовым цветом */
+
+/* Поддержка prefers-reduced-motion для анимаций */
+@media (prefers-reduced-motion: reduce) {
+  .select-trigger,
+  .select-item,
+  .select-scroll-button {
+    transition: none !important;
+    animation: none !important;
+  }
+  
+  [data-radix-select-content] {
+    animation: none !important;
+  }
+}
 [data-radix-select-item] *[class*="text-vista-primary"],
 [data-radix-select-item] *[class*="bg-vista-primary"] {
   display: none !important;

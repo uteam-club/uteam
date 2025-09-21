@@ -46,6 +46,6 @@
     "src/services/canon.mapper.old.ts",
     "src/services/__tests__/**",
     "scripts/**",
-    "src/app/dev/**",
+    "src/app/dev/**"
   ]
 }

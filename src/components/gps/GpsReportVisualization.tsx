@@ -1,736 +1,576 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-// Убрали импорты иконок сортировки
-import { GpsReport, GpsProfile, GpsColumnMapping, GpsPlayerMapping } from '@/types/gps';
-import { getPlayersByTeamId } from '@/lib/teams-api';
-import { Player } from '@/types/player';
-import EventInfoCards from './EventInfoCards';
-import { Training, Match } from '@/types/events';
-// Убрали неиспользуемые импорты для форматирования с единицами измерения
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/components/ui/use-toast';
+import { Download, Edit, BarChart3, Users, Calendar, Star, Activity, Tag, ClipboardType, Clock } from 'lucide-react';
+import { convertUnit, formatValue, formatValueOnly, getPrecision } from '@/lib/unit-converter';
+import { GpsMetricSparkline } from './GpsMetricSparkline';
+import { TeamAverageGauges } from './TeamAverageGauges';
 
-  // Компонент для мини-графика (для таблицы)
-  const MiniBarChart = ({ value, maxValue, minValue = 0, color = '#5acce5' }: {
-    value: number;
-    maxValue: number;
-    minValue?: number;
-    color?: string;
-  }) => {
-    // Вычисляем ширину градиента на основе значения
-    const range = maxValue - minValue;
-    let gradientWidth = 100;
-    
-    if (range > 0) {
-      // Используем более мягкую кривую для более длинного градиента
-      const normalizedValue = (value - minValue) / range;
-      gradientWidth = Math.pow(normalizedValue, 0.7) * 100; // Более мягкая кривая
-      gradientWidth = Math.max(25, Math.min(100, gradientWidth)); // Минимум 25%, максимум 100%
-    }
-    
-    const displayValue = Math.round(value);
-    
-    return (
-      <div className="w-full relative">
-        {/* Фоновая полоска */}
-        <div className="bg-vista-dark/50 rounded-sm h-6 border border-vista-secondary/20"></div>
-        
-        {/* Градиентная заливка */}
-        <div 
-          className="absolute top-0 left-0 h-full rounded-sm transition-all duration-500 ease-out"
-          style={{ 
-            width: `${gradientWidth}%`,
-            background: `linear-gradient(to right, ${color}, transparent)`,
-          }}
-        ></div>
-        
-        {/* Число по центру всей ширины */}
-        <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center">
-          <span className="text-xs text-vista-light font-medium drop-shadow-sm">
-            {displayValue}
-          </span>
-        </div>
-      </div>
-    );
-  };
+// Кастомные иконки
+const CircleStarIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M11.051 7.616a1 1 0 0 1 1.909.024l.737 1.452a1 1 0 0 0 .737.535l1.634.256a1 1 0 0 1 .588 1.806l-1.172 1.168a1 1 0 0 0-.282.866l.259 1.613a1 1 0 0 1-1.541 1.134l-1.465-.75a1 1 0 0 0-.912 0l-1.465.75a1 1 0 0 1-1.539-1.133l.258-1.613a1 1 0 0 0-.282-.867l-1.156-1.152a1 1 0 0 1 .572-1.822l1.633-.256a1 1 0 0 0 .737-.535z"/>
+    <circle cx="12" cy="12" r="10"/>
+  </svg>
+);
 
-  // Компонент для полукругового индикатора (спидометр) - только для блока средних значений
-  const SemicircularGauge = ({ value, maxValue, minValue = 0, color = '#5acce5', percentageDiff, title }: {
-    value: number;
-    maxValue: number;
-    minValue?: number;
-    color?: string;
-    percentageDiff?: number;
-    title?: string;
-  }) => {
-    // Вычисляем процент заполнения на основе percentageDiff
-    // При 0% и выше - спидометр полностью заполнен (100%)
-    // При отрицательном проценте - спидометр уменьшается
-    let percentage = 100; // По умолчанию полностью заполнен
-    
-    if (percentageDiff !== undefined) {
-      if (percentageDiff >= 0) {
-        // При 0% и выше - полностью заполнен
-        percentage = 100;
-      } else {
-        // При отрицательном проценте - уменьшаем заполнение
-        // Максимальное уменьшение до 20% (не полностью пустой)
-        percentage = Math.max(20, 100 + percentageDiff);
-      }
-    }
-    
-    
-    const displayValue = Math.round(value);
-    
-    // Генерируем уникальный ID для градиента
-    const gradientId = `gauge-gradient-${value}-${maxValue}-${minValue}`.replace(/[^a-zA-Z0-9-]/g, '');
-    
-    // Определяем цвет заливки: полный цвет для положительных/нулевых процентов, градиент для отрицательных
-    const isNegative = percentageDiff !== undefined && percentageDiff < 0;
-    const strokeColor = isNegative ? `url(#${gradientId})` : color;
-    
-    return (
-      <div className="w-full relative flex justify-center pt-6 pb-1">
-        <div className="relative w-full h-28">
-          {/* SVG для полукругового индикатора */}
-          <svg 
-            width="100%" 
-            height="112" 
-            viewBox="0 0 200 80" 
-            className="overflow-visible"
-          >
-            <defs>
-              <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor={color} />
-                <stop offset="100%" stopColor={`${color}4D`} />
-              </linearGradient>
-            </defs>
-            
-            {/* Фоновая дуга */}
-            <path
-              d="M 10 70 A 90 90 0 0 1 190 70"
-              fill="none"
-              stroke="rgba(255, 255, 255, 0.1)"
-              strokeWidth="30"
-            />
-            
-            {/* Заполненная дуга с градиентом */}
-            <path
-              d="M 10 70 A 90 90 0 0 1 190 70"
-              fill="none"
-              stroke={strokeColor}
-              strokeWidth="30"
-              strokeDasharray={`${(percentage / 100) * 282.7} 282.7`}
-              strokeDashoffset="0"
-              className="transition-all duration-500 ease-out"
-            />
-          </svg>
-          
-          {/* Название сверху внутри полукруга */}
-          {title && (
-            <div className="absolute top-6 left-1/2 transform -translate-x-1/2">
-              <span className="text-vista-light/60 text-xs font-medium">
-                {title}
-              </span>
-            </div>
-          )}
-          
-          {/* Процент по центру */}
-          {percentageDiff !== undefined && (
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <span className={`text-sm font-medium drop-shadow-sm ${percentageDiff > 0 ? 'text-green-400' : percentageDiff < 0 ? 'text-red-400' : 'text-vista-light'}`}>
-                {percentageDiff > 0 ? '+' : ''}{percentageDiff}%
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
+const TrafficConeIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M16.05 10.966a5 2.5 0 0 1-8.1 0"/>
+    <path d="m16.923 14.049 4.48 2.04a1 1 0 0 1 .001 1.831l-8.574 3.9a2 2 0 0 1-1.66 0l-8.574-3.91a1 1 0 0 1 0-1.83l4.484-2.04"/>
+    <path d="M16.949 14.14a5 2.5 0 1 1-9.9 0L10.063 3.5a2 2 0 0 1 3.874 0z"/>
+    <path d="M9.194 6.57a5 2.5 0 0 0 5.61 0"/>
+  </svg>
+);
+
+interface GpsProfile {
+  id: string;
+  name: string;
+  columns: GpsProfileColumn[];
+}
+
+interface GpsProfileColumn {
+  id: string;
+  canonicalMetricCode: string;
+  displayName: string;
+  displayUnit: string;
+  displayOrder: number;
+  isVisible: boolean;
+}
+
+interface GpsReportData {
+  id: string;
+  playerId: string;
+  playerName: string;
+  playerData: Record<string, { value: number; unit: string }>;
+  isEdited: boolean;
+  lastEditedAt: string | null;
+}
 
 interface GpsReportVisualizationProps {
-  gpsReport: GpsReport;
-  gpsProfile: GpsProfile;
-  columnMappings: GpsColumnMapping[];
-  playerMappings: GpsPlayerMapping[];
+  teamId: string;
+  eventId: string;
+  eventType: 'training' | 'match';
+  profileId: string;
 }
 
-interface SortConfig {
-  key: string;
-  direction: 'asc' | 'desc';
-}
+export function GpsReportVisualization({ teamId, eventId, eventType, profileId }: GpsReportVisualizationProps) {
+  const { toast } = useToast();
+  
+  const [profile, setProfile] = useState<GpsProfile | null>(null);
+  const [reportData, setReportData] = useState<GpsReportData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [reportInfo, setReportInfo] = useState<any>(null);
+  const [eventInfo, setEventInfo] = useState<any>(null);
+  const [historicalData, setHistoricalData] = useState<Record<string, Record<string, number[]>>>({});
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [teamAverages, setTeamAverages] = useState<{
+    currentAverages: Record<string, number>;
+    historicalAverages: Record<string, number>;
+    metrics: Array<{
+      canonicalMetricCode: string;
+      displayName: string;
+      displayUnit: string;
+      canAverage: boolean;
+    }>;
+    playerCount?: number;
+    categoryInfo?: {
+      name: string;
+      eventCount: number;
+      reportCount: number;
+      type?: 'training' | 'match';
+    };
+  } | null>(null);
+  const [teamAveragesLoading, setTeamAveragesLoading] = useState(false);
 
-export default function GpsReportVisualization({
-  gpsReport,
-  gpsProfile,
-  columnMappings,
-  playerMappings
-}: GpsReportVisualizationProps) {
-  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [comparisonData, setComparisonData] = useState<any>(null);
-  const [comparisonLoading, setComparisonLoading] = useState(false);
-  const [eventData, setEventData] = useState<Training | Match | null>(null);
-  const [eventLoading, setEventLoading] = useState(false);
+  useEffect(() => {
+    if (teamId && eventId) {
+      loadReportData();
+    }
+  }, [teamId, eventId, profileId]);
 
-  // Загружаем данные события
-  const loadEventData = async () => {
-    if (!gpsReport.eventId || !gpsReport.eventType) return;
-    
-    setEventLoading(true);
+  const loadReportData = async () => {
     try {
-      const endpoint = gpsReport.eventType === 'training' 
-        ? `/api/trainings/${gpsReport.eventId}`
-        : `/api/matches/${gpsReport.eventId}`;
+      setLoading(true);
       
-      const response = await fetch(endpoint);
-      if (response.ok) {
-        const data = await response.json();
-        setEventData(data);
+      console.log('Loading report data for:', { teamId, eventId, eventType, profileId });
+      
+      // Загружаем выбранный профиль
+      const profileResponse = await fetch(`/api/gps/profiles/${profileId}`);
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        console.log('Profile loaded:', profileData);
+        if (profileData.profile) {
+          setProfile(profileData.profile);
+        }
+      }
+
+      // Загружаем данные отчета
+      const reportResponse = await fetch(`/api/gps/reports?teamId=${teamId}&eventId=${eventId}&eventType=${eventType}`);
+      if (reportResponse.ok) {
+        const reportsData = await reportResponse.json();
+        console.log('Reports loaded:', reportsData);
+        if (reportsData.reports && reportsData.reports.length > 0) {
+          const report = reportsData.reports[0];
+          setReportInfo(report);
+          
+          // Загружаем данные игроков для визуализации с profileId
+          const dataResponse = await fetch(`/api/gps/reports/${report.id}/visualization?profileId=${profileId}`);
+          if (dataResponse.ok) {
+            const data = await dataResponse.json();
+            console.log('Visualization data loaded:', data);
+            setReportData(data.data || []);
+            
+            // Обновляем профиль из ответа API
+            if (data.profile) {
+              setProfile(data.profile);
+            }
+            
+            // Обновляем информацию о событии
+            if (data.event) {
+              console.log('Event info loaded:', data.event);
+              setEventInfo(data.event);
+            }
+            
+            // Загружаем исторические данные для каждого игрока и метрики
+            await loadHistoricalData(data.data || []);
+            
+            // Загружаем данные для спидометров (для тренировок и матчей)
+            await loadTeamAverages(report.id);
+          } else {
+            console.error('Failed to load visualization data:', dataResponse.status, dataResponse.statusText);
+          }
+        } else {
+          console.log('No reports found for the selected criteria');
+        }
+      } else {
+        console.error('Failed to load reports:', reportResponse.status, reportResponse.statusText);
       }
     } catch (error) {
-      console.error('Error loading event data:', error);
+      console.error('Error loading report data:', error);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось загрузить данные отчета',
+        variant: 'destructive',
+      });
     } finally {
-      setEventLoading(false);
+      setLoading(false);
     }
   };
 
-  // Загружаем игроков команды
-  useEffect(() => {
-    const loadPlayers = async () => {
-      try {
-        setLoading(true);
-        const teamPlayers = await getPlayersByTeamId(gpsReport.teamId);
-        setPlayers(teamPlayers);
-      } catch (error) {
-        console.error('Error loading players:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (gpsReport.teamId) {
-      loadPlayers();
-    }
-    loadEventData();
-  }, [gpsReport.teamId, gpsReport.eventId, gpsReport.eventType]);
-
-  // Загружаем данные для сравнения
-  useEffect(() => {
-    const loadComparisonData = async () => {
-      // Сравнение работает только для тренировок, не для матчей
-      if (gpsReport.eventType !== 'training') {
-        setComparisonData({ message: 'Сравнение доступно только для тренировок' });
-        return;
-      }
-
-      try {
-        setComparisonLoading(true);
-        
-        // Получаем информацию о сравнении
-        const comparisonResponse = await fetch(
-          `/api/gps/reports/comparison?eventId=${gpsReport.eventId}&eventType=${gpsReport.eventType}&teamId=${gpsReport.teamId}`
-        );
-        
-        if (!comparisonResponse.ok) {
-          throw new Error('Failed to fetch comparison data');
-        }
-        
-        const comparisonInfo = await comparisonResponse.json();
-        
-        if (!comparisonInfo.comparisonData) {
-          // Убрали отладочный лог
-          setComparisonData({ message: comparisonInfo.message });
-          return;
-        }
-
-        // Получаем агрегированные данные для сравнения
-        const reportIds = Object.values(comparisonInfo.comparisonData.reportsByTraining)
-          .flat()
-          .map((report: any) => report.id);
-        
-        if (reportIds.length === 0) {
-          setComparisonData({ message: 'Нет данных для сравнения' });
-          return;
-        }
-
-        const aggregatedResponse = await fetch('/api/gps/reports/aggregated-data', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reportIds })
-        });
-
-        if (!aggregatedResponse.ok) {
-          throw new Error('Failed to fetch aggregated data');
-        }
-
-        const aggregatedData = await aggregatedResponse.json();
-        
-        
-        setComparisonData({
-          ...comparisonInfo,
-          aggregatedData
-        });
-
-      } catch (error) {
-        console.error('Error loading comparison data:', error);
-        setComparisonData({ error: 'Ошибка загрузки данных сравнения' });
-      } finally {
-        setComparisonLoading(false);
-      }
-    };
-
-    if (gpsReport.eventId && gpsReport.eventType && gpsReport.teamId) {
-      loadComparisonData();
-    }
-  }, [gpsReport.eventId, gpsReport.eventType, gpsReport.teamId]);
-
-  // Функция для получения правильного имени игрока
-  const getPlayerDisplayName = (rowIndex: number, sourceColumn: string, rawValue: any) => {
-    // Находим маппинг для этой строки
-    const mapping = playerMappings.find(m => m.rowIndex === rowIndex);
-    if (!mapping || !mapping.playerId) return rawValue;
-
-    // Находим игрока в базе данных
-    const player = players.find(p => p.id === mapping.playerId);
-    if (!player) return rawValue;
-
-    // Если это столбец с именем игрока (athlete_name), показываем правильное имя
-    const columnMapping = columnMappings.find(cm => cm.sourceColumn === sourceColumn);
-    if (columnMapping?.canonicalMetric === 'athlete_name') {
-      return `${player.lastName} ${player.firstName}`;
-    }
-
-    return rawValue;
-  };
-
-  // Убрали функцию getCanonicalUnitForMetric - единицы измерения больше не нужны
-
-  // Функция для форматирования значения без единиц измерения
-  const formatValue = (value: any, mapping: GpsColumnMapping) => {
-    // Убрали отладочные логи
-
-    // Специальная обработка для времени - конвертируем в минуты
-    // Проверяем по разным критериям
-    const isTimeColumn = mapping.canonicalMetric === 'time' || 
-                        mapping.customName?.toLowerCase().includes('time') ||
-                        mapping.sourceColumn?.toLowerCase().includes('time') ||
-                        mapping.customName?.toLowerCase() === 'time' ||
-                        mapping.sourceColumn?.toLowerCase() === 'time';
-    
-    // Универсальная проверка для времени - если строка содержит двоеточие в формате HH:MM:SS
-    if (typeof value === 'string' && value.includes(':') && value.match(/^\d{1,2}:\d{2}:\d{2}$/)) {
-      const parts = value.split(':');
-      if (parts.length === 3) {
-        const hours = parseInt(parts[0], 10) || 0;
-        const minutes = parseInt(parts[1], 10) || 0;
-        const seconds = parseInt(parts[2], 10) || 0;
-        const totalMinutes = hours * 60 + minutes + Math.round(seconds / 60);
-        // Убрали отладочный лог
-        return totalMinutes;
-      }
-    }
-
-    if (isTimeColumn) {
+  const loadTeamAverages = async (reportId: string) => {
+    try {
+      setTeamAveragesLoading(true);
       
-      // Если это строка в формате HH:MM:SS, парсим её
-      if (typeof value === 'string' && value.includes(':')) {
-        const parts = value.split(':');
-        if (parts.length === 3) {
-          const hours = parseInt(parts[0], 10) || 0;
-          const minutes = parseInt(parts[1], 10) || 0;
-          const seconds = parseInt(parts[2], 10) || 0;
-          const totalMinutes = hours * 60 + minutes + Math.round(seconds / 60);
-          // Убрали отладочный лог
-          return totalMinutes;
-        }
+      const response = await fetch(`/api/gps/reports/${reportId}/team-averages?profileId=${profileId}`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Team averages loaded:', data);
+        setTeamAverages(data);
+      } else {
+        console.error('Failed to load team averages:', response.status, response.statusText);
       }
-      
-      // Если это число, предполагаем что в секундах
-      if (typeof value === 'number') {
-        return Math.round(value / 60);
-      }
-      
-      return value;
+    } catch (error) {
+      console.error('Error loading team averages:', error);
+    } finally {
+      setTeamAveragesLoading(false);
     }
-
-    // Если это не числовое значение, возвращаем как есть
-    if (typeof value !== 'number' || isNaN(value)) {
-      return value;
-    }
-
-    // Специальная обработка для процентов - убираем лишние нули
-    if (mapping.canonicalMetric === 'percentage' || 
-        mapping.customName?.toLowerCase().includes('%') ||
-        mapping.sourceColumn?.toLowerCase().includes('%') ||
-        mapping.customName?.toLowerCase().includes('hsr%')) {
-      return Math.round(value); // Округляем до целых чисел
-    }
-
-    // Для остальных числовых значений - округляем до целых чисел
-    return Math.round(value);
   };
 
-  // Фильтруем данные только по сопоставленным игрокам
-  const filteredData = useMemo(() => {
-    if (!gpsReport.rawData || !Array.isArray(gpsReport.rawData)) {
-      return [];
-    }
+  const loadHistoricalData = async (players: GpsReportData[]) => {
+    if (!profile) return;
 
-    // Получаем индексы строк сопоставленных игроков (только с не-null playerId)
-    const mappedRowIndexes = new Set(
-      playerMappings
-        .filter(mapping => mapping.playerId !== null)
-        .map(mapping => mapping.rowIndex)
-    );
-    
-    // Фильтруем rawData только по сопоставленным игрокам
-    return gpsReport.rawData.filter((_, index) => mappedRowIndexes.has(index));
-  }, [gpsReport.rawData, playerMappings]);
+    const historicalDataMap: Record<string, Record<string, number[]>> = {};
 
-  // Сортируем данные
-  const sortedData = useMemo(() => {
-    if (!sortConfig) return filteredData;
-
-    return [...filteredData].sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
-
-      if (aValue === bValue) return 0;
-
-      const comparison = aValue < bValue ? -1 : 1;
-      return sortConfig.direction === 'asc' ? comparison : -comparison;
-    });
-  }, [filteredData, sortConfig]);
-
-  // Метрики, которые не должны отображаться в средних значениях
-  const EXCLUDED_FROM_AVERAGES = [
-    'athlete_name',
-    'position', 
-    'duration_s',
-    'max_acceleration_ms2',
-    'max_deceleration_ms2',
-    'max_speed_ms',
-    'max_speed_kmh',
-    'top_heart_rate_bpm'
-  ];
-
-  // Функция для вычисления сравнения с данными по тегу
-  const getComparisonValue = (currentValue: number, canonicalMetric: string) => {
-    if (!comparisonData?.aggregatedData?.averages) {
-      return null;
-    }
-    
-    // Ищем среднее значение по canonicalMetric (API должен возвращать данные по каноническим метрикам)
-    let tagAverage = comparisonData.aggregatedData.averages[canonicalMetric];
-    
-    if (tagAverage === undefined || tagAverage === 0) {
-      return null;
-    }
-    
-    const percentageDiff = ((currentValue - tagAverage) / tagAverage) * 100;
-    const absoluteDiff = currentValue - tagAverage;
-    
-    return {
-      percentage: Math.round(percentageDiff * 10) / 10,
-      absolute: Math.round(absoluteDiff),
-      tagAverage: Math.round(tagAverage),
-      isHigher: percentageDiff > 0
-    };
-  };
-
-  // Функция для получения цвета индикатора
-  const getComparisonColor = (comparison: any) => {
-    if (!comparison) return 'text-vista-light';
-    
-    const absPercentage = Math.abs(comparison.percentage);
-    if (absPercentage < 5) return 'text-vista-light'; // Нейтральный
-    if (absPercentage < 15) return comparison.isHigher ? 'text-yellow-400' : 'text-orange-400'; // Умеренное отклонение
-    return comparison.isHigher ? 'text-green-400' : 'text-red-400'; // Сильное отклонение
-  };
-
-  // Вычисляем средние значения
-  const averages = useMemo(() => {
-    if (filteredData.length === 0) return {};
-
-    const numericColumns = columnMappings.filter(mapping => {
-      const sampleValue = filteredData[0]?.[mapping.sourceColumn];
-      const isNumeric = typeof sampleValue === 'number' && !isNaN(sampleValue);
-      const isNotExcluded = !EXCLUDED_FROM_AVERAGES.includes(mapping.canonicalMetric);
-      return isNumeric && isNotExcluded;
-    });
-
-    const averages: Record<string, number | string> = {};
-
-    numericColumns.forEach(mapping => {
-      const values = filteredData
-        .map(row => row[mapping.sourceColumn])
-        .filter(value => typeof value === 'number' && !isNaN(value));
+    // Загружаем исторические данные для каждого игрока и каждой метрики
+    for (const player of players) {
+      historicalDataMap[player.playerId] = {};
       
-      if (values.length > 0) {
-        const average = values.reduce((sum, val) => sum + val, 0) / values.length;
-        averages[mapping.canonicalMetric] = average;
+      for (const column of profile.columns) {
+        if (column.canonicalMetricCode === 'athlete_name' || !column.isVisible) continue;
         
-        // Отладочные логи
-        // Убрали отладочный лог
-      }
-    });
-
-    // Добавляем время отдельно (без графиков)
-    const timeColumns = columnMappings.filter(mapping => {
-      const sampleValue = filteredData[0]?.[mapping.sourceColumn];
-      const isTimeString = typeof sampleValue === 'string' && sampleValue.includes(':');
-      const isNotExcluded = !EXCLUDED_FROM_AVERAGES.includes(mapping.canonicalMetric);
-      return isTimeString && isNotExcluded;
-    });
-
-    timeColumns.forEach(mapping => {
-      const values = filteredData
-        .map(row => {
-          const rawValue = row[mapping.sourceColumn];
-          if (typeof rawValue === 'string' && rawValue.includes(':')) {
-            const parts = rawValue.split(':');
-            if (parts.length === 3) {
-              const hours = parseInt(parts[0], 10) || 0;
-              const minutes = parseInt(parts[1], 10) || 0;
-              const seconds = parseInt(parts[2], 10) || 0;
-              return hours * 60 + minutes + Math.round(seconds / 60);
+        try {
+          const response = await fetch(
+            `/api/gps/players/${player.playerId}/metrics/${column.canonicalMetricCode}/history?eventType=${eventType}&days=30`
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+              // Берем последние 5 значений для графика
+              const values = data.data
+                .slice(0, 5)
+                .map((item: any) => item.value)
+                .reverse(); // Обращаем порядок для хронологического отображения
+              
+              historicalDataMap[player.playerId][column.canonicalMetricCode] = values;
             }
           }
-          return 0;
-        })
-        .filter(value => value > 0);
-      
-      if (values.length > 0) {
-        const avgMinutes = values.reduce((sum, val) => sum + val, 0) / values.length;
-        const hours = Math.floor(avgMinutes / 60);
-        const minutes = Math.floor(avgMinutes % 60);
-        const seconds = Math.floor((avgMinutes % 1) * 60);
-        averages[mapping.canonicalMetric] = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        } catch (error) {
+          console.error(`Error loading historical data for player ${player.playerId}, metric ${column.canonicalMetricCode}:`, error);
+        }
       }
-    });
+    }
 
-    return averages;
-  }, [filteredData, columnMappings]);
-
-  // Вычисляем максимальную длину имени игрока для динамической ширины
-  const maxPlayerNameLength = useMemo(() => {
-    const playerColumn = columnMappings.find(m => m.canonicalMetric === 'athlete_name');
-    if (!playerColumn) return 0;
-    
-    const names = filteredData.map(row => {
-      const name = getPlayerDisplayName(
-        filteredData.indexOf(row), 
-        playerColumn.sourceColumn, 
-        row[playerColumn.sourceColumn]
-      );
-      return name.length;
-    });
-    
-    return Math.max(...names, 0);
-  }, [filteredData, columnMappings]);
-
-  // Вычисляем min/max значения для графиков
-  const columnStats = useMemo(() => {
-    if (filteredData.length === 0) return {};
-
-    const numericColumns = columnMappings.filter(mapping => {
-      const sampleValue = filteredData[0]?.[mapping.sourceColumn];
-      return typeof sampleValue === 'number' && !isNaN(sampleValue);
-    });
-
-    const stats: Record<string, { min: number; max: number; color: string }> = {};
-
-    numericColumns.forEach(mapping => {
-      const values = filteredData
-        .map(row => row[mapping.sourceColumn])
-        .filter(value => typeof value === 'number' && !isNaN(value));
-      
-      if (values.length > 0) {
-        const min = Math.min(...values);
-        const max = Math.max(...values);
-        
-        // Если все значения одинаковые, устанавливаем min = 0 для корректного отображения
-        const adjustedMin = min === max ? 0 : min;
-        const adjustedMax = max === min ? Math.max(max, 1) : max; // Минимум 1 для избежания деления на 0
-        
-        // Используем бирюзовый цвет для всех графиков (как в кнопке "Новый отчет")
-        const color = '#5acce5'; // vista-primary цвет
-        
-        stats[mapping.sourceColumn] = { min: adjustedMin, max: adjustedMax, color };
-        
-        // Отладочные логи
-        // Убрали отладочный лог
-      }
-    });
-
-    return stats;
-  }, [filteredData, columnMappings]);
-
-  const handleSort = (key: string) => {
-    setSortConfig(prev => {
-      if (prev?.key === key) {
-        return {
-          key,
-          direction: prev.direction === 'asc' ? 'desc' : 'asc'
-        };
-      }
-      return { key, direction: 'asc' };
-    });
+    setHistoricalData(historicalDataMap);
   };
 
-  // Убрали функцию getSortIcon - иконки больше не нужны
+  const convertAndFormatValue = (value: number, fromUnit: string, toUnit: string): string => {
+    // Проверяем, что значение валидное
+    if (value === null || value === undefined || isNaN(value)) {
+      return `— ${toUnit}`;
+    }
+    
+    const convertedValue = convertUnit(value, fromUnit, toUnit);
+    
+    // Проверяем результат конвертации
+    if (convertedValue === null || convertedValue === undefined || (typeof convertedValue === 'number' && isNaN(convertedValue))) {
+      return `— ${toUnit}`;
+    }
+    
+    const precision = getPrecision(toUnit);
+    return formatValue(convertedValue, toUnit, precision);
+  };
+
+  const getVisibleColumns = () => {
+    if (!profile) return [];
+    
+    const columns = profile.columns
+      .filter(col => col.isVisible)
+      .sort((a, b) => a.displayOrder - b.displayOrder);
+    
+    return columns;
+  };
+
+  const getPlayerNameColumnWidth = () => {
+    if (reportData.length === 0) return 220; // Минимальная ширина по умолчанию
+    
+    // Находим максимальную длину имени
+    const maxLength = Math.max(...reportData.map(player => player.playerName.length));
+    
+    // Вычисляем ширину на основе длины текста (примерно 8px на символ + отступы)
+    const calculatedWidth = Math.max(maxLength * 8 + 40, 150); // Минимум 150px, максимум 300px
+    return Math.min(calculatedWidth, 300);
+  };
+
+  const getPlayerMetricValue = (playerData: GpsReportData, metricCode: string, displayUnit: string) => {
+    const metric = playerData.playerData[metricCode];
+    if (!metric) {
+      console.log(`Metric ${metricCode} not found for player ${playerData.playerName}. Available metrics:`, Object.keys(playerData.playerData));
+      return '-';
+    }
+    
+    // Для строковых метрик возвращаем значение как есть
+    if (metricCode === 'athlete_name' || metricCode === 'position') {
+      return metric.value || '-';
+    }
+    
+    // Для числовых метрик форматируем только значение без единиц измерения
+    const precision = getPrecision(displayUnit);
+    return formatValueOnly(metric.value, precision);
+  };
+
+  const getColumnValues = (metricCode: string) => {
+    return reportData
+      .map(player => {
+        const metric = player.playerData[metricCode];
+        if (!metric || metricCode === 'athlete_name' || metricCode === 'position') {
+          return null;
+        }
+        return parseFloat(metric.value);
+      })
+      .filter(value => value !== null && !isNaN(value)) as number[];
+  };
+
+  const handleSort = (columnCode: string) => {
+    if (sortColumn === columnCode) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(columnCode);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortedData = () => {
+    if (!sortColumn) return reportData;
+
+    return [...reportData].sort((a, b) => {
+      const aValue = a.playerData[sortColumn]?.value;
+      const bValue = b.playerData[sortColumn]?.value;
+
+      // Для строковых значений (athlete_name, position)
+      if (sortColumn === 'athlete_name' || sortColumn === 'position') {
+        const aStr = String(aValue || '');
+        const bStr = String(bValue || '');
+        return sortDirection === 'asc' 
+          ? aStr.localeCompare(bStr)
+          : bStr.localeCompare(aStr);
+      }
+
+      // Для числовых значений
+      const aNum = parseFloat(aValue || '0');
+      const bNum = parseFloat(bValue || '0');
+      return sortDirection === 'asc' ? aNum - bNum : bNum - aNum;
+    });
+  };
 
   if (loading) {
     return (
-      <Card className="bg-vista-dark border-vista-secondary/30">
-        <CardContent className="p-6">
-          <div className="text-center text-vista-light/70">
-            <p>Загрузка данных игроков...</p>
-          </div>
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-vista-primary border-t-transparent" />
         </CardContent>
       </Card>
     );
   }
 
-  if (filteredData.length === 0) {
+  if (!profile) {
     return (
-      <Card className="bg-vista-dark border-vista-secondary/30">
-        <CardContent className="p-6">
-          <div className="text-center text-vista-light/70">
-            <p>Нет данных для отображения</p>
-            <p className="text-sm mt-2">Убедитесь, что игроки сопоставлены в маппинге</p>
-          </div>
+      <Card>
+        <CardContent className="text-center py-8">
+          <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-lg font-semibold mb-2">Профиль не найден</h3>
+          <p className="text-muted-foreground mb-4">
+            Для этой команды не настроен профиль визуализации GPS данных
+          </p>
+          <Button variant="outline">
+            Настроить профиль
+          </Button>
         </CardContent>
       </Card>
     );
   }
+
+  if (reportData.length === 0) {
+    return (
+      <Card>
+        <CardContent className="text-center py-8">
+          <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-lg font-semibold mb-2">Данные не найдены</h3>
+          <p className="text-muted-foreground">
+            Для выбранного события нет GPS данных
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const visibleColumns = getVisibleColumns();
+
+  // Отладка видимых колонок
+  console.log('Visible columns:', visibleColumns.map(col => ({ 
+    code: col.canonicalMetricCode, 
+    name: col.displayName, 
+    unit: col.displayUnit 
+  })));
+  
+  // Проверяем, есть ли position и duration в профиле
+  const hasPositionInProfile = visibleColumns.some(col => col.canonicalMetricCode === 'position');
+  const hasDurationInProfile = visibleColumns.some(col => col.canonicalMetricCode === 'duration');
+  console.log('Profile has position:', hasPositionInProfile, 'Profile has duration:', hasDurationInProfile);
 
   return (
     <div className="space-y-6">
       {/* Информация о событии */}
-      {eventLoading ? (
-        <Card className="bg-vista-dark/70 border-vista-secondary/50 shadow-md">
-          <CardContent className="p-6">
-            <div className="text-center text-vista-light/70">
-              Загрузка информации о событии...
+      {reportInfo && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Дата и время события */}
+          <div className="bg-vista-dark/50 border border-vista-secondary/30 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-vista-primary/20 rounded-lg flex items-center justify-center">
+                <Calendar className="h-4 w-4 text-vista-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-vista-light/70 mb-1">Дата и время</p>
+                <p className="text-sm font-medium text-vista-light">
+                  {eventInfo && eventInfo.date && eventInfo.time 
+                    ? `${new Date(eventInfo.date).toLocaleDateString('ru-RU')} • ${eventInfo.time}`
+                    : `${new Date(reportInfo.createdAt).toLocaleDateString('ru-RU')} • ${new Date(reportInfo.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`}
+                </p>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      ) : eventData ? (
-        <EventInfoCards 
-          eventType={gpsReport.eventType as 'training' | 'match'}
-          eventData={eventData}
-        />
-      ) : (
-      <Card className="bg-vista-dark/70 border-vista-secondary/50 shadow-md">
-          <CardContent className="p-6">
-            <div className="text-center text-vista-light/70">
-              Не удалось загрузить информацию о событии
           </div>
-          </CardContent>
-      </Card>
+          
+          {/* Тип события */}
+          <div className="bg-vista-dark/50 border border-vista-secondary/30 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-vista-primary/20 rounded-lg flex items-center justify-center">
+                {eventType === 'training' ? (
+                  <TrafficConeIcon className="h-4 w-4 text-vista-primary" />
+                ) : (
+                  <CircleStarIcon className="h-4 w-4 text-vista-primary" />
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-vista-light/70 mb-1">Тип события</p>
+                <p className="text-sm font-medium text-vista-light">
+                  {eventType === 'training' ? 'Тренировка' : 'Матч'}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Третья карточка - зависит от типа события */}
+          <div className="bg-vista-dark/50 border border-vista-secondary/30 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-vista-primary/20 rounded-lg flex items-center justify-center">
+                <Tag className="h-4 w-4 text-vista-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-vista-light/70 mb-1">
+                  {eventType === 'training' ? 'Категория тренировки' : 'Тип соревнования'}
+                </p>
+                <p className="text-sm font-medium text-vista-light">
+                  {eventType === 'training' 
+                    ? (eventInfo?.categoryName || 'Не указана')
+                    : (eventInfo?.competitionType === 'FRIENDLY' ? 'Товарищеский' : 
+                       eventInfo?.competitionType === 'LEAGUE' ? 'Лига' : 
+                       eventInfo?.competitionType === 'CUP' ? 'Кубок' : 
+                       eventInfo?.competitionType || 'Не указан')
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Четвертая карточка - зависит от типа события */}
+          <div className="bg-vista-dark/50 border border-vista-secondary/30 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-vista-primary/20 rounded-lg flex items-center justify-center">
+                <ClipboardType className="h-4 w-4 text-vista-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-vista-light/70 mb-1">
+                  {eventType === 'training' ? 'Название тренировки' : 'Информация о матче'}
+                </p>
+                <p className="text-sm font-medium text-vista-light">
+                  {eventType === 'training' 
+                    ? (eventInfo?.title || reportInfo.name)
+                    : (() => {
+                        const homeTeam = eventInfo?.isHome ? eventInfo?.teamName : eventInfo?.opponentName;
+                        const awayTeam = eventInfo?.isHome ? eventInfo?.opponentName : eventInfo?.teamName;
+                        const homeGoals = eventInfo?.isHome ? eventInfo?.teamGoals : eventInfo?.opponentGoals;
+                        const awayGoals = eventInfo?.isHome ? eventInfo?.opponentGoals : eventInfo?.teamGoals;
+                        
+                        return `${homeTeam || 'Команда'} ${homeGoals ?? 0} - ${awayGoals ?? 0} ${awayTeam || 'Соперник'}`;
+                      })()
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Таблица данных */}
-      <Card className="bg-vista-dark/70 border-vista-secondary/50 shadow-md">
+      {/* Таблица с данными */}
+      <Card className="bg-vista-dark/50 border-vista-secondary/30 shadow-none hover:shadow-none">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table className="table-auto w-full">
+          <div className="w-full overflow-hidden">
+            <Table className="w-full table-fixed">
               <TableHeader>
-                <TableRow className="border-vista-secondary/50 hover:bg-transparent">
-                  {columnMappings.map((mapping, index) => {
-                    // Определяем класс ширины для заголовка столбца
-                    const getHeaderWidthClass = (mapping: GpsColumnMapping) => {
-                      if (mapping.canonicalMetric === 'athlete_name') {
-                        // Динамическая ширина на основе максимальной длины имени
-                        const minWidth = Math.max(maxPlayerNameLength * 10 + 40, 160); // 10px на символ + отступы, минимум 160px
-                        return `min-w-[${minWidth}px] whitespace-nowrap`; // Минимальная ширина + запрет переноса
-                      } else if (mapping.canonicalMetric === 'time' || mapping.customName?.toLowerCase().includes('time')) {
-                        return 'w-15'; // Время - фиксированная ширина 60px
-                      } else {
-                        return 'w-24'; // Остальные столбцы - фиксированная ширина
-                      }
-                    };
-
-                    const isTimeHeader = mapping.canonicalMetric === 'time' || mapping.customName?.toLowerCase().includes('time');
-                    
+                <TableRow className="border-b border-vista-secondary/20 hover:bg-transparent">
+                  {visibleColumns.map((column) => {
+                    const playerNameColumnWidth = getPlayerNameColumnWidth();
                     return (
-                      <TableHead key={mapping.id} className={`text-vista-light bg-transparent px-2 py-3 border-r border-vista-secondary/30 text-center hover:bg-transparent ${getHeaderWidthClass(mapping)}`}>
-                        <div
-                        onClick={() => handleSort(mapping.sourceColumn)}
-                          className="cursor-pointer font-medium text-vista-light hover:text-vista-primary text-sm transition-colors"
-                      >
-                        {mapping.customName}
-                        </div>
-                    </TableHead>
+                        <TableHead 
+                          key={column.id} 
+                          className={`text-center text-vista-light/70 font-normal text-xs py-3 px-2 cursor-pointer transition-colors hover:!bg-transparent`}
+                          style={{
+                            width: column.canonicalMetricCode === 'athlete_name' 
+                              ? `${playerNameColumnWidth}px` 
+                              : `${100 / (visibleColumns.length - 1)}%`
+                          }}
+                          onClick={() => handleSort(column.canonicalMetricCode)}
+                        >
+                          <div className="flex flex-col">
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="font-medium">{column.displayName}</span>
+                              {sortColumn === column.canonicalMetricCode && (
+                                <span className="text-xs">
+                                  {sortDirection === 'asc' ? '↑' : '↓'}
+                                </span>
+                              )}
+                            </div>
+                            {column.canonicalMetricCode !== 'athlete_name' && (
+                              <span className="text-xs text-vista-light/30 mt-1">
+                                {column.canonicalMetricCode === 'position' ? '' : column.displayUnit}
+                              </span>
+                            )}
+                          </div>
+                        </TableHead>
                     );
                   })}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedData.map((row, index) => {
-                  // Находим оригинальный индекс строки в rawData
-                  const originalRowIndex = gpsReport.rawData?.findIndex((originalRow: any, idx: number) => 
-                    originalRow === row
-                  ) ?? index;
-                  
+                {getSortedData().map((player) => {
+                  const playerNameColumnWidth = getPlayerNameColumnWidth();
                   return (
-                    <TableRow key={index} className="border-vista-secondary/50 hover:bg-vista-dark/30">
-                      {columnMappings.map((mapping) => {
-                        const rawValue = row[mapping.sourceColumn];
-                        const displayValue = getPlayerDisplayName(originalRowIndex, mapping.sourceColumn, rawValue);
+                    <TableRow key={player.id} className="border-b border-vista-secondary/10 hover:bg-vista-dark/30">
+                      {visibleColumns.map((column) => {
+                        const value = getPlayerMetricValue(player, column.canonicalMetricCode, column.displayUnit);
+                        const hasData = value !== '-';
                         
-                        // Если это числовое значение и не имя игрока, форматируем его
-                        const shouldFormat = typeof rawValue === 'number' && 
-                          !isNaN(rawValue) && 
-                          mapping.canonicalMetric !== 'athlete_name';
+                        // Получаем числовое значение для графика
+                        const numericValue = hasData ? parseFloat(value.replace(/[^\d.-]/g, '')) : 0;
                         
-                        // Если это время (строка с двоеточием) и не имя игрока, форматируем без графика
-                        const isTime = typeof rawValue === 'string' && 
-                          rawValue.includes(':') && 
-                          mapping.canonicalMetric !== 'athlete_name';
+                        // Получаем все значения в колонке для нормализации
+                        const columnValues = getColumnValues(column.canonicalMetricCode);
                         
-                        // Получаем статистику для колонки (только для числовых значений)
-                        const stats = shouldFormat ? columnStats[mapping.sourceColumn] : null;
-                        
-                        // Определяем класс ширины для столбца
-                        const getColumnWidthClass = (mapping: GpsColumnMapping) => {
-                          if (mapping.canonicalMetric === 'athlete_name') {
-                            // Динамическая ширина на основе максимальной длины имени
-                            const minWidth = Math.max(maxPlayerNameLength * 10 + 40, 160); // 10px на символ + отступы, минимум 160px
-                            return `min-w-[${minWidth}px] whitespace-nowrap`; // Минимальная ширина + запрет переноса
-                          } else if (isTime) {
-                            return 'w-15'; // Время - фиксированная ширина 60px
-                          } else {
-                            return 'w-24'; // Остальные столбцы - фиксированная ширина
-                          }
-                        };
+                        // Получаем исторические данные для этого игрока и метрики
+                        const playerHistoricalData = historicalData[player.playerId]?.[column.canonicalMetricCode] || [];
                         
                         return (
-                          <TableCell key={mapping.id} className={`text-vista-light text-sm px-2 py-3 border-r border-vista-secondary/30 ${getColumnWidthClass(mapping)} ${isTime ? 'text-center' : ''}`}>
-                            {isTime ? (
-                              // Время отображаем как раньше - только число
-                              formatValue(rawValue, mapping)
-                            ) : shouldFormat && stats ? (
-                              // Числовые значения с графиком
-                              <div className="w-full">
-                                <MiniBarChart
-                                  value={rawValue}
-                                  maxValue={stats.max}
-                                  minValue={stats.min}
-                                  color={stats.color}
-                                />
-                              </div>
+                          <TableCell 
+                            key={column.id} 
+                            className={`py-3 px-2 ${
+                              column.canonicalMetricCode === 'athlete_name' ? 'text-left' : 'text-center'
+                            }`}
+                            style={{
+                              width: column.canonicalMetricCode === 'athlete_name' 
+                                ? `${playerNameColumnWidth}px` 
+                                : `${100 / (visibleColumns.length - 1)}%`,
+                              maxWidth: column.canonicalMetricCode === 'athlete_name' 
+                                ? `${playerNameColumnWidth}px` 
+                                : `${100 / (visibleColumns.length - 1)}%`,
+                              overflow: 'hidden'
+                            }}
+                          >
+                          {column.canonicalMetricCode === 'athlete_name' ? (
+                            <span className="text-vista-light/90 font-medium truncate block max-w-full">
+                              {player.playerName}
+                            </span>
+                          ) : hasData ? (
+                            column.canonicalMetricCode === 'position' || column.canonicalMetricCode === 'duration' || column.canonicalMetricCode === 'time_on_field' ? (
+                              <span className="text-vista-light/90 font-medium text-sm">
+                                {value}
+                              </span>
                             ) : (
-                              // Остальные значения (имена игроков и т.д.)
-                              displayValue
-                            )}
-                          </TableCell>
+                              <div className="flex items-center justify-center w-full h-full">
+                                <div className="relative flex items-center justify-center">
+                                  <GpsMetricSparkline
+                                    value={numericValue}
+                                    unit={column.displayUnit}
+                                    historicalData={columnValues}
+                                    width={70}
+                                    height={28}
+                                  />
+                                  <span className="absolute inset-0 flex items-center justify-center text-xs text-vista-light/90 font-medium z-10">
+                                    {value}
+                                  </span>
+                                </div>
+                              </div>
+                            )
+                          ) : (
+                            <span className="text-vista-light/50 text-sm">-</span>
+                          )}
+                        </TableCell>
                         );
                       })}
                     </TableRow>
@@ -742,134 +582,20 @@ export default function GpsReportVisualization({
         </CardContent>
       </Card>
 
-      {/* Средние значения */}
-      {Object.keys(averages).length > 0 && (
-        <Card className="bg-vista-dark/70 border-vista-secondary/50 shadow-md">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-            <CardTitle className="text-vista-light text-lg font-medium">Средние значения</CardTitle>
-              {comparisonLoading && (
-                <div className="text-sm text-vista-light/50">Загрузка сравнения...</div>
-              )}
-            </div>
-            {comparisonData?.currentTraining && (
-              <div className="text-sm text-vista-light/70">
-                Сравнение с тренировками категории &quot;{comparisonData.currentTraining.categoryName}&quot; за последние 30 дней
-                {comparisonData.comparisonData && (
-                  <span className="ml-2 text-vista-light/50">
-                    ({comparisonData.comparisonData.totalTrainings} тренировок, {comparisonData.comparisonData.totalReports} отчетов)
-                  </span>
-                )}
-              </div>
-            )}
-          </CardHeader>
-          <CardContent>
-            {comparisonData?.message ? (
-              <div className="text-center py-8 text-vista-light/70">
-                {comparisonData.message}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {Object.entries(averages).map(([canonicalMetric, average]) => {
-                const mapping = columnMappings.find(m => m.canonicalMetric === canonicalMetric);
-                const stats = columnStats[mapping?.sourceColumn || ''];
-                const isTime = typeof average === 'string' && average.includes(':');
-                const comparison = typeof average === 'number' ? getComparisonValue(average, canonicalMetric) : null;
-                  
-                return (
-                    <div key={canonicalMetric} className="text-center p-4 rounded-lg bg-vista-dark/30 border border-vista-secondary/30 min-h-[180px]">
-                      {isTime ? (
-                        // Время отображаем как раньше - только число
-                        <div className="space-y-1">
-                          <div className="text-vista-light font-semibold text-sm">
-                            {mapping ? formatValue(average, mapping) : average}
-                          </div>
-                          {comparison && (
-                            <div className="text-xs space-y-1">
-                              <div className={`font-medium ${getComparisonColor(comparison)}`}>
-                                {comparison.percentage > 0 ? '+' : ''}{comparison.percentage}%
-                              </div>
-                              <div className="text-vista-light/50">
-                                vs {comparison.tagAverage}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : stats ? (
-                        // Числовые значения с графиком
-                        <div className="space-y-2">
-                          <div className="relative">
-                            <SemicircularGauge
-                              value={typeof average === 'number' ? average : 0}
-                              maxValue={stats.max}
-                              minValue={stats.min}
-                              color={stats.color}
-                              percentageDiff={comparison?.percentage}
-                              title={mapping?.customName}
-                            />
-                            {/* Средние значения под индикатором */}
-                            <div className="flex justify-between items-center -mt-4">
-                              <div className="text-vista-light text-sm">
-                                {typeof average === 'number' ? Math.round(average) : average}
-                              </div>
-                              {comparison && (
-                                <div className="text-vista-light/50 text-sm">
-                                  {Math.round(comparison.tagAverage)}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ) : typeof average === 'number' ? (
-                        // Числовые значения без stats - создаем базовый спидометр
-                        <div className="space-y-2">
-                          <div className="relative">
-                            <SemicircularGauge
-                              value={average}
-                              maxValue={Math.max(average, 1)} // Используем значение как максимум
-                              minValue={0}
-                              color="#5acce5"
-                              percentageDiff={comparison?.percentage}
-                              title={mapping?.customName}
-                            />
-                            {/* Средние значения под индикатором */}
-                            <div className="flex justify-between items-center -mt-4">
-                              <div className="text-vista-light text-sm">
-                                {Math.round(average)}
-                              </div>
-                              {comparison && (
-                                <div className="text-vista-light/50 text-sm">
-                                  {Math.round(comparison.tagAverage)}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
-                    <div className="text-vista-light font-semibold text-sm">
-                            {average}
-                          </div>
-                          {comparison && (
-                            <div className="text-xs space-y-1">
-                              <div className={`font-medium ${getComparisonColor(comparison)}`}>
-                                {comparison.percentage > 0 ? '+' : ''}{comparison.percentage}%
-                              </div>
-                              <div className="text-vista-light/50">
-                                vs {comparison.tagAverage}
-                              </div>
-                            </div>
-                          )}
-                    </div>
-                      )}
-                  </div>
-                );
-              })}
-            </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Блок со спидометрами (для тренировок и матчей) */}
+      {teamAverages && (
+        <TeamAverageGauges
+          currentAverages={teamAverages.currentAverages}
+          historicalAverages={teamAverages.historicalAverages}
+          metrics={teamAverages.metrics}
+          playerCount={teamAverages.playerCount}
+          categoryInfo={teamAverages.categoryInfo}
+          isLoading={teamAveragesLoading}
+        />
       )}
+
     </div>
   );
 }
+
+export default GpsReportVisualization;

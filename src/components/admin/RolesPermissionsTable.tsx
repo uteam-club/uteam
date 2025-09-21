@@ -32,7 +32,8 @@ const PERMISSION_CATEGORIES = {
   'morningSurvey': 'morning_survey',
   'rpeSurvey': 'rpe_survey',
   'documents': 'documents',
-  'adminPanel': 'admin_panel'
+  'adminPanel': 'admin_panel',
+  'gps': 'gps'
 };
 
 export const RolesPermissionsTable: React.FC = () => {
@@ -64,12 +65,14 @@ export const RolesPermissionsTable: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [rolesRes, permsRes] = await Promise.all([
+        const [rolesRes, permsRes, gpsPermsRes] = await Promise.all([
           fetch('/api/roles'),
           fetch('/api/permissions'),
+          fetch('/api/gps/permissions'),
         ]);
         const rolesData = await rolesRes.json();
         const permsData = await permsRes.json();
+        const gpsPermsData = await gpsPermsRes.json();
         
         // Сортируем роли в правильном порядке
         const roleOrder = ['SUPER_ADMIN', 'ADMIN', 'COACH', 'MEMBER', 'SCOUT', 'DOCTOR', 'DIRECTOR'];
@@ -80,7 +83,9 @@ export const RolesPermissionsTable: React.FC = () => {
         });
         
         setRoles(sortedRoles);
-        setPermissions(permsData);
+        // Объединяем обычные разрешения с GPS разрешениями
+        const allPermissions = [...permsData, ...gpsPermsData];
+        setPermissions(allPermissions);
         
         // Проверяем, что данные не пустые
         if (sortedRoles.length === 0) {
@@ -94,13 +99,25 @@ export const RolesPermissionsTable: React.FC = () => {
         const permsByRole: Record<string, RolePermission[]> = {};
         const rolePermsResults = await Promise.allSettled(
           sortedRoles.map(async (role: string) => {
-            const res = await fetch(`/api/roles/${role}/permissions`);
-            if (!res.ok) {
-              throw new Error(`Ошибка загрузки разрешений для роли ${role}`);
+            const [regularRes, gpsRes] = await Promise.all([
+              fetch(`/api/roles/${role}/permissions`),
+              fetch(`/api/gps/roles/${role}/permissions`)
+            ]);
+            
+            if (!regularRes.ok) {
+              throw new Error(`Ошибка загрузки обычных разрешений для роли ${role}`);
             }
-            const perms = await res.json();
-            permsByRole[role] = perms;
-            return { role, perms };
+            if (!gpsRes.ok) {
+              throw new Error(`Ошибка загрузки GPS разрешений для роли ${role}`);
+            }
+            
+            const regularPerms = await regularRes.json();
+            const gpsPerms = await gpsRes.json();
+            
+            // Объединяем обычные и GPS разрешения
+            const allPerms = [...regularPerms, ...gpsPerms];
+            permsByRole[role] = allPerms;
+            return { role, perms: allPerms };
           })
         );
         
@@ -169,16 +186,37 @@ export const RolesPermissionsTable: React.FC = () => {
     try {
       const results = await Promise.allSettled(
         roles.map(async (role) => {
-          const res = await fetch(`/api/roles/${role}/permissions`, {
+          // Разделяем разрешения на обычные и GPS
+          const regularPerms = rolePermissions[role].filter(perm => 
+            !perm.code.startsWith('gps.')
+          );
+          const gpsPerms = rolePermissions[role].filter(perm => 
+            perm.code.startsWith('gps.')
+          );
+
+          // Сохраняем обычные разрешения
+          const regularRes = await fetch(`/api/roles/${role}/permissions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(rolePermissions[role]),
+            body: JSON.stringify(regularPerms),
           });
-          if (!res.ok) {
-            const errorData = await res.json().catch(() => ({}));
-            throw new Error(`Ошибка сохранения для роли ${role}: ${errorData.error || res.statusText}`);
+          if (!regularRes.ok) {
+            const errorData = await regularRes.json().catch(() => ({}));
+            throw new Error(`Ошибка сохранения обычных разрешений для роли ${role}: ${errorData.error || regularRes.statusText}`);
           }
-          return res;
+
+          // Сохраняем GPS разрешения
+          const gpsRes = await fetch(`/api/gps/roles/${role}/permissions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(gpsPerms),
+          });
+          if (!gpsRes.ok) {
+            const errorData = await gpsRes.json().catch(() => ({}));
+            throw new Error(`Ошибка сохранения GPS разрешений для роли ${role}: ${errorData.error || gpsRes.statusText}`);
+          }
+
+          return { regularRes, gpsRes };
         })
       );
       

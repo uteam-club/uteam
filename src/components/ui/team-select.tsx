@@ -35,10 +35,10 @@ export function TeamSelect({
 }: TeamSelectProps) {
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled}>
-      <SelectTrigger className={cn('w-full bg-vista-dark/70 border-vista-secondary/30 text-vista-light', className)}>
+      <SelectTrigger className={cn('w-full bg-vista-dark/70 border-vista-secondary/30 text-vista-light hover:border-vista-primary/50 focus:border-vista-primary transition-all duration-200 group', className)}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent className="bg-vista-dark border-vista-secondary/30 max-h-72 overflow-y-auto custom-scrollbar">
+      <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light max-h-72 overflow-y-auto custom-scrollbar">
         {teams.map(team => (
           <SelectItem
             key={team.id}

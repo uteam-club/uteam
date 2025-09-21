@@ -415,10 +415,10 @@ export default function TrainingsPage() {
                   }}
                   disabled={isLoadingTeams}
                 >
-                  <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal shadow-lg data-[value]:text-vista-light">
+                  <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-primary/50 focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/30 h-9 px-3 font-normal shadow-lg data-[value]:text-vista-light transition-all duration-200 group">
                     <SelectValue placeholder={isLoadingTeams ? t('trainingsPage.loading') : t('trainingsPage.select_team_placeholder')} />
                   </SelectTrigger>
-                  <SelectContent className="bg-vista-dark border border-vista-light/20 shadow-2xl rounded-lg">
+                  <SelectContent className="bg-vista-dark border border-vista-light/20 text-vista-light shadow-2xl rounded-lg custom-scrollbar">
                     <SelectItem value="all">{t('trainingsPage.all_teams')}</SelectItem>
                     {teams.map((team) => (
                       <SelectItem key={team.id} value={team.id}>
@@ -438,10 +438,10 @@ export default function TrainingsPage() {
                 }}
                 disabled={isLoadingCategories}
               >
-                <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal shadow-lg data-[value]:text-vista-light">
+                <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-primary/50 focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/30 h-9 px-3 font-normal shadow-lg data-[value]:text-vista-light transition-all duration-200 group">
                   <SelectValue placeholder={isLoadingCategories ? t('trainingsPage.loading') : t('trainingsPage.select_category_placeholder')} />
                 </SelectTrigger>
-                <SelectContent className="bg-vista-dark border border-vista-light/20 shadow-2xl rounded-lg">
+                <SelectContent className="bg-vista-dark border border-vista-light/20 text-vista-light shadow-2xl rounded-lg custom-scrollbar">
                   <SelectItem value="all">{t('trainingsPage.all_categories')}</SelectItem>
                   {categories.map((c: Category) => (
                     <SelectItem key={c.id} value={c.id}>

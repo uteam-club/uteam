@@ -1138,10 +1138,10 @@ export default function TrainingPage() {
                   <>
                     <Label htmlFor="edit-team" className="text-vista-light/40 font-normal">{t('trainingsPage.team_label')}</Label>
                     <Select value={editTraining.teamId} onValueChange={v => handleEditTrainingChange('teamId', v)}>
-                      <SelectTrigger id="edit-team" className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+                      <SelectTrigger id="edit-team" className="bg-vista-dark border-vista-secondary/50 text-vista-light hover:border-vista-primary/50 focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 transition-all duration-200 group">
                         <SelectValue placeholder={t('trainingsPage.select_team_placeholder')} />
                       </SelectTrigger>
-                      <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                      <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg custom-scrollbar">
                         {teams.map(team => (
                           <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
                         ))}
@@ -1164,10 +1164,10 @@ export default function TrainingPage() {
               <div className="space-y-2">
                 <Label htmlFor="edit-category" className="text-vista-light/40 font-normal">{t('trainingsPage.category_label')}</Label>
                 <Select value={editTraining.categoryId} onValueChange={v => handleEditTrainingChange('categoryId', v)}>
-                  <SelectTrigger id="edit-category" className="bg-vista-dark border-vista-secondary/50 text-vista-light focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50">
+                  <SelectTrigger id="edit-category" className="bg-vista-dark border-vista-secondary/50 text-vista-light hover:border-vista-primary/50 focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50 transition-all duration-200 group">
                     <SelectValue placeholder={t('trainingsPage.select_category_placeholder')} />
                   </SelectTrigger>
-                  <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
+                  <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg custom-scrollbar">
                     {trainingCategories.map((category: TrainingCategory) => (
                       <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
                     ))}

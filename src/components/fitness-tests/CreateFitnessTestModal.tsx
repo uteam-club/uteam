@@ -106,7 +106,6 @@ const CreateFitnessTestModal: React.FC<CreateFitnessTestModalProps> = ({
             </SelectTrigger>
             <SelectContent
               side="bottom"
-              hideScrollButtons={true}
               className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-lg max-h-48 overflow-y-auto custom-scrollbar"
             >
               <div

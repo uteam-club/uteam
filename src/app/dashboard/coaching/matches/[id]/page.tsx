@@ -1127,10 +1127,10 @@ export default function MatchDetailsPage() {
                       onValueChange={handleFormatChange}
                       disabled={!isEditMode}
                     >
-                      <SelectTrigger className={`w-full border-vista-secondary/30 text-vista-light ${isEditMode ? 'bg-vista-dark-lighter' : 'bg-vista-dark/30 cursor-not-allowed'}`}>
+                      <SelectTrigger className={`w-full border-vista-secondary/30 text-vista-light transition-all duration-200 group ${isEditMode ? 'bg-vista-dark-lighter hover:border-vista-primary/50 focus:border-vista-primary' : 'bg-vista-dark/30 cursor-not-allowed'}`}>
                         <SelectValue placeholder={t('matchPage.select_format')} />
                       </SelectTrigger>
-                      <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light">
+                      <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light custom-scrollbar">
                         {gameFormats.map((format) => (
                           <SelectItem key={format} value={format}>
                             {format}
@@ -1148,10 +1148,10 @@ export default function MatchDetailsPage() {
                       onValueChange={handleFormationChange}
                       disabled={!isEditMode}
                     >
-                      <SelectTrigger className={`w-full border-vista-secondary/30 text-vista-light ${isEditMode ? 'bg-vista-dark-lighter' : 'bg-vista-dark/30 cursor-not-allowed'}`}>
+                      <SelectTrigger className={`w-full border-vista-secondary/30 text-vista-light transition-all duration-200 group ${isEditMode ? 'bg-vista-dark-lighter hover:border-vista-primary/50 focus:border-vista-primary' : 'bg-vista-dark/30 cursor-not-allowed'}`}>
                         <SelectValue placeholder={t('matchPage.select_formation')} />
                       </SelectTrigger>
-                      <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light">
+                      <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light custom-scrollbar">
                         {availableFormations.map((formation) => (
                           <SelectItem key={formation} value={formation}>
                             {formation}
@@ -1402,10 +1402,10 @@ export default function MatchDetailsPage() {
             <div className="space-y-2">
               <Label htmlFor="competitionType" className="text-vista-light/40 font-normal">{t('matchPage.competition_type')}</Label>
               <Select value={editForm.competitionType} onValueChange={v => handleEditFormChange('competitionType', v)}>
-                <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30">
+                <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30 hover:border-vista-primary/50 focus:border-vista-primary transition-all duration-200 group">
                   <SelectValue placeholder={t('matchPage.select_competition_type')} />
                 </SelectTrigger>
-                <SelectContent className="bg-vista-dark border-vista-secondary/30">
+                <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light custom-scrollbar">
                   <SelectItem value="FRIENDLY" className="text-vista-light">{t('matchPage.friendly_match')}</SelectItem>
                   <SelectItem value="LEAGUE" className="text-vista-light">{t('matchPage.league')}</SelectItem>
                   <SelectItem value="CUP" className="text-vista-light">{t('matchPage.cup')}</SelectItem>
@@ -1440,10 +1440,10 @@ export default function MatchDetailsPage() {
                 value={editForm.status || (selectedStatus as string) || 'SCHEDULED'}
                 onValueChange={v => { handleEditFormChange('status', v); setSelectedStatus(v); }}
               >
-                <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30">
+                <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30 hover:border-vista-primary/50 focus:border-vista-primary transition-all duration-200 group">
                   <SelectValue placeholder={t('matchPage.select_match_status')} />
                 </SelectTrigger>
-                <SelectContent className="bg-vista-dark border-vista-secondary/30">
+                <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light custom-scrollbar">
                   <SelectItem value="SCHEDULED" className="text-vista-light">{t('matchPage.scheduled')}</SelectItem>
                   <SelectItem value="FINISHED" className="text-vista-light">{t('matchPage.finished')}</SelectItem>
                 </SelectContent>
@@ -1456,10 +1456,10 @@ export default function MatchDetailsPage() {
                 value={editForm.isHome ? 'HOME' : 'AWAY'}
                 onValueChange={v => handleEditFormChange('isHome', v === 'HOME')}
               >
-                <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30">
+                <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30 hover:border-vista-primary/50 focus:border-vista-primary transition-all duration-200 group">
                   <SelectValue placeholder={t('matchPage.select_match_type')} />
                 </SelectTrigger>
-                <SelectContent className="bg-vista-dark border-vista-secondary/30">
+                <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light custom-scrollbar">
                   <SelectItem value="HOME" className="text-vista-light">{t('matchPage.home_match')}</SelectItem>
                   <SelectItem value="AWAY" className="text-vista-light">{t('matchPage.away_match')}</SelectItem>
                 </SelectContent>

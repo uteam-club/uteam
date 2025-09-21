@@ -1,6 +1,5 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { gpsProfile } from "@/db/schema/gpsProfile";
 import { gpsReport } from "@/db/schema/gpsReport";
 import { gpsColumnMapping } from "@/db/schema/gpsColumnMapping";
 import { team } from "@/db/schema/team";
@@ -13,14 +12,7 @@ export class OwnershipError extends Error {
   constructor(message = "Not found or not owned by this club") { super(message); }
 }
 
-// Профиль принадлежит клубу?
-export async function ensureProfileOwned(profileId: string, clubId: string) {
-  const row = await db.select().from(gpsProfile)
-    .where(and(eq(gpsProfile.id, profileId), eq(gpsProfile.clubId, clubId)))
-    .limit(1);
-  if (!row.length) throw new OwnershipError("Profile not found in this club");
-  return row[0];
-}
+// TODO: Profile ownership check will be implemented later
 
 // Отчёт принадлежит клубу?
 export async function ensureReportOwned(reportId: string, clubId: string) {
@@ -31,18 +23,7 @@ export async function ensureReportOwned(reportId: string, clubId: string) {
   return row[0];
 }
 
-// Маппинг -> профиль -> клуб
-export async function ensureMappingOwned(mappingId: string, clubId: string) {
-  const rows = await db.select({
-    id: gpsColumnMapping.id,
-    gpsProfileId: gpsColumnMapping.gpsProfileId,
-  }).from(gpsColumnMapping)
-    .where(eq(gpsColumnMapping.id, mappingId))
-    .limit(1);
-  if (!rows.length) throw new OwnershipError("Mapping not found");
-  await ensureProfileOwned(rows[0].gpsProfileId, clubId);
-  return rows[0];
-}
+// TODO: Mapping ownership check will be implemented later
 
 export async function ensureTeamOwned(teamId: string, clubId: string) {
   const rows = await db.select({ id: team.id }).from(team)
