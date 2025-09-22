@@ -64,4 +64,4 @@ export const GPS_CONSTANTS = {
     'application/xml', // .xml
   ],
   SUPPORTED_EXTENSIONS: ['.xlsx', '.xls', '.csv', '.json', '.xml'],
-} as const;
+};
