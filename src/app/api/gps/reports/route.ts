@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
     const [newReport] = await db.insert(gpsReport).values({
       name: `${eventType === 'training' ? 'Тренировка' : 'Матч'} ${new Date().toLocaleDateString('ru-RU')}`,
       fileName: fileName,
-      fileSize: fileSize,
+      fileSize: file?.size || 0,
       gpsSystem,
       eventType: eventType as 'training' | 'match',
       eventId,
