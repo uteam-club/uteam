@@ -523,6 +523,18 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
       setColumnMappings(sortedMappings);
 
 
+      // Отладка: проверяем, что извлечено
+      console.log('🔍 Отладка маппинга игроков:');
+      console.log('📊 Всего строк в файле:', parsed.rows.length);
+      console.log('👥 Извлечено имен игроков:', parsed.playerNames.length);
+      console.log('📝 Имена игроков:', parsed.playerNames);
+      
+      // Проверяем, есть ли "SUM" в извлеченных именах
+      const hasSum = parsed.playerNames.includes('SUM');
+      const hasAverage = parsed.playerNames.includes('Average');
+      console.log('🔍 Есть ли "SUM" в именах:', hasSum);
+      console.log('🔍 Есть ли "Average" в именах:', hasAverage);
+
       // Создаем умные маппинги игроков
       if (players.length > 0) {
         const playerMatches = matchPlayers(parsed.playerNames, players);

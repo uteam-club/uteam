@@ -319,6 +319,8 @@ export class GpsFileParser {
   private static extractPlayerNames(rows: Record<string, any>[]): string[] {
     const playerNames = new Set<string>();
     
+    console.log('🔍 extractPlayerNames: Всего строк для обработки:', rows.length);
+    
     // Ищем колонки, которые могут содержать имена игроков
     const possibleNameColumns = [
       'Player', 'player', 'Игрок', 'игрок', 'Name', 'name', 'Имя', 'имя',
@@ -331,11 +333,23 @@ export class GpsFileParser {
           if (typeof value === 'string' && value.trim()) {
             const trimmedValue = value.trim();
             playerNames.add(trimmedValue);
+            console.log('🔍 Найдено имя игрока:', trimmedValue);
           }
         }
       }
     }
-    return Array.from(playerNames);
+    
+    const result = Array.from(playerNames);
+    console.log('🔍 extractPlayerNames: Итого извлечено имен:', result.length);
+    console.log('🔍 extractPlayerNames: Все имена:', result);
+    
+    // Проверяем конкретно SUM и Average
+    const hasSum = result.includes('SUM');
+    const hasAverage = result.includes('Average');
+    console.log('🔍 Есть ли "SUM":', hasSum);
+    console.log('🔍 Есть ли "Average":', hasAverage);
+    
+    return result;
   }
 
   /**
