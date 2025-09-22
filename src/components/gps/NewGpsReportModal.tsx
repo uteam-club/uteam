@@ -17,79 +17,6 @@ import { GpsErrorHandler, GpsFileError } from '@/lib/gps-errors';
 import { matchPlayers, getRecommendedMatch, PlayerMappingGroup, PlayerMatch } from '@/lib/player-name-matcher';
 import { gpsLogger } from '@/lib/logger';
 
-// Функция для определения технических строк (дублируем логику из GpsFileParser)
-function isServiceRow(row: Record<string, any>): boolean {
-  // Ищем колонку с именами игроков
-  const possibleNameColumns = [
-    'Player', 'player', 'Игрок', 'игрок', 'Name', 'name', 'Имя', 'имя',
-    'Player Name', 'player_name', 'Имя игрока', 'имя_игрока'
-  ];
-
-  const playerColumn = Object.keys(row).find(key => 
-    possibleNameColumns.some(col => key.toLowerCase().includes(col.toLowerCase()))
-  );
-  
-  if (!playerColumn) {
-    return false;
-  }
-
-  const playerValue = row[playerColumn];
-  if (typeof playerValue !== 'string') {
-    return false;
-  }
-
-  const playerName = playerValue.trim().toLowerCase();
-  
-  // Список служебных значений
-  const serviceValues = [
-    // Русские
-    'среднее', 'среднее значение', 'среднее знач', 'средн', 'сред',
-    'сумма', 'сум', 'сумм', 'суммарное', 'суммарное значение',
-    'итого', 'итог', 'итоговое', 'итоговое значение',
-    'всего', 'всего игроков', 'общее', 'общее значение',
-    'среднеарифметическое', 'среднеарифм', 'среднеариф',
-    'агрегат', 'агрегация', 'агрегированное',
-    'статистика', 'стат', 'статистические данные',
-    'результат', 'результаты', 'результ',
-    'n/a', 'na', 'n/a', 'не применимо', 'не применим',
-    '-', '—', '–', 'нет данных', 'нет данных',
-    'пусто', 'пустая строка', 'пустая',
-    'заголовок', 'header', 'заголовки',
-    'подвал', 'footer', 'подвал таблицы',
-    
-    // Английские
-    'average', 'avg', 'mean', 'среднее',
-    'sum', 'total', 'tot', 'сумма',
-    'total', 'итого', 'всего',
-    'aggregate', 'agg', 'агрегат',
-    'statistics', 'stats', 'статистика',
-    'result', 'results', 'результат',
-    'summary', 'summ', 'краткое',
-    'overview', 'обзор', 'сводка',
-    'header', 'заголовок',
-    'footer', 'подвал',
-    'n/a', 'na', 'not applicable',
-    'empty', 'пусто',
-    'blank', 'пустая строка',
-    
-    // Другие языки
-    'moyenne', 'среднее', // французский
-    'promedio', 'среднее', // испанский
-    'durchschnitt', 'среднее', // немецкий
-    'media', 'среднее', // итальянский
-    'gemiddelde', 'среднее', // голландский
-  ];
-
-  // Дополнительная проверка для точного совпадения с техническими строками
-  const exactMatches = ['average', 'sum', 'total', 'итого', 'среднее', 'сумма'];
-  if (exactMatches.includes(playerName)) {
-    return true;
-  }
-
-  return serviceValues.some(serviceValue => 
-    playerName.includes(serviceValue.toLowerCase())
-  );
-}
 
 // Компоненты для новых иконок
 const CircleStarIcon = ({ className }: { className?: string }) => (
@@ -327,7 +254,7 @@ function PlayerMappingCard({
   selectedPlayerId?: string;
   onPlayerSelect: (playerId: string) => void;
   similarity: number;
-  matchLevel: 'manual' | 'high' | 'medium' | 'low' | 'technical' | 'none';
+  matchLevel: 'manual' | 'high' | 'medium' | 'low' | 'none';
   selectedPlayerMappings: Record<string, string>;
 }) {
   const selectedPlayer = players.find(p => p.id === selectedPlayerId);
@@ -349,7 +276,6 @@ function PlayerMappingCard({
       case 'high': return 'bg-green-500/20 text-green-300 border-green-500/30';
       case 'medium': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
       case 'low': return 'bg-orange-500/20 text-orange-300 border-orange-500/30';
-      case 'technical': return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
       case 'none': return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
       default: return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
     }
@@ -372,17 +298,10 @@ function PlayerMappingCard({
       </div>
 
       {/* Процент сходства или статус */}
-      {actualMatchLevel !== 'none' && actualMatchLevel !== 'technical' && (
+      {actualMatchLevel !== 'none' && (
         <div className="flex items-center gap-1">
           <Badge className={`${getSimilarityColor(actualMatchLevel)} text-xs px-2 py-0.5`}>
             {similarity}%
-          </Badge>
-        </div>
-      )}
-      {actualMatchLevel === 'technical' && (
-        <div className="flex items-center gap-1">
-          <Badge className={`${getSimilarityColor(actualMatchLevel)} text-xs px-2 py-0.5`}>
-            Техническая
           </Badge>
         </div>
       )}
@@ -390,10 +309,7 @@ function PlayerMappingCard({
       {/* Сопоставленное имя */}
       <div className="flex-1 min-w-0">
         <div className={`text-xs transition-colors duration-200 truncate ${actualMatchLevel === 'none' ? 'text-vista-light/30 group-hover:text-vista-light' : 'text-vista-light'}`}>
-          {actualMatchLevel === 'technical' 
-            ? 'Техническая строка' 
-            : (selectedPlayerId && selectedPlayerId !== 'no-mapping' && selectedPlayer ? selectedPlayer.name : 'Без привязки')
-          }
+          {selectedPlayerId && selectedPlayerId !== 'no-mapping' && selectedPlayer ? selectedPlayer.name : 'Без привязки'}
         </div>
       </div>
 
@@ -402,7 +318,6 @@ function PlayerMappingCard({
         <Select
           value={selectedPlayerId === '' ? 'no-mapping' : (selectedPlayerId || 'no-mapping')}
           onValueChange={onPlayerSelect}
-          disabled={actualMatchLevel === 'technical'}
         >
           <SelectTrigger className={`h-8 text-xs shadow-sm border-vista-secondary/50 focus:outline-none focus:ring-0 transition-all duration-200 ${
             actualMatchLevel === 'none' 
@@ -607,17 +522,6 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
       
       setColumnMappings(sortedMappings);
 
-      // Отладка: проверяем, что извлечено
-      console.log('🔍 Отладка маппинга игроков:');
-      console.log('📊 Всего строк в файле:', parsed.rows.length);
-      console.log('👥 Извлечено имен игроков:', parsed.playerNames.length);
-      console.log('📝 Имена игроков:', parsed.playerNames);
-      
-      // Проверяем, есть ли "SUM" в извлеченных именах
-      const hasSum = parsed.playerNames.includes('SUM');
-      const hasAverage = parsed.playerNames.includes('Average');
-      console.log('🔍 Есть ли "SUM" в именах:', hasSum);
-      console.log('🔍 Есть ли "Average" в именах:', hasAverage);
 
       // Создаем умные маппинги игроков
       if (players.length > 0) {
@@ -627,38 +531,12 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
         // Автоматически выбираем рекомендуемые сопоставления
         const autoMappings: Record<string, string> = {};
         parsed.playerNames.forEach(playerName => {
-          // Проверяем, является ли строка технической
-          const isTechnicalRow = parsed.rows.some(row => {
-            const possibleNameColumns = [
-              'Player', 'player', 'Игрок', 'игрок', 'Name', 'name', 'Имя', 'имя',
-              'Player Name', 'player_name', 'Имя игрока', 'имя_игрока'
-            ];
-            const playerColumn = Object.keys(row).find(key => 
-              possibleNameColumns.some(col => key.toLowerCase().includes(col.toLowerCase()))
-            );
-            return playerColumn && row[playerColumn] === playerName;
-          }) && isServiceRow(parsed.rows.find(row => {
-            const possibleNameColumns = [
-              'Player', 'player', 'Игрок', 'игрок', 'Name', 'name', 'Имя', 'имя',
-              'Player Name', 'player_name', 'Имя игрока', 'имя_игрока'
-            ];
-            const playerColumn = Object.keys(row).find(key => 
-              possibleNameColumns.some(col => key.toLowerCase().includes(col.toLowerCase()))
-            );
-            return playerColumn && row[playerColumn] === playerName;
-          }) || {});
-
-          if (isTechnicalRow) {
-            // Для технических строк всегда устанавливаем "Без привязки"
-            autoMappings[playerName] = '';
+          const recommended = getRecommendedMatch(playerName, playerMatches[playerName]);
+          if (recommended && recommended.matchLevel !== 'none') {
+            autoMappings[playerName] = recommended.playerId;
           } else {
-            const recommended = getRecommendedMatch(playerName, playerMatches[playerName]);
-            if (recommended && recommended.matchLevel !== 'none') {
-              autoMappings[playerName] = recommended.playerId;
-            } else {
-              // Если нет рекомендации, устанавливаем "Без привязки" (пустая строка)
-              autoMappings[playerName] = '';
-            }
+            // Если нет рекомендации, устанавливаем "Без привязки" (пустая строка)
+            autoMappings[playerName] = '';
           }
         });
         setSelectedPlayerMappings(autoMappings);
@@ -1463,33 +1341,14 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
                       high: [] as Array<{filePlayerName: string, groups: PlayerMappingGroup, similarity: number}>,
                       medium: [] as Array<{filePlayerName: string, groups: PlayerMappingGroup, similarity: number}>,
                       low: [] as Array<{filePlayerName: string, groups: PlayerMappingGroup, similarity: number}>,
-                      technical: [] as Array<{filePlayerName: string, groups: PlayerMappingGroup, similarity: number}>,
                       none: [] as Array<{filePlayerName: string, groups: PlayerMappingGroup, similarity: number}>
                     };
 
                     Object.entries(playerMappings).forEach(([filePlayerName, groups]) => {
                       const selectedPlayerId = selectedPlayerMappings[filePlayerName];
                       
-                      // Проверяем, является ли строка технической
-                      const matchingRow = parsedData?.rows.find(row => {
-                        const possibleNameColumns = [
-                          'Player', 'player', 'Игрок', 'игрок', 'Name', 'name', 'Имя', 'имя',
-                          'Player Name', 'player_name', 'Имя игрока', 'имя_игрока'
-                        ];
-                        const playerColumn = Object.keys(row).find(key => 
-                          possibleNameColumns.some(col => key.toLowerCase().includes(col.toLowerCase()))
-                        );
-                        return playerColumn && row[playerColumn] === filePlayerName;
-                      });
-                      
-                      const isTechnicalRow = matchingRow && isServiceRow(matchingRow);
-
-                      // Если это техническая строка, помещаем в специальную группу
-                      if (isTechnicalRow) {
-                        groupedPlayers.technical.push({ filePlayerName, groups, similarity: 0 });
-                      }
                       // Если пользователь выбрал "Без привязки" (пустая строка), перемещаем в группу "none"
-                      else if (selectedPlayerId === '' || selectedPlayerId === undefined) {
+                      if (selectedPlayerId === '' || selectedPlayerId === undefined) {
                         groupedPlayers.none.push({ filePlayerName, groups, similarity: 0 });
                       } 
                       // Если игрок был выбран вручную (не автоматически), помещаем в группу "manual"
@@ -1651,52 +1510,6 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
                           </div>
                         )}
 
-                        {/* Технические строки */}
-                        {groupedPlayers.technical.length > 0 && (
-                          <div>
-                            <div className="flex items-center gap-2 mb-2 p-2 bg-purple-500/20 rounded-md">
-                              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                              <h4 className="text-sm font-semibold text-purple-300">
-                                Технические строки ({groupedPlayers.technical.length})
-                              </h4>
-                            </div>
-                            <div className="space-y-1">
-                              {groupedPlayers.technical.map(({ filePlayerName, groups, similarity }) => {
-                                const selectedPlayerId = selectedPlayerMappings[filePlayerName];
-                                const actualMatchLevel = 'technical';
-                                return (
-                                  <PlayerMappingCard
-                                    key={filePlayerName}
-                                    filePlayerName={filePlayerName}
-                                    groups={groups}
-                                    players={players}
-                                    selectedPlayerId={selectedPlayerId}
-                                    onPlayerSelect={(playerId) => {
-                                      setSelectedPlayerMappings(prev => ({
-                                        ...prev,
-                                        [filePlayerName]: playerId === 'no-mapping' ? '' : playerId
-                                      }));
-                                      // Если выбрали конкретного игрока, добавляем в ручные выборы
-                                      if (playerId !== 'no-mapping') {
-                                        setManualPlayerMappings(prev => new Set([...prev, filePlayerName]));
-                                      } else {
-                                        // Если выбрали "Без привязки", убираем из ручных выборов
-                                        setManualPlayerMappings(prev => {
-                                          const newSet = new Set(prev);
-                                          newSet.delete(filePlayerName);
-                                          return newSet;
-                                        });
-                                      }
-                                    }}
-                                    similarity={similarity}
-                                    matchLevel={actualMatchLevel}
-                                    selectedPlayerMappings={selectedPlayerMappings}
-                                  />
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
 
                         {/* Без привязки */}
                         {groupedPlayers.none.length > 0 && (
