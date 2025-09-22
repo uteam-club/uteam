@@ -329,12 +329,12 @@ export class GpsFileParser {
       for (const [key, value] of Object.entries(row)) {
         if (possibleNameColumns.some(col => key.toLowerCase().includes(col.toLowerCase()))) {
           if (typeof value === 'string' && value.trim()) {
-            playerNames.add(value.trim());
+            const trimmedValue = value.trim();
+            playerNames.add(trimmedValue);
           }
         }
       }
     }
-
     return Array.from(playerNames);
   }
 
@@ -402,6 +402,12 @@ export class GpsFileParser {
       'media', 'среднее', // итальянский
       'gemiddelde', 'среднее', // голландский
     ];
+
+    // Дополнительная проверка для точного совпадения с техническими строками
+    const exactMatches = ['average', 'sum', 'total', 'итого', 'среднее', 'сумма'];
+    if (exactMatches.includes(playerName)) {
+      return true;
+    }
 
     return serviceValues.some(serviceValue => 
       playerName.includes(serviceValue.toLowerCase())
