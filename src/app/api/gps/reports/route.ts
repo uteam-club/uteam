@@ -9,15 +9,47 @@ import { team } from '@/db/schema/team';
 import { training } from '@/db/schema/training';
 import { match } from '@/db/schema/match';
 import { trainingCategory } from '@/db/schema/trainingCategory';
-import { eq, and, sql, desc } from 'drizzle-orm';
+import { playerGameModel } from '@/db/schema/playerGameModel';
+import { eq, and, sql, desc, inArray, count } from 'drizzle-orm';
 import { convertUnit } from '@/lib/unit-converter';
+import { canAccessGpsReport } from '@/lib/gps-permissions';
+import {
+  validateRequiredFields,
+  validateGpsData,
+  sanitizeObject,
+  validateFile,
+  isValidId
+} from '@/lib/validation';
+import { GPS_CONSTANTS } from '@/lib/gps-constants';
+import { ApiErrorHandler } from '@/lib/api-error-handler';
+import { parsePaginationParams, createPaginatedResponse } from '@/lib/pagination';
+import { withApiCache } from '@/lib/api-cache-middleware';
 
 export async function GET(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  return withApiCache(request, async () => {
+    try {
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      // Проверяем разрешение на просмотр GPS отчетов
+      const canView = await canAccessGpsReport(
+        session.user.id,
+        session.user.clubId || 'default-club',
+        null,
+        'view'
+      );
+
+      if (!canView) {
+        return NextResponse.json({
+          error: 'Forbidden',
+          message: 'У вас нет прав для просмотра GPS отчетов'
+        }, { status: 403 });
+      }
+
+      // Парсим параметры пагинации
+      const pagination = parsePaginationParams(request);
 
     const { searchParams } = new URL(request.url);
     const teamId = searchParams.get('teamId');
@@ -107,13 +139,11 @@ export async function GET(request: NextRequest) {
       }))
     });
 
-  } catch (error) {
-    console.error('Error fetching GPS reports:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
-  }
+    } catch (error) {
+      const errorResponse = ApiErrorHandler.createErrorResponse(error, 'GET GPS reports');
+      return NextResponse.json(errorResponse, { status: errorResponse.statusCode });
+    }
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -123,62 +153,81 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Проверяем разрешение на создание GPS отчетов
+    const canCreate = await canAccessGpsReport(
+      session.user.id,
+      session.user.clubId || 'default-club',
+      null,
+      'edit'
+    );
+
+    if (!canCreate) {
+      return NextResponse.json({ 
+        error: 'Forbidden', 
+        message: 'У вас нет прав для создания GPS отчетов' 
+      }, { status: 403 });
+    }
+
     // Получаем канонические метрики
     const canonicalMetrics = await db.select().from(gpsCanonicalMetric);
     
-    console.log('API: Getting formData...');
     const startTime = Date.now();
     
-    // Используем ручной парсинг multipart для избежания блокировки
-    const body = await request.text();
-    const boundary = request.headers.get('content-type')?.split('boundary=')[1];
+    // Используем стандартный парсинг FormData
+    const formData = await request.formData();
+    const formDataTime = Date.now() - startTime;
     
-    if (!boundary) {
-      throw new Error('No boundary found in content-type');
+    // Валидация обязательных полей
+    const requiredFields = ['teamId', 'eventType', 'eventId', 'parsedData', 'columnMappings', 'playerMappings'];
+    const formDataObj = Object.fromEntries(formData.entries());
+    
+    if (!validateRequiredFields(formDataObj, requiredFields)) {
+      return NextResponse.json(
+        { error: 'Missing required fields', message: 'Отсутствуют обязательные поля' },
+        { status: 400 }
+      );
     }
-
-    const parts = body.split(`--${boundary}`);
-    const formData: Record<string, string> = {};
-    let fileName = '';
-    let fileSize = 0;
-
-    for (const part of parts) {
-      if (part.includes('Content-Disposition: form-data')) {
-        const nameMatch = part.match(/name="([^"]+)"/);
-        const filenameMatch = part.match(/filename="([^"]+)"/);
-        
-        if (nameMatch) {
-          const name = nameMatch[1];
-          const value = part.split('\r\n\r\n')[1]?.split('\r\n')[0];
-          
-          if (filenameMatch) {
-            fileName = filenameMatch[1];
-            const fileStart = part.indexOf('\r\n\r\n') + 4;
-            const fileEnd = part.lastIndexOf('\r\n');
-            fileSize = fileEnd - fileStart;
-          } else if (value) {
-            formData[name] = value;
-          }
-        }
+    
+    // Валидация ID
+    const teamId = formData.get('teamId') as string;
+    const eventId = formData.get('eventId') as string;
+    
+    if (!isValidId(teamId) || !isValidId(eventId)) {
+      return NextResponse.json(
+        { error: 'Invalid ID format', message: 'Некорректный формат ID' },
+        { status: 400 }
+      );
+    }
+    
+    const eventType = formData.get('eventType') as string;
+    const gpsSystem = formData.get('gpsSystem') as string;
+    const profileId = formData.get('profileId') as string;
+    const columnMappings = sanitizeObject(JSON.parse(formData.get('columnMappings') as string));
+    const playerMappings = sanitizeObject(JSON.parse(formData.get('playerMappings') as string));
+    const parsedData = sanitizeObject(JSON.parse(formData.get('parsedData') as string));
+    
+    // Валидация parsedData
+    if (!validateGpsData(parsedData)) {
+      return NextResponse.json(
+        { error: 'Invalid GPS data format', message: 'Некорректный формат GPS данных' },
+        { status: 400 }
+      );
+    }
+    
+    // Получаем файл из FormData
+    const file = formData.get('file') as File;
+    const fileName = file?.name || 'unknown_file';
+    
+    // Валидация файла
+    if (file) {
+      const fileValidation = validateFile(file, GPS_CONSTANTS.MAX_FILE_SIZE_MB, GPS_CONSTANTS.SUPPORTED_FILE_TYPES);
+      if (!fileValidation.valid) {
+        return NextResponse.json(
+          { error: 'File validation failed', message: fileValidation.error },
+          { status: 400 }
+        );
       }
     }
-
-    const formDataTime = Date.now() - startTime;
-    console.log(`API: FormData parsed in ${formDataTime}ms, processing...`);
-    
-    const teamId = formData.teamId;
-    const eventType = formData.eventType;
-    const eventId = formData.eventId;
-    const gpsSystem = formData.gpsSystem;
-    const profileId = formData.profileId;
-    const columnMappings = JSON.parse(formData.columnMappings);
-    const playerMappings = JSON.parse(formData.playerMappings);
-    const parsedData = JSON.parse(formData.parsedData);
-    
-    console.log('API: Data parsed, starting processing...');
-    console.log('API: Column mappings count:', columnMappings.length);
-    console.log('API: Player mappings count:', playerMappings.length);
-    console.log('API: Parsed data rows count:', parsedData.rows.length);
 
     // Проверяем, что данные корректны
     if (!Array.isArray(columnMappings)) {
@@ -249,16 +298,12 @@ export async function POST(request: NextRequest) {
     let totalMetrics = 0;
     const allReportData: any[] = [];
 
-    console.log('API: Starting player processing...');
-    console.log('API: Total players to process:', playerMappings.length);
 
     for (const player of playerMappings) {
       if (!player.playerId || player.similarity === 'not_found' || player.similarity === 'none') {
-        console.log(`API: Skipping player ${player.filePlayerName} - no playerId or similarity: ${player.similarity}`);
         continue;
       }
       
-      console.log(`API: Processing player ${player.filePlayerName}...`);
 
       const playerMetrics: Record<string, { value: number | string; unit: string }> = {};
       
@@ -332,7 +377,6 @@ export async function POST(request: NextRequest) {
             // Специальная обработка для времени в различных форматах
             canonicalValue = Number(convertUnit(rawValue, mapping.sourceUnit, canonicalMetric.canonicalUnit));
             if (isNaN(canonicalValue)) {
-              console.log(`Failed to parse time: ${rawValue} with format: ${mapping.sourceUnit}`);
               continue;
             }
           } else if (mapping.sourceUnit === 'string') {
@@ -343,7 +387,6 @@ export async function POST(request: NextRequest) {
             canonicalValue = Number(convertUnit(Number(rawValue), mapping.sourceUnit, canonicalMetric.canonicalUnit));
           }
         } catch (error) {
-          console.log(`Error processing value: ${rawValue} with unit: ${mapping.sourceUnit}, error: ${error}`);
           continue;
         }
         
@@ -388,10 +431,8 @@ export async function POST(request: NextRequest) {
       }
       
       processedPlayers++;
-      console.log(`API: Player ${player.filePlayerName} processed with ${Object.keys(playerMetrics).length} metrics`);
     }
 
-    console.log(`API: Processed ${processedPlayers} players with ${totalMetrics} total metrics`);
 
 
     // Выполняем batch insert всех данных отчета
@@ -405,7 +446,178 @@ export async function POST(request: NextRequest) {
     }
 
     const totalTime = Date.now() - startTime;
-    console.log(`API: Report created successfully in ${totalTime}ms, returning response...`);
+    
+    // Автоматический расчет игровых моделей для команды
+    try {
+      
+      // Получаем игроков из GPS данных
+      const playerIds = [...new Set(allReportData.map(row => row.playerId))];
+      
+      if (playerIds.length > 0) {
+        // Получаем матчи команды
+        const teamMatches = await db
+          .select({ id: match.id })
+          .from(match)
+          .where(eq(match.teamId, teamId))
+          .orderBy(desc(match.date))
+          .limit(10);
+
+        if (teamMatches.length > 0) {
+          const matchIds = teamMatches.map(m => m.id);
+          
+          // Получаем GPS отчеты для матчей
+          const gpsReports = await db
+            .select({ id: gpsReport.id, eventId: gpsReport.eventId })
+            .from(gpsReport)
+            .where(and(
+              eq(gpsReport.eventType, 'match'),
+              inArray(gpsReport.eventId, matchIds),
+              eq(gpsReport.clubId, session.user.clubId || 'default-club')
+            ));
+
+          if (gpsReports.length > 0) {
+            const reportIds = gpsReports.map(r => r.id);
+            
+            // Рассчитываем модели для каждого игрока
+            let successCount = 0;
+            for (const playerId of playerIds) {
+              try {
+                // Получаем данные игрока
+                const playerData = await db
+                  .select({
+                    canonicalMetric: gpsReportData.canonicalMetric,
+                    value: gpsReportData.value,
+                    eventId: gpsReport.eventId
+                  })
+                  .from(gpsReportData)
+                  .leftJoin(gpsReport, eq(gpsReportData.gpsReportId, gpsReport.id))
+                  .where(and(
+                    eq(gpsReportData.playerId, playerId),
+                    inArray(gpsReportData.gpsReportId, reportIds),
+                    eq(gpsReportData.canonicalMetric, 'duration')
+                  ));
+
+                if (playerData.length > 0) {
+                  // Группируем по матчам
+                  const matchData = new Map();
+                  playerData.forEach(row => {
+                    if (!matchData.has(row.eventId)) {
+                      matchData.set(row.eventId, {});
+                    }
+                    matchData.get(row.eventId).duration = parseFloat(row.value) || 0;
+                  });
+
+                  // Фильтруем матчи с 60+ минутами
+                  const validMatches: Array<{ eventId: string; duration: number }> = [];
+                  matchData.forEach((metrics, eventId) => {
+                    const duration = metrics.duration || 0;
+                    if (duration >= 3600) { // 60 минут в секундах
+                      validMatches.push({ eventId, duration });
+                    }
+                  });
+
+                  if (validMatches.length > 0) {
+                    const totalMinutes = validMatches.reduce((sum, { duration }) => sum + (duration / 60), 0);
+                    
+                    // Получаем все метрики для расчета модели
+                    const allPlayerData = await db
+                      .select({
+                        canonicalMetric: gpsReportData.canonicalMetric,
+                        value: gpsReportData.value,
+                        eventId: gpsReport.eventId
+                      })
+                      .from(gpsReportData)
+                      .leftJoin(gpsReport, eq(gpsReportData.gpsReportId, gpsReport.id))
+                      .where(and(
+                        eq(gpsReportData.playerId, playerId),
+                        inArray(gpsReportData.gpsReportId, reportIds),
+                        inArray(gpsReportData.canonicalMetric, [
+                          'hsr_percentage', 'total_distance', 'time_in_speed_zone1', 'time_in_speed_zone2',
+                          'time_in_speed_zone3', 'time_in_speed_zone4', 'time_in_speed_zone5', 'time_in_speed_zone6',
+                          'speed_zone1_entries', 'speed_zone2_entries', 'speed_zone3_entries', 'speed_zone4_entries',
+                          'speed_zone5_entries', 'speed_zone6_entries', 'sprints_count', 'acc_zone1_count',
+                          'player_load', 'power_score', 'work_ratio', 'distance_zone1', 'distance_zone2',
+                          'distance_zone3', 'distance_zone4', 'distance_zone5', 'distance_zone6',
+                          'hsr_distance', 'sprint_distance', 'distance_per_min', 'time_in_hr_zone1',
+                          'time_in_hr_zone2', 'time_in_hr_zone3', 'time_in_hr_zone4', 'time_in_hr_zone5',
+                          'time_in_hr_zone6', 'dec_zone1_count', 'dec_zone2_count', 'dec_zone3_count',
+                          'dec_zone4_count', 'dec_zone5_count', 'dec_zone6_count', 'hml_distance',
+                          'explosive_distance', 'acc_zone2_count', 'acc_zone3_count', 'acc_zone4_count',
+                          'acc_zone5_count', 'acc_zone6_count', 'impacts_count'
+                        ])
+                      ));
+
+                    // Группируем данные по матчам
+                    const matchMetrics = new Map();
+                    allPlayerData.forEach(row => {
+                      if (!matchMetrics.has(row.eventId)) {
+                        matchMetrics.set(row.eventId, {});
+                      }
+                      matchMetrics.get(row.eventId)[row.canonicalMetric] = parseFloat(row.value) || 0;
+                    });
+
+                    // Рассчитываем средние метрики (нормализованные к 90 минутам)
+                    const averageMetrics: Record<string, number> = {};
+                    const metricKeys = Object.keys(matchMetrics.get(validMatches[0].eventId) || {});
+                    
+                    metricKeys.forEach(metric => {
+                      if (metric === 'duration') return; // Пропускаем duration
+                      
+                      let totalValue = 0;
+                      let validCount = 0;
+                      
+                      validMatches.forEach(({ eventId, duration }) => {
+                        const matchData = matchMetrics.get(eventId);
+                        if (matchData) {
+                          const value = matchData[metric] || 0;
+                          if (value > 0) {
+                            // Нормализация к 90 минутам
+                            const normalizedValue = (value / (duration / 60)) * 90;
+                            totalValue += normalizedValue;
+                            validCount++;
+                          }
+                        }
+                      });
+                      
+                      if (validCount > 0) {
+                        averageMetrics[metric] = totalValue / validCount;
+                      }
+                    });
+                    
+                    // Удаляем существующую модель
+                    await db
+                      .delete(playerGameModel)
+                      .where(and(
+                        eq(playerGameModel.playerId, playerId),
+                        eq(playerGameModel.clubId, session.user.clubId || 'default-club')
+                      ));
+                    
+                    // Сохраняем новую модель с рассчитанными метриками
+                    await db.insert(playerGameModel).values({
+                      playerId,
+                      clubId: session.user.clubId || 'default-club',
+                      matchesCount: validMatches.length,
+                      totalMinutes: Math.round(totalMinutes),
+                      metrics: averageMetrics,
+                      matchIds: validMatches.map(m => m.eventId),
+                      version: 1
+                    });
+                    
+                    successCount++;
+                  }
+                }
+              } catch (error) {
+                console.error(`Ошибка расчета для игрока ${playerId}:`, error);
+              }
+            }
+            
+          }
+        }
+      }
+    } catch (error) {
+      console.error('⚠️ Ошибка при автоматическом расчете игровых моделей:', error);
+      // Не прерываем выполнение, так как отчет уже создан
+    }
     
     return NextResponse.json({ 
       success: true, 
@@ -414,14 +626,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error creating GPS report:', error);
-    console.error('Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    const errorResponse = ApiErrorHandler.createErrorResponse(error, 'POST GPS report');
+    return NextResponse.json(errorResponse, { status: errorResponse.statusCode });
   }
 }

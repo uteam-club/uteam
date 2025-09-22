@@ -39,7 +39,7 @@ export function GpsProfilesTab() {
         setProfiles(data);
       }
     } catch (error) {
-      console.error('Error loading profiles:', error);
+      gpsLogger.error('Component', 'Error loading profiles:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось загрузить профили',
@@ -95,7 +95,7 @@ export function GpsProfilesTab() {
         throw new Error('Ошибка при удалении профиля');
       }
     } catch (error) {
-      console.error('Error deleting profile:', error);
+      gpsLogger.error('Component', 'Error deleting profile:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось удалить профиль',

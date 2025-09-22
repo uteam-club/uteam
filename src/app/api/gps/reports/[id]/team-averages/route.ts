@@ -4,58 +4,8 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
 import { db } from '@/lib/db';
 import { gpsReport, gpsReportData, gpsVisualizationProfile, gpsProfileColumn, gpsCanonicalMetric, training, trainingCategory, match } from '@/db/schema';
 import { eq, and, gte, desc, inArray, ne } from 'drizzle-orm';
-
-// Список метрик, которые можно усреднять (полный список из анализа)
-const AVERAGEABLE_METRICS = [
-  'hsr_percentage',
-  'total_distance',
-  'time_in_speed_zone1',
-  'time_in_speed_zone2',
-  'time_in_speed_zone3',
-  'time_in_speed_zone4',
-  'time_in_speed_zone5',
-  'time_in_speed_zone6',
-  'speed_zone1_entries',
-  'speed_zone2_entries',
-  'speed_zone3_entries',
-  'speed_zone4_entries',
-  'speed_zone5_entries',
-  'speed_zone6_entries',
-  'sprints_count',
-  'acc_zone1_count',
-  'player_load',
-  'power_score',
-  'work_ratio',
-  'distance_zone1',
-  'distance_zone2',
-  'distance_zone3',
-  'distance_zone4',
-  'distance_zone5',
-  'distance_zone6',
-  'hsr_distance',
-  'sprint_distance',
-  'distance_per_min',
-  'time_in_hr_zone1',
-  'time_in_hr_zone2',
-  'time_in_hr_zone3',
-  'time_in_hr_zone4',
-  'time_in_hr_zone5',
-  'time_in_hr_zone6',
-  'dec_zone1_count',
-  'dec_zone2_count',
-  'dec_zone3_count',
-  'dec_zone4_count',
-  'dec_zone5_count',
-  'dec_zone6_count',
-  'hml_distance',
-  'explosive_distance',
-  'acc_zone2_count',
-  'acc_zone3_count',
-  'acc_zone4_count',
-  'acc_zone5_count',
-  'acc_zone6_count',
-  'impacts_count'
-];
+import { canAccessGpsReport } from '@/lib/gps-permissions';
+import { AVERAGEABLE_METRICS } from '@/lib/gps-constants';
 
 export async function GET(
   request: NextRequest,
@@ -63,11 +13,6 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    console.log('Team averages API - Session:', { 
-      hasUser: !!session?.user, 
-      userId: session?.user?.id, 
-      clubId: session?.user?.clubId 
-    });
     
     if (!session?.user?.id || !session?.user?.clubId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -76,6 +21,21 @@ export async function GET(
     const reportId = params.id;
     const { searchParams } = new URL(request.url);
     const profileId = searchParams.get('profileId');
+    
+    // Проверяем права доступа к GPS отчету
+    const canAccess = await canAccessGpsReport(
+      session.user.id,
+      session.user.clubId,
+      null,
+      'view'
+    );
+    
+    if (!canAccess) {
+      return NextResponse.json({ 
+        error: 'Forbidden', 
+        message: 'У вас нет прав для просмотра GPS отчетов' 
+      }, { status: 403 });
+    }
 
     if (!profileId) {
       return NextResponse.json({ error: 'Profile ID is required' }, { status: 400 });
@@ -125,8 +85,6 @@ export async function GET(
     .leftJoin(gpsCanonicalMetric, eq(gpsProfileColumn.canonicalMetricId, gpsCanonicalMetric.id))
     .where(eq(gpsProfileColumn.profileId, profileId));
 
-    console.log('Profile columns loaded:', profileColumns.length);
-    console.log('Sample column:', profileColumns[0]);
 
     // Фильтруем только метрики, которые можно усреднять и сортируем по displayOrder
     const averageableColumns = profileColumns
@@ -135,10 +93,8 @@ export async function GET(
       )
       .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
-    console.log('Averageable columns found:', averageableColumns.length);
 
     if (averageableColumns.length === 0) {
-      console.log('No averageable columns found, returning empty response');
       return NextResponse.json({
         currentAverages: {},
         historicalAverages: {},
@@ -190,9 +146,6 @@ export async function GET(
     }
 
     // Получаем информацию о текущем событии
-    console.log('Current report data:', currentReport);
-    console.log('Event ID:', currentReport.eventId);
-    console.log('Event type:', currentReport.eventType);
     
     let currentEventInfo = null;
     let historicalReports = [];
@@ -206,7 +159,6 @@ export async function GET(
       .from(match)
       .where(eq(match.id, currentReport.eventId));
       
-      console.log('Current match found:', currentMatch);
 
       if (!currentMatch) {
         return NextResponse.json({
@@ -221,7 +173,7 @@ export async function GET(
         });
       }
 
-      // Получаем последние 10 матчей той же команды
+      // Получаем последние 10 матчей той же команды по дате проведения матча
       historicalReports = await db.select({
         id: gpsReport.id
       })
@@ -232,7 +184,7 @@ export async function GET(
         eq(match.teamId, currentMatch.teamId),
         ne(gpsReport.id, reportId) // Исключаем текущий отчет
       ))
-      .orderBy(desc(gpsReport.createdAt))
+      .orderBy(desc(match.date))
       .limit(10);
       
       currentEventInfo = {
@@ -251,7 +203,6 @@ export async function GET(
       .leftJoin(trainingCategory, eq(training.categoryId, trainingCategory.id))
       .where(eq(training.id, currentReport.eventId));
       
-      console.log('Current training found:', currentTraining);
 
       if (!currentTraining) {
         return NextResponse.json({
@@ -322,10 +273,15 @@ export async function GET(
       }
     }
 
+    // Проверяем, есть ли исторические данные для сравнения
+    const hasHistoricalData = Object.values(historicalAverages).some(value => value > 0);
+
     // Подсчитываем количество игроков в текущем отчете
     const playerCount = currentReportDataRows.length;
 
     // Подсчитываем количество событий и отчетов
+    // eventCount - количество уникальных матчей/тренировок
+    // reportCount - количество отчетов (может быть больше, если на одно событие несколько отчетов)
     const eventCount = historicalReports.length;
     const reportCount = historicalReportIds.length;
 
@@ -357,7 +313,8 @@ export async function GET(
         canAverage: true
       })),
       playerCount,
-      categoryInfo
+      categoryInfo,
+      hasHistoricalData
     });
 
   } catch (error) {

@@ -72,7 +72,7 @@ export function PlayerMappingStep({
         }
       }
     } catch (error) {
-      console.error('Error loading players:', error);
+      gpsLogger.error('Component', 'Error loading players:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось загрузить список игроков',

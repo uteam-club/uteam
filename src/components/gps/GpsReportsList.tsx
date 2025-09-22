@@ -78,11 +78,11 @@ export function GpsReportsList({ onEditReport, onDeleteReport, onViewHistory }: 
       if (data.success) {
         setReports(data.reports || []);
       } else {
-        console.error('Error fetching reports:', data.error);
+        gpsLogger.error('Component', 'Error fetching reports:', data.error);
         setReports([]);
       }
     } catch (error) {
-      console.error('Error fetching reports:', error);
+      gpsLogger.error('Component', 'Error fetching reports:', error);
       setReports([]);
     } finally {
       setLoading(false);
@@ -97,11 +97,11 @@ export function GpsReportsList({ onEditReport, onDeleteReport, onViewHistory }: 
       if (data.success) {
         setTeams(data.teams || []);
       } else {
-        console.error('Error fetching teams:', data.error);
+        gpsLogger.error('Component', 'Error fetching teams:', data.error);
         setTeams([]);
       }
     } catch (error) {
-      console.error('Error fetching teams:', error);
+      gpsLogger.error('Component', 'Error fetching teams:', error);
       setTeams([]);
     }
   };
@@ -140,7 +140,7 @@ export function GpsReportsList({ onEditReport, onDeleteReport, onViewHistory }: 
         throw new Error('Ошибка при удалении отчета');
       }
     } catch (error) {
-      console.error('Error deleting report:', error);
+      gpsLogger.error('Component', 'Error deleting report:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось удалить отчет. Попробуйте еще раз.',

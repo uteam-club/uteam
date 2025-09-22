@@ -24,7 +24,6 @@ export async function GET(
       .from(gpsReportData)
       .where(eq(gpsReportData.gpsReportId, reportId));
 
-    console.log('GPS Report Data API: Found', reportData.length, 'data records for report', reportId);
 
     // Получаем информацию об отчете
     const [report] = await db.select()
@@ -32,15 +31,12 @@ export async function GET(
       .where(eq(gpsReport.id, reportId));
 
     if (!report) {
-      console.log('GPS Report Data API: Report not found for ID', reportId);
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
-    console.log('GPS Report Data API: Report found:', report.name);
 
     // Если нет данных, возвращаем пустой массив
     if (reportData.length === 0) {
-      console.log('GPS Report Data API: No data found for report', reportId);
       return NextResponse.json({
         report: {
           id: report.id,
@@ -59,7 +55,6 @@ export async function GET(
     // Получаем уникальные ID игроков
     const playerIds = [...new Set(reportData.map(item => item.playerId))];
     
-    console.log('GPS Report Data API: Found', playerIds.length, 'unique players:', playerIds);
     
     // Создаем мапу игроков
     const playerMap = new Map();
@@ -72,7 +67,6 @@ export async function GET(
         lastName: player.lastName,
       }).from(player).where(inArray(player.id, playerIds));
       
-      console.log('GPS Report Data API: Loaded', players.length, 'players from database');
       
       for (const p of players) {
         playerMap.set(p.id, `${p.firstName} ${p.lastName}`);

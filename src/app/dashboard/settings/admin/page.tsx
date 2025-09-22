@@ -1142,17 +1142,52 @@ export default function AdminPage() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="users">Пользователи</TabsTrigger>
-          <TabsTrigger value="teams">Команды</TabsTrigger>
-          <TabsTrigger value="training-categories">Категории тренировок</TabsTrigger>
-          <TabsTrigger value="exercise-categories">Категории упражнений</TabsTrigger>
-          <TabsTrigger value="exercise-tags">Теги упражнений</TabsTrigger>
-          <TabsTrigger value="surveys">Опросники</TabsTrigger>
-          <TabsTrigger value="roles">Роли</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-7 bg-vista-dark/50 border border-vista-secondary/30 mb-6">
+          <TabsTrigger 
+            value="users" 
+            className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70"
+          >
+            Пользователи
+          </TabsTrigger>
+          <TabsTrigger 
+            value="teams" 
+            className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70"
+          >
+            Команды
+          </TabsTrigger>
+          <TabsTrigger 
+            value="training-categories" 
+            className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70"
+          >
+            Категории тренировок
+          </TabsTrigger>
+          <TabsTrigger 
+            value="exercise-categories" 
+            className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70"
+          >
+            Категории упражнений
+          </TabsTrigger>
+          <TabsTrigger 
+            value="exercise-tags" 
+            className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70"
+          >
+            Теги упражнений
+          </TabsTrigger>
+          <TabsTrigger 
+            value="surveys" 
+            className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70"
+          >
+            Опросники
+          </TabsTrigger>
+          <TabsTrigger 
+            value="roles" 
+            className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70"
+          >
+            Роли
+          </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="users" className="mt-6">
+        <TabsContent value="users">
           <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-vista-light">{t('adminPage.users')}</CardTitle>
@@ -1552,7 +1587,7 @@ export default function AdminPage() {
           )}
         </TabsContent>
         
-        <TabsContent value="teams" className="mt-6">
+        <TabsContent value="teams">
           <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-vista-light">{t('adminPage.teams')}</CardTitle>
@@ -1869,7 +1904,7 @@ export default function AdminPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="training-categories" className="mt-6">
+        <TabsContent value="training-categories">
           <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-vista-light">{t('adminPage.training_categories')}</CardTitle>
@@ -2104,7 +2139,7 @@ export default function AdminPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="exercise-categories" className="mt-6">
+        <TabsContent value="exercise-categories">
           <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-vista-light">{t('adminPage.exercise_categories')}</CardTitle>
@@ -2339,7 +2374,7 @@ export default function AdminPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="exercise-tags" className="mt-6">
+        <TabsContent value="exercise-tags">
           <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-vista-light">{t('adminPage.exercise_tags')}</CardTitle>
@@ -2620,7 +2655,7 @@ export default function AdminPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="surveys" className="mt-6">
+        <TabsContent value="surveys">
           {/* Управление подключением опросников для клуба */}
           <SurveyClubManagement />
         </TabsContent>

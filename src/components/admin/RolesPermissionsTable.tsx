@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, XMarkIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
@@ -45,7 +45,16 @@ export const RolesPermissionsTable: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
+
+  // Функция для переключения состояния секции
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
 
   // Маппинг ролей для отображения с поддержкой i18n
   const getRoleLabel = (role: string) => {
@@ -167,6 +176,13 @@ export const RolesPermissionsTable: React.FC = () => {
     const permissionIndex = rolePermissions[role].findIndex(p => p.permissionId === id);
     if (permissionIndex === -1) {
       console.error(`Разрешение ${id} не найдено для роли ${role}`);
+      return;
+    }
+    
+    // Блокируем редактирование административных разрешений
+    const permission = rolePermissions[role][permissionIndex];
+    if (permission.code === 'gps.admin.permissions' || permission.code === 'gps.admin.manage') {
+      console.warn(`Редактирование административного разрешения ${permission.code} заблокировано`);
       return;
     }
     
@@ -382,28 +398,40 @@ export const RolesPermissionsTable: React.FC = () => {
 
             {/* Содержимое таблицы */}
             <div className="divide-y divide-vista-secondary/20">
-              {Object.entries(groupedPermissions).map(([category, perms]) => (
-                <div key={category} className="bg-vista-dark/30">
-                  {/* Заголовок категории */}
-                  <div className="grid grid-cols-[250px_repeat(auto-fit,minmax(100px,1fr))] gap-0">
-                    <div className="p-2 border-r border-vista-secondary/30 bg-vista-secondary/20">
-                      <h4 className="text-vista-primary font-medium text-sm">
-                        {(() => {
-                          const categoryKey = PERMISSION_CATEGORIES[category as keyof typeof PERMISSION_CATEGORIES];
-                          if (categoryKey) {
-                            return t(`dropdown.${categoryKey}`, category);
-                          }
-                          return category;
-                        })()}
-                      </h4>
+              {Object.entries(groupedPermissions).map(([category, perms]) => {
+                const isExpanded = expandedCategories[category] ?? false;
+                return (
+                  <div key={category} className="bg-vista-dark/30">
+                    {/* Заголовок категории - кликабельный */}
+                    <div 
+                      className="grid grid-cols-[250px_repeat(auto-fit,minmax(100px,1fr))] gap-0 cursor-pointer hover:bg-vista-secondary/30 transition-colors"
+                      onClick={() => toggleCategory(category)}
+                    >
+                      <div className="p-2 border-r border-vista-secondary/30 bg-vista-secondary/20">
+                        <div className="flex items-center space-x-2">
+                          {isExpanded ? (
+                            <ChevronDownIcon className="h-4 w-4 text-vista-primary" />
+                          ) : (
+                            <ChevronRightIcon className="h-4 w-4 text-vista-primary" />
+                          )}
+                          <h4 className="text-vista-primary font-medium text-sm">
+                            {(() => {
+                              const categoryKey = PERMISSION_CATEGORIES[category as keyof typeof PERMISSION_CATEGORIES];
+                              if (categoryKey) {
+                                return t(`dropdown.${categoryKey}`, category);
+                              }
+                              return category;
+                            })()}
+                          </h4>
+                        </div>
+                      </div>
+                      {roles.map(role => (
+                        <div key={role} className="p-2 border-r border-vista-secondary/30 last:border-r-0 bg-vista-secondary/20" />
+                      ))}
                     </div>
-                    {roles.map(role => (
-                      <div key={role} className="p-2 border-r border-vista-secondary/30 last:border-r-0 bg-vista-secondary/20" />
-                    ))}
-                  </div>
 
-                  {/* Разрешения в категории */}
-                  {perms.map(perm => (
+                    {/* Разрешения в категории - показываются только если секция развернута */}
+                    {isExpanded && perms.map(perm => (
                     <div key={perm.id} className="grid grid-cols-[250px_repeat(auto-fit,minmax(100px,1fr))] gap-0 hover:bg-vista-secondary/10 transition-colors">
                       {/* Название разрешения */}
                       <div className="p-2 border-r border-vista-secondary/30">
@@ -430,21 +458,39 @@ export const RolesPermissionsTable: React.FC = () => {
                       {/* Переключатели для каждой роли */}
                       {roles.map(role => {
                         const isAllowed = getAllowed(perm.id, role);
+                        const isAdminPermission = perm.code === 'gps.admin.permissions' || perm.code === 'gps.admin.manage';
+                        const isDisabled = isAdminPermission && role !== 'SUPER_ADMIN';
+                        
                         return (
                           <div key={role} className="p-2 border-r border-vista-secondary/30 last:border-r-0 flex items-center justify-center">
-                            <Switch
-                              checked={isAllowed}
-                              onCheckedChange={() => handleToggle(perm.id, role)}
-                              className="data-[state=checked]:bg-vista-primary data-[state=unchecked]:bg-vista-secondary/50"
-                              aria-label={`${perm.description} для роли ${getRoleLabel(role)}`}
-                            />
+                            {isDisabled ? (
+                              <div className="flex flex-col items-center space-y-1">
+                                <Switch
+                                  checked={isAllowed}
+                                  disabled={true}
+                                  className="data-[state=checked]:bg-vista-primary/50 data-[state=unchecked]:bg-vista-secondary/30 opacity-50"
+                                  aria-label={`${perm.description} для роли ${getRoleLabel(role)} (заблокировано)`}
+                                />
+                                <span className="text-xs text-vista-light/50 text-center">
+                                  {role === 'SUPER_ADMIN' ? 'Системное' : 'Заблокировано'}
+                                </span>
+                              </div>
+                            ) : (
+                              <Switch
+                                checked={isAllowed}
+                                onCheckedChange={() => handleToggle(perm.id, role)}
+                                className="data-[state=checked]:bg-vista-primary data-[state=unchecked]:bg-vista-secondary/50"
+                                aria-label={`${perm.description} для роли ${getRoleLabel(role)}`}
+                              />
+                            )}
                           </div>
                         );
                       })}
                     </div>
-                  ))}
-                </div>
-              ))}
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

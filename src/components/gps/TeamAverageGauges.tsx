@@ -18,6 +18,7 @@ interface TeamAverageGaugesProps {
     reportCount: number;
     type?: 'training' | 'match';
   };
+  hasHistoricalData?: boolean;
   isLoading?: boolean;
 }
 
@@ -27,9 +28,10 @@ interface GaugeProps {
   displayName: string;
   displayUnit: string;
   isFirstTraining: boolean;
+  eventType?: 'training' | 'match';
 }
 
-function Gauge({ currentValue, historicalValue, displayName, displayUnit, isFirstTraining }: GaugeProps) {
+function Gauge({ currentValue, historicalValue, displayName, displayUnit, isFirstTraining, eventType }: GaugeProps) {
   // Вычисляем процент разницы
   const percentageDiff = isFirstTraining 
     ? 0 
@@ -42,7 +44,7 @@ function Gauge({ currentValue, historicalValue, displayName, displayUnit, isFirs
     ? 100 
     : percentageDiff >= 0 
       ? 100  // Полная заливка при разнице ≥ 0%
-      : Math.max(0, 100 + percentageDiff); // Частичная заливка при отрицательной разнице
+      : Math.max(0, 100 + percentageDiff); // Уменьшаем заливку при отрицательной разнице
 
   const radius = 50;
   const strokeWidth = 16; // Делаем еще жирнее
@@ -129,7 +131,9 @@ function Gauge({ currentValue, historicalValue, displayName, displayUnit, isFirs
           </div>
         </div>
         <div className="flex flex-col items-center">
-          <div className="text-vista-light/70 text-xs">30 дней</div>
+          <div className="text-vista-light/70 text-xs">
+            {eventType === 'match' ? '10 матчей' : '30 дней'}
+          </div>
           <div className="text-sm font-semibold text-vista-light">
             {isFirstTraining ? '—' : historicalValue.toFixed(displayUnit === 'min' ? 0 : 0)}
           </div>
@@ -145,13 +149,14 @@ export function TeamAverageGauges({
   metrics, 
   playerCount,
   categoryInfo,
+  hasHistoricalData = false,
   isLoading = false 
 }: TeamAverageGaugesProps) {
   // Фильтруем только метрики, которые можно усреднять
   const averageableMetrics = metrics.filter(metric => metric.canAverage);
   
-  // Проверяем, является ли это первой тренировкой
-  const isFirstTraining = Object.values(historicalAverages).every(value => value === 0);
+  // Проверяем, есть ли исторические данные для сравнения
+  const isFirstTraining = !hasHistoricalData || Object.values(historicalAverages).every(value => value === 0);
 
   if (isLoading) {
     return (
@@ -192,7 +197,7 @@ export function TeamAverageGauges({
         <p className="text-sm text-vista-light/70 mt-1">
           {categoryInfo 
             ? categoryInfo.type === 'match'
-              ? `Сравнение с последними ${categoryInfo.eventCount} матчами (${categoryInfo.reportCount} отчетов)`
+              ? `Сравнение с ${categoryInfo.eventCount} предыдущими матчами (${categoryInfo.reportCount} отчетов)`
               : `Сравнение с тренировками категории "${categoryInfo.name}" за последние 30 дней (${categoryInfo.eventCount} тренировок, ${categoryInfo.reportCount} отчетов)`
             : 'Сравнение с историческими данными за последние 30 дней'
           }
@@ -212,6 +217,7 @@ export function TeamAverageGauges({
               displayName={metric.displayName}
               displayUnit={metric.displayUnit}
               isFirstTraining={isFirstTraining}
+              eventType={categoryInfo?.type}
             />
           );
         })}

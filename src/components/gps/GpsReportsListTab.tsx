@@ -47,7 +47,7 @@ export function GpsReportsListTab() {
         setReports(data);
       }
     } catch (error) {
-      console.error('Error loading reports:', error);
+      gpsLogger.error('Component', 'Error loading reports:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось загрузить отчеты',
@@ -60,12 +60,10 @@ export function GpsReportsListTab() {
 
   const handleViewReport = (reportId: string) => {
     // TODO: Implement view report
-    console.log('View report:', reportId);
   };
 
   const handleEditReport = (reportId: string) => {
     // TODO: Implement edit report
-    console.log('Edit report:', reportId);
   };
 
   const handleDeleteReport = async (reportId: string) => {
@@ -88,7 +86,7 @@ export function GpsReportsListTab() {
         throw new Error('Ошибка при удалении отчета');
       }
     } catch (error) {
-      console.error('Error deleting report:', error);
+      gpsLogger.error('Component', 'Error deleting report:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось удалить отчет',
@@ -99,7 +97,6 @@ export function GpsReportsListTab() {
 
   const handleDownloadReport = (reportId: string) => {
     // TODO: Implement download report
-    console.log('Download report:', reportId);
   };
 
   const handleViewHistory = (reportId: string, reportName: string) => {

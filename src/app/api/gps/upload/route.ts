@@ -4,8 +4,8 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
 import { db } from '@/lib/db';
 import { gpsReport } from '@/db/schema/gpsReport';
 import { eq, and } from 'drizzle-orm';
-import * as XLSX from 'xlsx';
-import Papa from 'papaparse';
+import { GpsFileParser } from '@/lib/gps-file-parser';
+import { canAccessGpsReport } from '@/lib/gps-permissions';
 
 // POST /api/gps/upload - Загрузить GPS файл и создать отчет
 export async function POST(request: NextRequest) {
@@ -13,6 +13,21 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.clubId || !session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Проверяем разрешение на создание GPS отчетов
+    const canCreate = await canAccessGpsReport(
+      session.user.id,
+      session.user.clubId,
+      null, // teamId будет получен из formData
+      'edit'
+    );
+
+    if (!canCreate) {
+      return NextResponse.json({ 
+        error: 'Forbidden', 
+        message: 'У вас нет прав для создания GPS отчетов' 
+      }, { status: 403 });
     }
 
     const formData = await request.formData();
@@ -51,54 +66,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Парсим файл
-    const fileBuffer = await file.arrayBuffer();
-    let parsedData: any[] = [];
-    let columns: string[] = [];
+    // Используем централизованный парсер
+    const parsedData = await GpsFileParser.parseFile(file);
 
-    try {
-      if (file.type === 'text/csv') {
-        // Парсим CSV
-        const csvText = new TextDecoder().decode(fileBuffer);
-        const result = Papa.parse(csvText, {
-          header: true,
-          skipEmptyLines: true,
-        });
-        
-        parsedData = result.data as any[];
-        columns = result.meta.fields || [];
-      } else {
-        // Парсим Excel
-        const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        
-        // Конвертируем в JSON
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-        
-        if (jsonData.length === 0) {
-          throw new Error('Empty file');
-        }
-
-        // Первая строка - заголовки
-        columns = jsonData[0] as string[];
-        parsedData = (jsonData.slice(1) as any[][]).map((row: any[]) => {
-          const obj: any = {};
-          columns.forEach((col, index) => {
-            obj[col] = row[index];
-          });
-          return obj;
-        });
-      }
-    } catch (parseError) {
-      console.error('Error parsing file:', parseError);
-      return NextResponse.json(
-        { error: 'Failed to parse file' },
-        { status: 400 }
-      );
-    }
-
-    if (parsedData.length === 0) {
+    if (parsedData.rows.length === 0) {
       return NextResponse.json(
         { error: 'No data found in file' },
         { status: 400 }
@@ -106,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Определяем GPS систему на основе колонок
-    const gpsSystem = detectGpsSystem(columns);
+    const gpsSystem = detectGpsSystem(parsedData.headers);
 
     // Создаем отчет в БД
     const [report] = await db
@@ -122,8 +93,8 @@ export async function POST(request: NextRequest) {
         rawData: null,
         processedData: null,
         metadata: {
-          columns,
-          rowCount: parsedData.length,
+          columns: parsedData.headers,
+          rowCount: parsedData.rows.length,
           uploadedAt: new Date().toISOString(),
           fileType: file.type,
         },

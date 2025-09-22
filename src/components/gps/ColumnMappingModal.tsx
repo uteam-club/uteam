@@ -71,13 +71,13 @@ export function ColumnMappingModal({
   const loadCanonicalMetrics = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/gps/canonical-metrics');
+      const response = await fetch('/api/gps/canonical-metrics-for-mapping');
       if (response.ok) {
         const data = await response.json();
-        setCanonicalMetrics(data);
+        setCanonicalMetrics(data.metrics || data);
       }
     } catch (error) {
-      console.error('Error loading canonical metrics:', error);
+      gpsLogger.error('Component', 'Error loading canonical metrics:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось загрузить канонические метрики',
@@ -209,7 +209,7 @@ export function ColumnMappingModal({
         throw new Error('Ошибка при сохранении маппинга');
       }
     } catch (error) {
-      console.error('Error saving mappings:', error);
+      gpsLogger.error('Component', 'Error saving mappings:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось сохранить маппинг колонок',

@@ -41,9 +41,6 @@ export async function GET(request: NextRequest) {
       .filter(report => report.eventType === eventType)
       .map(report => report.eventId);
 
-    console.log('GPS Events API: Found', eventsWithReports.length, 'events with reports for type', eventType);
-    console.log('GPS Events API: Event IDs:', eventsWithReports);
-    console.log('GPS Events API: Request params - teamId:', teamId, 'eventType:', eventType);
 
     let events: Array<{id: string, name: string, type: string, teamId: string, date: string, time?: string, categoryName?: string}> = [];
 
@@ -77,7 +74,6 @@ export async function GET(request: NextRequest) {
           eq(training.teamId, teamId),
           eq(training.clubId, session.user.clubId || 'default-club')
         ));
-      console.log('GPS Events API: Total trainings for team:', allTrainings[0]?.count || 0);
       
       // Проверим тренировки по статусам
       const trainingsByStatus = await db.select({ 
@@ -90,7 +86,6 @@ export async function GET(request: NextRequest) {
           eq(training.clubId, session.user.clubId || 'default-club')
         ))
         .groupBy(training.status);
-      console.log('GPS Events API: Trainings by status:', trainingsByStatus);
       
       const trainings = await db.select({
         id: training.id,
@@ -108,8 +103,6 @@ export async function GET(request: NextRequest) {
         ...t,
         categoryName: t.categoryName || undefined
       }));
-      console.log('GPS Events API: Found', trainings.length, withReports ? 'trainings with GPS reports' : 'trainings without GPS reports');
-      console.log('GPS Events API: Training details:', trainings.map(t => ({ id: t.id, name: t.name, date: t.date, status: 'N/A' })));
     } else if (eventType === 'match') {
       let whereConditions = [
         eq(match.teamId, teamId),
@@ -150,7 +143,6 @@ export async function GET(request: NextRequest) {
       .where(and(...whereConditions))
       .orderBy(desc(match.date));
       events = matches;
-      console.log('GPS Events API: Found', matches.length, withReports ? 'matches with GPS reports' : 'matches without GPS reports');
     }
 
     return NextResponse.json({ events });

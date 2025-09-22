@@ -66,8 +66,6 @@ export async function GET(
       }))
     };
 
-    console.log('GPS Profile API: Loaded profile with', columns.length, 'columns');
-    console.log('GPS Profile API: Sample columns:', columns.slice(0, 3));
 
     return NextResponse.json({ profile: profileWithColumns });
 

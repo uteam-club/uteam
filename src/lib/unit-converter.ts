@@ -367,7 +367,7 @@ const CONVERSION_TABLE: Record<string, Record<string, number>> = {
 /**
  * Форматирует секунды в различные форматы времени
  */
-function formatTimeFromSeconds(seconds: number, format: string): string {
+export function formatTimeFromSeconds(seconds: number, format: string): string {
   const totalSeconds = Math.floor(seconds);
   const milliseconds = Math.round((seconds - totalSeconds) * 1000);
   

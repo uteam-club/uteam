@@ -66,24 +66,19 @@ export async function GET(
       .where(eq(gpsProfileColumn.profileId, profileId))
       .orderBy(gpsProfileColumn.displayOrder);
 
-    console.log('GPS Report Visualization API: Loaded profile with', profileColumns.length, 'columns');
 
     // Получаем данные отчета
     const reportData = await db.select()
       .from(gpsReportData)
       .where(eq(gpsReportData.gpsReportId, reportId));
 
-    console.log('GPS Report Visualization API: Found', reportData.length, 'data records for report', reportId);
-    console.log('GPS Report Visualization API: Sample data:', reportData.slice(0, 3));
     
     // Проверяем, какие метрики есть в данных
     const availableMetrics = [...new Set(reportData.map(item => item.canonicalMetric))];
-    console.log('GPS Report Visualization API: Available metrics in data:', availableMetrics);
     
     // Проверяем, есть ли position и duration
     const hasPosition = reportData.some(item => item.canonicalMetric === 'position');
     const hasDuration = reportData.some(item => item.canonicalMetric === 'duration');
-    console.log('GPS Report Visualization API: Has position:', hasPosition, 'Has duration:', hasDuration);
 
     // Получаем информацию об отчете
     const [report] = await db.select()
@@ -91,11 +86,9 @@ export async function GET(
       .where(eq(gpsReport.id, reportId));
 
     if (!report) {
-      console.log('GPS Report Visualization API: Report not found for ID', reportId);
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
-    console.log('GPS Report Visualization API: Report found:', report.name);
 
     // Получаем информацию о событии (тренировке или матче)
     let eventInfo = null;
@@ -116,7 +109,6 @@ export async function GET(
         .where(eq(training.id, report.eventId));
         
         eventInfo = trainingData;
-        console.log('Training data loaded:', trainingData);
       } else if (report.eventType === 'match') {
         const [matchData] = await db.select({
           id: match.id,
@@ -134,7 +126,6 @@ export async function GET(
         .where(eq(match.id, report.eventId));
         
         eventInfo = matchData;
-        console.log('Match data loaded:', matchData);
       }
     } catch (error) {
       console.error('Error loading event info:', error);
@@ -143,7 +134,6 @@ export async function GET(
 
     // Если нет данных, возвращаем пустой массив
     if (reportData.length === 0) {
-      console.log('GPS Report Visualization API: No data found for report', reportId);
       return NextResponse.json({
         report: {
           id: report.id,
@@ -162,7 +152,6 @@ export async function GET(
     // Получаем уникальные ID игроков
     const playerIds = [...new Set(reportData.map(item => item.playerId))];
     
-    console.log('GPS Report Visualization API: Found', playerIds.length, 'unique players:', playerIds);
     
     // Создаем мапу игроков
     const playerMap = new Map();
@@ -175,7 +164,6 @@ export async function GET(
         lastName: player.lastName,
       }).from(player).where(inArray(player.id, playerIds));
       
-      console.log('GPS Report Visualization API: Loaded', players.length, 'players from database');
       
       for (const p of players) {
         playerMap.set(p.id, `${p.firstName} ${p.lastName}`);
@@ -265,8 +253,6 @@ export async function GET(
     // Преобразуем Map в массив
     const visualizationData = Array.from(playersData.values());
 
-    console.log('GPS Report Visualization API: Processed', visualizationData.length, 'players with metrics');
-    console.log('GPS Report Visualization API: Sample player data:', visualizationData.slice(0, 1));
 
     return NextResponse.json({
       report: {

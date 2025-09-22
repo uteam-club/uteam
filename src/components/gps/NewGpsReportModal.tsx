@@ -15,6 +15,7 @@ import { GpsFileParser, ParsedGpsData } from '@/lib/gps-file-parser';
 import { GpsDataValidator } from '@/lib/gps-validation';
 import { GpsErrorHandler, GpsFileError } from '@/lib/gps-errors';
 import { matchPlayers, getRecommendedMatch, PlayerMappingGroup, PlayerMatch } from '@/lib/player-name-matcher';
+import { gpsLogger } from '@/lib/logger';
 
 // Компоненты для новых иконок
 const CircleStarIcon = ({ className }: { className?: string }) => (
@@ -434,7 +435,7 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
       // Показываем предупреждения, но не блокируем загрузку
       if (parsed.validation && parsed.validation.warnings.length > 0) {
         const warningMessage = GpsDataValidator.formatWarnings(parsed.validation.warnings);
-        console.warn('Предупреждения валидации (не блокируют загрузку):', warningMessage);
+        gpsLogger.warn('NewGpsReportModal', 'Предупреждения валидации (не блокируют загрузку):', warningMessage);
         // Показываем toast с предупреждениями, но продолжаем
       }
 
@@ -445,8 +446,6 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
       
       // Получаем предложения для маппинга
       const suggestions = GpsFileParser.suggestColumnMappings(columnInfos);
-      console.log('Column suggestions:', suggestions);
-      console.log('Available canonical metrics:', canonicalMetrics.map(m => ({ code: m.code, name: m.name })));
 
       // Загружаем сохраненные маппинги для команды
       let savedMappings: any[] = [];
@@ -455,9 +454,10 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
         if (mappingsResponse.ok) {
           const mappingsData = await mappingsResponse.json();
           savedMappings = mappingsData.mappings || [];
+        } else {
         }
       } catch (error) {
-        console.error('Error loading saved mappings:', error);
+        gpsLogger.error('NewGpsReportModal', 'Error loading saved mappings:', error);
       }
 
       // Создаем маппинги колонок с использованием сохраненных данных
@@ -467,11 +467,9 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
         
         if (savedMapping && savedMapping.canonicalMetric && savedMapping.canonicalMetric.trim() !== '') {
           // Используем сохраненный маппинг только если есть каноническая метрика
-          console.log('Using saved mapping for column:', header, savedMapping);
           
           // Находим метрику по коду из сохраненного маппинга
           const metric = canonicalMetrics.find(m => m.code === savedMapping.canonicalMetric);
-          console.log('Found metric for code', savedMapping.canonicalMetric, ':', metric);
           
           return {
             id: `col_${index}`,
@@ -481,11 +479,11 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
             canonicalMetricName: metric?.name || '',
             canonicalMetricCode: metric?.code || '',
             isActive: savedMapping.isVisible !== false,
+            displayOrder: savedMapping.displayOrder || index,
           };
         } else {
           // Если нет сохраненного маппинга, используем автоматическое определение
           const suggestion = suggestions.find(s => s.columnName === header);
-          console.log('Column:', header, 'Suggestion:', suggestion);
           
           // Находим подходящую каноническую метрику
           let suggestedMetric = '';
@@ -498,19 +496,12 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
               m.name.toLowerCase().includes(suggestion.suggestedMetric.toLowerCase())
             );
             
-            console.log('Looking for metric:', suggestion.suggestedMetric, 'Found:', metric);
             
             if (metric) {
               suggestedMetric = metric.id;
               suggestedUnit = suggestion.suggestedUnit || metric.canonicalUnit;
             }
           }
-          
-          console.log('Final mapping for', header, ':', {
-            suggestedMetric,
-            suggestedUnit,
-            isActive: !!suggestedMetric
-          });
           
           const metric = suggestedMetric ? canonicalMetrics.find(m => m.id === suggestedMetric) : null;
           return {
@@ -521,11 +512,15 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
             canonicalMetricName: metric?.name || '',
             canonicalMetricCode: metric?.code || '',
             isActive: !!suggestedMetric, // Активируем колонку, если есть предложенная метрика
+            displayOrder: index,
           };
         }
       });
 
-      setColumnMappings(mappings);
+      // Сортируем маппинги по displayOrder
+      const sortedMappings = mappings.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+      
+      setColumnMappings(sortedMappings);
 
       // Создаем умные маппинги игроков
       if (players.length > 0) {
@@ -563,7 +558,7 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
       }
 
     } catch (error) {
-      console.error('Error parsing file:', error);
+      gpsLogger.error('Component', 'Error parsing file:', error);
       
       if (error instanceof GpsFileError) {
         setParsingError(error.message);
@@ -618,7 +613,7 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
   // Получаем поддерживаемые единицы для метрики
   const getSupportedUnits = (metricId: string) => {
     const metric = canonicalMetrics.find(m => m.id === metricId);
-    if (!metric) return [];
+    if (!metric || !Array.isArray(units)) return [];
     
     return units.filter(unit => 
       metric.supportedUnits.includes(unit.code) && 
@@ -715,14 +710,18 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
       setTeams(teamsData.teams || []);
 
       // Загружаем канонические метрики и единицы
-      const metricsResponse = await fetch('/api/gps/canonical-metrics');
+      const [metricsResponse, unitsResponse] = await Promise.all([
+        fetch('/api/gps/canonical-metrics-all'),
+        fetch('/api/gps/units')
+      ]);
       const metricsData = await metricsResponse.json();
+      const unitsData = await unitsResponse.json();
       setCanonicalMetrics(metricsData.metrics || []);
-      setUnits(metricsData.units || []);
+      setUnits(unitsData.units || []);
 
       // Игроки будут загружены при выборе команды
     } catch (error) {
-      console.error('Error fetching data:', error);
+      gpsLogger.error('Component', 'Error fetching data:', error);
     } finally {
       setDataLoading(false);
     }
@@ -744,13 +743,11 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
 
   const fetchEvents = async (teamId: string, eventType: string) => {
     try {
-      console.log('Fetching events for team:', teamId, 'eventType:', eventType);
       const response = await fetch(`/api/gps/events?teamId=${teamId}&eventType=${eventType}`);
       const data = await response.json();
-      console.log('Events response:', data);
       setEvents(data.events || []);
     } catch (error) {
-      console.error('Error fetching events:', error);
+      gpsLogger.error('Component', 'Error fetching events:', error);
     }
   };
 
@@ -760,21 +757,17 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
       const data = await response.json();
       setPlayers(data.players || []);
     } catch (error) {
-      console.error('Error fetching players:', error);
+      gpsLogger.error('Component', 'Error fetching players:', error);
     }
   };
 
   const handleSubmit = async () => {
     if (!file || !parsedData) {
-      console.error('Missing file or parsed data');
+      gpsLogger.error('Component', 'Missing file or parsed data');
       return;
     }
 
     setLoading(true);
-      console.log('Starting GPS report creation...');
-      console.log('All column mappings:', columnMappings);
-      console.log('Active column mappings:', columnMappings.filter(m => m.isActive && m.canonicalMetricId && m.canonicalMetricId.trim() !== ''));
-      console.log('Player mappings:', selectedPlayerMappings);
     
     try {
       const formData = new FormData();
@@ -798,20 +791,6 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
         mapping.canonicalMetricCode &&
         mapping.canonicalMetricCode.trim() !== ''
       );
-      console.log('All column mappings:', columnMappings.map(m => ({
-        originalName: m.originalName,
-        isActive: m.isActive,
-        canonicalMetricId: m.canonicalMetricId,
-        canonicalMetricCode: m.canonicalMetricCode,
-        canonicalMetricName: m.canonicalMetricName
-      })));
-      console.log('Filtered active column mappings:', activeColumnMappings.map(m => ({
-        originalName: m.originalName,
-        isActive: m.isActive,
-        canonicalMetricId: m.canonicalMetricId,
-        canonicalMetricCode: m.canonicalMetricCode,
-        canonicalMetricName: m.canonicalMetricName
-      })));
       formData.append('columnMappings', JSON.stringify(activeColumnMappings));
       // Преобразуем selectedPlayerMappings в массив для API
       const playerMappingsArray = Object.entries(selectedPlayerMappings).map(([filePlayerName, playerId]) => ({
@@ -821,15 +800,10 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
       }));
       formData.append('playerMappings', JSON.stringify(playerMappingsArray));
 
-      console.log('Sending request to /api/gps/reports...');
-      console.log('FormData size:', file?.size || 'unknown');
-      console.log('Player mappings count:', playerMappingsArray.length);
-      console.log('Column mappings count:', activeColumnMappings.length);
       
                 // Добавляем таймаут для запроса
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
-          console.log('GPS Report: Request timeout after 30 seconds');
           controller.abort();
         }, 30000); // 30 секунд таймаут
       
@@ -840,11 +814,8 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
       });
       
       clearTimeout(timeoutId);
-      console.log('GPS Report: Response received, status:', response.status);
 
-      console.log('Response status:', response.status);
       const data = await response.json();
-      console.log('Response data:', data);
 
       if (data.success) {
         // Сохраняем маппинги для будущего использования
@@ -869,18 +840,18 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
             }),
           });
         } catch (error) {
-          console.error('Error saving mappings:', error);
+          gpsLogger.error('Component', 'Error saving mappings:', error);
           // Не показываем ошибку пользователю, так как это не критично
         }
 
         onSuccess?.();
         onClose();
       } else {
-        console.error('Error creating report:', data.error);
+        gpsLogger.error('Component', 'Error creating report:', data.error);
         alert(`Ошибка при создании отчета: ${data.error}`);
       }
     } catch (error) {
-      console.error('Error submitting GPS report:', error);
+      gpsLogger.error('Component', 'Error submitting GPS report:', error);
       
                 if (error instanceof Error && error.name === 'AbortError') {
                   alert('Время ожидания истекло (30 секунд). Обработка файла заняла слишком много времени. Попробуйте еще раз или обратитесь к администратору.');

@@ -58,7 +58,7 @@ export function ViewGpsProfileModal({ isOpen, onClose, profileId }: ViewGpsProfi
         });
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      gpsLogger.error('Component', 'Error fetching profile:', error);
       toast({
         title: 'Ошибка',
         description: 'Произошла ошибка при загрузке профиля',

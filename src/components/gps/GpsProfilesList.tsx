@@ -51,7 +51,7 @@ export function GpsProfilesList({
       const data = await response.json();
       setProfiles(data.profiles || []);
     } catch (error) {
-      console.error('Error fetching profiles:', error);
+      gpsLogger.error('Component', 'Error fetching profiles:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось загрузить профили',
@@ -85,7 +85,7 @@ export function GpsProfilesList({
           onDeleteProfile?.(profileId);
         } else {
           const errorData = await response.json();
-          console.error('Error deleting profile:', errorData.error);
+          gpsLogger.error('Component', 'Error deleting profile:', errorData.error);
           toast({
             title: 'Ошибка',
             description: `Ошибка при удалении профиля: ${errorData.error}`,
@@ -93,7 +93,7 @@ export function GpsProfilesList({
           });
         }
       } catch (error) {
-        console.error('Error deleting profile:', error);
+        gpsLogger.error('Component', 'Error deleting profile:', error);
         toast({
           title: 'Ошибка',
           description: 'Произошла ошибка при удалении профиля',

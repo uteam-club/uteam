@@ -7,12 +7,31 @@ import { gpsProfileColumn } from '@/db/schema/gpsColumnMapping';
 // Удален импорт gpsProfileTeam
 import { gpsCanonicalMetric } from '@/db/schema/gpsCanonicalMetric';
 import { eq, and } from 'drizzle-orm';
+import { canAccessGpsReport } from '@/lib/gps-permissions';
+import { canAccessGpsProfile } from '@/lib/gps-permissions';
+import { getVisualizationProfiles, invalidateGpsCache } from '@/lib/gps-queries';
+import { gpsCacheKeys } from '@/lib/db-cache';
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Проверяем разрешение на создание GPS профилей
+    const canCreate = await canAccessGpsProfile(
+      session.user.id,
+      session.user.clubId || 'default-club',
+      null,
+      'create'
+    );
+
+    if (!canCreate) {
+      return NextResponse.json({ 
+        error: 'Forbidden', 
+        message: 'У вас нет прав для создания GPS профилей' 
+      }, { status: 403 });
     }
 
     const body = await request.json();
@@ -68,6 +87,9 @@ export async function POST(request: NextRequest) {
 
     // Профили больше не привязаны к командам
 
+    // Инвалидируем кэш профилей
+    invalidateGpsCache.profile(newProfile.id);
+
     return NextResponse.json({ 
       success: true, 
       profileId: newProfile.id,
@@ -90,9 +112,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Получаем все профили с дополнительной информацией
-    const profiles = await db.select().from(gpsVisualizationProfile)
-      .where(eq(gpsVisualizationProfile.clubId, session.user.clubId || 'default-club'));
+    // Проверяем разрешение на просмотр GPS профилей
+    const canView = await canAccessGpsProfile(
+      session.user.id,
+      session.user.clubId || 'default-club',
+      null,
+      'view'
+    );
+
+    if (!canView) {
+      return NextResponse.json({ 
+        error: 'Forbidden', 
+        message: 'У вас нет прав для просмотра GPS профилей' 
+      }, { status: 403 });
+    }
+
+    // Получаем профили с кэшированием
+    const cacheKey = gpsCacheKeys.profiles(session.user.clubId || 'default-club');
+    const profiles = await getVisualizationProfiles(cacheKey, session.user.clubId || 'default-club');
 
     // Получаем дополнительную информацию для каждого профиля
     const profilesWithInfo = await Promise.all(

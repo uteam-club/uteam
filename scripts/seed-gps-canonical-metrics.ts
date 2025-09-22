@@ -1,7 +1,7 @@
 import { db } from '../src/lib/db';
 import { gpsCanonicalMetric, gpsUnit } from '../src/db/schema/gpsCanonicalMetric';
 
-// Полный список канонических метрик GPS (69 метрик)
+// Полный список канонических метрик GPS (57 метрик)
 const canonicalMetrics = [
   // Identity metrics
   {

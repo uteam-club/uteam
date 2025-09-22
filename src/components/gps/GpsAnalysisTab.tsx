@@ -64,7 +64,7 @@ export function GpsAnalysisTab() {
         setTeams(data.teams || []);
       }
     } catch (error) {
-      console.error('Error loading teams:', error);
+      gpsLogger.error('Component', 'Error loading teams:', error);
     }
   };
 
@@ -76,7 +76,7 @@ export function GpsAnalysisTab() {
         setProfiles(data.profiles || []);
       }
     } catch (error) {
-      console.error('Error loading profiles:', error);
+      gpsLogger.error('Component', 'Error loading profiles:', error);
     }
   };
 
@@ -91,7 +91,7 @@ export function GpsAnalysisTab() {
         setTrainings(data.events || []);
       }
     } catch (error) {
-      console.error('Error loading events:', error);
+      gpsLogger.error('Component', 'Error loading events:', error);
     } finally {
       setLoading(false);
     }

@@ -75,7 +75,7 @@ export function ColumnMappingStep({
     try {
       setLoading(true);
       const [metricsResponse, unitsResponse, mappingsResponse] = await Promise.all([
-        fetch('/api/gps/canonical-metrics'),
+        fetch('/api/gps/canonical-metrics-for-mapping'),
         fetch('/api/gps/units'),
         fetch(`/api/gps/column-mappings?teamId=${teamId}`)
       ]);
@@ -86,7 +86,7 @@ export function ColumnMappingStep({
           unitsResponse.json()
         ]);
         
-        setCanonicalMetrics(metricsData);
+        setCanonicalMetrics(metricsData.metrics || metricsData);
         setUnits(unitsData);
       }
 
@@ -102,7 +102,7 @@ export function ColumnMappingStep({
         }
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      gpsLogger.error('Component', 'Error loading data:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось загрузить данные для маппинга',
@@ -263,7 +263,7 @@ export function ColumnMappingStep({
         throw new Error('Failed to save mappings');
       }
     } catch (error) {
-      console.error('Error saving mappings:', error);
+      gpsLogger.error('Component', 'Error saving mappings:', error);
       // Не показываем ошибку пользователю, так как это не критично
     }
   };

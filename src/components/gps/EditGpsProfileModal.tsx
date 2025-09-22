@@ -94,11 +94,12 @@ function MetricSelector({
     'speed_zones': { ru: 'Зоны скорости', en: 'Speed Zones' },
     'hsr_sprint': { ru: 'Высокоскоростной бег', en: 'High Speed Running' },
     'acc_dec': { ru: 'Ускорение и торможение', en: 'Acceleration Deceleration' },
-    'heart': { ru: 'Пульс', en: 'Heart Rate' },
-    'heart_zones': { ru: 'Зоны пульса', en: 'Heart Rate Zones' },
     'load': { ru: 'Нагрузка', en: 'Load' },
     'intensity': { ru: 'Интенсивность', en: 'Intensity' },
-    'derived': { ru: 'Производные метрики', en: 'Derived Metrics' }
+    'heart': { ru: 'Пульс', en: 'Heart Rate' },
+    'heart_zones': { ru: 'Зоны пульса', en: 'Heart Rate Zones' },
+    'derived': { ru: 'Производные метрики', en: 'Derived Metrics' },
+    'other': { ru: 'Прочие', en: 'Other' }
   };
 
   // Функция для получения названия группы на текущем языке
@@ -125,8 +126,28 @@ function MetricSelector({
     return acc;
   }, {} as Record<string, typeof metrics>);
 
+  // Сортируем категории в правильном порядке
+  const categoryOrder = [
+    'identity', 'participation', 'distance', 'speed', 'speed_zones', 
+    'hsr_sprint', 'acc_dec', 'load', 'intensity', 'heart', 
+    'heart_zones', 'derived', 'other'
+  ];
+  
+  const sortedGroupedMetrics = Object.keys(groupedMetrics)
+    .sort((a, b) => {
+      const aCategory = Object.keys(categoryNames).find(key => getCategoryName(key) === a);
+      const bCategory = Object.keys(categoryNames).find(key => getCategoryName(key) === b);
+      const aIndex = categoryOrder.indexOf(aCategory || 'other');
+      const bIndex = categoryOrder.indexOf(bCategory || 'other');
+      return aIndex - bIndex;
+    })
+    .reduce((acc, category) => {
+      acc[category] = groupedMetrics[category];
+      return acc;
+    }, {} as Record<string, typeof metrics>);
+
   // Фильтруем метрики по поисковому запросу и исключаем уже выбранные
-  const filteredMetrics = Object.entries(groupedMetrics).reduce((acc, [category, categoryMetrics]) => {
+  const filteredMetrics = Object.entries(sortedGroupedMetrics).reduce((acc, [category, categoryMetrics]) => {
     const filtered = categoryMetrics.filter(metric => {
       const matchesSearch = metric.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            metric.code.toLowerCase().includes(searchQuery.toLowerCase());
@@ -367,12 +388,16 @@ export function EditGpsProfileModal({ isOpen, onClose, onSuccess, profileId }: E
       }
 
       // Загружаем канонические метрики и единицы
-      const metricsResponse = await fetch('/api/gps/canonical-metrics');
+      const metricsResponse = await fetch('/api/gps/canonical-metrics-all');
       const metricsData = await metricsResponse.json();
       setCanonicalMetrics(metricsData.metrics || []);
-      setUnits(metricsData.units || []);
+      
+      // Загружаем единицы отдельно
+      const unitsResponse = await fetch('/api/gps/units');
+      const unitsData = await unitsResponse.json();
+      setUnits(unitsData.units || []);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      gpsLogger.error('Component', 'Error fetching data:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось загрузить данные профиля',
@@ -463,7 +488,7 @@ export function EditGpsProfileModal({ isOpen, onClose, onSuccess, profileId }: E
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('HTTP Error:', response.status, errorText);
+        gpsLogger.error('Component', 'HTTP Error:', response.status, errorText);
         toast({
           title: 'Ошибка',
           description: `Ошибка сервера: ${response.status}`,
@@ -482,7 +507,7 @@ export function EditGpsProfileModal({ isOpen, onClose, onSuccess, profileId }: E
         onSuccess?.();
         handleClose();
       } else {
-        console.error('Error updating profile:', data.error);
+        gpsLogger.error('Component', 'Error updating profile:', data.error);
         toast({
           title: 'Ошибка',
           description: `Ошибка при обновлении профиля: ${data.error}`,
@@ -490,7 +515,7 @@ export function EditGpsProfileModal({ isOpen, onClose, onSuccess, profileId }: E
         });
       }
     } catch (error) {
-      console.error('Error updating GPS profile:', error);
+      gpsLogger.error('Component', 'Error updating GPS profile:', error);
       toast({
         title: 'Ошибка',
         description: 'Произошла ошибка при обновлении профиля',

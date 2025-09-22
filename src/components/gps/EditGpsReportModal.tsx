@@ -73,15 +73,11 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
         throw new Error('Failed to fetch report data');
       }
       const dataResult = await dataResponse.json();
-      console.log('EditGpsReportModal: API response:', dataResult);
-      console.log('EditGpsReportModal: Data length:', dataResult.data?.length || 0);
       if (dataResult.data && dataResult.data.length > 0) {
-        console.log('EditGpsReportModal: First data item:', dataResult.data[0]);
-        console.log('EditGpsReportModal: Unique canonical metrics:', [...new Set(dataResult.data.map((item: any) => item.canonicalMetric))]);
       }
       setData(dataResult.data || []);
     } catch (error) {
-      console.error('Error fetching report data:', error);
+      gpsLogger.error('Component', 'Error fetching report data:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось загрузить данные отчета.',
@@ -143,7 +139,7 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
       await fetchReportData();
       setEditedData(new Map());
     } catch (error) {
-      console.error('Error saving changes:', error);
+      gpsLogger.error('Component', 'Error saving changes:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось сохранить изменения.',
@@ -181,19 +177,14 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
 
   // Получаем уникальные метрики - используем canonicalMetric вместо fieldName
   const uniqueMetrics = Array.from(new Set(data.map(item => item.canonicalMetric || item.fieldName))).sort();
-  console.log('EditGpsReportModal: Total data items:', data.length);
-  console.log('EditGpsReportModal: Unique metrics for display:', uniqueMetrics);
-  console.log('EditGpsReportModal: Unique metrics count:', uniqueMetrics.length);
-  console.log('EditGpsReportModal: Grouped data keys:', Object.keys(groupedData));
   
   // Проверяем, что у каждого игрока есть все метрики
   Object.entries(groupedData).forEach(([playerId, playerData]) => {
     const playerMetrics = Object.keys(playerData.metrics);
-    console.log(`EditGpsReportModal: Player ${playerId} has ${playerMetrics.length} metrics:`, playerMetrics);
     if (playerMetrics.length !== uniqueMetrics.length) {
-      console.warn(`EditGpsReportModal: Player ${playerId} missing metrics!`);
+      gpsLogger.warn('Component', `EditGpsReportModal: Player ${playerId} missing metrics!`);
       const missing = uniqueMetrics.filter(m => !playerMetrics.includes(m));
-      console.warn(`EditGpsReportModal: Missing metrics:`, missing);
+      gpsLogger.warn('Component', `EditGpsReportModal: Missing metrics:`, missing);
     }
   });
   
@@ -289,14 +280,10 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
                       </div>
                       {/* Заголовки метрик - скроллируемые */}
                       {(() => {
-                        console.log('EditGpsReportModal: Rendering', uniqueMetrics.length, 'metric headers');
-                        console.log('EditGpsReportModal: Metrics list:', uniqueMetrics);
                         return null;
                       })()}
                       {uniqueMetrics.map((metric, index) => {
-                        console.log(`EditGpsReportModal: Rendering metric ${index + 1}/${uniqueMetrics.length}: ${metric}`);
                         const sampleData = data.find(d => (d.canonicalMetric || d.fieldName) === metric);
-                        console.log(`EditGpsReportModal: Sample data for ${metric}:`, sampleData);
                         return (
                           <div 
                             key={metric} 
@@ -318,7 +305,6 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
                     {/* Данные игроков */}
                     <div className="divide-y divide-vista-secondary/20">
                       {(() => {
-                        console.log('EditGpsReportModal: Rendering data for', players.length, 'players');
                         return null;
                       })()}
                       {players.map((playerId, playerIndex) => (
@@ -336,7 +322,6 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
                             const isEdited = fieldData ? editedData.has(fieldData.id) : false;
                             
                             if (playerIndex === 0) { // Логируем только для первого игрока
-                              console.log(`EditGpsReportModal: Player ${playerIndex}, Metric ${metricIndex + 1}/${uniqueMetrics.length}: ${metric} - ${fieldData ? 'HAS DATA' : 'NO DATA'}`);
                             }
                             
                             return (

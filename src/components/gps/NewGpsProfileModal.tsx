@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { X, Plus, Trash2, GripVertical, Settings, ChevronRight, ChevronLeft, Search } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { MetricSelector } from './MetricSelector';
 
 interface NewGpsProfileModalProps {
   isOpen: boolean;
@@ -44,202 +45,6 @@ interface Unit {
   conversionFactor: number;
 }
 
-// Компонент для выбора канонической метрики с поиском и группировкой
-function MetricSelector({ 
-  value, 
-  onValueChange, 
-  metrics, 
-  placeholder = "Выберите метрику",
-  excludeIds = []
-}: {
-  value: string;
-  onValueChange: (value: string) => void;
-  metrics: Array<{id: string, code: string, name: string, category: string, dimension: string, canonicalUnit: string, supportedUnits: string[]}>;
-  placeholder?: string;
-  excludeIds?: string[];
-}) {
-  const { i18n } = useTranslation();
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Закрываем выпадающий список при клике вне его
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-        setSearchQuery('');
-        setExpandedGroups(new Set());
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
-
-  // Маппинг для правильных названий групп на русском и английском
-  const categoryNames: Record<string, { ru: string; en: string }> = {
-    'identity': { ru: 'Идентификация', en: 'Identity' },
-    'participation': { ru: 'Участие', en: 'Participation' },
-    'distance': { ru: 'Дистанция', en: 'Distance' },
-    'speed': { ru: 'Скорость', en: 'Speed' },
-    'speed_zones': { ru: 'Зоны скорости', en: 'Speed Zones' },
-    'hsr_sprint': { ru: 'Высокоскоростной бег', en: 'High Speed Running' },
-    'acc_dec': { ru: 'Ускорение и торможение', en: 'Acceleration Deceleration' },
-    'heart': { ru: 'Пульс', en: 'Heart Rate' },
-    'heart_zones': { ru: 'Зоны пульса', en: 'Heart Rate Zones' },
-    'load': { ru: 'Нагрузка', en: 'Load' },
-    'intensity': { ru: 'Интенсивность', en: 'Intensity' },
-    'derived': { ru: 'Производные метрики', en: 'Derived Metrics' }
-  };
-
-  // Функция для получения названия группы на текущем языке
-  const getCategoryName = (category: string): string => {
-    const categoryData = categoryNames[category];
-    if (!categoryData) {
-      // Если категория не найдена, форматируем её название
-      return category
-        .split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-    }
-    return i18n.language === 'en' ? categoryData.en : categoryData.ru;
-  };
-
-  // Группируем метрики по категориям
-  const groupedMetrics = metrics.reduce((acc, metric) => {
-    const category = metric.category || 'other';
-    const categoryName = getCategoryName(category);
-    if (!acc[categoryName]) {
-      acc[categoryName] = [];
-    }
-    acc[categoryName].push(metric);
-    return acc;
-  }, {} as Record<string, typeof metrics>);
-
-  // Фильтруем метрики по поисковому запросу и исключаем уже выбранные
-  const filteredMetrics = Object.entries(groupedMetrics).reduce((acc, [category, categoryMetrics]) => {
-    const filtered = categoryMetrics.filter(metric => {
-      const matchesSearch = metric.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           metric.code.toLowerCase().includes(searchQuery.toLowerCase());
-      const notExcluded = !excludeIds.includes(metric.id);
-      return matchesSearch && notExcluded;
-    });
-    if (filtered.length > 0) {
-      acc[category] = filtered;
-    }
-    return acc;
-  }, {} as Record<string, typeof metrics>);
-
-  const selectedMetric = metrics.find(m => m.id === value);
-
-  // Обработчик клика по группе
-  const handleGroupClick = (category: string) => {
-    setExpandedGroups(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(category)) {
-        // Если группа уже открыта - закрываем её
-        newSet.delete(category);
-      } else {
-        // Если группа закрыта - закрываем все остальные и открываем только эту
-        newSet.clear();
-        newSet.add(category);
-      }
-      return newSet;
-    });
-  };
-
-  // Если есть поисковый запрос, показываем все метрики
-  const shouldShowAllMetrics = searchQuery.length > 0;
-
-  return (
-    <div className="relative" ref={dropdownRef}>
-      <div
-        className="bg-vista-dark/30 border border-vista-secondary/30 text-vista-light rounded-lg px-3 py-2 h-9 cursor-pointer hover:border-vista-secondary/50 transition-colors flex items-center"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <div className="flex items-center justify-between w-full">
-          <span className={`text-sm ${selectedMetric ? "text-vista-light" : "text-vista-light/20"}`}>
-            {selectedMetric ? selectedMetric.name : placeholder}
-          </span>
-          <ChevronRight className={`h-3 w-3 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
-        </div>
-      </div>
-
-      {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-vista-dark border border-vista-secondary/30 rounded-lg shadow-lg max-h-80 overflow-hidden">
-          {/* Поле поиска */}
-          <div className="p-3 border-b border-vista-secondary/30">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-vista-light/50" />
-              <Input
-                placeholder="Поиск метрики..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-vista-dark/30 border border-vista-secondary/30 rounded-lg text-vista-light placeholder:text-vista-light/50 focus:border-vista-primary"
-              />
-            </div>
-          </div>
-
-          {/* Список групп и метрик */}
-          <div className="max-h-60 overflow-y-auto custom-scrollbar">
-            {Object.entries(filteredMetrics).map(([category, categoryMetrics]) => (
-              <div key={category}>
-                {/* Заголовок группы */}
-                <div 
-                  className="px-3 py-2 bg-vista-dark/30 text-sm font-medium text-vista-light/90 border-b border-vista-secondary/20 cursor-pointer hover:bg-vista-dark/50 transition-colors flex items-center justify-between"
-                  onClick={() => handleGroupClick(category)}
-                >
-                  <span>{category}</span>
-                  <ChevronRight className={`h-4 w-4 transition-transform ${
-                    expandedGroups.has(category) || shouldShowAllMetrics ? 'rotate-90' : ''
-                  }`} />
-                </div>
-                
-                {/* Метрики группы */}
-                {(expandedGroups.has(category) || shouldShowAllMetrics) && (
-                  <div className="bg-vista-secondary/20 border-l-2 border-vista-primary/30 ml-2">
-                    {categoryMetrics.map((metric) => (
-                      <div
-                        key={metric.id}
-                        className={`px-4 py-1.5 cursor-pointer hover:bg-vista-secondary/30 transition-colors border-b border-vista-secondary/10 last:border-b-0 ${
-                          value === metric.id ? 'bg-vista-primary/20 text-vista-primary' : 'text-vista-light'
-                        }`}
-                        onClick={() => {
-                          onValueChange(metric.id);
-                          setIsOpen(false);
-                          setSearchQuery('');
-                          setExpandedGroups(new Set());
-                        }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-light">{metric.name}</span>
-                          <span className="text-xs text-vista-light/50 font-mono">{metric.code}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-            
-            {Object.keys(filteredMetrics).length === 0 && (
-              <div className="px-3 py-4 text-center text-vista-light/50 text-sm">
-                Метрики не найдены
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function NewGpsProfileModal({ isOpen, onClose, onSuccess }: NewGpsProfileModalProps) {
   const { toast } = useToast();
@@ -355,12 +160,16 @@ export function NewGpsProfileModal({ isOpen, onClose, onSuccess }: NewGpsProfile
     setDataLoading(true);
     try {
       // Загружаем канонические метрики и единицы
-      const metricsResponse = await fetch('/api/gps/canonical-metrics');
+      const metricsResponse = await fetch('/api/gps/canonical-metrics-all');
       const metricsData = await metricsResponse.json();
       setCanonicalMetrics(metricsData.metrics || []);
-      setUnits(metricsData.units || []);
+      
+      // Загружаем единицы отдельно
+      const unitsResponse = await fetch('/api/gps/units');
+      const unitsData = await unitsResponse.json();
+      setUnits(unitsData.units || []);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      gpsLogger.error('Component', 'Error fetching data:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось загрузить данные',
@@ -477,7 +286,7 @@ export function NewGpsProfileModal({ isOpen, onClose, onSuccess }: NewGpsProfile
         onSuccess?.();
         handleClose();
       } else {
-        console.error('Error creating profile:', data.error);
+        gpsLogger.error('Component', 'Error creating profile:', data.error);
         toast({
           title: 'Ошибка',
           description: `Ошибка при создании профиля: ${data.error}`,
@@ -485,7 +294,7 @@ export function NewGpsProfileModal({ isOpen, onClose, onSuccess }: NewGpsProfile
         });
       }
     } catch (error) {
-      console.error('Error submitting GPS profile:', error);
+      gpsLogger.error('Component', 'Error submitting GPS profile:', error);
       toast({
         title: 'Ошибка',
         description: 'Произошла ошибка при создании профиля',
@@ -562,6 +371,7 @@ export function NewGpsProfileModal({ isOpen, onClose, onSuccess }: NewGpsProfile
                         className="bg-vista-dark/30 border border-vista-secondary/30 rounded-lg text-vista-light placeholder:text-vista-light/50 focus:border-vista-primary"
                       />
                     </div>
+                    
                   </div>
                 </div>
               )}

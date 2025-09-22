@@ -42,6 +42,8 @@ import ImageUpload from '@/components/ui/image-upload';
 import DocumentUpload from '@/components/ui/document-upload';
 import FootballField, { formationPositions } from '@/components/matches/FootballField';
 import EditPlayerModal from '@/components/admin/EditUserModal';
+import { PlayerGameModelModal } from '@/components/players/PlayerGameModelModal';
+import { PlayerGameModelSettingsModal } from '@/components/players/PlayerGameModelSettingsModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -227,6 +229,8 @@ export default function PlayerProfilePage() {
   const [fitnessTests, setFitnessTests] = useState<any[]>([]);
   const [isLoadingTests, setIsLoadingTests] = useState(false);
   const [fitnessTestResults, setFitnessTestResults] = useState<Record<string, any>>({});
+  const [showGameModelModal, setShowGameModelModal] = useState(false);
+  const [showGameModelSettingsModal, setShowGameModelSettingsModal] = useState(false);
 
   const competitionTypeLabels: Record<string, string> = {
     FRIENDLY: 'товарищеский',
@@ -1185,9 +1189,16 @@ export default function PlayerProfilePage() {
           <div className="flex flex-col items-center justify-center flex-1 text-center">
             <BarChart3 className="w-16 h-16 text-vista-light/30 mb-4" />
             <p className="text-vista-light/50 text-sm mb-2">Анализ игровой модели</p>
-            <p className="text-vista-light/40 text-xs">
+            <p className="text-vista-light/40 text-xs mb-4">
               Анализ игровой модели игрока
             </p>
+            <Button
+              onClick={() => setShowGameModelModal(true)}
+              className="bg-vista-primary hover:bg-vista-primary/80 text-white px-6 py-2"
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Открыть модель
+            </Button>
           </div>
         </div>
       </div>
@@ -1202,6 +1213,31 @@ export default function PlayerProfilePage() {
         onDocumentUpload={handleDocumentUpload as (file: File, type: string) => Promise<{ imageUrl?: string }>}
         onDocumentDelete={handleDocumentDelete}
       />
+
+      {/* Игровая модель */}
+      {player && (
+        <PlayerGameModelModal
+          isOpen={showGameModelModal}
+          onClose={() => setShowGameModelModal(false)}
+          playerId={player.id}
+          playerName={`${player.firstName} ${player.lastName}`}
+          onOpenSettings={() => setShowGameModelSettingsModal(true)}
+        />
+      )}
+
+      {/* Настройки игровой модели */}
+      {player && (
+        <PlayerGameModelSettingsModal
+          isOpen={showGameModelSettingsModal}
+          onClose={() => setShowGameModelSettingsModal(false)}
+          playerId={player.id}
+          onSave={(settings) => {
+            console.log('Settings saved, closing modal:', settings);
+            setShowGameModelSettingsModal(false);
+            // Настройки будут автоматически загружены при следующем открытии игровой модели
+          }}
+        />
+      )}
 
     </div>
   );

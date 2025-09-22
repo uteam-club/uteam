@@ -61,7 +61,7 @@ export function GpsReportHistoryModal({
         });
       }
     } catch (error) {
-      console.error('Error fetching history:', error);
+      gpsLogger.error('Component', 'Error fetching history:', error);
       toast({
         title: 'Ошибка',
         description: 'Произошла ошибка при загрузке истории',

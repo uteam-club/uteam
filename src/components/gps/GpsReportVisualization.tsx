@@ -8,8 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/components/ui/use-toast';
 import { Download, Edit, BarChart3, Users, Calendar, Star, Activity, Tag, ClipboardType, Clock } from 'lucide-react';
 import { convertUnit, formatValue, formatValueOnly, getPrecision } from '@/lib/unit-converter';
+import { gpsLogger } from '@/lib/logger';
 import { GpsMetricSparkline } from './GpsMetricSparkline';
 import { TeamAverageGauges } from './TeamAverageGauges';
+import { PlayerGameModels } from './PlayerGameModels';
 
 // Кастомные иконки
 const CircleStarIcon = ({ className }: { className?: string }) => (
@@ -86,6 +88,7 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
       reportCount: number;
       type?: 'training' | 'match';
     };
+    hasHistoricalData?: boolean;
   } | null>(null);
   const [teamAveragesLoading, setTeamAveragesLoading] = useState(false);
 
@@ -99,13 +102,11 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
     try {
       setLoading(true);
       
-      console.log('Loading report data for:', { teamId, eventId, eventType, profileId });
       
       // Загружаем выбранный профиль
       const profileResponse = await fetch(`/api/gps/profiles/${profileId}`);
       if (profileResponse.ok) {
         const profileData = await profileResponse.json();
-        console.log('Profile loaded:', profileData);
         if (profileData.profile) {
           setProfile(profileData.profile);
         }
@@ -115,7 +116,6 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
       const reportResponse = await fetch(`/api/gps/reports?teamId=${teamId}&eventId=${eventId}&eventType=${eventType}`);
       if (reportResponse.ok) {
         const reportsData = await reportResponse.json();
-        console.log('Reports loaded:', reportsData);
         if (reportsData.reports && reportsData.reports.length > 0) {
           const report = reportsData.reports[0];
           setReportInfo(report);
@@ -124,7 +124,6 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
           const dataResponse = await fetch(`/api/gps/reports/${report.id}/visualization?profileId=${profileId}`);
           if (dataResponse.ok) {
             const data = await dataResponse.json();
-            console.log('Visualization data loaded:', data);
             setReportData(data.data || []);
             
             // Обновляем профиль из ответа API
@@ -134,7 +133,6 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
             
             // Обновляем информацию о событии
             if (data.event) {
-              console.log('Event info loaded:', data.event);
               setEventInfo(data.event);
             }
             
@@ -144,16 +142,15 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
             // Загружаем данные для спидометров (для тренировок и матчей)
             await loadTeamAverages(report.id);
           } else {
-            console.error('Failed to load visualization data:', dataResponse.status, dataResponse.statusText);
+            gpsLogger.error('Component', 'Failed to load visualization data:', dataResponse.status, dataResponse.statusText);
           }
         } else {
-          console.log('No reports found for the selected criteria');
         }
       } else {
-        console.error('Failed to load reports:', reportResponse.status, reportResponse.statusText);
+        gpsLogger.error('Component', 'Failed to load reports:', reportResponse.status, reportResponse.statusText);
       }
     } catch (error) {
-      console.error('Error loading report data:', error);
+      gpsLogger.error('Component', 'Error loading report data:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось загрузить данные отчета',
@@ -171,13 +168,12 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
       const response = await fetch(`/api/gps/reports/${reportId}/team-averages?profileId=${profileId}`);
       if (response.ok) {
         const data = await response.json();
-        console.log('Team averages loaded:', data);
         setTeamAverages(data);
       } else {
-        console.error('Failed to load team averages:', response.status, response.statusText);
+        gpsLogger.error('Component', 'Failed to load team averages:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Error loading team averages:', error);
+      gpsLogger.error('Component', 'Error loading team averages:', error);
     } finally {
       setTeamAveragesLoading(false);
     }
@@ -213,7 +209,7 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
             }
           }
         } catch (error) {
-          console.error(`Error loading historical data for player ${player.playerId}, metric ${column.canonicalMetricCode}:`, error);
+          gpsLogger.error('Component', `Error loading historical data for player ${player.playerId}, metric ${column.canonicalMetricCode}:`, error);
         }
       }
     }
@@ -262,7 +258,6 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
   const getPlayerMetricValue = (playerData: GpsReportData, metricCode: string, displayUnit: string) => {
     const metric = playerData.playerData[metricCode];
     if (!metric) {
-      console.log(`Metric ${metricCode} not found for player ${playerData.playerName}. Available metrics:`, Object.keys(playerData.playerData));
       return '-';
     }
     
@@ -362,18 +357,10 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
   }
 
   const visibleColumns = getVisibleColumns();
-
-  // Отладка видимых колонок
-  console.log('Visible columns:', visibleColumns.map(col => ({ 
-    code: col.canonicalMetricCode, 
-    name: col.displayName, 
-    unit: col.displayUnit 
-  })));
   
   // Проверяем, есть ли position и duration в профиле
   const hasPositionInProfile = visibleColumns.some(col => col.canonicalMetricCode === 'position');
   const hasDurationInProfile = visibleColumns.some(col => col.canonicalMetricCode === 'duration');
-  console.log('Profile has position:', hasPositionInProfile, 'Profile has duration:', hasDurationInProfile);
 
   return (
     <div className="space-y-6">
@@ -590,7 +577,18 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
           metrics={teamAverages.metrics}
           playerCount={teamAverages.playerCount}
           categoryInfo={teamAverages.categoryInfo}
+          hasHistoricalData={teamAverages.hasHistoricalData}
           isLoading={teamAveragesLoading}
+        />
+      )}
+
+      {/* Блок с игровыми моделями игроков */}
+      {reportInfo && (
+        <PlayerGameModels
+          reportId={reportInfo.id}
+          profileId={profileId}
+          isLoading={loading}
+          timeUnit="minutes" // Используем формат минут как в таблице
         />
       )}
 
