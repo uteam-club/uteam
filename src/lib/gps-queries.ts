@@ -21,9 +21,9 @@ import { dbCache, gpsCacheKeys, invalidateGpsCache } from './db-cache';
 export { invalidateGpsCache };
 
 // Оптимизированный запрос для получения канонических метрик
-export async function getCanonicalMetrics(cacheKey: string, isAll: boolean = false) {
+export async function getCanonicalMetrics(cacheKey: string, isAll: boolean = false): Promise<any[]> {
   // Проверяем кэш
-  const cached = dbCache.get(cacheKey);
+  const cached = dbCache.get<any[]>(cacheKey);
   if (cached) return cached;
 
   const query = db
@@ -51,8 +51,8 @@ export async function getCanonicalMetrics(cacheKey: string, isAll: boolean = fal
 }
 
 // Оптимизированный запрос для получения профилей визуализации
-export async function getVisualizationProfiles(cacheKey: string, clubId: string) {
-  const cached = dbCache.get(cacheKey);
+export async function getVisualizationProfiles(cacheKey: string, clubId: string): Promise<any[]> {
+  const cached = dbCache.get<any[]>(cacheKey);
   if (cached) return cached;
 
   const result = await db

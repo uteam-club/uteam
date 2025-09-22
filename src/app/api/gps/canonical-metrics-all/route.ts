@@ -17,14 +17,14 @@ export async function GET(request: NextRequest) {
     const canonicalMetrics = await getCanonicalMetrics(cacheKey, true);
 
     // Группируем по категориям
-    const groupedMetrics = canonicalMetrics.reduce((acc, metric) => {
+    const groupedMetrics = (canonicalMetrics || []).reduce((acc, metric) => {
       const category = metric.category || 'other';
       if (!acc[category]) {
         acc[category] = [];
       }
       acc[category].push(metric);
       return acc;
-    }, {} as Record<string, typeof canonicalMetrics>);
+    }, {} as Record<string, any[]>);
 
     return NextResponse.json({
       success: true,

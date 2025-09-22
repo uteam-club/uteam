@@ -23,14 +23,14 @@ export async function GET(request: NextRequest) {
     );
 
     // Группируем по категориям
-    const groupedMetrics = averageableMetrics.reduce((acc, metric) => {
+    const groupedMetrics = (averageableMetrics || []).reduce((acc, metric) => {
       const category = metric.category || 'other';
       if (!acc[category]) {
         acc[category] = [];
       }
       acc[category].push(metric);
       return acc;
-    }, {} as Record<string, typeof averageableMetrics>);
+    }, {} as Record<string, any[]>);
 
     return NextResponse.json({
       success: true,
