@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { X, Clock, User, Edit, RotateCcw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { gpsLogger } from '@/lib/logger';
 
 interface HistoryEntry {
   id: string;

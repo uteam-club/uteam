@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GpsReportVisualization from './GpsReportVisualization';
+import { gpsLogger } from '@/lib/logger';
 
 interface Team {
   id: string;

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, BarChart3, RefreshCw } from 'lucide-react';
 import { EditGpsProfileModal } from './EditGpsProfileModal';
 import { useToast } from '@/components/ui/use-toast';
+import { gpsLogger } from '@/lib/logger';
 
 interface GpsProfile {
   id: string;

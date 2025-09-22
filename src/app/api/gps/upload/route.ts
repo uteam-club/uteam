@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
         trainingId: eventType === 'training' ? eventId : null,
         matchId: eventType === 'match' ? eventId : null,
         status: 'uploaded',
-        playersCount: parsedData.length,
+        playersCount: parsedData.rows?.length || 0,
         hasEdits: false,
         clubId: session.user.clubId,
         teamId,
@@ -120,8 +120,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       reportId: report.id,
-      columns,
-      rowCount: parsedData.length,
+      columns: parsedData.headers || [],
+      rowCount: parsedData.rows?.length || 0,
       gpsSystem,
       message: 'File uploaded successfully. Please configure column mapping.',
     });

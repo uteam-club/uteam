@@ -8,6 +8,7 @@ import { Plus, Settings, Users, Edit, Trash2, Eye } from 'lucide-react';
 import { NewGpsProfileModal } from './NewGpsProfileModal';
 import { EditGpsProfileModal } from './EditGpsProfileModal';
 import { useToast } from '@/components/ui/use-toast';
+import { gpsLogger } from '@/lib/logger';
 
 interface GpsProfile {
   id: string;

@@ -263,7 +263,7 @@ export async function POST(request: NextRequest) {
       canonVersion: null,
       metadata: {
         originalFileName: fileName,
-        fileSize: fileSize,
+        fileSize: file?.size || 0,
         uploadedAt: new Date().toISOString(),
         parsedData: parsedData.metadata,
       },

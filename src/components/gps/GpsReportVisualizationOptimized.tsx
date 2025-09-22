@@ -57,10 +57,10 @@ const TableRowMemo = memo(({
             <div className="flex flex-col items-center gap-1">
               <span className="font-medium">{formattedValue}</span>
               <MetricSparklineMemo
-                playerId={player.playerId}
-                metricCode={column.canonicalMetricCode}
-                displayUnit={column.displayUnit}
-                className="w-16 h-6"
+                value={value}
+                unit={column.displayUnit}
+                width={64}
+                height={24}
               />
             </div>
           </TableCell>
@@ -268,8 +268,16 @@ export const GpsReportVisualizationOptimized = memo(({
       {/* Командные средние */}
       {teamAverages && (
         <TeamAverageGaugesMemo
-          averages={teamAverages.averages}
-          loading={teamAveragesLoading}
+          currentAverages={teamAverages.averages || {}}
+          historicalAverages={{}}
+          metrics={profileColumns}
+          playerCount={teamAverages.playerCount}
+          categoryInfo={{
+            name: teamAverages.categoryName || 'Команда',
+            eventCount: teamAverages.eventCount || 0,
+            reportCount: teamAverages.reportCount || 0,
+            type: 'training'
+          }}
         />
       )}
 
@@ -286,7 +294,7 @@ export const GpsReportVisualizationOptimized = memo(({
             <Table>
               <TableHeaderMemo columns={profileColumns} />
               <TableBody>
-                {playersData.map((player) => (
+                {playersData.map((player: any) => (
                   <TableRowMemo
                     key={player.playerId}
                     player={player}

@@ -18,6 +18,8 @@ export interface PaginatedResponse<T> {
   };
 }
 
+import { NextRequest } from 'next/server';
+
 // Парсинг параметров пагинации из URL
 export function parsePaginationParams(request: NextRequest): PaginationParams {
   const url = new URL(request.url);

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Download, Eye, Edit, Trash2, Calendar, Filter, Search, History } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { gpsLogger } from '@/lib/logger';
 import { GpsReportHistoryModal } from './GpsReportHistoryModal';
 
 interface GpsReport {

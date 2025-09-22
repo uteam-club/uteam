@@ -91,7 +91,7 @@ const MetricGroup = memo(({
   }), []);
 
   const getCategoryName = useCallback((category: string): string => {
-    const categoryData = categoryNames[category];
+    const categoryData = categoryNames[category as keyof typeof categoryNames];
     if (!categoryData) {
       return category
         .split('_')

@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { X, Plus, Trash2, GripVertical, Settings, ChevronRight, ChevronLeft, Search } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { gpsLogger } from '@/lib/logger';
 import { MetricSelector } from './MetricSelector';
 
 interface NewGpsProfileModalProps {

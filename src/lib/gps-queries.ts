@@ -176,13 +176,13 @@ export async function getTeamAverages(
   if (!reportData) return null;
 
   // Вычисляем средние значения
-  const averages = profileData.columns.map(column => {
-    const values = reportData.reportData
-      .filter(row => row.canonicalMetricCode === column.canonicalMetricCode)
-      .map(row => parseFloat(row.value) || 0);
+  const averages = (profileData as any).columns?.map((column: any) => {
+    const values = (reportData as any).reportData
+      ?.filter((row: any) => row.canonicalMetricCode === column.canonicalMetricCode)
+      ?.map((row: any) => parseFloat(row.value) || 0) || [];
 
     const average = values.length > 0 
-      ? values.reduce((sum, val) => sum + val, 0) / values.length 
+      ? values.reduce((sum: number, val: number) => sum + val, 0) / values.length 
       : 0;
 
     return {
@@ -196,9 +196,9 @@ export async function getTeamAverages(
   });
 
   const result = {
-    report: reportData.report,
+    report: (reportData as any).report,
     averages,
-    totalPlayers: reportData.report.playersCount
+    totalPlayers: (reportData as any).report?.playersCount || 0
   };
 
   dbCache.set(cacheKey, result, 2 * 60 * 1000);
@@ -242,13 +242,13 @@ export async function getPlayerGameModels(
       position: player.position,
     })
     .from(player)
-    .where(eq(player.teamId, reportData.report.teamId));
+    .where(eq(player.teamId, (reportData as any).report?.teamId));
 
   // Группируем данные по игрокам
   const playerData = players.map(player => {
-    const playerMetrics = reportData.reportData
-      .filter(row => row.playerId === player.id)
-      .reduce((acc, row) => {
+    const playerMetrics = (reportData as any).reportData
+      ?.filter((row: any) => row.playerId === player.id)
+      ?.reduce((acc: any, row: any) => {
         acc[row.canonicalMetricCode] = parseFloat(row.value) || 0;
         return acc;
       }, {} as Record<string, number>);
@@ -260,9 +260,9 @@ export async function getPlayerGameModels(
   });
 
   const result = {
-    report: reportData.report,
+    report: (reportData as any).report,
     players: playerData,
-    profileColumns: profileData.columns
+    profileColumns: (profileData as any).columns
   };
 
   dbCache.set(cacheKey, result, 2 * 60 * 1000);
@@ -344,7 +344,7 @@ export async function getTeamPlayers(cacheKey: string, teamId: string, clubId: s
       firstName: player.firstName,
       lastName: player.lastName,
       position: player.position,
-      jerseyNumber: player.jerseyNumber,
+      jerseyNumber: (player as any).jerseyNumber,
     })
     .from(player)
     .where(eq(player.teamId, teamId))
