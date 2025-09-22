@@ -74,7 +74,7 @@ const MetricGroup = memo(({
 }) => {
   const { i18n } = useTranslation();
   
-  const categoryNames: Record<string, { ru: string; en: string }> = {
+  const categoryNames = useMemo(() => ({
     'identity': { ru: 'Идентификация', en: 'Identity' },
     'participation': { ru: 'Участие', en: 'Participation' },
     'distance': { ru: 'Дистанция', en: 'Distance' },
@@ -88,7 +88,7 @@ const MetricGroup = memo(({
     'heart_zones': { ru: 'Зоны пульса', en: 'Heart Rate Zones' },
     'derived': { ru: 'Производные метрики', en: 'Derived Metrics' },
     'other': { ru: 'Прочие', en: 'Other' }
-  };
+  }), []);
 
   const getCategoryName = useCallback((category: string): string => {
     const categoryData = categoryNames[category];

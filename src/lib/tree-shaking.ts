@@ -94,8 +94,8 @@ export async function loadComponent<T>(
   fallback?: T
 ): Promise<T> {
   try {
-    const module = await componentLoader();
-    return module.default;
+    const componentModule = await componentLoader();
+    return componentModule.default;
   } catch (error) {
     console.error('Failed to load component:', error);
     if (fallback) return fallback;

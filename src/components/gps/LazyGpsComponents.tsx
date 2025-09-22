@@ -69,11 +69,14 @@ export const withLazyLoading = <P extends object>(
   Component: React.ComponentType<P>,
   fallback?: React.ReactNode
 ) => {
-  return (props: P) => (
+  const LazyComponent = (props: P) => (
     <Suspense fallback={fallback || <LoadingSpinner />}>
       <Component {...props} />
     </Suspense>
   );
+  
+  LazyComponent.displayName = `withLazyLoading(${Component.displayName || Component.name})`;
+  return LazyComponent;
 };
 
 // Экспорт lazy компонентов

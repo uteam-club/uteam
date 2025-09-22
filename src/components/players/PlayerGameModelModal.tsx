@@ -340,7 +340,7 @@ export function PlayerGameModelModal({
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-vista-primary font-bold text-xs">•</span>
-                    <span>Это приводит все метрики к стандарту "за 90 минут"</span>
+                    <span>Это приводит все метрики к стандарту &quot;за 90 минут&quot;</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-vista-primary font-bold text-xs">•</span>
