@@ -6,7 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { gpsLogger } from '@/lib/logger';
-import { Save, X, RefreshCw } from 'lucide-react';
+import { Save, X, RefreshCw, Trash2, AlertTriangle, UserX, BarChart3 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 interface GpsReportData {
   id: string;
@@ -45,6 +52,16 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
   const [report, setReport] = useState<GpsReport | null>(null);
   const [data, setData] = useState<GpsReportData[]>([]);
   const [editedData, setEditedData] = useState<Map<string, { value: number | string; reason?: string }>>(new Map());
+  
+  // Состояние для удаления
+  const [deletedPlayers, setDeletedPlayers] = useState<Set<string>>(new Set());
+  const [deletedMetrics, setDeletedMetrics] = useState<Set<string>>(new Set());
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    type: 'player' | 'metric';
+    target: string;
+    name: string;
+  }>({ isOpen: false, type: 'player', target: '', name: '' });
 
   useEffect(() => {
     if (isOpen && reportId) {
@@ -53,6 +70,9 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
       setReport(null);
       setData([]);
       setEditedData(new Map());
+      setDeletedPlayers(new Set());
+      setDeletedMetrics(new Set());
+      setDeleteDialog({ isOpen: false, type: 'player', target: '', name: '' });
       setLoading(true);
     }
   }, [isOpen, reportId]);
@@ -101,7 +121,7 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
   };
 
   const handleSave = async () => {
-    if (editedData.size === 0) {
+    if (!hasChanges) {
       toast({
         title: 'Нет изменений',
         description: 'Не было внесено изменений для сохранения.',
@@ -118,27 +138,38 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
         reason: 'Редактирование через модальное окно'
       }));
 
+      // Подготавливаем данные для удаления
+      const deletedPlayerIds = Array.from(deletedPlayers);
+      const deletedMetricNames = Array.from(deletedMetrics);
+
       const response = await fetch(`/api/gps/reports/${reportId}/data/bulk-update`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ updates }),
+        body: JSON.stringify({ 
+          updates,
+          deletedPlayers: deletedPlayerIds,
+          deletedMetrics: deletedMetricNames
+        }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to save changes');
       }
 
+      const totalChanges = editedData.size + deletedPlayers.size + deletedMetrics.size;
       toast({
         title: 'Успешно',
-        description: `Сохранено ${editedData.size} изменений.`,
+        description: `Сохранено ${totalChanges} изменений (${editedData.size} редактирований, ${deletedPlayers.size} удалений игроков, ${deletedMetrics.size} удалений метрик).`,
         variant: 'default',
       });
 
       // Обновляем данные
       await fetchReportData();
       setEditedData(new Map());
+      setDeletedPlayers(new Set());
+      setDeletedMetrics(new Set());
     } catch (error) {
       gpsLogger.error('Component', 'Error saving changes:', error);
       toast({
@@ -153,18 +184,84 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
 
   const handleCancel = () => {
     setEditedData(new Map());
+    setDeletedPlayers(new Set());
+    setDeletedMetrics(new Set());
     onClose();
+  };
+
+  // Функции для удаления
+  const handleDeletePlayer = (playerId: string, playerName: string) => {
+    setDeleteDialog({
+      isOpen: true,
+      type: 'player',
+      target: playerId,
+      name: playerName
+    });
+  };
+
+  const handleDeleteMetric = (metric: string) => {
+    const sampleData = data.find(d => (d.canonicalMetric || d.fieldName) === metric);
+    setDeleteDialog({
+      isOpen: true,
+      type: 'metric',
+      target: metric,
+      name: sampleData?.fieldLabel || metric
+    });
+  };
+
+  const confirmDelete = () => {
+    if (deleteDialog.type === 'player') {
+      setDeletedPlayers(prev => new Set([...prev, deleteDialog.target]));
+      // Удаляем все данные этого игрока из editedData
+      const playerData = data.filter(d => d.playerId === deleteDialog.target);
+      setEditedData(prev => {
+        const newMap = new Map(prev);
+        playerData.forEach(d => newMap.delete(d.id));
+        return newMap;
+      });
+    } else {
+      setDeletedMetrics(prev => new Set([...prev, deleteDialog.target]));
+      // Удаляем все данные этой метрики из editedData
+      const metricData = data.filter(d => (d.canonicalMetric || d.fieldName) === deleteDialog.target);
+      setEditedData(prev => {
+        const newMap = new Map(prev);
+        metricData.forEach(d => newMap.delete(d.id));
+        return newMap;
+      });
+    }
+    setDeleteDialog({ isOpen: false, type: 'player', target: '', name: '' });
+  };
+
+  const cancelDelete = () => {
+    setDeleteDialog({ isOpen: false, type: 'player', target: '', name: '' });
   };
 
   const getFieldValue = (dataId: string) => {
     const edited = editedData.get(dataId);
-    return edited ? edited.value : data.find(d => d.id === dataId)?.value || '';
+    const originalValue = data.find(d => d.id === dataId)?.value || '';
+    const value = edited ? edited.value : originalValue;
+    
+    // Убеждаемся, что значение является числом для number input
+    if (typeof value === 'number') {
+      return value.toString();
+    }
+    if (typeof value === 'string') {
+      const numValue = parseFloat(value);
+      return isNaN(numValue) ? '' : numValue.toString();
+    }
+    return '';
   };
 
-  const hasChanges = editedData.size > 0;
+  const hasChanges = editedData.size > 0 || deletedPlayers.size > 0 || deletedMetrics.size > 0;
+
+  // Фильтруем данные, исключая удаленные игроков и метрики
+  const filteredData = data.filter(item => 
+    !deletedPlayers.has(item.playerId) && 
+    !deletedMetrics.has(item.canonicalMetric || item.fieldName)
+  );
 
   // Группируем данные по игрокам и метрикам - используем canonicalMetric как ключ
-  const groupedData = data.reduce((acc, item) => {
+  const groupedData = filteredData.reduce((acc, item) => {
     if (!acc[item.playerId]) {
       acc[item.playerId] = {
         playerName: item.playerName,
@@ -177,17 +274,18 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
   }, {} as Record<string, { playerName: string; metrics: Record<string, GpsReportData> }>);
 
   // Получаем уникальные метрики - используем canonicalMetric вместо fieldName
-  const uniqueMetrics = Array.from(new Set(data.map(item => item.canonicalMetric || item.fieldName))).sort();
+  const uniqueMetrics = Array.from(new Set(filteredData.map(item => item.canonicalMetric || item.fieldName))).sort();
   
-  // Проверяем, что у каждого игрока есть все метрики
-  Object.entries(groupedData).forEach(([playerId, playerData]) => {
-    const playerMetrics = Object.keys(playerData.metrics);
-    if (playerMetrics.length !== uniqueMetrics.length) {
-      gpsLogger.warn('Component', `EditGpsReportModal: Player ${playerId} missing metrics!`);
-      const missing = uniqueMetrics.filter(m => !playerMetrics.includes(m));
-      gpsLogger.warn('Component', `EditGpsReportModal: Missing metrics:`, missing);
-    }
-  });
+  // Проверяем, что у каждого игрока есть все метрики (только для отладки)
+  if (process.env.NODE_ENV === 'development') {
+    Object.entries(groupedData).forEach(([playerId, playerData]) => {
+      const playerMetrics = Object.keys(playerData.metrics);
+      if (playerMetrics.length !== uniqueMetrics.length) {
+        const missing = uniqueMetrics.filter(m => !playerMetrics.includes(m));
+        console.debug(`Player ${playerId} missing metrics:`, missing);
+      }
+    });
+  }
   
   const players = Object.keys(groupedData).sort((a, b) => 
     groupedData[a].playerName.localeCompare(groupedData[b].playerName)
@@ -288,12 +386,23 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
                         return (
                           <div 
                             key={metric} 
-                            className={`w-[120px] min-w-[120px] p-2 border-r border-vista-secondary/30 last:border-r-0 ${
+                            className={`w-[120px] min-w-[120px] p-2 border-r border-vista-secondary/30 last:border-r-0 group relative ${
                               index % 2 === 0 ? 'bg-vista-dark/30' : 'bg-vista-dark/20'
                             }`}
                           >
-                            <div className="text-xs font-semibold text-vista-light/90 mb-1 truncate" title={sampleData?.fieldLabel || metric}>
-                              {sampleData?.fieldLabel || metric}
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="text-xs font-semibold text-vista-light/90 truncate flex-1" title={sampleData?.fieldLabel || metric}>
+                                {sampleData?.fieldLabel || metric}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteMetric(metric)}
+                                className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-vista-light/50 hover:text-red-400 hover:bg-red-500/20"
+                                title="Удалить столбец"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
                             </div>
                             <div className="text-xs text-vista-light/60 font-mono">
                               {sampleData?.unit || ''}
@@ -309,11 +418,22 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
                         return null;
                       })()}
                       {players.map((playerId, playerIndex) => (
-                        <div key={playerId} className="flex hover:bg-vista-dark/10">
+                        <div key={playerId} className="flex hover:bg-vista-dark/10 group">
                           {/* Столбец с именем игрока - зафиксированный */}
-                          <div className="w-[250px] min-w-[250px] p-2 border-r border-vista-secondary/30 flex-shrink-0 sticky left-0 z-10 bg-vista-dark">
-                            <div className="text-sm font-normal text-vista-light truncate" title={groupedData[playerId].playerName}>
-                              {groupedData[playerId].playerName}
+                          <div className="w-[250px] min-w-[250px] p-2 border-r border-vista-secondary/30 flex-shrink-0 sticky left-0 z-10 bg-vista-dark group-hover:bg-vista-dark/50 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm font-normal text-vista-light truncate flex-1" title={groupedData[playerId].playerName}>
+                                {groupedData[playerId].playerName}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeletePlayer(playerId, groupedData[playerId].playerName)}
+                                className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-vista-light/50 hover:text-red-400 hover:bg-red-500/20 ml-2"
+                                title="Удалить игрока"
+                              >
+                                <UserX className="h-3 w-3" />
+                              </Button>
                             </div>
                           </div>
                           
@@ -362,17 +482,35 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
                 <div className="p-4 bg-vista-primary/10 border border-vista-primary/30 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 bg-vista-primary rounded-full animate-pulse"></div>
-                    <p className="text-sm text-vista-light">
-                      Изменено полей: <span className="font-bold text-vista-primary">{editedData.size}</span>
-                    </p>
+                    <div className="flex items-center gap-4 text-sm text-vista-light">
+                      {editedData.size > 0 && (
+                        <span>
+                          Изменено полей: <span className="font-bold text-vista-primary">{editedData.size}</span>
+                        </span>
+                      )}
+                      {deletedPlayers.size > 0 && (
+                        <span>
+                          Удалено игроков: <span className="font-bold text-red-400">{deletedPlayers.size}</span>
+                        </span>
+                      )}
+                      {deletedMetrics.size > 0 && (
+                        <span>
+                          Удалено метрик: <span className="font-bold text-red-400">{deletedMetrics.size}</span>
+                        </span>
+                      )}
+                    </div>
                     <div className="ml-auto">
                       <Button
-                        onClick={() => setEditedData(new Map())}
+                        onClick={() => {
+                          setEditedData(new Map());
+                          setDeletedPlayers(new Set());
+                          setDeletedMetrics(new Set());
+                        }}
                         variant="ghost"
                         size="sm"
                         className="text-vista-light/70 hover:text-vista-light hover:bg-vista-dark/30 h-7 px-2 text-xs"
                       >
-                        Сбросить
+                        Сбросить все
                       </Button>
                     </div>
                   </div>
@@ -418,6 +556,65 @@ export function EditGpsReportModal({ isOpen, onClose, reportId }: EditGpsReportM
           </div>
         </div>
       </div>
+
+      {/* Диалог подтверждения удаления */}
+      <Dialog open={deleteDialog.isOpen} onOpenChange={(open) => {
+        if (!open) {
+          setDeleteDialog({ isOpen: false, type: 'player', target: '', name: '' });
+        }
+      }}>
+        <DialogContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md overflow-y-auto max-h-[80vh] focus:outline-none focus:ring-0 custom-scrollbar">
+          <DialogHeader>
+            <DialogTitle className="text-vista-light text-xl flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-vista-error" />
+              Подтверждение удаления
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="space-y-4">
+              <div className="p-4 bg-vista-error/10 border border-vista-error/30 rounded-lg">
+                <p className="text-vista-light text-sm leading-relaxed">
+                  {deleteDialog.type === 'player' ? (
+                    <>
+                      Вы уверены, что хотите удалить игрока <strong className="text-vista-light">&quot;{deleteDialog.name}&quot;</strong> из отчета?
+                    </>
+                  ) : (
+                    <>
+                      Вы уверены, что хотите удалить метрику <strong className="text-vista-light">&quot;{deleteDialog.name}&quot;</strong> из отчета?
+                    </>
+                  )}
+                </p>
+                <p className="text-vista-error text-sm font-medium mt-2">
+                  {deleteDialog.type === 'player' 
+                    ? 'Это действие удалит все данные этого игрока из отчета и не может быть отменено.'
+                    : 'Это действие удалит все данные этой метрики для всех игроков и не может быть отменено.'
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex justify-end gap-2 mt-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={cancelDelete}
+              className="bg-transparent border border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 h-9 px-3 font-normal"
+            >
+              Отмена
+            </Button>
+            <Button 
+              type="button" 
+              onClick={confirmDelete}
+              className="bg-transparent border border-vista-error/50 text-vista-error hover:bg-vista-error/10 h-9 px-3 font-normal"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Удалить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

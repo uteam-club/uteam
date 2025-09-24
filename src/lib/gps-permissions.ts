@@ -2,10 +2,50 @@ import { db } from './db';
 import { gpsPermission, gpsRolePermission, gpsUserPermission } from '@/db/schema/gpsPermissions';
 import { eq, and, or, isNull } from 'drizzle-orm';
 
+// Интерфейс для роли пользователя
+interface UserRole {
+  id: string;
+  name: string;
+  clubId: string;
+}
+
 export interface GpsPermissionCheck {
   hasPermission: boolean;
   source: 'role' | 'user' | 'none';
   details?: string;
+}
+
+/**
+ * Получает роль пользователя в клубе
+ */
+async function getUserRole(userId: string, clubId: string): Promise<UserRole | null> {
+  try {
+    // Предполагаем, что у нас есть таблица userRoles или подобная
+    // Для упрощения используем прямую проверку по userId и clubId
+    const userRoles = await db
+      .select({
+        id: gpsRolePermission.role,
+        name: gpsRolePermission.role
+      })
+      .from(gpsRolePermission)
+      .where(
+        eq(gpsRolePermission.role, 'ADMIN') // Временное решение - проверяем роль ADMIN
+      )
+      .limit(1);
+
+    const userRole = userRoles[0];
+    if (userRole) {
+      return {
+        id: userRole.id,
+        name: userRole.name,
+        clubId: clubId
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting user role:', error);
+    return null;
+  }
 }
 
 /**
@@ -68,23 +108,29 @@ export async function hasGpsPermission(
     }
 
     // 3. Проверяем ролевые разрешения
-    // Получаем роль пользователя (предполагаем, что она хранится в сессии)
-    // Для упрощения используем прямую проверку ролевых разрешений
-    const rolePermissions = await db
-      .select()
-      .from(gpsRolePermission)
-      .where(eq(gpsRolePermission.permissionId, permission.id));
+    // Получаем роль пользователя из базы данных
+    const userRole = await getUserRole(userId, clubId);
+    
+    if (userRole) {
+      const rolePermissions = await db
+        .select()
+        .from(gpsRolePermission)
+        .where(
+          and(
+            eq(gpsRolePermission.role, userRole.id),
+            eq(gpsRolePermission.permissionId, permission.id)
+          )
+        );
 
-    // Проверяем, есть ли разрешение для роли пользователя
-    // В реальном приложении нужно получить роль пользователя из сессии
-    const hasRolePermission = rolePermissions.some(rp => rp.allowed);
+      const hasRolePermission = rolePermissions.some(rp => rp.allowed);
 
-    if (hasRolePermission) {
-      return {
-        hasPermission: true,
-        source: 'role',
-        details: 'Role-based permission'
-      };
+      if (hasRolePermission) {
+        return {
+          hasPermission: true,
+          source: 'role',
+          details: `Role-based permission for role ${userRole.name}`
+        };
+      }
     }
 
     return {
@@ -178,9 +224,27 @@ export async function getUserGpsPermissions(
 
     // 2. Если нет пользовательских разрешений, получаем ролевые
     if (permissions.length === 0) {
-      // В реальном приложении нужно получить роль пользователя
-      // Для упрощения возвращаем базовые разрешения
-      permissions.push('gps.reports.view', 'gps.profiles.view', 'gps.data.view');
+      const userRole = await getUserRole(userId, clubId);
+      if (userRole) {
+        // Получаем все разрешения для роли
+        const rolePermissions = await db
+          .select({
+            permissionCode: gpsPermission.code
+          })
+          .from(gpsRolePermission)
+          .innerJoin(gpsPermission, eq(gpsRolePermission.permissionId, gpsPermission.id))
+          .where(
+            and(
+              eq(gpsRolePermission.role, userRole.id),
+              eq(gpsRolePermission.allowed, true)
+            )
+          );
+
+        permissions.push(...rolePermissions.map(rp => rp.permissionCode));
+      } else {
+        // Если нет роли, возвращаем базовые разрешения
+        permissions.push('gps.reports.view', 'gps.profiles.view', 'gps.data.view');
+      }
     }
 
     return [...new Set(permissions)]; // Убираем дубликаты

@@ -8,11 +8,13 @@ import { gpsCanonicalMetric } from '@/db/schema/gpsCanonicalMetric';
 import { team } from '@/db/schema/team';
 import { training } from '@/db/schema/training';
 import { match } from '@/db/schema/match';
+import { player } from '@/db/schema/player';
 import { trainingCategory } from '@/db/schema/trainingCategory';
 import { playerGameModel } from '@/db/schema/playerGameModel';
 import { eq, and, sql, desc, inArray, count } from 'drizzle-orm';
 import { convertUnit } from '@/lib/unit-converter';
 import { canAccessGpsReport } from '@/lib/gps-permissions';
+import { invalidateRelatedCache } from '@/lib/gps-cache';
 import {
   validateRequiredFields,
   validateGpsData,
@@ -20,7 +22,7 @@ import {
   validateFile,
   isValidId
 } from '@/lib/validation';
-import { GPS_CONSTANTS } from '@/lib/gps-constants';
+// GPS_CONSTANTS removed - using direct values
 import { ApiErrorHandler } from '@/lib/api-error-handler';
 import { parsePaginationParams, createPaginatedResponse } from '@/lib/pagination';
 import { withApiCache } from '@/lib/api-cache-middleware';
@@ -220,7 +222,7 @@ export async function POST(request: NextRequest) {
     
     // Валидация файла
     if (file) {
-      const fileValidation = validateFile(file, GPS_CONSTANTS.MAX_FILE_SIZE_MB, GPS_CONSTANTS.SUPPORTED_FILE_TYPES);
+      const fileValidation = validateFile(file, 10, ['.csv', '.xlsx', '.xls']);
       if (!fileValidation.valid) {
         return NextResponse.json(
           { error: 'File validation failed', message: fileValidation.error },
@@ -449,181 +451,26 @@ export async function POST(request: NextRequest) {
     
     // Автоматический расчет игровых моделей для команды
     try {
+      console.log('🔄 Запуск расчета игровых моделей для команды:', teamId);
       
-      // Получаем игроков из GPS данных
-      const playerIds = [...new Set(allReportData.map(row => row.playerId))];
+      // Используем модуль для расчета игровых моделей
+      const { calculateGameModelsForTeam } = await import('@/lib/game-model-calculator');
+      await calculateGameModelsForTeam(teamId, session.user.clubId || 'default-club');
       
-      if (playerIds.length > 0) {
-        // Получаем матчи команды
-        const teamMatches = await db
-          .select({ id: match.id })
-          .from(match)
-          .where(eq(match.teamId, teamId))
-          .orderBy(desc(match.date))
-          .limit(10);
-
-        if (teamMatches.length > 0) {
-          const matchIds = teamMatches.map(m => m.id);
-          
-          // Получаем GPS отчеты для матчей
-          const gpsReports = await db
-            .select({ id: gpsReport.id, eventId: gpsReport.eventId })
-            .from(gpsReport)
-            .where(and(
-              eq(gpsReport.eventType, 'match'),
-              inArray(gpsReport.eventId, matchIds),
-              eq(gpsReport.clubId, session.user.clubId || 'default-club')
-            ));
-
-          if (gpsReports.length > 0) {
-            const reportIds = gpsReports.map(r => r.id);
-            
-            // Рассчитываем модели для каждого игрока
-            let successCount = 0;
-            for (const playerId of playerIds) {
-              try {
-                // Получаем данные игрока
-                const playerData = await db
-                  .select({
-                    canonicalMetric: gpsReportData.canonicalMetric,
-                    value: gpsReportData.value,
-                    eventId: gpsReport.eventId
-                  })
-                  .from(gpsReportData)
-                  .leftJoin(gpsReport, eq(gpsReportData.gpsReportId, gpsReport.id))
-                  .where(and(
-                    eq(gpsReportData.playerId, playerId),
-                    inArray(gpsReportData.gpsReportId, reportIds),
-                    eq(gpsReportData.canonicalMetric, 'duration')
-                  ));
-
-                if (playerData.length > 0) {
-                  // Группируем по матчам
-                  const matchData = new Map();
-                  playerData.forEach(row => {
-                    if (!matchData.has(row.eventId)) {
-                      matchData.set(row.eventId, {});
-                    }
-                    matchData.get(row.eventId).duration = parseFloat(row.value) || 0;
-                  });
-
-                  // Фильтруем матчи с 60+ минутами
-                  const validMatches: Array<{ eventId: string; duration: number }> = [];
-                  matchData.forEach((metrics, eventId) => {
-                    const duration = metrics.duration || 0;
-                    if (duration >= 3600) { // 60 минут в секундах
-                      validMatches.push({ eventId, duration });
-                    }
-                  });
-
-                  if (validMatches.length > 0) {
-                    const totalMinutes = validMatches.reduce((sum, { duration }) => sum + (duration / 60), 0);
-                    
-                    // Получаем все метрики для расчета модели
-                    const allPlayerData = await db
-                      .select({
-                        canonicalMetric: gpsReportData.canonicalMetric,
-                        value: gpsReportData.value,
-                        eventId: gpsReport.eventId
-                      })
-                      .from(gpsReportData)
-                      .leftJoin(gpsReport, eq(gpsReportData.gpsReportId, gpsReport.id))
-                      .where(and(
-                        eq(gpsReportData.playerId, playerId),
-                        inArray(gpsReportData.gpsReportId, reportIds),
-                        inArray(gpsReportData.canonicalMetric, [
-                          'hsr_percentage', 'total_distance', 'time_in_speed_zone1', 'time_in_speed_zone2',
-                          'time_in_speed_zone3', 'time_in_speed_zone4', 'time_in_speed_zone5', 'time_in_speed_zone6',
-                          'speed_zone1_entries', 'speed_zone2_entries', 'speed_zone3_entries', 'speed_zone4_entries',
-                          'speed_zone5_entries', 'speed_zone6_entries', 'sprints_count', 'acc_zone1_count',
-                          'player_load', 'power_score', 'work_ratio', 'distance_zone1', 'distance_zone2',
-                          'distance_zone3', 'distance_zone4', 'distance_zone5', 'distance_zone6',
-                          'hsr_distance', 'sprint_distance', 'distance_per_min', 'time_in_hr_zone1',
-                          'time_in_hr_zone2', 'time_in_hr_zone3', 'time_in_hr_zone4', 'time_in_hr_zone5',
-                          'time_in_hr_zone6', 'dec_zone1_count', 'dec_zone2_count', 'dec_zone3_count',
-                          'dec_zone4_count', 'dec_zone5_count', 'dec_zone6_count', 'hml_distance',
-                          'explosive_distance', 'acc_zone2_count', 'acc_zone3_count', 'acc_zone4_count',
-                          'acc_zone5_count', 'acc_zone6_count', 'impacts_count'
-                        ])
-                      ));
-
-                    // Группируем данные по матчам
-                    const matchMetrics = new Map();
-                    allPlayerData.forEach(row => {
-                      if (!matchMetrics.has(row.eventId)) {
-                        matchMetrics.set(row.eventId, {});
-                      }
-                      matchMetrics.get(row.eventId)[row.canonicalMetric] = parseFloat(row.value) || 0;
-                    });
-
-                    // Рассчитываем средние метрики (нормализованные к 90 минутам)
-                    const averageMetrics: Record<string, number> = {};
-                    const metricKeys = Object.keys(matchMetrics.get(validMatches[0].eventId) || {});
-                    
-                    metricKeys.forEach(metric => {
-                      if (metric === 'duration') return; // Пропускаем duration
-                      
-                      let totalValue = 0;
-                      let validCount = 0;
-                      
-                      validMatches.forEach(({ eventId, duration }) => {
-                        const matchData = matchMetrics.get(eventId);
-                        if (matchData) {
-                          const value = matchData[metric] || 0;
-                          if (value > 0) {
-                            // Нормализация к 90 минутам
-                            const normalizedValue = (value / (duration / 60)) * 90;
-                            totalValue += normalizedValue;
-                            validCount++;
-                          }
-                        }
-                      });
-                      
-                      if (validCount > 0) {
-                        averageMetrics[metric] = totalValue / validCount;
-                      }
-                    });
-                    
-                    // Удаляем существующую модель
-                    await db
-                      .delete(playerGameModel)
-                      .where(and(
-                        eq(playerGameModel.playerId, playerId),
-                        eq(playerGameModel.clubId, session.user.clubId || 'default-club')
-                      ));
-                    
-                    // Сохраняем новую модель с рассчитанными метриками
-                    await db.insert(playerGameModel).values({
-                      playerId,
-                      clubId: session.user.clubId || 'default-club',
-                      matchesCount: validMatches.length,
-                      totalMinutes: Math.round(totalMinutes),
-                      metrics: averageMetrics,
-                      matchIds: validMatches.map(m => m.eventId),
-                      version: 1
-                    });
-                    
-                    successCount++;
-                  }
-                }
-              } catch (error) {
-                console.error(`Ошибка расчета для игрока ${playerId}:`, error);
-              }
-            }
-            
-          }
-        }
-      }
+      console.log('✅ Игровые модели рассчитаны');
     } catch (error) {
       console.error('⚠️ Ошибка при автоматическом расчете игровых моделей:', error);
       // Не прерываем выполнение, так как отчет уже создан
     }
+
+    // Инвалидируем кэш после создания отчета
+    invalidateRelatedCache('gps-report', newReport.id);
     
     return NextResponse.json({ 
       success: true, 
       gpsReportId: newReport.id,
       message: 'GPS отчет успешно создан' 
-    });
+    }, { status: 201 });
 
   } catch (error) {
     const errorResponse = ApiErrorHandler.createErrorResponse(error, 'POST GPS report');

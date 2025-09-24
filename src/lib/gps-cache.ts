@@ -146,6 +146,56 @@ export function invalidateGpsCache(pattern?: string) {
   }
 }
 
+// Автоматическая инвалидация кэша при изменениях данных
+export function invalidateRelatedCache(entityType: string, entityId?: string) {
+  const stats = gpsCache.getStats();
+  
+  switch (entityType) {
+    case 'gps-report':
+      // Инвалидируем кэш отчета и связанных данных
+      for (const key of stats.keys) {
+        if (key.includes('gps-report') || 
+            key.includes('team-averages') || 
+            key.includes('player-models') ||
+            key.includes('gps-report-data')) {
+          gpsCache.delete(key);
+        }
+      }
+      break;
+      
+    case 'gps-profile':
+      // Инвалидируем кэш профилей
+      for (const key of stats.keys) {
+        if (key.includes('gps-profile') || key.includes('gps-profiles')) {
+          gpsCache.delete(key);
+        }
+      }
+      break;
+      
+    case 'canonical-metrics':
+      // Инвалидируем кэш метрик и единиц
+      for (const key of stats.keys) {
+        if (key.includes('canonical-metrics') || key.includes('units')) {
+          gpsCache.delete(key);
+        }
+      }
+      break;
+      
+    case 'team':
+      // Инвалидируем кэш команд и связанных данных
+      for (const key of stats.keys) {
+        if (key.includes('team') || key.includes('gps-profiles')) {
+          gpsCache.delete(key);
+        }
+      }
+      break;
+      
+    default:
+      // Для неизвестных типов очищаем весь кэш
+      gpsCache.clear();
+  }
+}
+
 // Автоматическая очистка устаревших записей каждые 10 минут
 if (typeof window !== 'undefined') {
   setInterval(() => {

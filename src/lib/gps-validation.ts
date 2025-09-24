@@ -85,6 +85,18 @@ export class GpsDataValidator {
             value
           });
         }
+
+        // Проверяем диапазоны значений для числовых данных
+        const rangeValidation = this.validateValueRange(columnName, value);
+        if (!rangeValidation.isValid) {
+          warnings.push({
+            type: 'invalid_data',
+            message: `Подозрительное значение в строке ${rowIndex + 1}, колонка "${columnName}": "${value}". ${rangeValidation.message}`,
+            row: rowIndex + 1,
+            column: columnName,
+            value
+          });
+        }
       });
     });
 
@@ -381,5 +393,98 @@ export class GpsDataValidator {
     });
 
     return warningMessages.join('\n');
+  }
+
+  /**
+   * Валидирует диапазон значений для конкретной колонки
+   */
+  private static validateValueRange(columnName: string, value: any): { isValid: boolean; message: string } {
+    const numValue = parseFloat(String(value));
+    
+    // Если значение не числовое, пропускаем проверку
+    if (isNaN(numValue)) {
+      return { isValid: true, message: '' };
+    }
+
+    const columnLower = columnName.toLowerCase();
+    
+    // Дистанция (метры)
+    if (columnLower.includes('distance') || columnLower.includes('дистанция')) {
+      if (numValue < 0) {
+        return { isValid: false, message: 'Дистанция не может быть отрицательной' };
+      }
+      if (numValue > 50000) { // 50 км
+        return { isValid: false, message: 'Дистанция слишком большая (>50км)' };
+      }
+    }
+    
+    // Скорость (м/с)
+    if (columnLower.includes('speed') || columnLower.includes('скорость')) {
+      if (numValue < 0) {
+        return { isValid: false, message: 'Скорость не может быть отрицательной' };
+      }
+      if (numValue > 15) { // 15 м/с = 54 км/ч
+        return { isValid: false, message: 'Скорость слишком высокая (>15 м/с)' };
+      }
+    }
+    
+    // Пульс (bpm)
+    if (columnLower.includes('heart') || columnLower.includes('hr') || columnLower.includes('пульс')) {
+      if (numValue < 30) {
+        return { isValid: false, message: 'Пульс слишком низкий (<30 bpm)' };
+      }
+      if (numValue > 220) {
+        return { isValid: false, message: 'Пульс слишком высокий (>220 bpm)' };
+      }
+    }
+    
+    // Время (секунды)
+    if (columnLower.includes('time') || columnLower.includes('duration') || columnLower.includes('время')) {
+      if (numValue < 0) {
+        return { isValid: false, message: 'Время не может быть отрицательным' };
+      }
+      if (numValue > 14400) { // 4 часа
+        return { isValid: false, message: 'Время слишком большое (>4 часов)' };
+      }
+    }
+    
+    // Ускорение (м/с²)
+    if (columnLower.includes('acceleration') || columnLower.includes('acc') || columnLower.includes('ускорение')) {
+      if (Math.abs(numValue) > 15) { // ±15 м/с²
+        return { isValid: false, message: 'Ускорение слишком большое (>15 м/с²)' };
+      }
+    }
+    
+    // Нагрузка (AU)
+    if (columnLower.includes('load') || columnLower.includes('нагрузка')) {
+      if (numValue < 0) {
+        return { isValid: false, message: 'Нагрузка не может быть отрицательной' };
+      }
+      if (numValue > 1000) {
+        return { isValid: false, message: 'Нагрузка слишком большая (>1000 AU)' };
+      }
+    }
+    
+    // Количество (count)
+    if (columnLower.includes('count') || columnLower.includes('entries') || columnLower.includes('количество')) {
+      if (numValue < 0) {
+        return { isValid: false, message: 'Количество не может быть отрицательным' };
+      }
+      if (numValue > 10000) {
+        return { isValid: false, message: 'Количество слишком большое (>10000)' };
+      }
+    }
+    
+    // Проценты
+    if (columnLower.includes('%') || columnLower.includes('percent') || columnLower.includes('процент')) {
+      if (numValue < 0) {
+        return { isValid: false, message: 'Процент не может быть отрицательным' };
+      }
+      if (numValue > 100) {
+        return { isValid: false, message: 'Процент не может быть больше 100%' };
+      }
+    }
+
+    return { isValid: true, message: '' };
   }
 }

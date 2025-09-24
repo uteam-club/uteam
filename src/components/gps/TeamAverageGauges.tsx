@@ -161,9 +161,6 @@ export function TeamAverageGauges({
   if (isLoading) {
     return (
       <div className="bg-vista-dark/50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-vista-light/90 mb-4">
-          Средние значения команды
-        </h3>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="animate-pulse">
@@ -178,9 +175,6 @@ export function TeamAverageGauges({
   if (averageableMetrics.length === 0) {
     return (
       <div className="bg-vista-dark/50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-vista-light/90 mb-4">
-          Средние значения команды
-        </h3>
         <div className="text-center text-vista-light/60 py-8">
           Нет метрик для усреднения в выбранном профиле
         </div>
@@ -189,40 +183,23 @@ export function TeamAverageGauges({
   }
 
   return (
-    <div className="bg-vista-dark/50 border border-vista-secondary/30 rounded-lg p-6">
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold text-vista-light/90">
-          Средние значения
-        </h3>
-        <p className="text-sm text-vista-light/70 mt-1">
-          {categoryInfo 
-            ? categoryInfo.type === 'match'
-              ? `Сравнение с ${categoryInfo.eventCount} предыдущими матчами (${categoryInfo.reportCount} отчетов)`
-              : `Сравнение с тренировками категории "${categoryInfo.name}" за последние 30 дней (${categoryInfo.eventCount} тренировок, ${categoryInfo.reportCount} отчетов)`
-            : 'Сравнение с историческими данными за последние 30 дней'
-          }
-        </p>
-      </div>
-      
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {averageableMetrics.map((metric) => {
-          const currentValue = currentAverages[metric.canonicalMetricCode] || 0;
-          const historicalValue = historicalAverages[metric.canonicalMetricCode] || 0;
-          
-          return (
-            <Gauge
-              key={metric.canonicalMetricCode}
-              currentValue={currentValue}
-              historicalValue={historicalValue}
-              displayName={metric.displayName}
-              displayUnit={metric.displayUnit}
-              isFirstTraining={isFirstTraining}
-              eventType={categoryInfo?.type}
-            />
-          );
-        })}
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      {averageableMetrics.map((metric) => {
+        const currentValue = currentAverages[metric.canonicalMetricCode] || 0;
+        const historicalValue = historicalAverages[metric.canonicalMetricCode] || 0;
         
-      </div>
+        return (
+          <Gauge
+            key={metric.canonicalMetricCode}
+            currentValue={currentValue}
+            historicalValue={historicalValue}
+            displayName={metric.displayName}
+            displayUnit={metric.displayUnit}
+            isFirstTraining={isFirstTraining}
+            eventType={categoryInfo?.type}
+          />
+        );
+      })}
     </div>
   );
 }

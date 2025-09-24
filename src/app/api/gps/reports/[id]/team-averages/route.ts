@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 import { gpsReport, gpsReportData, gpsVisualizationProfile, gpsProfileColumn, gpsCanonicalMetric, training, trainingCategory, match } from '@/db/schema';
 import { eq, and, gte, desc, inArray, ne } from 'drizzle-orm';
 import { canAccessGpsReport } from '@/lib/gps-permissions';
-import { AVERAGEABLE_METRICS } from '@/lib/gps-constants';
+// AVERAGEABLE_METRICS removed - fetching from database
 
 export async function GET(
   request: NextRequest,
@@ -86,10 +86,21 @@ export async function GET(
     .where(eq(gpsProfileColumn.profileId, profileId));
 
 
+    // Получаем список усредняемых метрик из БД
+    const averageableMetrics = await db
+      .select({ code: gpsCanonicalMetric.code })
+      .from(gpsCanonicalMetric)
+      .where(and(
+        eq(gpsCanonicalMetric.isActive, true),
+        eq(gpsCanonicalMetric.isAverageable, true)
+      ));
+
+    const averageableMetricCodes = averageableMetrics.map(m => m.code);
+
     // Фильтруем только метрики, которые можно усреднять и сортируем по displayOrder
     const averageableColumns = profileColumns
       .filter(column => 
-        column.canonicalMetricCode && AVERAGEABLE_METRICS.includes(column.canonicalMetricCode)
+        column.canonicalMetricCode && averageableMetricCodes.includes(column.canonicalMetricCode)
       )
       .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 

@@ -397,6 +397,7 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
   const [manualPlayerMappings, setManualPlayerMappings] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [parsedData, setParsedData] = useState<ParsedGpsData | null>(null);
   const [parsingError, setParsingError] = useState<string | null>(null);
 
@@ -538,6 +539,10 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
       // Создаем умные маппинги игроков
       if (players.length > 0) {
         const playerMatches = matchPlayers(parsed.playerNames, players);
+        console.log('🔍 playerMatches после matchPlayers:', playerMatches);
+        console.log('🔍 Ключи playerMatches:', Object.keys(playerMatches));
+        console.log('🔍 Есть ли "SUM" в playerMatches:', 'SUM' in playerMatches);
+        console.log('🔍 Есть ли "Average" в playerMatches:', 'Average' in playerMatches);
         setPlayerMappings(playerMatches);
         
         // Автоматически выбираем рекомендуемые сопоставления
@@ -551,6 +556,10 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
             autoMappings[playerName] = '';
           }
         });
+        console.log('🔍 autoMappings после создания:', autoMappings);
+        console.log('🔍 Ключи autoMappings:', Object.keys(autoMappings));
+        console.log('🔍 Есть ли "SUM" в autoMappings:', 'SUM' in autoMappings);
+        console.log('🔍 Есть ли "Average" в autoMappings:', 'Average' in autoMappings);
         setSelectedPlayerMappings(autoMappings);
       } else {
         // Если игроки не загружены, создаем пустые маппинги
@@ -820,10 +829,38 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
           controller.abort();
         }, 30000); // 30 секунд таймаут
       
-      const response = await fetch('/api/gps/reports', {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal,
+      // Создаем XMLHttpRequest для отслеживания прогресса
+      const xhr = new XMLHttpRequest();
+      
+      // Отслеживаем прогресс загрузки
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(progress);
+        }
+      });
+      
+      // Обрабатываем ответ
+      const response = await new Promise<Response>((resolve, reject) => {
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(new Response(xhr.responseText, {
+              status: xhr.status,
+              statusText: xhr.statusText,
+              headers: new Headers({
+                'content-type': xhr.getResponseHeader('content-type') || 'application/json'
+              })
+            }));
+          } else {
+            reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+          }
+        };
+        
+        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.ontimeout = () => reject(new Error('Request timeout'));
+        
+        xhr.open('POST', '/api/gps/reports');
+        xhr.send(formData);
       });
       
       clearTimeout(timeoutId);
@@ -857,6 +894,7 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
           // Не показываем ошибку пользователю, так как это не критично
         }
 
+        setUploadProgress(0);
         onSuccess?.();
         onClose();
       } else {
@@ -865,12 +903,13 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
       }
     } catch (error) {
       gpsLogger.error('Component', 'Error submitting GPS report:', error);
+      setUploadProgress(0);
       
-                if (error instanceof Error && error.name === 'AbortError') {
-                  alert('Время ожидания истекло (30 секунд). Обработка файла заняла слишком много времени. Попробуйте еще раз или обратитесь к администратору.');
-                } else {
-                  alert(`Произошла ошибка при создании отчета: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
-                }
+      if (error instanceof Error && error.name === 'AbortError') {
+        alert('Время ожидания истекло (30 секунд). Обработка файла заняла слишком много времени. Попробуйте еще раз или обратитесь к администратору.');
+      } else {
+        alert(`Произошла ошибка при создании отчета: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -1356,28 +1395,50 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
                       none: [] as Array<{filePlayerName: string, groups: PlayerMappingGroup, similarity: number}>
                     };
 
+                    console.log('🔍 Начинаем группировку игроков...');
+                    console.log('🔍 playerMappings:', playerMappings);
+                    console.log('🔍 selectedPlayerMappings:', selectedPlayerMappings);
+                    
                     Object.entries(playerMappings).forEach(([filePlayerName, groups]) => {
                       const selectedPlayerId = selectedPlayerMappings[filePlayerName];
                       
+                      console.log(`🔍 Обрабатываем игрока: ${filePlayerName}`);
+                      console.log(`🔍 selectedPlayerId: ${selectedPlayerId}`);
+                      console.log(`🔍 groups:`, groups);
+                      
                       // Если пользователь выбрал "Без привязки" (пустая строка), перемещаем в группу "none"
                       if (selectedPlayerId === '' || selectedPlayerId === undefined) {
+                        console.log(`🔍 ${filePlayerName} -> группа "none" (пустая строка)`);
                         groupedPlayers.none.push({ filePlayerName, groups, similarity: 0 });
                       } 
                       // Если игрок был выбран вручную (не автоматически), помещаем в группу "manual"
                       else if (manualPlayerMappings.has(filePlayerName)) {
+                        console.log(`🔍 ${filePlayerName} -> группа "manual" (ручной выбор)`);
                         groupedPlayers.manual.push({ filePlayerName, groups, similarity: 100 });
                       } 
                       // Остальные игроки группируются по сходству
                       else if (groups.high.length > 0) {
+                        console.log(`🔍 ${filePlayerName} -> группа "high" (высокое сходство)`);
                         groupedPlayers.high.push({ filePlayerName, groups, similarity: 88 });
                       } else if (groups.medium.length > 0) {
+                        console.log(`🔍 ${filePlayerName} -> группа "medium" (среднее сходство)`);
                         groupedPlayers.medium.push({ filePlayerName, groups, similarity: 67 });
                       } else if (groups.low.length > 0) {
+                        console.log(`🔍 ${filePlayerName} -> группа "low" (низкое сходство)`);
                         groupedPlayers.low.push({ filePlayerName, groups, similarity: 50 });
                       } else {
+                        console.log(`🔍 ${filePlayerName} -> группа "none" (нет сходства)`);
                         groupedPlayers.none.push({ filePlayerName, groups, similarity: 0 });
                       }
                     });
+                    
+                    console.log('🔍 Результат группировки:');
+                    console.log('🔍 manual:', groupedPlayers.manual.length);
+                    console.log('🔍 high:', groupedPlayers.high.length);
+                    console.log('🔍 medium:', groupedPlayers.medium.length);
+                    console.log('🔍 low:', groupedPlayers.low.length);
+                    console.log('🔍 none:', groupedPlayers.none.length);
+                    console.log('🔍 Игроки в группе "none":', groupedPlayers.none.map(p => p.filePlayerName));
 
                     return (
                       <div className="space-y-4">
@@ -1475,13 +1536,13 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
                           </div>
                         )}
 
-                        {/* Низкое сходство */}
+                        {/* Среднее сходство */}
                         {groupedPlayers.medium.length > 0 && (
                           <div>
-                            <div className="flex items-center gap-2 mb-2 p-2 bg-orange-500/20 rounded-md">
-                              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                              <h4 className="text-sm font-semibold text-orange-300">
-                                Низкое сходство (35-69%) ({groupedPlayers.medium.length})
+                            <div className="flex items-center gap-2 mb-2 p-2 bg-yellow-500/20 rounded-md">
+                              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                              <h4 className="text-sm font-semibold text-yellow-300">
+                                Среднее сходство (70-87%) ({groupedPlayers.medium.length})
                               </h4>
                             </div>
                             <div className="space-y-1">
@@ -1495,23 +1556,23 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
                                     groups={groups}
                                     players={players}
                                     selectedPlayerId={selectedPlayerId}
-                                  onPlayerSelect={(playerId) => {
-                                    setSelectedPlayerMappings(prev => ({
-                                      ...prev,
-                                      [filePlayerName]: playerId === 'no-mapping' ? '' : playerId
-                                    }));
-                                    // Если выбрали конкретного игрока, добавляем в ручные выборы
-                                    if (playerId !== 'no-mapping') {
-                                      setManualPlayerMappings(prev => new Set([...prev, filePlayerName]));
-                                    } else {
-                                      // Если выбрали "Без привязки", убираем из ручных выборов
-                                      setManualPlayerMappings(prev => {
-                                        const newSet = new Set(prev);
-                                        newSet.delete(filePlayerName);
-                                        return newSet;
-                                      });
-                                    }
-                                  }}
+                                    onPlayerSelect={(playerId) => {
+                                      setSelectedPlayerMappings(prev => ({
+                                        ...prev,
+                                        [filePlayerName]: playerId === 'no-mapping' ? '' : playerId
+                                      }));
+                                      // Если выбрали конкретного игрока, добавляем в ручные выборы
+                                      if (playerId !== 'no-mapping') {
+                                        setManualPlayerMappings(prev => new Set([...prev, filePlayerName]));
+                                      } else {
+                                        // Если выбрали "Без привязки", убираем из ручных выборов
+                                        setManualPlayerMappings(prev => {
+                                          const newSet = new Set(prev);
+                                          newSet.delete(filePlayerName);
+                                          return newSet;
+                                        });
+                                      }
+                                    }}
                                     similarity={similarity}
                                     matchLevel={actualMatchLevel}
                                     selectedPlayerMappings={selectedPlayerMappings}
@@ -1522,6 +1583,52 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
                           </div>
                         )}
 
+                        {/* Низкое сходство */}
+                        {groupedPlayers.low.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-2 p-2 bg-orange-500/20 rounded-md">
+                              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                              <h4 className="text-sm font-semibold text-orange-300">
+                                Низкое сходство (35-69%) ({groupedPlayers.low.length})
+                              </h4>
+                            </div>
+                            <div className="space-y-1">
+                              {groupedPlayers.low.map(({ filePlayerName, groups, similarity }) => {
+                                const selectedPlayerId = selectedPlayerMappings[filePlayerName];
+                                const actualMatchLevel = selectedPlayerId === '' || selectedPlayerId === undefined ? 'none' : 'low';
+                                return (
+                                  <PlayerMappingCard
+                                    key={filePlayerName}
+                                    filePlayerName={filePlayerName}
+                                    groups={groups}
+                                    players={players}
+                                    selectedPlayerId={selectedPlayerId}
+                                    onPlayerSelect={(playerId) => {
+                                      setSelectedPlayerMappings(prev => ({
+                                        ...prev,
+                                        [filePlayerName]: playerId === 'no-mapping' ? '' : playerId
+                                      }));
+                                      // Если выбрали конкретного игрока, добавляем в ручные выборы
+                                      if (playerId !== 'no-mapping') {
+                                        setManualPlayerMappings(prev => new Set([...prev, filePlayerName]));
+                                      } else {
+                                        // Если выбрали "Без привязки", убираем из ручных выборов
+                                        setManualPlayerMappings(prev => {
+                                          const newSet = new Set(prev);
+                                          newSet.delete(filePlayerName);
+                                          return newSet;
+                                        });
+                                      }
+                                    }}
+                                    similarity={similarity}
+                                    matchLevel={actualMatchLevel}
+                                    selectedPlayerMappings={selectedPlayerMappings}
+                                  />
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Без привязки */}
                         {groupedPlayers.none.length > 0 && (
@@ -1616,13 +1723,29 @@ export function NewGpsReportModal({ isOpen, onClose, onSuccess }: NewGpsReportMo
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             ) : (
-              <Button 
-                onClick={handleSubmit} 
-                disabled={loading || dataLoading || !isColumnMappingValid() || !isPlayerMappingValid()}
-                className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
-              >
-                {loading ? 'Создание...' : 'Сохранить отчет'}
-              </Button>
+              <div className="space-y-3">
+                {loading && uploadProgress > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm text-vista-light/60">
+                      <span>Загрузка файла...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full bg-vista-dark/30 rounded-full h-2">
+                      <div 
+                        className="bg-vista-primary h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+                <Button 
+                  onClick={handleSubmit} 
+                  disabled={loading || dataLoading || !isColumnMappingValid() || !isPlayerMappingValid()}
+                  className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
+                >
+                  {loading ? 'Создание...' : 'Сохранить отчет'}
+                </Button>
+              </div>
             )}
           </div>
         </div>

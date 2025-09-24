@@ -6,8 +6,9 @@ import { gpsReport } from '@/db/schema/gpsReport';
 import { gpsReportData } from '@/db/schema/gpsReportData';
 import { gpsDataChangeLog } from '@/db/schema/gpsReportData';
 import { match } from '@/db/schema/match';
+import { player } from '@/db/schema/player';
 import { playerGameModel } from '@/db/schema/playerGameModel';
-import { eq, and, desc, inArray } from 'drizzle-orm';
+import { eq, and, desc, inArray, sql } from 'drizzle-orm';
 import { canAccessGpsData } from '@/lib/gps-permissions';
 
 export async function PUT(
@@ -36,7 +37,7 @@ export async function PUT(
     }
 
     const reportId = params.id;
-    const { updates } = await request.json();
+    const { updates, deletedPlayers, deletedMetrics } = await request.json();
 
     if (!Array.isArray(updates)) {
       return NextResponse.json({ error: 'Updates must be an array' }, { status: 400 });
@@ -100,7 +101,7 @@ export async function PUT(
         clubId: session.user.clubId || 'default-club',
         fieldName: currentData.canonicalMetric,
         fieldLabel: currentData.canonicalMetric, // Можно добавить маппинг на человекочитаемые названия
-        oldValue: oldValue?.toString() || null,
+        oldValue: oldValue ? oldValue : null,
         newValue: newValue.toString(),
         changedById: session.user.id,
         changedByName: session.user.name || 'Unknown User',
@@ -110,9 +111,48 @@ export async function PUT(
       });
     }
 
+    // Обрабатываем удаления игроков
+    if (deletedPlayers && Array.isArray(deletedPlayers) && deletedPlayers.length > 0) {
+      try {
+        // Просто удаляем данные без создания записей в change log
+        await db
+          .delete(gpsReportData)
+          .where(
+            and(
+              eq(gpsReportData.gpsReportId, reportId),
+              inArray(gpsReportData.playerId, deletedPlayers)
+            )
+          );
+      } catch (error) {
+        console.error('Error deleting players:', error);
+        // Продолжаем выполнение, не прерываем весь процесс
+      }
+    }
+
+    // Обрабатываем удаления метрик
+    if (deletedMetrics && Array.isArray(deletedMetrics) && deletedMetrics.length > 0) {
+      try {
+        // Просто удаляем данные без создания записей в change log
+        await db
+          .delete(gpsReportData)
+          .where(
+            and(
+              eq(gpsReportData.gpsReportId, reportId),
+              inArray(gpsReportData.canonicalMetric, deletedMetrics)
+            )
+          );
+      } catch (error) {
+        console.error('Error deleting metrics:', error);
+        // Продолжаем выполнение, не прерываем весь процесс
+      }
+    }
+
     // Вставляем записи истории изменений
     if (changeLogEntries.length > 0) {
+      console.log('Inserting change log entries:', changeLogEntries.length);
+      console.log('Sample entry:', changeLogEntries[0]);
       await db.insert(gpsDataChangeLog).values(changeLogEntries);
+      console.log('Change log entries inserted successfully');
     }
 
     // Обновляем статус отчета (отмечаем, что есть изменения)
@@ -124,186 +164,43 @@ export async function PUT(
       })
       .where(eq(gpsReport.id, reportId));
 
-    // Автоматический пересчет игровых моделей для команды
-    try {
-      
-      // Получаем игроков из GPS данных отчета
-      const reportData = await db.select()
-        .from(gpsReportData)
-        .where(eq(gpsReportData.gpsReportId, reportId));
-      
-      const playerIds = [...new Set(reportData.map(row => row.playerId))];
-      
-      if (playerIds.length > 0) {
-        // Получаем матчи команды
-        const teamMatches = await db
-          .select({ id: match.id })
-          .from(match)
-          .where(eq(match.teamId, report.teamId))
-          .orderBy(desc(match.date))
-          .limit(10);
+           // Автоматический пересчет игровых моделей для команды
+           try {
+             // Получаем teamId из GPS отчета
+             const [report] = await db
+               .select({ teamId: gpsReport.teamId })
+               .from(gpsReport)
+               .where(eq(gpsReport.id, reportId));
 
-        if (teamMatches.length > 0) {
-          const matchIds = teamMatches.map(m => m.id);
-          
-          // Получаем GPS отчеты для матчей
-          const gpsReports = await db
-            .select({ id: gpsReport.id, eventId: gpsReport.eventId })
-            .from(gpsReport)
-            .where(and(
-              eq(gpsReport.eventType, 'match'),
-              inArray(gpsReport.eventId, matchIds),
-              eq(gpsReport.clubId, session.user.clubId || 'default-club')
-            ));
+             if (!report || !report.teamId) {
+               console.log('⚠️ TeamId не найден для GPS отчета');
+               return NextResponse.json({ success: true, message: 'Данные обновлены' });
+             }
 
-          if (gpsReports.length > 0) {
-            const reportIds = gpsReports.map(r => r.id);
-            
-            // Рассчитываем модели для каждого игрока
-            let successCount = 0;
-            for (const playerId of playerIds) {
-              try {
-                // Получаем данные игрока
-                const playerData = await db
-                  .select({
-                    canonicalMetric: gpsReportData.canonicalMetric,
-                    value: gpsReportData.value,
-                    eventId: gpsReport.eventId
-                  })
-                  .from(gpsReportData)
-                  .leftJoin(gpsReport, eq(gpsReportData.gpsReportId, gpsReport.id))
-                  .where(and(
-                    eq(gpsReportData.playerId, playerId),
-                    inArray(gpsReportData.gpsReportId, reportIds),
-                    eq(gpsReportData.canonicalMetric, 'duration')
-                  ));
+             console.log('🔄 Пересчет игровых моделей для команды:', report.teamId);
 
-                if (playerData.length > 0) {
-                  // Группируем по матчам
-                  const matchData = new Map();
-                  playerData.forEach(row => {
-                    if (!matchData.has(row.eventId)) {
-                      matchData.set(row.eventId, {});
-                    }
-                    matchData.get(row.eventId).duration = parseFloat(row.value) || 0;
-                  });
+             // Используем модуль для расчета игровых моделей
+             const { calculateGameModelsForTeam } = await import('@/lib/game-model-calculator');
+             await calculateGameModelsForTeam(report.teamId, session.user.clubId || 'default-club');
+             
+             console.log('✅ Игровые модели пересчитаны');
+           } catch (error) {
+             console.error('⚠️ Ошибка при автоматическом пересчете игровых моделей:', error);
+             // Не прерываем выполнение, так как данные уже обновлены
+           }
 
-                  // Фильтруем матчи с 60+ минутами
-                  const validMatches: Array<{ eventId: string; duration: number }> = [];
-                  matchData.forEach((metrics, eventId) => {
-                    const duration = metrics.duration || 0;
-                    if (duration >= 3600) { // 60 минут в секундах
-                      validMatches.push({ eventId, duration });
-                    }
-                  });
-
-                  if (validMatches.length > 0) {
-                    const totalMinutes = validMatches.reduce((sum, { duration }) => sum + (duration / 60), 0);
-                    
-                    // Получаем все метрики для расчета модели
-                    const allPlayerData = await db
-                      .select({
-                        canonicalMetric: gpsReportData.canonicalMetric,
-                        value: gpsReportData.value,
-                        eventId: gpsReport.eventId
-                      })
-                      .from(gpsReportData)
-                      .leftJoin(gpsReport, eq(gpsReportData.gpsReportId, gpsReport.id))
-                      .where(and(
-                        eq(gpsReportData.playerId, playerId),
-                        inArray(gpsReportData.gpsReportId, reportIds),
-                        inArray(gpsReportData.canonicalMetric, [
-                          'hsr_percentage', 'total_distance', 'time_in_speed_zone1', 'time_in_speed_zone2',
-                          'time_in_speed_zone3', 'time_in_speed_zone4', 'time_in_speed_zone5', 'time_in_speed_zone6',
-                          'speed_zone1_entries', 'speed_zone2_entries', 'speed_zone3_entries', 'speed_zone4_entries',
-                          'speed_zone5_entries', 'speed_zone6_entries', 'sprints_count', 'acc_zone1_count',
-                          'player_load', 'power_score', 'work_ratio', 'distance_zone1', 'distance_zone2',
-                          'distance_zone3', 'distance_zone4', 'distance_zone5', 'distance_zone6',
-                          'hsr_distance', 'sprint_distance', 'distance_per_min', 'time_in_hr_zone1',
-                          'time_in_hr_zone2', 'time_in_hr_zone3', 'time_in_hr_zone4', 'time_in_hr_zone5',
-                          'time_in_hr_zone6', 'dec_zone1_count', 'dec_zone2_count', 'dec_zone3_count',
-                          'dec_zone4_count', 'dec_zone5_count', 'dec_zone6_count', 'hml_distance',
-                          'explosive_distance', 'acc_zone2_count', 'acc_zone3_count', 'acc_zone4_count',
-                          'acc_zone5_count', 'acc_zone6_count', 'impacts_count'
-                        ])
-                      ));
-
-                    // Группируем данные по матчам
-                    const matchMetrics = new Map();
-                    allPlayerData.forEach(row => {
-                      if (!matchMetrics.has(row.eventId)) {
-                        matchMetrics.set(row.eventId, {});
-                      }
-                      matchMetrics.get(row.eventId)[row.canonicalMetric] = parseFloat(row.value) || 0;
-                    });
-
-                    // Рассчитываем средние метрики (нормализованные к 90 минутам)
-                    const averageMetrics: Record<string, number> = {};
-                    const metricKeys = Object.keys(matchMetrics.get(validMatches[0].eventId) || {});
-                    
-                    metricKeys.forEach(metric => {
-                      if (metric === 'duration') return; // Пропускаем duration
-                      
-                      let totalValue = 0;
-                      let validCount = 0;
-                      
-                      validMatches.forEach(({ eventId, duration }) => {
-                        const matchData = matchMetrics.get(eventId);
-                        if (matchData) {
-                          const value = matchData[metric] || 0;
-                          if (value > 0) {
-                            // Нормализация к 90 минутам
-                            const normalizedValue = (value / (duration / 60)) * 90;
-                            totalValue += normalizedValue;
-                            validCount++;
-                          }
-                        }
-                      });
-                      
-                      if (validCount > 0) {
-                        averageMetrics[metric] = totalValue / validCount;
-                      }
-                    });
-                    
-                    // Удаляем существующую модель
-                    await db
-                      .delete(playerGameModel)
-                      .where(and(
-                        eq(playerGameModel.playerId, playerId),
-                        eq(playerGameModel.clubId, session.user.clubId || 'default-club')
-                      ));
-                    
-                    // Сохраняем новую модель с рассчитанными метриками
-                    await db.insert(playerGameModel).values({
-                      playerId,
-                      clubId: session.user.clubId || 'default-club',
-                      matchesCount: validMatches.length,
-                      totalMinutes: Math.round(totalMinutes),
-                      metrics: averageMetrics,
-                      matchIds: validMatches.map(m => m.eventId),
-                      version: 1
-                    });
-                    
-                    successCount++;
-                  }
-                }
-              } catch (error) {
-                console.error(`Ошибка расчета для игрока ${playerId}:`, error);
-              }
-            }
-            
-          }
-        }
-      }
-    } catch (error) {
-      console.error('⚠️ Ошибка при автоматическом пересчете игровых моделей:', error);
-      // Не прерываем выполнение, так как данные уже обновлены
-    }
+    const totalChanges = updates.length + 
+      (deletedPlayers?.length || 0) + 
+      (deletedMetrics?.length || 0);
 
     return NextResponse.json({ 
       success: true, 
-      message: `Updated ${updates.length} fields`,
-      updatedCount: updates.length
+      message: `Updated ${updates.length} fields, deleted ${deletedPlayers?.length || 0} players, deleted ${deletedMetrics?.length || 0} metrics`,
+      updatedCount: updates.length,
+      deletedPlayers: deletedPlayers?.length || 0,
+      deletedMetrics: deletedMetrics?.length || 0,
+      totalChanges,
+      changeLogEntries: changeLogEntries.length
     });
 
   } catch (error) {

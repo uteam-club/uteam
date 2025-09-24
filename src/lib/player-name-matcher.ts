@@ -59,16 +59,31 @@ function calculateSimilarity(str1: string, str2: string): number {
   const s1 = normalizeName(str1);
   const s2 = normalizeName(str2);
   
+  // Отладка для технических строк
+  if (str1 === 'SUM' || str1 === 'Average') {
+    console.log(`🔍 calculateSimilarity: "${str1}" vs "${str2}"`);
+    console.log(`🔍 normalizeName: "${s1}" vs "${s2}"`);
+  }
+  
   if (s1 === s2) return 100;
   
   // Проверяем точное совпадение после нормализации
   if (s1 === s2) return 100;
   
   // Проверяем, содержат ли имена общие слова
-  if (!hasCommonWords(s1, s2)) return 0;
+  const hasCommon = hasCommonWords(s1, s2);
+  if (str1 === 'SUM' || str1 === 'Average') {
+    console.log(`🔍 hasCommonWords: ${hasCommon}`);
+  }
+  if (!hasCommon) return 0;
   
   const words1 = splitName(s1);
   const words2 = splitName(s2);
+  
+  if (str1 === 'SUM' || str1 === 'Average') {
+    console.log(`🔍 words1: [${words1.join(', ')}]`);
+    console.log(`🔍 words2: [${words2.join(', ')}]`);
+  }
   
   // Считаем количество совпадающих слов
   let matchedWords = 0;
@@ -84,10 +99,16 @@ function calculateSimilarity(str1: string, str2: string): number {
       if (word1 === word2) {
         matchedWords++;
         usedWords2.add(j);
+        if (str1 === 'SUM' || str1 === 'Average') {
+          console.log(`🔍 Точное совпадение: "${word1}" = "${word2}"`);
+        }
         break;
       } else if (word1.includes(word2) || word2.includes(word1)) {
         matchedWords += 0.8; // Частичное совпадение
         usedWords2.add(j);
+        if (str1 === 'SUM' || str1 === 'Average') {
+          console.log(`🔍 Частичное совпадение: "${word1}" содержит "${word2}" или наоборот`);
+        }
         break;
       }
     }
@@ -105,6 +126,14 @@ function calculateSimilarity(str1: string, str2: string): number {
   // Вычисляем процент сходства
   const wordSimilarity = (matchedWords / Math.max(words1.length, words2.length)) * 100;
   const finalSimilarity = Math.min(wordSimilarity + orderBonus, 100);
+  
+  if (str1 === 'SUM' || str1 === 'Average') {
+    console.log(`🔍 matchedWords: ${matchedWords}`);
+    console.log(`🔍 orderBonus: ${orderBonus}`);
+    console.log(`🔍 wordSimilarity: ${wordSimilarity}%`);
+    console.log(`🔍 finalSimilarity: ${finalSimilarity}%`);
+    console.log(`🔍 rounded: ${Math.round(finalSimilarity)}%`);
+  }
   
   return Math.round(finalSimilarity);
 }
@@ -131,10 +160,20 @@ export function matchPlayers(
   for (const filePlayerName of filePlayerNames) {
     const matches: PlayerMatch[] = [];
     
+    // Отладка для технических строк
+    if (filePlayerName === 'SUM' || filePlayerName === 'Average') {
+      console.log(`🔍 Отладка сопоставления для "${filePlayerName}":`);
+    }
+    
     // Сопоставляем с каждым игроком в системе
     for (const systemPlayer of systemPlayers) {
       const similarity = calculateSimilarity(filePlayerName, systemPlayer.name);
       const matchLevel = getMatchLevel(similarity);
+      
+      // Отладка для технических строк
+      if ((filePlayerName === 'SUM' || filePlayerName === 'Average') && similarity > 0) {
+        console.log(`🔍 "${filePlayerName}" vs "${systemPlayer.name}": ${similarity}% (${matchLevel})`);
+      }
       
       matches.push({
         playerId: systemPlayer.id,

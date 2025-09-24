@@ -37,6 +37,7 @@ export async function getCanonicalMetrics(cacheKey: string, isAll: boolean = fal
       canonicalUnit: gpsCanonicalMetric.canonicalUnit,
       supportedUnits: gpsCanonicalMetric.supportedUnits,
       isDerived: gpsCanonicalMetric.isDerived,
+      isAverageable: gpsCanonicalMetric.isAverageable,
       formula: gpsCanonicalMetric.formula,
     })
     .from(gpsCanonicalMetric)

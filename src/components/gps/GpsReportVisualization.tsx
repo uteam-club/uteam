@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
-import { Download, Edit, BarChart3, Users, Calendar, Star, Activity, Tag, ClipboardType, Clock } from 'lucide-react';
+import { Download, Edit, BarChart3, Users, Calendar, Star, Activity, Tag, ClipboardType, Clock, ChevronDown, ChevronRight } from 'lucide-react';
 import { convertUnit, formatValue, formatValueOnly, getPrecision } from '@/lib/unit-converter';
 import { gpsLogger } from '@/lib/logger';
 import { GpsMetricSparkline } from './GpsMetricSparkline';
@@ -62,6 +62,9 @@ interface GpsReportVisualizationProps {
 }
 
 export function GpsReportVisualization({ teamId, eventId, eventType, profileId }: GpsReportVisualizationProps) {
+  // Состояние для гармошки блоков
+  const [isTeamAveragesOpen, setIsTeamAveragesOpen] = useState(false);
+  const [isPlayerModelsOpen, setIsPlayerModelsOpen] = useState(false);
   const { toast } = useToast();
   
   const [profile, setProfile] = useState<GpsProfile | null>(null);
@@ -571,25 +574,84 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
 
       {/* Блок со спидометрами (для тренировок и матчей) */}
       {teamAverages && (
-        <TeamAverageGauges
-          currentAverages={teamAverages.currentAverages}
-          historicalAverages={teamAverages.historicalAverages}
-          metrics={teamAverages.metrics}
-          playerCount={teamAverages.playerCount}
-          categoryInfo={teamAverages.categoryInfo}
-          hasHistoricalData={teamAverages.hasHistoricalData}
-          isLoading={teamAveragesLoading}
-        />
+        <div className="bg-vista-dark/50 border border-vista-secondary/30 rounded-lg">
+          <button
+            onClick={() => setIsTeamAveragesOpen(!isTeamAveragesOpen)}
+            className="w-full p-6 text-left"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-vista-light/90">
+                  Средние значения
+                </h3>
+                <p className="text-sm text-vista-light/70 mt-1">
+                  {teamAverages.categoryInfo 
+                    ? teamAverages.categoryInfo.type === 'match'
+                      ? `Сравнение с ${teamAverages.categoryInfo.eventCount} предыдущими матчами (${teamAverages.categoryInfo.reportCount} отчетов)`
+                      : `Сравнение с тренировками категории "${teamAverages.categoryInfo.name}" за последние 30 дней (${teamAverages.categoryInfo.eventCount} тренировок, ${teamAverages.categoryInfo.reportCount} отчетов)`
+                    : 'Сравнение с историческими данными за последние 30 дней'
+                  }
+                </p>
+              </div>
+              {isTeamAveragesOpen ? (
+                <ChevronDown className="h-5 w-5 text-vista-light/60" />
+              ) : (
+                <ChevronRight className="h-5 w-5 text-vista-light/60" />
+              )}
+            </div>
+          </button>
+          
+          {isTeamAveragesOpen && (
+            <div className="px-6 pb-6">
+              <TeamAverageGauges
+                currentAverages={teamAverages.currentAverages}
+                historicalAverages={teamAverages.historicalAverages}
+                metrics={teamAverages.metrics}
+                playerCount={teamAverages.playerCount}
+                categoryInfo={teamAverages.categoryInfo}
+                hasHistoricalData={teamAverages.hasHistoricalData}
+                isLoading={teamAveragesLoading}
+              />
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Блок с игровыми моделями игроков */}
-      {reportInfo && (
-        <PlayerGameModels
-          reportId={reportInfo.id}
-          profileId={profileId}
-          isLoading={loading}
-          timeUnit="minutes" // Используем формат минут как в таблице
-        />
+      {/* Блок с игровыми моделями игроков - только для матчей */}
+      {reportInfo && eventType === 'match' && (
+        <div className="bg-vista-dark/50 border border-vista-secondary/30 rounded-lg">
+          <button
+            onClick={() => setIsPlayerModelsOpen(!isPlayerModelsOpen)}
+            className="w-full p-6 text-left"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-vista-light/90">
+                  Игровые модели игроков
+                </h3>
+                <p className="text-sm text-vista-light/70 mt-1">
+                  Сравнение текущих показателей с индивидуальной игровой моделью каждого игрока
+                </p>
+              </div>
+              {isPlayerModelsOpen ? (
+                <ChevronDown className="h-5 w-5 text-vista-light/60" />
+              ) : (
+                <ChevronRight className="h-5 w-5 text-vista-light/60" />
+              )}
+            </div>
+          </button>
+          
+          {isPlayerModelsOpen && (
+            <div className="px-6 pb-6">
+              <PlayerGameModels
+                reportId={reportInfo.id}
+                profileId={profileId}
+                isLoading={loading}
+                timeUnit="minutes" // Используем формат минут как в таблице
+              />
+            </div>
+          )}
+        </div>
       )}
 
     </div>

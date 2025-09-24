@@ -133,6 +133,23 @@ export const gpsDataPermissions = pgTable("GpsDataPermissions", {
 	updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 });
 
+export const gpsPermission = pgTable("GpsPermission", {
+	id: uuid("id").defaultRandom().primaryKey().notNull(),
+	code: varchar("code", { length: 255 }).notNull(),
+	name: varchar("name", { length: 255 }).notNull(),
+	description: text("description"),
+	category: varchar("category", { length: 100 }).notNull(),
+	createdAt: timestamp("createdAt", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+},
+(table) => {
+	return {
+		idxGpsPermissionCode: index("idx_gps_permission_code").on(table.code),
+		idxGpsPermissionCategory: index("idx_gps_permission_category").on(table.category),
+		gpsPermissionCodeKey: unique("GpsPermission_code_key").on(table.code),
+	}
+});
+
 export const gpsPlayerMapping = pgTable("GpsPlayerMapping", {
 	id: uuid("id").defaultRandom().primaryKey().notNull(),
 	gpsReportId: uuid("gpsReportId").notNull(),
@@ -224,6 +241,23 @@ export const gpsReportData = pgTable("GpsReportData", {
 	createdAt: timestamp("createdAt", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 });
 
+export const gpsRolePermission = pgTable("GpsRolePermission", {
+	id: uuid("id").defaultRandom().primaryKey().notNull(),
+	role: varchar("role", { length: 50 }).notNull(),
+	permissionId: uuid("permissionId").notNull().references(() => gpsPermission.id, { onDelete: "cascade" } ),
+	allowed: boolean("allowed").default(false).notNull(),
+	createdAt: timestamp("createdAt", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+},
+(table) => {
+	return {
+		idxGpsRolePermissionRole: index("idx_gps_role_permission_role").on(table.role),
+		idxGpsRolePermissionPermission: index("idx_gps_role_permission_permission").on(table.permissionId),
+		idxGpsRolePermissionRoleCode: index("idx_gps_role_permission_role_code").on(table.role, table.permissionId),
+		idxGpsRolePermissionRoleAllowed: index("idx_gps_role_permission_role_allowed").on(table.role),
+	}
+});
+
 export const gpsUnit = pgTable("GpsUnit", {
 	id: uuid("id").defaultRandom().primaryKey().notNull(),
 	code: varchar("code", { length: 50 }).notNull(),
@@ -240,6 +274,27 @@ export const gpsUnit = pgTable("GpsUnit", {
 		dimensionIdx: index("GpsUnit_dimension_idx").on(table.dimension),
 		isActiveIdx: index("GpsUnit_isActive_idx").on(table.isActive),
 		gpsUnitCodeUnique: unique("GpsUnit_code_unique").on(table.code),
+	}
+});
+
+export const gpsUserPermission = pgTable("GpsUserPermission", {
+	id: uuid("id").defaultRandom().primaryKey().notNull(),
+	userId: uuid("userId").notNull(),
+	teamId: uuid("teamId"),
+	clubId: uuid("clubId").notNull(),
+	canView: boolean("canView").default(false).notNull(),
+	canEdit: boolean("canEdit").default(false).notNull(),
+	canDelete: boolean("canDelete").default(false).notNull(),
+	canExport: boolean("canExport").default(false).notNull(),
+	canManageProfiles: boolean("canManageProfiles").default(false).notNull(),
+	createdAt: timestamp("createdAt", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+},
+(table) => {
+	return {
+		idxGpsUserPermissionUser: index("idx_gps_user_permission_user").on(table.userId),
+		idxGpsUserPermissionTeam: index("idx_gps_user_permission_team").on(table.teamId),
+		idxGpsUserPermissionClub: index("idx_gps_user_permission_club").on(table.clubId),
 	}
 });
 
@@ -400,6 +455,43 @@ export const playerDocument = pgTable("PlayerDocument", {
 	playerId: uuid("playerId").notNull(),
 	clubId: uuid("clubId").notNull(),
 	uploadedById: uuid("uploadedById").notNull(),
+});
+
+export const playerGameModel = pgTable("PlayerGameModel", {
+	id: uuid("id").defaultRandom().primaryKey().notNull(),
+	playerId: uuid("playerId").notNull(),
+	clubId: uuid("clubId").notNull(),
+	calculatedAt: timestamp("calculatedAt", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	matchesCount: integer("matchesCount").notNull(),
+	totalMinutes: integer("totalMinutes").notNull(),
+	metrics: jsonb("metrics").notNull(),
+	matchIds: jsonb("matchIds").notNull(),
+	version: integer("version").default(1).notNull(),
+	createdAt: timestamp("createdAt", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+},
+(table) => {
+	return {
+		idxPlayerGameModelPlayerId: index("idx_player_game_model_player_id").on(table.playerId),
+		idxPlayerGameModelClubId: index("idx_player_game_model_club_id").on(table.clubId),
+		idxPlayerGameModelCalculatedAt: index("idx_player_game_model_calculated_at").on(table.calculatedAt),
+	}
+});
+
+export const playerGameModelSettings = pgTable("PlayerGameModelSettings", {
+	id: uuid("id").defaultRandom().primaryKey().notNull(),
+	playerId: uuid("playerId").notNull(),
+	clubId: uuid("clubId").notNull(),
+	selectedMetrics: jsonb("selectedMetrics").notNull(),
+	metricUnits: jsonb("metricUnits").notNull(),
+	createdAt: timestamp("createdAt", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+},
+(table) => {
+	return {
+		idxPlayerGameModelSettingsPlayerId: index("idx_player_game_model_settings_player_id").on(table.playerId),
+		idxPlayerGameModelSettingsClubId: index("idx_player_game_model_settings_club_id").on(table.clubId),
+	}
 });
 
 export const playerMatchStat = pgTable("PlayerMatchStat", {

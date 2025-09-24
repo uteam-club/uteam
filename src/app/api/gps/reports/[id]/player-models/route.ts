@@ -1,11 +1,76 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
+import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { gpsReport, gpsReportData, playerGameModel, player, gpsVisualizationProfile, gpsProfileColumn, gpsCanonicalMetric } from '@/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { gpsReport } from '@/db/schema/gpsReport';
+import { gpsReportData } from '@/db/schema/gpsReportData';
+import { playerGameModel } from '@/db/schema/playerGameModel';
+import { player } from '@/db/schema/player';
+import { gpsCanonicalMetric } from '@/db/schema/gpsCanonicalMetric';
+import { gpsVisualizationProfile, gpsProfileColumn } from '@/db/schema/gpsColumnMapping';
+import { eq, and } from 'drizzle-orm';
+import { calculateGameModelsForTeam } from '@/lib/game-model-calculator';
 
-import { AVERAGEABLE_METRICS } from '@/lib/gps-constants';
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const reportId = params.id;
+    
+    // Получаем информацию об отчете
+    const [report] = await db
+      .select({ 
+        id: gpsReport.id,
+        teamId: gpsReport.teamId, 
+        clubId: gpsReport.clubId,
+        eventType: gpsReport.eventType,
+        eventId: gpsReport.eventId
+      })
+      .from(gpsReport)
+      .where(and(
+        eq(gpsReport.id, reportId),
+        eq(gpsReport.clubId, session.user.clubId || 'default-club')
+      ));
+
+    if (!report) {
+      return NextResponse.json({ 
+        error: 'GPS отчет не найден или у вас нет доступа к нему' 
+      }, { status: 404 });
+    }
+
+    if (report.eventType !== 'match') {
+      return NextResponse.json({ 
+        error: 'Игровые модели можно рассчитать только для матчей' 
+      }, { status: 400 });
+    }
+
+    console.log(`🔄 Пересчет игровых моделей для команды ${report.teamId}...`);
+
+    // Рассчитываем игровые модели для команды
+    await calculateGameModelsForTeam(report.teamId, report.clubId);
+
+    return NextResponse.json({ 
+      success: true,
+      message: 'Игровые модели успешно пересчитаны',
+      teamId: report.teamId,
+      clubId: report.clubId
+    });
+
+  } catch (error) {
+    console.error('Error recalculating player game models:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}
 
 export async function GET(
   request: NextRequest,
@@ -13,7 +78,8 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id || !session?.user?.clubId) {
+    
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -24,207 +90,235 @@ export async function GET(
     if (!profileId) {
       return NextResponse.json({ error: 'Profile ID is required' }, { status: 400 });
     }
-
-    // Получаем отчет
-    const [report] = await db.select()
+    
+    // Получаем информацию об отчете
+    const [report] = await db
+      .select({ 
+        id: gpsReport.id,
+        teamId: gpsReport.teamId, 
+        clubId: gpsReport.clubId,
+        eventType: gpsReport.eventType,
+        eventId: gpsReport.eventId
+      })
       .from(gpsReport)
-      .where(
-        and(
-          eq(gpsReport.id, reportId),
-          eq(gpsReport.clubId, session.user.clubId)
-        )
-      );
+      .where(and(
+        eq(gpsReport.id, reportId),
+        eq(gpsReport.clubId, session.user.clubId || 'default-club')
+      ));
 
     if (!report) {
-      return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+      return NextResponse.json({ 
+        error: 'GPS отчет не найден или у вас нет доступа к нему' 
+      }, { status: 404 });
     }
 
-    // Получаем профиль визуализации
-    const [profile] = await db.select()
+    // Получаем профиль визуализации с кастомными названиями метрик
+    const [profile] = await db
+      .select()
       .from(gpsVisualizationProfile)
-      .where(
-        and(
-          eq(gpsVisualizationProfile.id, profileId),
-          eq(gpsVisualizationProfile.clubId, session.user.clubId)
-        )
-      );
+      .where(and(
+        eq(gpsVisualizationProfile.id, profileId),
+        eq(gpsVisualizationProfile.clubId, session.user.clubId || 'default-club')
+      ));
 
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
-    // Получаем колонки профиля с информацией о канонических метриках
-    const profileColumns = await db.select({
-      id: gpsProfileColumn.id,
-      canonicalMetricId: gpsProfileColumn.canonicalMetricId,
-      displayName: gpsProfileColumn.displayName,
-      displayUnit: gpsProfileColumn.displayUnit,
-      displayOrder: gpsProfileColumn.displayOrder,
-      isVisible: gpsProfileColumn.isVisible,
-      canonicalMetricCode: gpsCanonicalMetric.code,
-      canonicalMetricName: gpsCanonicalMetric.name,
-      canonicalUnit: gpsCanonicalMetric.canonicalUnit,
-    })
-    .from(gpsProfileColumn)
-    .leftJoin(gpsCanonicalMetric, eq(gpsProfileColumn.canonicalMetricId, gpsCanonicalMetric.id))
-    .where(eq(gpsProfileColumn.profileId, profileId));
+    // Получаем колонки профиля с кастомными названиями
+    const profileColumns = await db
+      .select({
+        canonicalMetricId: gpsProfileColumn.canonicalMetricId,
+        displayName: gpsProfileColumn.displayName,
+        displayUnit: gpsProfileColumn.displayUnit,
+        isVisible: gpsProfileColumn.isVisible,
+        canonicalMetricCode: gpsCanonicalMetric.code,
+      })
+      .from(gpsProfileColumn)
+      .leftJoin(gpsCanonicalMetric, eq(gpsProfileColumn.canonicalMetricId, gpsCanonicalMetric.id))
+      .where(eq(gpsProfileColumn.profileId, profileId));
 
-    // Фильтруем только метрики, которые можно усреднять и сортируем по displayOrder
-    const averageableColumns = profileColumns
-      .filter(column => 
-        column.canonicalMetricCode && AVERAGEABLE_METRICS.includes(column.canonicalMetricCode)
-      )
-      .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    console.log(`📊 Колонки профиля: ${profileColumns.length} записей`);
 
-    if (averageableColumns.length === 0) {
-      return NextResponse.json({
-        players: []
+    // Создаем мапу кастомных названий метрик
+    const customMetricsMap = new Map();
+    profileColumns.forEach(column => {
+      if (column.isVisible && column.canonicalMetricCode) {
+        customMetricsMap.set(column.canonicalMetricCode, {
+          displayName: column.displayName,
+          displayUnit: column.displayUnit
+        });
+      }
+    });
+
+    // Получаем информацию о канонических метриках для fallback
+    const canonicalMetrics = await db
+      .select({
+        code: gpsCanonicalMetric.code,
+        name: gpsCanonicalMetric.name,
+        unit: gpsCanonicalMetric.canonicalUnit,
+      })
+      .from(gpsCanonicalMetric)
+      .where(eq(gpsCanonicalMetric.isActive, true));
+
+    // Создаем мапу метрик для быстрого доступа (с приоритетом кастомных названий)
+    const metricsMap = new Map();
+    canonicalMetrics.forEach(metric => {
+      const customMetric = customMetricsMap.get(metric.code);
+      metricsMap.set(metric.code, {
+        name: customMetric?.displayName || metric.name,
+        unit: customMetric?.displayUnit || metric.unit
       });
-    }
+    });
 
-    // Получаем данные игроков из отчета
-    const reportData = await db.select()
+    // Получаем данные текущего матча для всех игроков
+    const currentMatchData = await db
+      .select({
+        playerId: gpsReportData.playerId,
+        canonicalMetric: gpsReportData.canonicalMetric,
+        value: gpsReportData.value,
+        unit: gpsReportData.unit
+      })
       .from(gpsReportData)
       .where(eq(gpsReportData.gpsReportId, reportId));
 
-    // Получаем уникальных игроков из отчета
-    const playerIds = [...new Set(reportData.map(row => row.playerId))];
 
-    if (playerIds.length === 0) {
-      return NextResponse.json({
-        players: []
-      });
-    }
+    // Получаем игровые модели для команды
+    const gameModels = await db
+      .select({
+        id: playerGameModel.id,
+        playerId: playerGameModel.playerId,
+        calculatedAt: playerGameModel.calculatedAt,
+        matchesCount: playerGameModel.matchesCount,
+        totalMinutes: playerGameModel.totalMinutes,
+        metrics: playerGameModel.metrics,
+        matchIds: playerGameModel.matchIds,
+        version: playerGameModel.version
+      })
+      .from(playerGameModel)
+      .where(and(
+        eq(playerGameModel.clubId, report.clubId)
+      ));
 
     // Получаем информацию об игроках
-    const players = await db.select({
-      id: player.id,
-      firstName: player.firstName,
-      lastName: player.lastName,
-      position: player.position,
-      jerseyNumber: player.number,
-      photo: player.imageUrl
-    })
-    .from(player)
-    .where(inArray(player.id, playerIds));
-
-    // Получаем игровые модели для всех игроков
-    const gameModels = await db.select()
-      .from(playerGameModel)
-      .where(
-        and(
-          inArray(playerGameModel.playerId, playerIds),
-          eq(playerGameModel.clubId, session.user.clubId)
-        )
-      );
-
-    // Создаем мапу игровых моделей по playerId
-    const gameModelMap = new Map();
-    gameModels.forEach(model => {
-      gameModelMap.set(model.playerId, model);
-    });
-
-    // Обрабатываем каждого игрока
-    const playersWithModels = players.map(player => {
-      const playerReportData = reportData.filter(row => row.playerId === player.id);
-      const gameModel = gameModelMap.get(player.id);
-
-      // Получаем время игры игрока
-      const durationData = playerReportData.find(row => 
-        row.canonicalMetric === 'duration' || 
-        row.canonicalMetric === 'time_on_field'
-      );
-
-      let actualDuration = 90; // По умолчанию 90 минут
-      if (durationData) {
-        const timeValue = String(durationData.value);
-        if (typeof timeValue === 'string') {
-          // Парсим время в формате HH:MM:SS или MM:SS
-          const timeParts = timeValue.split(':');
-          if (timeParts.length === 3) {
-            const hours = parseInt(timeParts[0]) || 0;
-            const minutes = parseInt(timeParts[1]) || 0;
-            const seconds = parseInt(timeParts[2]) || 0;
-            actualDuration = hours * 60 + minutes + seconds / 60;
-          } else if (timeParts.length === 2) {
-            const minutes = parseInt(timeParts[0]) || 0;
-            const seconds = parseInt(timeParts[1]) || 0;
-            actualDuration = minutes + seconds / 60;
-          }
-        } else if (typeof timeValue === 'number') {
-          actualDuration = timeValue;
-        }
-      }
-
-      // Собираем текущие метрики игрока
-      const currentMetrics: Record<string, number> = {};
-      playerReportData.forEach(row => {
-        if (AVERAGEABLE_METRICS.includes(row.canonicalMetric)) {
-          const value = parseFloat(row.value);
-          if (!isNaN(value)) {
-            currentMetrics[row.canonicalMetric] = value;
-          }
-        }
-      });
-
-      // Получаем метрики из игровой модели (нормализованные к 90 минутам)
-      const modelMetrics = gameModel?.metrics || {};
-
-      // Приводим игровую модель к реальному времени игры
-      const adjustedModelMetrics: Record<string, number> = {};
-      Object.entries(modelMetrics).forEach(([metricCode, value]) => {
-        // Нормализация: (значение_модели / 90) × реальное_время
-        const numericValue = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
-        adjustedModelMetrics[metricCode] = (numericValue / 90) * actualDuration;
-      });
-
-      // Формируем метрики для отображения
-      const displayMetrics = averageableColumns.map(column => {
-        const currentValue = currentMetrics[column.canonicalMetricCode!] || 0;
-        const modelValue = adjustedModelMetrics[column.canonicalMetricCode!] || 0;
-        
-        // Вычисляем процентную разницу
-        const percentageDiff = modelValue > 0 
-          ? ((currentValue - modelValue) / modelValue) * 100 
-          : 0;
-
-        return {
-          canonicalMetricCode: column.canonicalMetricCode,
-          displayName: column.displayName,
-          displayUnit: column.displayUnit,
-          currentValue,
-          modelValue,
-          percentageDiff
-        };
-      });
-
-      return {
+    const players = await db
+      .select({
         id: player.id,
         firstName: player.firstName,
         lastName: player.lastName,
         position: player.position,
-        jerseyNumber: player.jerseyNumber,
-        photo: player.photo,
-        actualDuration,
-        hasGameModel: !!gameModel,
-        gameModelInfo: gameModel ? {
-          calculatedAt: gameModel.calculatedAt,
-          matchesCount: gameModel.matchesCount,
-          totalMinutes: gameModel.totalMinutes
-        } : null,
-        metrics: displayMetrics
+        imageUrl: player.imageUrl
+      })
+      .from(player)
+      .where(eq(player.teamId, report.teamId));
+
+    // Убираем старую логику с metricMapping - теперь используем metricsMap
+
+    // Объединяем данные игроков с их игровыми моделями и данными текущего матча
+    const playersWithModels = players.map(player => {
+      console.log(`\n🔍 === ОБРАБОТКА ИГРОКА: ${player.firstName} ${player.lastName} ===`);
+      
+      const gameModel = gameModels.find(model => model.playerId === player.id);
+      console.log(`🎯 Игровая модель: ${!!gameModel}`);
+      
+      // Получаем данные текущего матча для игрока
+      const playerMatchData = currentMatchData.filter(data => data.playerId === player.id);
+      console.log(`📊 Данные матча: ${playerMatchData.length} записей`);
+      
+      // Группируем данные по метрикам
+      const matchMetrics: Record<string, { value: number; unit: string }> = {};
+      playerMatchData.forEach(data => {
+        const value = parseFloat(data.value);
+        if (!isNaN(value)) {
+          matchMetrics[data.canonicalMetric] = {
+            value: value,
+            unit: data.unit
+          };
+        }
+      });
+
+      // Создаем метрики для сравнения
+      const comparisonMetrics: Array<{
+        canonicalMetric: string;
+        displayName: string;
+        displayUnit: string;
+        currentValue: number;
+        modelValue: number;
+        percentageDiff: number;
+      }> = [];
+
+      if (gameModel) {
+        // Получаем время игры из данных матча
+        const durationData = matchMetrics['duration'];
+        const matchDurationMinutes = durationData ? durationData.value / 60 : 0;
+        console.log(`⏱️ Время в матче: ${matchDurationMinutes.toFixed(1)} мин`);
+
+        // ПРОВЕРЯЕМ: игрок должен играть 60+ минут для сравнения
+        if (matchDurationMinutes >= 60) {
+          console.log(`✅ Игрок играл 60+ минут, создаем сравнения...`);
+          
+          // Создаем метрики для сравнения - автоматически для всех метрик из игровой модели
+          Object.entries(gameModel.metrics as Record<string, number>).forEach(([metricCode, modelValuePerMinute]) => {
+            const matchData = matchMetrics[metricCode];
+            const metricInfo = metricsMap.get(metricCode);
+            
+            if (matchData && metricInfo) {
+              const currentValue = matchData.value; // Абсолютное значение из матча
+              const modelValueForMatch = modelValuePerMinute * matchDurationMinutes; // Модель × время матча
+              
+              const percentageDiff = modelValueForMatch > 0 ? 
+                ((currentValue - modelValueForMatch) / modelValueForMatch) * 100 : 0;
+
+              console.log(`🔍 Метрика ${metricCode}:`);
+              console.log(`  - Кастомное название: ${metricInfo.name}`);
+              console.log(`  - Кастомная единица: ${metricInfo.unit}`);
+              console.log(`  - Текущее значение: ${currentValue}`);
+              console.log(`  - Модельное значение: ${modelValueForMatch}`);
+
+              comparisonMetrics.push({
+                canonicalMetric: metricCode,
+                displayName: metricInfo.name,
+                displayUnit: metricInfo.unit || 'unknown',
+                currentValue: currentValue, // Абсолютное значение
+                modelValue: modelValueForMatch, // Модель × время матча
+                percentageDiff
+              });
+            }
+          });
+          
+          console.log(`📈 Создано метрик для сравнения: ${comparisonMetrics.length}`);
+        } else {
+          console.log(`❌ Игрок играл менее 60 минут`);
+        }
+      } else {
+        console.log(`❌ Нет игровой модели`);
+      }
+
+      return {
+        ...player,
+        gameModel: gameModel || null,
+        matchData: matchMetrics,
+        comparisonMetrics
       };
     });
 
-    return NextResponse.json({
-      players: playersWithModels
+    return NextResponse.json({ 
+      success: true,
+      players: playersWithModels,
+      report: {
+        id: report.id,
+        teamId: report.teamId,
+        clubId: report.clubId,
+        eventType: report.eventType,
+        eventId: report.eventId
+      }
     });
 
   } catch (error) {
-    console.error('Error fetching player models:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch player models', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    console.error('Error getting player game models:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

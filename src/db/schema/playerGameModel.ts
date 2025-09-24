@@ -7,7 +7,7 @@ export const playerGameModel = pgTable('PlayerGameModel', {
   calculatedAt: timestamp('calculatedAt', { withTimezone: true }).defaultNow().notNull(),
   matchesCount: integer('matchesCount').notNull(), // количество матчей (до 10)
   totalMinutes: integer('totalMinutes').notNull(), // общее время игры
-  metrics: jsonb('metrics').notNull(), // нормализованные метрики за 90 минут
+  metrics: jsonb('metrics').notNull(), // нормализованные метрики за 1 минуту
   matchIds: jsonb('matchIds').notNull(), // ID матчей, которые использовались
   version: integer('version').default(1).notNull(),
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),

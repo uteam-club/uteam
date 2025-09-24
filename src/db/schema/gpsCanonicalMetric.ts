@@ -10,6 +10,7 @@ export const gpsCanonicalMetric = pgTable('GpsCanonicalMetric', {
   canonicalUnit: varchar('canonicalUnit', { length: 50 }).notNull(),
   supportedUnits: jsonb('supportedUnits'),
   isDerived: boolean('isDerived').default(false).notNull(),
+  isAverageable: boolean('isAverageable').default(false).notNull(),
   formula: text('formula'),
   metadata: jsonb('metadata'),
   isActive: boolean('isActive').default(true).notNull(),
