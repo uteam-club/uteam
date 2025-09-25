@@ -150,10 +150,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 GPS API: Начало обработки запроса');
+    
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
+      console.log('❌ GPS API: Пользователь не авторизован');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    console.log('✅ GPS API: Пользователь авторизован:', session.user.id);
 
     // Проверяем разрешение на создание GPS отчетов
     const canCreate = await canAccessGpsReport(
@@ -164,83 +169,160 @@ export async function POST(request: NextRequest) {
     );
 
     if (!canCreate) {
+      console.log('❌ GPS API: Нет прав на создание отчетов');
       return NextResponse.json({ 
         error: 'Forbidden', 
         message: 'У вас нет прав для создания GPS отчетов' 
       }, { status: 403 });
     }
 
+    console.log('✅ GPS API: Права на создание отчетов подтверждены');
+
     // Получаем канонические метрики
     const canonicalMetrics = await db.select().from(gpsCanonicalMetric);
+    console.log('✅ GPS API: Загружено канонических метрик:', canonicalMetrics.length);
     
     const startTime = Date.now();
     
     // Используем стандартный парсинг FormData
     const formData = await request.formData();
     const formDataTime = Date.now() - startTime;
+    console.log('✅ GPS API: FormData распарсен за', formDataTime, 'мс');
     
     // Валидация обязательных полей
     const requiredFields = ['teamId', 'eventType', 'eventId', 'parsedData', 'columnMappings', 'playerMappings'];
     const formDataObj = Object.fromEntries(formData.entries());
     
+    console.log('🔍 GPS API: Проверка обязательных полей:', requiredFields);
+    console.log('🔍 GPS API: Найденные поля:', Object.keys(formDataObj));
+    
     if (!validateRequiredFields(formDataObj, requiredFields)) {
+      const missingFields = requiredFields.filter(field => !formDataObj[field]);
+      console.log('❌ GPS API: Отсутствуют поля:', missingFields);
       return NextResponse.json(
-        { error: 'Missing required fields', message: 'Отсутствуют обязательные поля' },
+        { 
+          error: 'Missing required fields', 
+          message: 'Отсутствуют обязательные поля',
+          missingFields 
+        },
         { status: 400 }
       );
     }
+    
+    console.log('✅ GPS API: Все обязательные поля присутствуют');
     
     // Валидация ID
     const teamId = formData.get('teamId') as string;
     const eventId = formData.get('eventId') as string;
     
+    console.log('🔍 GPS API: Проверка ID - teamId:', teamId, 'eventId:', eventId);
+    
     if (!isValidId(teamId) || !isValidId(eventId)) {
+      console.log('❌ GPS API: Некорректный формат ID');
       return NextResponse.json(
         { error: 'Invalid ID format', message: 'Некорректный формат ID' },
         { status: 400 }
       );
     }
     
+    console.log('✅ GPS API: ID валидны');
+    
     const eventType = formData.get('eventType') as string;
     const gpsSystem = formData.get('gpsSystem') as string;
     const profileId = formData.get('profileId') as string;
-    const columnMappings = sanitizeObject(JSON.parse(formData.get('columnMappings') as string));
-    const playerMappings = sanitizeObject(JSON.parse(formData.get('playerMappings') as string));
-    const parsedData = sanitizeObject(JSON.parse(formData.get('parsedData') as string));
+    
+    console.log('🔍 GPS API: Парсинг JSON данных...');
+    
+    // Безопасный парсинг JSON с детальными ошибками
+    let columnMappings, playerMappings, parsedData;
+    
+    try {
+      const columnMappingsStr = formData.get('columnMappings') as string;
+      console.log('🔍 GPS API: columnMappings строка:', columnMappingsStr?.substring(0, 100) + '...');
+      columnMappings = sanitizeObject(JSON.parse(columnMappingsStr));
+      console.log('✅ GPS API: columnMappings распарсен, элементов:', columnMappings?.length);
+    } catch (error) {
+      console.log('❌ GPS API: Ошибка парсинга columnMappings:', error);
+      return NextResponse.json(
+        { error: 'Invalid columnMappings JSON', message: 'Некорректный JSON для маппинга колонок' },
+        { status: 400 }
+      );
+    }
+    
+    try {
+      const playerMappingsStr = formData.get('playerMappings') as string;
+      console.log('🔍 GPS API: playerMappings строка:', playerMappingsStr?.substring(0, 100) + '...');
+      playerMappings = sanitizeObject(JSON.parse(playerMappingsStr));
+      console.log('✅ GPS API: playerMappings распарсен, элементов:', playerMappings?.length);
+    } catch (error) {
+      console.log('❌ GPS API: Ошибка парсинга playerMappings:', error);
+      return NextResponse.json(
+        { error: 'Invalid playerMappings JSON', message: 'Некорректный JSON для маппинга игроков' },
+        { status: 400 }
+      );
+    }
+    
+    try {
+      const parsedDataStr = formData.get('parsedData') as string;
+      console.log('🔍 GPS API: parsedData строка:', parsedDataStr?.substring(0, 100) + '...');
+      parsedData = sanitizeObject(JSON.parse(parsedDataStr));
+      console.log('✅ GPS API: parsedData распарсен, строк:', parsedData?.rows?.length);
+    } catch (error) {
+      console.log('❌ GPS API: Ошибка парсинга parsedData:', error);
+      return NextResponse.json(
+        { error: 'Invalid parsedData JSON', message: 'Некорректный JSON для GPS данных' },
+        { status: 400 }
+      );
+    }
     
     // Валидация parsedData
     if (!validateGpsData(parsedData)) {
+      console.log('❌ GPS API: Некорректный формат GPS данных');
       return NextResponse.json(
         { error: 'Invalid GPS data format', message: 'Некорректный формат GPS данных' },
         { status: 400 }
       );
     }
     
+    console.log('✅ GPS API: GPS данные валидны');
+    
     // Получаем файл из FormData
     const file = formData.get('file') as File;
     const fileName = file?.name || 'unknown_file';
+    
+    console.log('🔍 GPS API: Файл:', fileName, 'размер:', file?.size);
+    console.log('🔍 GPS API: MIME-тип файла:', file?.type);
+    console.log('🔍 GPS API: Расширение файла:', fileName?.split('.').pop());
     
     // Валидация файла
     if (file) {
       const fileValidation = validateFile(file, 10, ['.csv', '.xlsx', '.xls']);
       if (!fileValidation.valid) {
+        console.log('❌ GPS API: Ошибка валидации файла:', fileValidation.error);
         return NextResponse.json(
           { error: 'File validation failed', message: fileValidation.error },
           { status: 400 }
         );
       }
     }
-
+    
+    console.log('✅ GPS API: Файл валиден');
+    
     // Проверяем, что данные корректны
     if (!Array.isArray(columnMappings)) {
+      console.log('❌ GPS API: columnMappings не является массивом');
       throw new Error('columnMappings must be an array');
     }
     if (!Array.isArray(playerMappings)) {
+      console.log('❌ GPS API: playerMappings не является массивом');
       throw new Error('playerMappings must be an array');
     }
     if (!parsedData || !parsedData.rows || !Array.isArray(parsedData.rows)) {
+      console.log('❌ GPS API: parsedData не содержит rows массив');
       throw new Error('parsedData must contain rows array');
     }
+    
+    console.log('✅ GPS API: Все данные валидны, создаем отчет...');
 
     // Создаем отчет
     const [newReport] = await db.insert(gpsReport).values({
@@ -466,6 +548,9 @@ export async function POST(request: NextRequest) {
     // Инвалидируем кэш после создания отчета
     invalidateRelatedCache('gps-report', newReport.id);
     
+    console.log('✅ GPS API: Отчет создан с ID:', newReport.id);
+    console.log('✅ GPS API: Запрос успешно обработан');
+    
     return NextResponse.json({ 
       success: true, 
       gpsReportId: newReport.id,
@@ -473,6 +558,7 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
+    console.error('❌ GPS API: Критическая ошибка:', error);
     const errorResponse = ApiErrorHandler.createErrorResponse(error, 'POST GPS report');
     return NextResponse.json(errorResponse, { status: errorResponse.statusCode });
   }

@@ -535,6 +535,8 @@
     "formation_scheme": "Formation scheme",
     "delete_match": "Delete match",
     "edit_match_data": "Edit match data",
+    "match_details": "Match details",
+    "enter_opponent_name": "Enter opponent team name",
     "friendly_match": "Friendly match",
     "match_date": "Match date",
     "match_time": "Match time",

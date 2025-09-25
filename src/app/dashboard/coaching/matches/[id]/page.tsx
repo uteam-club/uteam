@@ -856,6 +856,22 @@ export default function MatchDetailsPage() {
   };
 
   const handleEditSave = async () => {
+    // Базовая валидация
+    if (!editForm.opponentName.trim()) {
+      toast({ title: 'Ошибка', description: 'Введите название команды соперника', variant: 'destructive' });
+      return;
+    }
+    
+    if (!editForm.date) {
+      toast({ title: 'Ошибка', description: 'Выберите дату матча', variant: 'destructive' });
+      return;
+    }
+    
+    if (!editForm.time) {
+      toast({ title: 'Ошибка', description: 'Выберите время матча', variant: 'destructive' });
+      return;
+    }
+
     setSavingEdit(true);
     try {
       const res = await fetch(`/api/matches/${matchId}`, {
@@ -912,58 +928,74 @@ export default function MatchDetailsPage() {
         
         {/* Правая группа кнопок */}
         <div className="flex items-center space-x-4">
-          {/* Кнопка "Состав на матч" - видна только в режиме редактирования */}
-          {isEditMode && (
-            <Button
-              size="sm"
-              className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
-              onClick={(e) => {
-                console.log('Squad button clicked');
-                e.preventDefault();
-                e.stopPropagation();
-                handleSquadModalOpen();
-              }}
-            >
-              <User className="w-4 h-4 mr-2" />
-              {t('matchPage.squad_on_match')}
-            </Button>
-          )}
-          
-          {/* Кнопка "Редактировать данные" / "Сохранить" */}
+          {/* Кнопки "Редактировать данные" и "Детали матча" / "Состав на матч" и "Детали матча" */}
           {!isEditMode ? (
-            <Button
-              size="sm"
-              className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
-              onClick={() => {
-                setIsEditMode(true);
-                // Автоматически включаем редактирование статистики
-                if (match?.playerStats) {
-                  const initialStats: Record<string, Record<string, number>> = {};
-                  match.playerStats.forEach(stat => {
-                    initialStats[stat.id] = {
-                      minutesPlayed: stat.minutesPlayed,
-                      goals: stat.goals,
-                      assists: stat.assists,
-                      yellowCards: stat.yellowCards,
-                      redCards: stat.redCards
-                    };
-                  });
-                  setEditedStats(initialStats);
-                }
-              }}
-            >
-              {t('matchPage.edit_data')}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
+                onClick={() => {
+                  setIsEditMode(true);
+                  // Автоматически включаем редактирование статистики
+                  if (match?.playerStats) {
+                    const initialStats: Record<string, Record<string, number>> = {};
+                    match.playerStats.forEach(stat => {
+                      initialStats[stat.id] = {
+                        minutesPlayed: stat.minutesPlayed,
+                        goals: stat.goals,
+                        assists: stat.assists,
+                        yellowCards: stat.yellowCards,
+                        redCards: stat.redCards
+                      };
+                    });
+                    setEditedStats(initialStats);
+                  }
+                }}
+              >
+                {t('matchPage.edit_data')}
+              </Button>
+              <Button
+                size="sm"
+                className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
+                onClick={() => setEditModalOpen(true)}
+              >
+                <Info className="w-4 h-4 mr-2" />
+                {t('matchPage.match_details')}
+              </Button>
+            </div>
           ) : (
-            <Button
-              size="sm"
-              className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
-              onClick={saveChanges}
-              disabled={isSaving}
-            >
-              <Save className="w-4 h-4 mr-1" />
-              {isSaving ? 'Сохранение...' : t('matchPage.save')}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
+                onClick={() => setEditModalOpen(true)}
+              >
+                <Info className="w-4 h-4 mr-2" />
+                {t('matchPage.match_details')}
+              </Button>
+              <Button
+                size="sm"
+                className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
+                onClick={(e) => {
+                  console.log('Squad button clicked');
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSquadModalOpen();
+                }}
+              >
+                <User className="w-4 h-4 mr-2" />
+                {t('matchPage.squad_on_match')}
+              </Button>
+              <Button
+                size="sm"
+                className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
+                onClick={saveChanges}
+                disabled={isSaving}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {isSaving ? 'Сохранение...' : t('matchPage.save')}
+              </Button>
+            </div>
           )}
           
           <Button 

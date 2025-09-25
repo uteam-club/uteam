@@ -535,6 +535,8 @@
     "formation_scheme": "Схема расстановки",
     "delete_match": "Удалить матч",
     "edit_match_data": "Редактировать данные матча",
+    "match_details": "Детали матча",
+    "enter_opponent_name": "Введите название команды соперника",
     "friendly_match": "Товарищеский матч",
     "match_date": "Дата матча",
     "match_time": "Время матча",

@@ -112,9 +112,36 @@ export function validateFile(file: File, maxSizeMB: number = 10, allowedTypes: s
     return { valid: false, error: `Файл слишком большой. Максимум: ${maxSizeMB}MB` };
   }
   
-  // Проверяем тип
-  if (allowedTypes.length > 0 && !allowedTypes.includes(file.type)) {
-    return { valid: false, error: `Неподдерживаемый тип файла. Разрешены: ${allowedTypes.join(', ')}` };
+  // Проверяем тип файла по расширению и MIME-типу
+  if (allowedTypes.length > 0) {
+    const fileName = file.name.toLowerCase();
+    const fileExtension = fileName.split('.').pop();
+    const mimeType = file.type.toLowerCase();
+    
+    // Список поддерживаемых MIME-типов для Excel и CSV
+    const supportedMimeTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.ms-excel', // .xls
+      'text/csv', // .csv
+      'application/csv', // .csv (альтернативный MIME-тип)
+      'text/plain', // .csv (некоторые браузеры)
+    ];
+    
+    // Проверяем по расширению файла
+    const isExtensionValid = allowedTypes.some(type => {
+      const ext = type.replace('.', '');
+      return fileName.endsWith(`.${ext}`);
+    });
+    
+    // Проверяем по MIME-типу
+    const isMimeTypeValid = supportedMimeTypes.includes(mimeType);
+    
+    if (!isExtensionValid && !isMimeTypeValid) {
+      return { 
+        valid: false, 
+        error: `Неподдерживаемый тип файла. Разрешены: ${allowedTypes.join(', ')}. Файл: ${fileName}, MIME: ${mimeType}` 
+      };
+    }
   }
   
   return { valid: true };

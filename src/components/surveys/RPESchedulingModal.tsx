@@ -280,7 +280,7 @@ export function RPESchedulingModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] bg-vista-dark border-vista-secondary/30 text-vista-light overflow-hidden flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[90vh] bg-vista-dark border-vista-secondary/30 text-vista-light overflow-hidden flex flex-col my-8 mx-auto">
         <DialogHeader>
           <DialogTitle className="text-vista-light text-xl flex items-center gap-2">
             <Settings className="h-5 w-5 text-vista-primary" />
@@ -291,57 +291,69 @@ export function RPESchedulingModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col min-h-0 flex-1">
+        <div className="flex flex-col min-h-0 flex-1 overflow-hidden p-1">
           {/* Фильтр дат */}
-          <Card className="bg-vista-dark/30 border-vista-secondary/30 mb-4">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-vista-light text-sm flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 text-vista-primary" />
-                Диапазон дат
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex gap-4 items-end">
-                <div className="flex-1">
-                  <Label htmlFor="start-date" className="text-vista-light/70">От</Label>
-                  <Input
-                    id="start-date"
-                    type="date"
-                    value={startDate}
-                    onChange={e => setStartDate(e.target.value)}
-                    className="bg-vista-dark border-vista-secondary/50 text-vista-light"
-                  />
-                </div>
-                <div className="flex-1">
-                  <Label htmlFor="end-date" className="text-vista-light/70">До</Label>
-                  <Input
-                    id="end-date"
-                    type="date"
-                    value={endDate}
-                    onChange={e => setEndDate(e.target.value)}
-                    className="bg-vista-dark border-vista-secondary/50 text-vista-light"
-                  />
-                </div>
-                <Button
-                  onClick={loadTrainingsAndSchedules}
-                  disabled={loading}
-                  className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
-                >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Обновить'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-4 gap-4 items-center mb-4">
+            {/* Кнопки быстрого выбора */}
+            <Button
+              variant="outline"
+              onClick={() => {
+                const today = new Date();
+                const startOfWeek = new Date(today);
+                startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Понедельник
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 6); // Воскресенье
+                
+                setStartDate(startOfWeek.toISOString().split('T')[0]);
+                setEndDate(endOfWeek.toISOString().split('T')[0]);
+                loadTrainingsAndSchedules();
+              }}
+              className="h-9 px-3 text-sm font-normal bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30"
+            >
+              Неделя
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const today = new Date();
+                const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                
+                setStartDate(startOfMonth.toISOString().split('T')[0]);
+                setEndDate(endOfMonth.toISOString().split('T')[0]);
+                loadTrainingsAndSchedules();
+              }}
+              className="h-9 px-3 text-sm font-normal bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30"
+            >
+              Месяц
+            </Button>
+            
+            {/* Поля ввода дат */}
+            <Input
+              id="start-date"
+              type="date"
+              value={startDate}
+              onChange={e => {
+                setStartDate(e.target.value);
+                loadTrainingsAndSchedules();
+              }}
+              className="h-9 px-3 text-sm font-normal bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+            />
+            <Input
+              id="end-date"
+              type="date"
+              value={endDate}
+              onChange={e => {
+                setEndDate(e.target.value);
+                loadTrainingsAndSchedules();
+              }}
+              className="h-9 px-3 text-sm font-normal bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+            />
+          </div>
 
           {/* Список тренировок */}
-          <Card className="bg-vista-dark/30 border-vista-secondary/30 flex-1 min-h-0">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-vista-light text-lg flex items-center gap-2">
-                <Target className="h-5 w-5 text-vista-primary" />
-                Тренировки и матчи
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0 flex flex-col min-h-0">
+          <Card className="bg-vista-dark/30 border-vista-secondary/30 flex-1 min-h-0 flex flex-col">
+            <CardContent className="pt-4 flex flex-col min-h-0 flex-1 overflow-hidden">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-vista-light" />
@@ -353,7 +365,7 @@ export function RPESchedulingModal({
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
+                <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
                   {trainings.map((training) => {
                     const schedule = schedules[training.id];
                     const tempTime = tempTimes[training.id] || '';
@@ -362,60 +374,60 @@ export function RPESchedulingModal({
                     return (
                       <div
                         key={training.id}
-                        className="flex items-center justify-between p-4 rounded-lg border border-vista-secondary/20 bg-vista-dark/50"
+                        className="flex items-center justify-between p-4 rounded-lg border border-vista-secondary/20 bg-vista-dark/50 min-h-[80px]"
                       >
-                        <div className="flex items-center gap-4 flex-1">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
                           {/* Статус */}
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-shrink-0">
                             {getStatusIcon(training.id)}
                           </div>
 
                           {/* Информация о тренировке */}
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-medium text-vista-light">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <h4 className="font-medium text-vista-light truncate">
                                 {training.title}
                               </h4>
-                              <Badge className={`${getTypeColor(training.type)} border text-xs`}>
+                              <Badge className={`${getTypeColor(training.type)} border text-xs flex-shrink-0`}>
                                 {getTypeDisplay(training.type)}
                               </Badge>
                             </div>
-                            <div className="flex items-center gap-4 text-sm text-vista-light/70">
+                            <div className="flex items-center gap-4 text-sm text-vista-light/70 flex-wrap">
                               <div className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {formatDate(training.date)}
+                                <Calendar className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate">{formatDate(training.date)}</span>
                               </div>
                               <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {training.time}
+                                <Clock className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate">{training.time}</span>
                               </div>
                             </div>
-                            <div className="text-xs text-vista-light/50 mt-1">
+                            <div className="text-xs text-vista-light/50 mt-1 truncate">
                               {getStatusText(training.id)}
                             </div>
                           </div>
                         </div>
 
                         {/* Управление расписанием */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                           {schedule?.status === 'sent' ? (
-                            <Badge className="bg-green-500/20 text-green-400">
+                            <Badge className="bg-green-500/20 text-green-400 whitespace-nowrap">
                               Отправлен
                             </Badge>
                           ) : (
-                            <>
+                            <div className="flex items-center gap-2">
                               <Input
                                 type="time"
                                 value={tempTime}
                                 onChange={e => handleTimeChange(training.id, e.target.value)}
-                                className="w-24 text-sm bg-vista-dark border-vista-secondary/50 text-vista-light"
+                                className="w-24 text-sm bg-vista-dark border-vista-secondary/50 text-vista-light flex-shrink-0"
                                 placeholder="--:--"
                               />
                               <Button
                                 size="sm"
                                 onClick={() => handleSaveSchedule(training.id)}
                                 disabled={!tempTime || saving}
-                                className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
+                                className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark flex-shrink-0"
                               >
                                 {saving ? (
                                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -429,12 +441,12 @@ export function RPESchedulingModal({
                                   variant="outline"
                                   onClick={() => handleRemoveSchedule(training.id)}
                                   disabled={saving}
-                                  className="border-red-500/50 text-red-400 hover:bg-red-500/20"
+                                  className="border-red-500/50 text-red-400 hover:bg-red-500/20 flex-shrink-0"
                                 >
                                   <XCircle className="h-3 w-3" />
                                 </Button>
                               )}
-                            </>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -446,7 +458,7 @@ export function RPESchedulingModal({
           </Card>
 
           {/* Кнопка закрытия */}
-          <div className="flex justify-end pt-4 border-t border-vista-secondary/20">
+          <div className="flex justify-end pt-4 pb-2 border-t border-vista-secondary/20 flex-shrink-0">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
