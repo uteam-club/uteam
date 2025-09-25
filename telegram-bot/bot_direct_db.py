@@ -593,6 +593,52 @@ async def send_survey_success_message(telegram_id, lang='ru', survey_date=None):
     except Exception as e:
         print(f"[SurveySuccess] Ошибка отправки сообщения: {e}")
 
+async def handle_send_rpe_survey(request):
+    """HTTP endpoint для ручной отправки RPE опроса"""
+    data = await request.json()
+    telegram_id = data.get('telegramId')
+    club_id = data.get('clubId')
+    pin_code = data.get('pinCode', '------')
+    lang = data.get('language', 'ru')
+    training_id = data.get('trainingId')
+    
+    if not telegram_id or not club_id:
+        return web.json_response({'error': 'telegramId и clubId обязательны'}, status=400)
+    
+    # Формируем ссылку для RPE опроса
+    if training_id:
+        link = f"https://api.uteam.club/survey?tenantId={club_id}&type=rpe&trainingId={training_id}"
+    else:
+        link = f"https://api.uteam.club/survey?tenantId={club_id}&type=rpe"
+    
+    if lang == 'en':
+        text = (
+            f"Please rate how hard your training was (RPE).\n\n"
+            f"Your pin code for login:\n<code>{pin_code}</code>"
+        )
+        button_text = "📝 Rate RPE"
+    else:
+        text = (
+            f"Пожалуйста, оцени, насколько тяжёлой была твоя тренировка (RPE).\n\n"
+            f"Твой пинкод для входа:\n<code>{pin_code}</code>"
+        )
+        button_text = "📝 Оценить RPE"
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=button_text, url=link)]
+    ])
+    
+    try:
+        await bot.send_message(
+            telegram_id,
+            text,
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+        return web.json_response({'success': True})
+    except Exception as e:
+        return web.json_response({'error': str(e)}, status=500)
+
 async def handle_send_survey_success(request):
     """HTTP endpoint для отправки сообщения об успешном прохождении опроса"""
     data = await request.json()
@@ -610,6 +656,7 @@ async def main():
     # Запуск HTTP сервера
     app = web.Application()
     app.router.add_post('/send-morning-survey', handle_send_morning_survey)
+    app.router.add_post('/send-rpe-survey', handle_send_rpe_survey)
     app.router.add_post('/send-survey-success', handle_send_survey_success)
     runner = web.AppRunner(app)
     await runner.setup()

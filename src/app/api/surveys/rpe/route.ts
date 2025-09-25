@@ -80,58 +80,54 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { playerId, teamId, date, durationMinutes } = body;
+    const { playerId, teamId, date, durationMinutes, trainingId } = body;
 
     if (!playerId || !teamId || !date) {
       return NextResponse.json({ error: 'playerId, teamId и date обязательны' }, { status: 400 });
     }
 
-    // Формируем диапазон на весь день
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
-
-    // Проверяем, есть ли уже ответ за сегодня
-    const existingResponse = await db.select({
-      id: rpeSurveyResponse.id,
-    })
-      .from(rpeSurveyResponse)
-      .where(
-        and(
-          eq(rpeSurveyResponse.playerId, playerId),
-          gte(rpeSurveyResponse.createdAt, startDate),
-          lte(rpeSurveyResponse.createdAt, endDate)
-        )
-      )
-      .limit(1);
-
-    if (existingResponse.length > 0) {
-      // Обновляем существующий ответ, добавляя длительность если она передана
-      const updateData: any = {};
-      if (durationMinutes !== undefined) {
-        updateData.durationMinutes = durationMinutes;
-      }
-      
-      await db.update(rpeSurveyResponse)
-        .set(updateData)
-        .where(eq(rpeSurveyResponse.id, existingResponse[0].id));
-    } else {
-      // Создаём новый ответ
-      await db.insert(rpeSurveyResponse).values({
-        id: uuidv4(),
-        playerId,
-        surveyId: uuidv4(), // TODO: получить реальный surveyId
-        tenantId: token.clubId || uuidv4(), // TODO: получить реальный tenantId
-        rpeScore: 0, // Пока что 0, игрок заполнит позже
-        durationMinutes: durationMinutes || null,
-        createdAt: new Date(),
-      });
+    // Получаем игрока из базы
+    const players = await db.select().from(player).where(eq(player.id, playerId));
+    const playerRow = players[0];
+    if (!playerRow || !playerRow.telegramId) {
+      return NextResponse.json({ error: 'У игрока нет Telegram ID' }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true });
+    // Получаем команду
+    const teams = await db.select().from(team).where(eq(team.id, teamId));
+    const teamRow = teams[0];
+    if (!teamRow) {
+      return NextResponse.json({ error: 'Команда не найдена' }, { status: 404 });
+    }
+
+    // Отправляем через бота
+    try {
+      const botRes = await fetch('http://158.160.189.99:8080/send-rpe-survey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          telegramId: playerRow.telegramId, 
+          clubId: teamRow.clubId, 
+          teamId: teamId, 
+          date,
+          trainingId: trainingId || null,
+          surveyType: 'rpe'
+        })
+      });
+      
+      const botData = await botRes.json();
+      if (!botRes.ok || !botData.success) {
+        return NextResponse.json({ error: botData.error || 'Ошибка при отправке через бота' }, { status: 500 });
+      }
+      
+      return NextResponse.json({ success: true });
+      
+    } catch (botError) {
+      console.error('RPE: Error calling bot server:', botError);
+      return NextResponse.json({ error: 'Ошибка при обращении к серверу бота', details: String(botError) }, { status: 500 });
+    }
+    
   } catch (error) {
-    console.error('Error creating RPE survey:', error);
-    return NextResponse.json({ error: 'Ошибка при создании опросника' }, { status: 500 });
+    return NextResponse.json({ error: 'Ошибка при повторной отправке', details: String(error) }, { status: 500 });
   }
 } 

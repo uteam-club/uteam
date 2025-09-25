@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/Users/artem/Desktop/uteam-multi/telegram-bot/bot_direct_db.py", line 5, in <module>
+    from aiogram import Bot, Dispatcher, types, F
+ModuleNotFoundError: No module named 'aiogram'
