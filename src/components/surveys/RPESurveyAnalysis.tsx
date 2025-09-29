@@ -1933,7 +1933,7 @@ export function RPESurveyAnalysis() {
 
                 <div className="bg-vista-dark/70 border border-vista-secondary/30 rounded-md p-4">
                   <h4 className="font-semibold text-vista-light mb-2">Действия</h4>
-                  <p className="text-sm text-vista-light/70">Кнопка "Отправить" для повторной отправки опросника или "-" для игроков без привязанного Telegram.</p>
+                  <p className="text-sm text-vista-light/70">Кнопка &quot;Отправить&quot; для повторной отправки опросника или &quot;-&quot; для игроков без привязанного Telegram.</p>
                 </div>
               </div>
             </div>
@@ -2019,7 +2019,7 @@ export function RPESurveyAnalysis() {
             <div>
               <h3 className="text-base font-semibold text-vista-light mb-3">Что показывает график?</h3>
               <p className="mb-4">
-                График "Динамика Weekly Load" отображает общую недельную тренировочную нагрузку команды за последние 4-6 недель. 
+                График «Динамика Weekly Load» отображает общую недельную тренировочную нагрузку команды за последние 4-6 недель. 
                 Это позволяет отслеживать тренды нагрузки и выявлять периоды роста, стабилизации или снижения интенсивности тренировок.
               </p>
             </div>
@@ -2072,7 +2072,7 @@ export function RPESurveyAnalysis() {
                   <div className="w-3 h-3 rounded bg-vista-light/20 mt-1 flex-shrink-0"></div>
                   <div>
                     <div className="font-medium text-vista-light">Диапазоны дат</div>
-                    <div className="text-sm text-vista-light/70">На оси X отображаются недельные периоды в формате "ДД.ММ - ДД.ММ"</div>
+                    <div className="text-sm text-vista-light/70">На оси X отображаются недельные периоды в формате «ДД.ММ - ДД.ММ»</div>
                   </div>
                 </div>
               </div>
@@ -2161,7 +2161,7 @@ export function RPESurveyAnalysis() {
               <h3 className="text-base font-semibold text-vista-light mb-3">Что такое Strain?</h3>
               <p className="mb-4">
                 Strain (тренировочный стресс) — это показатель, который объединяет объём нагрузки (Weekly Load) 
-                и её однообразие (Monotony). Он помогает оценить общую "напряжённость" тренировочного процесса команды.
+                и её однообразие (Monotony). Он помогает оценить общую «напряжённость» тренировочного процесса команды.
               </p>
             </div>
 
