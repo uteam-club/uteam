@@ -2,7 +2,7 @@ import { getUserPermissions } from '@/services/user.service';
 import { hasPermission } from '@/lib/permissions';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { rpeSurveyResponse, player, team } from '@/db/schema';
+import { rpeSurveyResponse, player, team, training } from '@/db/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { getToken } from 'next-auth/jwt';
 import { getServerSession } from 'next-auth';
@@ -50,6 +50,9 @@ export async function GET(request: NextRequest) {
         durationMinutes: rpeSurveyResponse.durationMinutes,
         completedAt: rpeSurveyResponse.completedAt,
         createdAt: rpeSurveyResponse.createdAt,
+        trainingId: rpeSurveyResponse.trainingId,
+        trainingDate: training.date,
+        trainingTime: training.time,
         player: {
           id: player.id,
           firstName: player.firstName,
@@ -61,6 +64,7 @@ export async function GET(request: NextRequest) {
       })
       .from(rpeSurveyResponse)
       .leftJoin(player, eq(rpeSurveyResponse.playerId, player.id))
+      .leftJoin(training, eq(rpeSurveyResponse.trainingId, training.id))
       .where(whereArr.length ? and(...whereArr) : undefined)
       .orderBy(desc(rpeSurveyResponse.createdAt));
 
@@ -82,8 +86,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { playerId, teamId, date, durationMinutes, trainingId } = body;
 
-    if (!playerId || !teamId || !date) {
-      return NextResponse.json({ error: 'playerId, teamId и date обязательны' }, { status: 400 });
+    if (!playerId || !teamId) {
+      return NextResponse.json({ error: 'playerId и teamId обязательны' }, { status: 400 });
     }
 
     // Получаем игрока из базы
@@ -100,6 +104,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Команда не найдена' }, { status: 404 });
     }
 
+    // Если не передали date, но есть trainingId — возьмём дату тренировки для текста сообщения (необязательно для ссылки)
+    let effectiveDate = date;
+    let trainingRow: any = null;
+    if (!effectiveDate && trainingId) {
+      const trainingRows = await db.select().from(training).where(eq(training.id, trainingId));
+      trainingRow = trainingRows[0] || null;
+      if (trainingRow?.date) {
+        effectiveDate = trainingRow.date;
+      }
+    }
+
     // Отправляем через бота
     try {
       const botRes = await fetch('http://158.160.189.99:8080/send-rpe-survey', {
@@ -109,7 +124,7 @@ export async function POST(request: NextRequest) {
           telegramId: playerRow.telegramId, 
           clubId: teamRow.clubId, 
           teamId: teamId, 
-          date,
+          date: effectiveDate,
           trainingId: trainingId || null,
           surveyType: 'rpe'
         })

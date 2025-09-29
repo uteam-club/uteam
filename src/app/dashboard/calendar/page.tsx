@@ -309,7 +309,7 @@ export default function CalendarPage() {
             date: match.date,
             time: match.time,
             teamId: match.teamId,
-            teamName: match.teamName || '',
+            teamName: teamName, // Используем teamName из контекста команды
             type: 'MATCH',
             status: match.status || 'scheduled',
             competitionType: match.competitionType,
@@ -661,42 +661,57 @@ export default function CalendarPage() {
           {/* Переключатель и навигация по месяцам/неделям - справа */}
           <div className="flex items-center gap-2 mb-4">
             <Button
-              variant={calendarView === 'week' ? 'default' : 'outline'}
-              size="sm"
+              variant="outline"
+              className={`h-8 px-3 text-sm font-normal transition-none ${
+                calendarView === 'week'
+                  ? 'bg-vista-primary/15 text-vista-primary border-vista-primary'
+                  : 'bg-transparent text-vista-light/60 border-vista-light/20 hover:bg-vista-light/10 hover:text-vista-light hover:border-vista-light/40'
+              }`}
               onClick={() => setCalendarView('week')}
-              className="text-xs"
             >
               {t('calendarPage.week')}
             </Button>
             <Button
-              variant={calendarView === 'month' ? 'default' : 'outline'}
-              size="sm"
+              variant="outline"
+              className={`h-8 px-3 text-sm font-normal transition-none ${
+                calendarView === 'month'
+                  ? 'bg-vista-primary/15 text-vista-primary border-vista-primary'
+                  : 'bg-transparent text-vista-light/60 border-vista-light/20 hover:bg-vista-light/10 hover:text-vista-light hover:border-vista-light/40'
+              }`}
               onClick={() => setCalendarView('month')}
-              className="text-xs"
             >
               {t('calendarPage.month')}
             </Button>
             <Button
-              variant={calendarView === '3months' ? 'default' : 'outline'}
-              size="sm"
+              variant="outline"
+              className={`h-8 px-3 text-sm font-normal transition-none ${
+                calendarView === '3months'
+                  ? 'bg-vista-primary/15 text-vista-primary border-vista-primary'
+                  : 'bg-transparent text-vista-light/60 border-vista-light/20 hover:bg-vista-light/10 hover:text-vista-light hover:border-vista-light/40'
+              }`}
               onClick={() => setCalendarView('3months')}
-              className="text-xs"
             >
               {t('calendarPage.three_months')}
             </Button>
             <Button
-              variant={calendarView === '6months' ? 'default' : 'outline'}
-              size="sm"
+              variant="outline"
+              className={`h-8 px-3 text-sm font-normal transition-none ${
+                calendarView === '6months'
+                  ? 'bg-vista-primary/15 text-vista-primary border-vista-primary'
+                  : 'bg-transparent text-vista-light/60 border-vista-light/20 hover:bg-vista-light/10 hover:text-vista-light hover:border-vista-light/40'
+              }`}
               onClick={() => setCalendarView('6months')}
-              className="text-xs"
             >
               {t('calendarPage.six_months')}
             </Button>
             <Button
-              variant={calendarView === 'year' ? 'default' : 'outline'}
-              size="sm"
+              variant="outline"
+              className={`h-8 px-3 text-sm font-normal transition-none ${
+                calendarView === 'year'
+                  ? 'bg-vista-primary/15 text-vista-primary border-vista-primary'
+                  : 'bg-transparent text-vista-light/60 border-vista-light/20 hover:bg-vista-light/10 hover:text-vista-light hover:border-vista-light/40'
+              }`}
               onClick={() => setCalendarView('year')}
-              className="text-xs"
             >
               {t('calendarPage.year')}
             </Button>

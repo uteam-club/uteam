@@ -1,7 +1,8 @@
 "use client";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
 import { formatDateTime } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -11,7 +12,6 @@ import { TeamSelect } from '@/components/ui/team-select';
 import { useToast } from '@/components/ui/use-toast';
 import { useSession } from 'next-auth/react';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogDescription, DialogClose } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useTranslation } from 'react-i18next';
 import { MUSCLE_NAMES } from '@/lib/constants';
@@ -83,23 +83,6 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
     }
   };
 
-  // Тестовая рассылка
-  const handleTestBroadcast = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/telegram/test-broadcast?type=${type}`, { method: 'POST' });
-      const data = await res.json();
-      if (res.ok) {
-        toast({ title: 'Тестовая рассылка выполнена', variant: 'default' });
-      } else {
-        toast({ title: 'Ошибка', description: data.error || 'Ошибка тестовой рассылки', variant: 'destructive' });
-      }
-    } catch (e) {
-      toast({ title: 'Ошибка', description: 'Ошибка тестовой рассылки', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Открыть модал планирования RPE
   const handleOpenScheduling = (team: Team) => {
@@ -121,7 +104,13 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
         <div className="flex gap-2">
           <Dialog open={showInstruction} onOpenChange={setShowInstruction}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20" onClick={() => setShowInstruction(true)}>{t('morningSurveyTabs.instruction')}</Button>
+              <Button 
+                variant="outline" 
+                className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal text-sm shadow-lg"
+                onClick={() => setShowInstruction(true)}
+              >
+                {t('morningSurveyTabs.instruction')}
+              </Button>
             </DialogTrigger>
             <DialogContent className="p-0 bg-transparent border-none shadow-none">
               <div className="bg-vista-dark/90 border-vista-secondary/30 shadow-xl rounded-lg p-6">
@@ -139,74 +128,60 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
               </div>
             </DialogContent>
           </Dialog>
-          <Button onClick={handleTestBroadcast} disabled={loading} className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark rounded-md px-4 py-2 text-sm font-semibold shadow">
-            {t('morningSurveyTabs.test_broadcast')}
-          </Button>
         </div>
       </div>
-      <div className="overflow-x-auto custom-scrollbar">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-vista-secondary/30">
-              <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">{t('morningSurveyTabs.team')}</th>
-              {type === 'rpe' ? (
-                <>
-                  <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">Статус расписания</th>
-                  <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">Действия</th>
-                </>
-              ) : (
-                <>
-                  <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">{t('morningSurveyTabs.send_time')}</th>
-                  <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">{t('morningSurveyTabs.status')}</th>
-                  <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">{t('morningSurveyTabs.actions')}</th>
-                </>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {teams.map(team => {
-              const schedule = schedules.find(s => s.teamId === team.id) || { sendTime: '08:00', enabled: true };
-              return (
-                <tr key={team.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10">
-                  <td className="px-4 py-2 text-vista-light font-medium text-sm">{team.name}</td>
-                  {type === 'rpe' ? (
-                    <>
-                      <td className="px-4 py-2">
-                        <span className="text-vista-light/60 text-sm">
-                          Настраивается индивидуально для каждой тренировки
-                        </span>
-                      </td>
-                      <td className="px-4 py-2">
-                        <Button
-                          size="sm"
-                          className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark rounded-md px-4 py-2 text-sm font-semibold shadow"
-                          onClick={() => handleOpenScheduling(team)}
-                          disabled={loading}
-                        >
-                          Запланировать рассылки
-                        </Button>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td className="px-4 py-2">
-                        <input
-                          type="time"
-                          value={schedule.sendTime}
-                          onChange={e => setSchedules(schedules => schedules.map(s => s.teamId === team.id ? { ...s, sendTime: e.target.value } : s))}
-                          className="px-2 py-0.5 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light focus:ring-2 focus:ring-vista-accent text-sm"
-                          disabled={saving === team.id}
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <span className={schedule.enabled ? 
-                          'text-emerald-400 font-semibold text-sm' : 
-                          'text-red-400 font-semibold text-sm'
-                        }>
-                          {schedule.enabled ? t('morningSurveyTabs.enabled') : t('morningSurveyTabs.disabled')}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 flex items-center gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {teams.map(team => {
+          const schedule = schedules.find(s => s.teamId === team.id) || { sendTime: '08:00', enabled: true };
+          return (
+            <div key={team.id} className="bg-vista-dark/30 border border-vista-secondary/20 rounded-lg p-4 hover:bg-vista-secondary/10 transition-colors">
+              <div className="space-y-3">
+                {/* Название команды */}
+                <h3 className="text-vista-light font-medium text-sm text-center">{team.name}</h3>
+                
+                {type === 'rpe' ? (
+                  /* RPE опросник - только кнопка планирования */
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      className="w-full h-9 bg-transparent border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 px-3 font-normal text-sm"
+                      onClick={() => handleOpenScheduling(team)}
+                      disabled={loading}
+                    >
+                      Запланировать рассылки
+                    </Button>
+                  </div>
+                ) : (
+                  /* Утренний опросник - полная структура */
+                  <div className="space-y-3">
+                    {/* Время рассылки и кнопка выбора получателей */}
+                    <div className="flex gap-2">
+                      <input
+                        type="time"
+                        value={schedule.sendTime}
+                        onChange={e => setSchedules(schedules => schedules.map(s => s.teamId === team.id ? { ...s, sendTime: e.target.value } : s))}
+                        className="flex-1 px-2 py-1 rounded border border-vista-secondary/50 bg-vista-dark/40 text-vista-light focus:ring-2 focus:ring-vista-accent text-sm"
+                        disabled={saving === team.id}
+                      />
+                      <Button
+                        variant="outline"
+                        className="flex-1 px-3 py-1 rounded bg-vista-secondary/10 text-vista-light/40 hover:bg-vista-accent hover:text-white disabled:opacity-60 border border-vista-secondary/20 text-xs transition-colors opacity-70 hover:opacity-100"
+                        onClick={() => handleOpenRecipientsModal(team)}
+                        disabled={saving === team.id}
+                      >
+                        Получатели
+                      </Button>
+                    </div>
+                    
+                    {/* Статус рассылки, переключатель и кнопка сохранения */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={schedule.enabled ? 
+                        'text-emerald-400 font-semibold text-xs' : 
+                        'text-red-400 font-semibold text-xs'
+                      }>
+                        {schedule.enabled ? t('morningSurveyTabs.enabled') : t('morningSurveyTabs.disabled')}
+                      </span>
+                      <div className="flex items-center gap-2">
                         <Switch
                           checked={schedule.enabled}
                           onCheckedChange={e => setSchedules(schedules => schedules.map(s => s.teamId === team.id ? { ...s, enabled: e } : s))}
@@ -214,30 +189,21 @@ function TelegramBotSettings({ type = 'morning' }: { type?: 'morning' | 'rpe' })
                           className="data-[state=checked]:bg-vista-primary data-[state=unchecked]:bg-vista-secondary"
                         />
                         <Button
-                          size="sm"
-                          className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark rounded-md px-4 py-2 text-sm font-semibold shadow"
+                          variant="outline"
+                          className="w-full h-9 bg-transparent border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 px-3 font-normal text-sm"
                           onClick={() => handleSave(team.id, schedule.sendTime, schedule.enabled)}
                           disabled={saving === team.id}
                         >
                           {saving === team.id ? t('morningSurveyTabs.saving') : t('morningSurveyTabs.save')}
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 rounded-md px-4 py-2 text-sm font-semibold shadow"
-                          onClick={() => handleOpenRecipientsModal(team)}
-                          disabled={saving === team.id}
-                        >
-                          {t('morningSurveyTabs.select_recipients')}
-                        </Button>
-                      </td>
-                    </>
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
       
       {/* Модал планирования RPE (только для type === 'rpe') */}
@@ -298,6 +264,7 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
   
   // Состояние для отслеживания развернутых болевых зон игроков
   const [expandedPainAreas, setExpandedPainAreas] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState('analysis');
 
   // Загрузка команд
   useEffect(() => {
@@ -533,37 +500,47 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
   };
 
   return (
-    <Tabs defaultValue="analysis" className="w-full">
-      <TabsList className="grid w-full grid-cols-2 bg-vista-dark/50 border border-vista-secondary/30">
-        <TabsTrigger 
-          value="analysis" 
-          className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70"
+    <div className="w-full">
+      <div className="grid w-full grid-cols-2 gap-2">
+        <Button
+          variant="outline"
+          className={`flex items-center gap-2 h-8 px-3 text-sm font-normal transition-none ${
+            activeTab === 'analysis'
+              ? 'bg-vista-primary/15 text-vista-primary border-vista-primary'
+              : 'bg-transparent text-vista-light/60 border-vista-light/20 hover:bg-vista-light/10 hover:text-vista-light hover:border-vista-light/40'
+          }`}
+          onClick={() => setActiveTab('analysis')}
         >
           {t('morningSurveyTabs.analysis')}
-        </TabsTrigger>
-        <TabsTrigger 
-          value="settings" 
-          className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70"
+        </Button>
+        <Button
+          variant="outline"
+          className={`flex items-center gap-2 h-8 px-3 text-sm font-normal transition-none ${
+            activeTab === 'settings'
+              ? 'bg-vista-primary/15 text-vista-primary border-vista-primary'
+              : 'bg-transparent text-vista-light/60 border-vista-light/20 hover:bg-vista-light/10 hover:text-vista-light hover:border-vista-light/40'
+          }`}
+          onClick={() => setActiveTab('settings')}
         >
           {t('morningSurveyTabs.settings')}
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent value="analysis">
-        <Card className="p-6 bg-vista-dark/50 border-vista-secondary/50">
-          <div className="flex flex-wrap gap-4 mb-4 items-end">
+        </Button>
+      </div>
+      {/* Контент вкладок */}
+      <div className="mt-6">
+        {activeTab === 'analysis' && (
+          <Card className="p-6 bg-vista-dark/50 border-vista-secondary/50">
+          <div className="flex flex-wrap gap-2 mb-4 items-end">
             <div className="min-w-[220px]">
               <TeamSelect teams={teams} value={selectedTeam} onChange={setSelectedTeam} />
             </div>
-            <div>
+            <div className="min-w-[150px]">
               <div className="flex items-center gap-2">
-                <div className="relative">
-                  <input 
-                    type="date" 
-                    value={date} 
-                    onChange={e => setDate(e.target.value)} 
-                    className="px-3 py-2 rounded-md border border-vista-secondary/50 bg-vista-dark/40 text-vista-light text-sm [&::-webkit-calendar-picker-indicator]:text-vista-primary [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:saturate-100 [&::-webkit-calendar-picker-indicator]:hue-rotate-[180deg]" 
-                  />
-                </div>
+                <Input
+                  type="date" 
+                  value={date} 
+                  onChange={e => setDate(e.target.value)} 
+                  className="w-full bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 py-0 font-normal text-sm shadow-lg [&::-webkit-calendar-picker-indicator]:text-vista-primary [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:saturate-100 [&::-webkit-calendar-picker-indicator]:hue-rotate-[180deg]"
+                />
                 
                 {/* Кнопка для указания времени тренировки */}
                 {type === 'rpe' && (
@@ -875,10 +852,12 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
             </div>
           )}
         </Card>
-      </TabsContent>
-      <TabsContent value="settings">
-        <TelegramBotSettings type={type} />
-      </TabsContent>
+        )}
+        
+        {activeTab === 'settings' && (
+          <TelegramBotSettings type={type} />
+        )}
+      </div>
       {/* Модальное окно для управления длительностью */}
       <DateBasedTrainingDurationModal
         open={showDurationModal}
@@ -888,6 +867,6 @@ export function SurveyTabs({ type = 'morning' }: SurveyTabsProps) {
         players={players}
         onDurationUpdate={handleDurationUpdate}
       />
-    </Tabs>
+    </div>
   );
 } 

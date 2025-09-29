@@ -156,7 +156,7 @@ export function TrainingDurationModal({
   if (loading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md w-full overflow-hidden backdrop-blur-xl">
+        <DialogContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-md w-full overflow-hidden">
           <div className="flex items-center justify-center p-8">
             <div className="text-vista-light">Загрузка...</div>
           </div>
@@ -167,7 +167,7 @@ export function TrainingDurationModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-              <DialogContent className="bg-vista-dark/95 border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-lg w-full h-[calc(100vh-var(--modal-top-spacing)-var(--modal-bottom-spacing))] overflow-y-auto backdrop-blur-xl">
+              <DialogContent className="bg-vista-dark border border-vista-secondary/30 text-vista-light shadow-xl rounded-xl max-w-lg w-full h-[calc(100vh-var(--modal-top-spacing)-var(--modal-bottom-spacing))] overflow-y-auto">
         <div className="flex flex-col h-full space-y-4 pt-4">
           {/* Переключатель режима */}
           <div className="flex items-center justify-between p-4 bg-vista-secondary/10 rounded-lg border border-vista-secondary/20">
@@ -251,18 +251,18 @@ export function TrainingDurationModal({
         </div>
 
         {/* Кнопки действий */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-vista-secondary/20 mt-auto">
+        <div className="flex justify-end gap-2 pt-4 border-t border-vista-secondary/20 mt-auto">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20"
+            className="bg-transparent border border-vista-error/50 text-vista-error hover:bg-vista-error/10 h-9 px-3 font-normal"
           >
             Отмена
           </Button>
           <Button
             onClick={saveSettings}
             disabled={saving}
-            className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark"
+            className="bg-transparent border border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-3 font-normal"
           >
             {saving ? (
               <>

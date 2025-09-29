@@ -64,7 +64,7 @@
     "ready": "Готов",
     "rehabilitation": "Реабилитация",
     "sick": "Болеет",
-    "study": "Учёба",
+    "education": "Учёба",
     "injury": "Травма",
     "national_team": "Национальная сборная",
     "other_team": "Другая команда",
@@ -418,9 +418,12 @@
     "cancel": "Отмена",
     "save": "Сохранить",
     "status_trained": "Тренировался",
-    "status_rehab": "Реабилитация",
+    "status_rehabilitation": "Реабилитация",
     "status_sick": "Болеет",
     "status_education": "Учёба",
+    "status_injury": "Травма",
+    "status_national_team": "Национальная сборная",
+    "status_other_team": "Другая команда",
     "status_other": "Другое"
   },
   "matchesPage": {
@@ -597,7 +600,7 @@
     "select_team_and_period": "Выберите команду и период для просмотра аналитики посещаемости",
     "status": {
       "TRAINED": "Тренировался",
-      "REHAB": "Реабилитация",
+      "REHABILITATION": "Реабилитация",
       "SICK": "Болеет",
       "EDUCATION": "Учёба",
       "INJURY": "Травма",

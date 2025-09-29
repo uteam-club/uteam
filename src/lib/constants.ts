@@ -67,7 +67,6 @@ export const FITNESS_TEST_TYPES = [
   { value: 'endurance' },
   { value: 'agility' },
   { value: 'flexibility' },
-  { value: 'other' },
 ];
 
 // Популярные единицы измерения (value, без label/description)

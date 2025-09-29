@@ -2,19 +2,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from '@/components/ui/button';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { PlayerStatus, PLAYER_STATUS_CONFIG } from '@/lib/constants/statuses';
 
-export type PlayerStatus = 'ready' | 'rehabilitation' | 'sick' | 'study' | 'other' | 'injury' | 'national_team' | 'other_team';
-
-const statusOptions = [
-  { value: 'ready', labelKey: 'ready', color: 'bg-green-500', text: 'text-green-300' },
-  { value: 'rehabilitation', labelKey: 'rehabilitation', color: 'bg-blue-500', text: 'text-blue-300' },
-  { value: 'sick', labelKey: 'sick', color: 'bg-yellow-500', text: 'text-yellow-300' },
-  { value: 'study', labelKey: 'study', color: 'bg-purple-500', text: 'text-purple-300' },
-  { value: 'injury', labelKey: 'injury', color: 'bg-red-500', text: 'text-red-300' },
-  { value: 'national_team', labelKey: 'national_team', color: 'bg-indigo-500', text: 'text-indigo-300' },
-  { value: 'other_team', labelKey: 'other_team', color: 'bg-orange-500', text: 'text-orange-300' },
-  { value: 'other', labelKey: 'other', color: 'bg-gray-500', text: 'text-gray-300' },
-];
+const statusOptions = Object.entries(PLAYER_STATUS_CONFIG).map(([value, config]) => ({
+  value: value as PlayerStatus,
+  labelKey: config.label,
+  color: config.color,
+  text: config.textColor
+}));
 
 interface PlayerStatusModalProps {
   open: boolean;

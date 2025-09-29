@@ -11,7 +11,9 @@ import {
   UserIcon,
   UsersIcon,
   DownloadIcon,
-  SearchIcon
+  SearchIcon,
+  Search,
+  X
 } from 'lucide-react';
 import {
   Table,
@@ -89,7 +91,7 @@ export default function DocumentsPage() {
   const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(true);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedTeamId, setSelectedTeamId] = useState<string>('all');
+  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
   const [players, setPlayers] = useState<Player[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
@@ -113,6 +115,8 @@ export default function DocumentsPage() {
 
   // Оптимизированная функция для получения списка команд
   const fetchTeams = useCallback(async () => {
+    if (teams.length > 0) return; // Предотвращаем повторную загрузку
+    
     try {
       setIsLoading(true);
       const response = await fetch('/api/teams');
@@ -121,22 +125,24 @@ export default function DocumentsPage() {
       }
       const data = await response.json();
       setTeams(data);
-      // По умолчанию всегда 'all', не выбираем первую команду
-      setSelectedTeamId('all');
+      // По умолчанию выбираем первую команду из списка
+      if (data.length > 0) {
+        setSelectedTeamId(data[0].id);
+      }
     } catch (error) {
       console.error('Ошибка при загрузке команд:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  }, [teams.length]);
 
   // Оптимизированная функция для получения документов игроков
   const fetchPlayerDocuments = useCallback(async () => {
-    if (!selectedTeamId) return;
+    if (!selectedTeamId || isLoading) return;
     
     try {
       setIsLoading(true);
-      const url = selectedTeamId === 'all' 
-        ? '/api/players/documents' 
-        : `/api/players/documents?teamId=${selectedTeamId}`;
+      const url = `/api/players/documents?teamId=${selectedTeamId}`;
 
       const response = await fetch(url);
       if (!response.ok) {
@@ -150,21 +156,21 @@ export default function DocumentsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedTeamId]);
+  }, [selectedTeamId, isLoading]);
 
   // Загрузка списка команд при инициализации страницы
   useEffect(() => {
-    if (session?.user) {
+    if (session?.user && teams.length === 0) {
       fetchTeams();
     }
-  }, [session, fetchTeams]);
+  }, [session, teams.length]);
 
   // Загрузка игроков при изменении выбранной команды
   useEffect(() => {
     if (selectedTeamId) {
       fetchPlayerDocuments();
     }
-  }, [selectedTeamId, fetchPlayerDocuments]);
+  }, [selectedTeamId]);
 
   // Функция для фильтрации игроков по поисковому запросу
   useEffect(() => {
@@ -202,9 +208,7 @@ export default function DocumentsPage() {
       worksheet['!cols'] = columnWidths;
       
       // Определение имени файла
-      const teamName = selectedTeamId === 'all' 
-        ? 'Все команды' 
-        : teams.find(team => team.id === selectedTeamId)?.name || 'Игроки';
+      const teamName = teams.find(team => team.id === selectedTeamId)?.name || 'Игроки';
       
       const fileName = `${teamName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
       
@@ -310,9 +314,6 @@ export default function DocumentsPage() {
         </Card>
         
         <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
-          <CardHeader>
-            <CardTitle className="text-vista-light">{t('documentsPage.player_documents')}</CardTitle>
-          </CardHeader>
           <CardContent>
             <div className="overflow-x-auto custom-scrollbar">
               <Skeleton className="h-64 w-full bg-vista-dark/70" />
@@ -325,66 +326,66 @@ export default function DocumentsPage() {
 
   return (
     <div className="space-y-6">
-      
       <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
-        <CardHeader>
-          <CardTitle className="text-vista-light">{t('documentsPage.select_team')}</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-vista-light">Документы игроков</CardTitle>
+          <div className="w-[200px] h-9"></div> {/* Пустая кнопка для выравнивания */}
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 items-end">
-            <div className="w-64">
+          <div className="flex gap-4 items-end mb-6">
+            <div className="w-full sm:w-[200px]">
               <Select 
                 value={selectedTeamId}
                 onValueChange={setSelectedTeamId}
               >
-                <SelectTrigger className="bg-vista-dark/70 border-vista-secondary/50 text-vista-light shadow-sm">
+                <SelectTrigger className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal text-sm shadow-lg">
                   <SelectValue placeholder={t('documentsPage.select_team')} />
                 </SelectTrigger>
-                <SelectContent className="bg-vista-dark border-vista-secondary/50 text-vista-light shadow-lg">
-                  <SelectItem value="all">{t('documentsPage.all_teams')}</SelectItem>
+                <SelectContent className="bg-vista-dark border border-vista-light/20 text-vista-light shadow-2xl rounded-lg">
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name}
                     </SelectItem>
                   ))}
+                  <SelectItem value="all">{t('documentsPage.all_teams')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
-            <div className="w-64 relative">
+            <div className="relative w-1/3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vista-light/50" />
               <Input
                 type="text"
                 placeholder={t('documentsPage.search_player')}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="bg-vista-dark/70 border-vista-secondary/50 text-vista-light pr-9 focus:border-vista-primary focus:ring-1 focus:ring-vista-primary/50"
+                className="pl-10 bg-vista-dark/30 border-vista-light/20 text-vista-light/90 placeholder-vista-light/60 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 font-normal text-sm shadow-lg"
               />
-              <SearchIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-vista-light/50" />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-vista-light/50 hover:text-vista-light"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
             
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleExport}
-              className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 shadow-sm"
-              title={t('documentsPage.export_excel')}
-            >
-              <DownloadIcon className="h-4 w-4 text-vista-primary" />
-            </Button>
+            <div className="flex items-center justify-between w-full">
+              <span className="text-sm font-normal text-vista-light/70 whitespace-nowrap">
+                {t('documentsPage.total_players', {count: players.length})}
+              </span>
+              <Button
+                variant="outline"
+                onClick={handleExport}
+                className="w-full sm:w-[200px] bg-transparent border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-2 font-normal text-sm"
+                title={t('documentsPage.export_excel')}
+              >
+                <DownloadIcon className="mr-1.5 h-4 w-4" />
+                <span>Экспортировать</span>
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
-      
-      <Card className="bg-vista-dark/50 border-vista-secondary/50 shadow-md">
-        <CardHeader>
-          <CardTitle className="text-vista-light flex justify-between items-center">
-            <span>{t('documentsPage.player_documents')}</span>
-            <span className="text-sm font-normal text-vista-light/70">
-              {t('documentsPage.total_players', {count: players.length})}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
           <div className="overflow-x-auto custom-scrollbar">
             <Table>
               <TableHeader>
@@ -501,7 +502,7 @@ export default function DocumentsPage() {
                 )}
               </TableBody>
             </Table>
-      </div>
+          </div>
         </CardContent>
       </Card>
       {/* Модалка выбора полей для экспорта */}

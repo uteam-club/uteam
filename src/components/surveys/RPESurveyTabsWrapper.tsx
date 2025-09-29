@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogDescription, DialogClose } from '@/components/ui/dialog';
@@ -54,23 +53,6 @@ function TelegramBotSettings({ type = 'rpe' }: { type?: 'morning' | 'rpe' }) {
     fetchData();
   }, []);
 
-  // Тестовая рассылка
-  const handleTestBroadcast = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/telegram/test-broadcast?type=${type}`, { method: 'POST' });
-      const data = await res.json();
-      if (res.ok) {
-        toast({ title: 'Тестовая рассылка выполнена', variant: 'default' });
-      } else {
-        toast({ title: 'Ошибка', description: data.error || 'Ошибка тестовой рассылки', variant: 'destructive' });
-      }
-    } catch (e) {
-      toast({ title: 'Ошибка', description: 'Ошибка тестовой рассылки', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Открыть модал планирования RPE
   const handleOpenScheduling = (team: Team) => {
@@ -91,7 +73,13 @@ function TelegramBotSettings({ type = 'rpe' }: { type?: 'morning' | 'rpe' }) {
         <div className="flex gap-2">
           <Dialog open={showInstruction} onOpenChange={setShowInstruction}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20" onClick={() => setShowInstruction(true)}>{t('morningSurveyTabs.instruction')}</Button>
+              <Button 
+                variant="outline" 
+                className="w-full sm:w-[200px] bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal text-sm shadow-lg"
+                onClick={() => setShowInstruction(true)}
+              >
+                {t('morningSurveyTabs.instruction')}
+              </Button>
             </DialogTrigger>
             <DialogContent className="p-0 bg-transparent border-none shadow-none">
               <div className="bg-vista-dark/90 border-vista-secondary/30 shadow-xl rounded-lg p-6">
@@ -109,56 +97,39 @@ function TelegramBotSettings({ type = 'rpe' }: { type?: 'morning' | 'rpe' }) {
               </div>
             </DialogContent>
           </Dialog>
-          <Button onClick={handleTestBroadcast} disabled={loading} className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark rounded-md px-4 py-2 text-sm font-semibold shadow">
-            {t('morningSurveyTabs.test_broadcast')}
-          </Button>
         </div>
       </div>
-      <div className="overflow-x-auto custom-scrollbar">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-vista-secondary/30">
-              <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">{t('morningSurveyTabs.team')}</th>
-              <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">Статус расписания</th>
-              <th className="px-4 py-2 text-left text-xs text-vista-light/70 font-semibold">Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {teams.map(team => {
-              return (
-                <tr key={team.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10">
-                  <td className="px-4 py-2 text-vista-light font-medium text-sm">{team.name}</td>
-                  <td className="px-4 py-2">
-                    <span className="text-vista-light/60 text-sm">
-                      Настраивается индивидуально для каждой тренировки
-                    </span>
-                  </td>
-                  <td className="px-4 py-2">
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark rounded-md px-4 py-2 text-sm font-semibold shadow"
-                        onClick={() => handleOpenScheduling(team)}
-                        disabled={loading}
-                      >
-                        Запланировать рассылки
-                      </Button>
-                                              <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20 rounded-md px-4 py-2 text-sm font-semibold shadow"
-                          onClick={() => handleOpenRecipientsModal(team)}
-                          disabled={loading}
-                        >
-                          {t('morningSurveyTabs.select_rpe_recipients')}
-                        </Button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {teams.map(team => {
+          return (
+            <div key={team.id} className="bg-vista-dark/30 border border-vista-secondary/20 rounded-lg p-4 hover:bg-vista-secondary/10 transition-colors">
+              <div className="space-y-3">
+                {/* Название команды */}
+                <h3 className="text-vista-light font-medium text-sm text-center">{team.name}</h3>
+                
+                {/* Кнопки действий */}
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    className="w-full h-9 bg-transparent border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 px-3 font-normal text-sm"
+                    onClick={() => handleOpenScheduling(team)}
+                    disabled={loading}
+                  >
+                    Запланировать рассылки
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full px-3 py-0.5 rounded bg-vista-secondary/10 text-vista-light/40 hover:bg-vista-accent hover:text-white disabled:opacity-60 border border-vista-secondary/20 text-xs transition-colors opacity-70 hover:opacity-100"
+                    onClick={() => handleOpenRecipientsModal(team)}
+                    disabled={loading}
+                  >
+                        Получатели
+                  </Button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
       
       {/* Модал планирования RPE */}
@@ -187,31 +158,40 @@ function TelegramBotSettings({ type = 'rpe' }: { type?: 'morning' | 'rpe' }) {
 
 export function RPESurveyTabsWrapper() {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState('analysis');
 
   return (
-    <Tabs defaultValue="analysis" className="w-full">
-      <TabsList className="grid w-full grid-cols-2 bg-vista-dark/50 border border-vista-secondary/30">
-        <TabsTrigger 
-          value="analysis" 
-          className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70"
+    <div className="w-full">
+      <div className="grid w-full grid-cols-2 gap-2">
+        <Button
+          variant="outline"
+          className={`flex items-center gap-2 h-8 px-3 text-sm font-normal transition-none ${
+            activeTab === 'analysis'
+              ? 'bg-vista-primary/15 text-vista-primary border-vista-primary'
+              : 'bg-transparent text-vista-light/60 border-vista-light/20 hover:bg-vista-light/10 hover:text-vista-light hover:border-vista-light/40'
+          }`}
+          onClick={() => setActiveTab('analysis')}
         >
           {t('morningSurveyTabs.analysis')}
-        </TabsTrigger>
-        <TabsTrigger 
-          value="settings" 
-          className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70"
+        </Button>
+        <Button
+          variant="outline"
+          className={`flex items-center gap-2 h-8 px-3 text-sm font-normal transition-none ${
+            activeTab === 'settings'
+              ? 'bg-vista-primary/15 text-vista-primary border-vista-primary'
+              : 'bg-transparent text-vista-light/60 border-vista-light/20 hover:bg-vista-light/10 hover:text-vista-light hover:border-vista-light/40'
+          }`}
+          onClick={() => setActiveTab('settings')}
         >
           {t('morningSurveyTabs.settings')}
-        </TabsTrigger>
-      </TabsList>
+        </Button>
+      </div>
       
-      <TabsContent value="analysis">
-        <RPESurveyAnalysis />
-      </TabsContent>
-      
-      <TabsContent value="settings">
-        <TelegramBotSettings type="rpe" />
-      </TabsContent>
-    </Tabs>
+      {/* Контент вкладок */}
+      <div className="mt-6">
+        {activeTab === 'analysis' && <RPESurveyAnalysis />}
+        {activeTab === 'settings' && <TelegramBotSettings type="rpe" />}
+      </div>
+    </div>
   );
 }

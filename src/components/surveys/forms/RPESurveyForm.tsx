@@ -43,7 +43,8 @@ export function RPESurveyForm({ player, surveyId, tenantId, onSubmit, lang = 'en
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const response = await fetch('/api/survey/response', {
+      // Используем специализированный маршрут для RPE, который корректно обрабатывает trainingId
+      const response = await fetch('/api/survey/rpe/response', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -51,7 +52,6 @@ export function RPESurveyForm({ player, surveyId, tenantId, onSubmit, lang = 'en
           surveyId,
           tenantId,
           playerId: player.id,
-          type: 'rpe',
           trainingId: trainingId,
         }),
       });

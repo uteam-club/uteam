@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -45,46 +44,59 @@ export default function GpsReportsPage() {
           </Button>
         </CardHeader>
         <CardContent>
+          <div className="grid w-full grid-cols-3 gap-2">
+            <Button
+              variant="outline"
+              className={`flex items-center gap-2 h-8 px-3 text-sm font-normal transition-none ${
+                activeTab === 'analysis'
+                  ? 'bg-vista-primary/15 text-vista-primary border-vista-primary'
+                  : 'bg-transparent text-vista-light/60 border-vista-light/20 hover:bg-vista-light/10 hover:text-vista-light hover:border-vista-light/40'
+              }`}
+              onClick={() => setActiveTab('analysis')}
+            >
+              <BarChart3 className="h-4 w-4" />
+              Анализ
+            </Button>
+            <Button
+              variant="outline"
+              className={`flex items-center gap-2 h-8 px-3 text-sm font-normal transition-none ${
+                activeTab === 'profiles'
+                  ? 'bg-vista-primary/15 text-vista-primary border-vista-primary'
+                  : 'bg-transparent text-vista-light/60 border-vista-light/20 hover:bg-vista-light/10 hover:text-vista-light hover:border-vista-light/40'
+              }`}
+              onClick={() => setActiveTab('profiles')}
+            >
+              <Settings className="h-4 w-4" />
+              Профили
+            </Button>
+            <Button
+              variant="outline"
+              className={`flex items-center gap-2 h-8 px-3 text-sm font-normal transition-none ${
+                activeTab === 'reports'
+                  ? 'bg-vista-primary/15 text-vista-primary border-vista-primary'
+                  : 'bg-transparent text-vista-light/60 border-vista-light/20 hover:bg-vista-light/10 hover:text-vista-light hover:border-vista-light/40'
+              }`}
+              onClick={() => setActiveTab('reports')}
+            >
+              <List className="h-4 w-4" />
+              Список отчетов
+            </Button>
+          </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3 bg-vista-dark/30 border-vista-secondary/30">
-              <TabsTrigger 
-                value="analysis" 
-                className="flex items-center gap-2 data-[state=active]:bg-vista-primary/15 data-[state=active]:text-vista-light data-[state=active]:border-vista-primary data-[state=active]:border data-[state=inactive]:text-vista-light/60 data-[state=inactive]:hover:text-vista-light data-[state=inactive]:hover:bg-vista-dark/50"
-              >
-                <BarChart3 className="h-4 w-4" />
-                Анализ
-              </TabsTrigger>
-              <TabsTrigger 
-                value="profiles" 
-                className="flex items-center gap-2 data-[state=active]:bg-vista-primary/15 data-[state=active]:text-vista-light data-[state=active]:border-vista-primary data-[state=active]:border data-[state=inactive]:text-vista-light/60 data-[state=inactive]:hover:text-vista-light data-[state=inactive]:hover:bg-vista-dark/50"
-              >
-                <Settings className="h-4 w-4" />
-                Профили
-              </TabsTrigger>
-              <TabsTrigger 
-                value="reports" 
-                className="flex items-center gap-2 data-[state=active]:bg-vista-primary/15 data-[state=active]:text-vista-light data-[state=active]:border-vista-primary data-[state=active]:border data-[state=inactive]:text-vista-light/60 data-[state=inactive]:hover:text-vista-light data-[state=inactive]:hover:bg-vista-dark/50"
-              >
-                <List className="h-4 w-4" />
-                Список отчетов
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="analysis" className="space-y-4">
-              <GpsAnalysisTab />
-            </TabsContent>
-
-            <TabsContent value="profiles" className="space-y-4">
+          {/* Контент вкладок */}
+          <div className="space-y-4 mt-6">
+            {activeTab === 'analysis' && <GpsAnalysisTab />}
+            
+            {activeTab === 'profiles' && (
               <GpsProfilesList
                 onCreateProfile={() => setShowNewProfileModal(true)}
                 onViewProfile={(profileId) => console.log('View profile:', profileId)}
                 onEditProfile={(profileId) => console.log('Edit profile:', profileId)}
                 onDeleteProfile={(profileId) => console.log('Delete profile:', profileId)}
               />
-            </TabsContent>
-
-            <TabsContent value="reports" className="space-y-4">
+            )}
+            
+            {activeTab === 'reports' && (
               <GpsReportsList
                 onEditReport={(reportId) => {
                   setSelectedReportId(reportId);
@@ -97,8 +109,8 @@ export default function GpsReportsPage() {
                   setHistoryModalOpen(true);
                 }}
               />
-            </TabsContent>
-          </Tabs>
+            )}
+          </div>
         </CardContent>
       </Card>
 

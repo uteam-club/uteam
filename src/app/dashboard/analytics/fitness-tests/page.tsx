@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import CreateFitnessTestModal from '@/components/fitness-tests/CreateFitnessTestModal';
-import { Plus } from 'lucide-react';
+import { Plus, Ruler, HeartPulse, Zap, Dumbbell, StretchHorizontal, Shuffle } from 'lucide-react';
 import { TestDescriptionModal } from '@/components/fitness-tests/TestDescriptionModal';
 import EnterResultsModal from '@/components/fitness-tests/EnterResultsModal';
 import { TeamSelect } from '@/components/ui/team-select';
@@ -189,6 +189,27 @@ function formatResult(value: string) {
   return value;
 }
 
+function getTestTypeIcon(type: string) {
+  const iconProps = { className: "w-4 h-4" };
+  
+  switch (type) {
+    case 'anthropometry':
+      return <Ruler {...iconProps} />;
+    case 'endurance':
+      return <HeartPulse {...iconProps} />;
+    case 'speed':
+      return <Zap {...iconProps} />;
+    case 'strength':
+      return <Dumbbell {...iconProps} />;
+    case 'flexibility':
+      return <StretchHorizontal {...iconProps} />;
+    case 'agility':
+      return <Shuffle {...iconProps} />;
+    default:
+      return null;
+  }
+}
+
 
 
 export default function FitnessTestsPage() {
@@ -344,8 +365,8 @@ export default function FitnessTestsPage() {
     setShowBottomFade(el.scrollTop + el.clientHeight < el.scrollHeight - 1);
   }
 
-  // Получаем только те типы, для которых есть тесты
-  const typesWithTests = FITNESS_TEST_TYPES.filter(type => tests.some(t => t.type === type.value));
+  // Показываем все типы тестов
+  const typesWithTests = FITNESS_TEST_TYPES;
   // Тесты текущего типа
   const testsOfType = tests.filter(t => t.type === activeType);
   // Активный тест
@@ -416,7 +437,7 @@ export default function FitnessTestsPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-4 w-full">
             <CardTitle className="text-vista-light">{t('fitnessTest.page.title')}</CardTitle>
-            <div className="w-48 ml-4">
+            <div className="ml-4">
               <TeamSelect
                 teams={teams}
                 value={selectedTeamId}
@@ -426,11 +447,12 @@ export default function FitnessTestsPage() {
               />
             </div>
           </div>
-          <Button
-            className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark whitespace-nowrap"
+          <Button 
+            variant="outline"
             onClick={() => setIsCreateModalOpen(true)}
+            className="w-full sm:w-[200px] bg-transparent border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-9 px-2 font-normal text-sm"
           >
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="mr-1.5 h-4 w-4" />
             {t('fitnessTest.page.create_test_btn')}
           </Button>
         </CardHeader>
@@ -441,23 +463,23 @@ export default function FitnessTestsPage() {
             <div className="text-vista-light/70 text-center py-8">{t('fitnessTest.page.select_team_hint')}</div>
           ) : (
             <>
-              <Tabs value={activeType} onValueChange={setActiveType} className="w-full">
-                <TabsList className="bg-vista-dark/30 border border-vista-secondary/50">
-                  {typesWithTests.map((type) => (
-                    <TabsTrigger
-                      key={type.value}
-                      value={type.value}
-                      className={
-                        activeType === type.value
-                          ? "data-[state=active]:bg-vista-primary data-[state=active]:text-vista-dark"
-                          : "text-vista-light/70 hover:text-vista-light"
-                      }
-                    >
-                      {t(`fitnessTest.type.${type.value}`)}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
+              <div className="grid w-full grid-cols-6 gap-2">
+                {typesWithTests.map((type) => (
+                  <Button
+                    key={type.value}
+                    variant="outline"
+                    className={`flex items-center gap-2 h-8 px-3 text-sm font-normal transition-none ${
+                      activeType === type.value
+                        ? 'bg-vista-primary/15 text-vista-primary border-vista-primary'
+                        : 'bg-transparent text-vista-light/60 border-vista-light/20 hover:bg-vista-light/10 hover:text-vista-light hover:border-vista-light/40'
+                    }`}
+                    onClick={() => setActiveType(type.value)}
+                  >
+                    {getTestTypeIcon(type.value)}
+                    {t(`fitnessTest.type.${type.value}`)}
+                  </Button>
+                ))}
+              </div>
               {/* Горизонтальный список тестов внутри типа */}
               <div className="flex gap-2 mt-4 overflow-x-auto pb-2 custom-scrollbar">
                 {testsOfType.length === 0 ? (
@@ -466,9 +488,12 @@ export default function FitnessTestsPage() {
                   testsOfType.map(test => (
                     <Button
                       key={test.id}
-                      size="sm"
-                      variant={activeTestId === test.id ? 'default' : 'outline'}
-                      className={activeTestId === test.id ? 'bg-vista-primary text-vista-dark' : 'border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20'}
+                      variant="outline"
+                      className={`h-8 px-3 text-sm font-normal transition-none ${
+                        activeTestId === test.id 
+                          ? 'bg-vista-primary/15 text-vista-primary border-vista-primary hover:bg-vista-primary/20' 
+                          : 'bg-transparent text-vista-light/70 border-vista-light/20 hover:bg-vista-light/10 hover:text-vista-light hover:border-vista-light/40'
+                      }`}
                       onClick={() => setActiveTestId(test.id)}
                     >
                       {test.name}
@@ -479,15 +504,46 @@ export default function FitnessTestsPage() {
               {/* Кнопки и таблица результатов для выбранного теста */}
               {activeTest && (
                 <>
-                  <div className="flex gap-2 mt-4">
-                    <Button size="sm" className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark" onClick={() => handleEnterResults(activeTest)}>
-                      {t('fitnessTest.page.enter_results_btn')}
-                    </Button>
-                    <Button size="sm" variant="outline" className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20" onClick={() => { setDescModalText(activeTest.description || ''); setDescModalOpen(true); }}>
-                      {t('fitnessTest.page.test_description_btn')}
-                    </Button>
-                    <Button size="sm" variant="outline" className="border-vista-secondary/30 text-vista-light hover:bg-vista-secondary/20 ml-auto" onClick={() => { setSelectedTest(activeTest); setIsEditModalOpen(true); }}>{t('fitnessTest.page.edit_test_btn')}</Button>
-                    <Button size="sm" variant="outline" className="border-vista-error/50 text-vista-error hover:bg-vista-error/10" onClick={() => { setSelectedTest(activeTest); setIsDeleteModalOpen(true); }}>{t('fitnessTest.page.delete_test_btn')}</Button>
+                  {/* Основные действия */}
+                  <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 h-8 px-3 text-sm"
+                        onClick={() => handleEnterResults(activeTest)}
+                      >
+                        {t('fitnessTest.page.enter_results_btn')}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="bg-transparent text-vista-light/60 border-vista-light/20 hover:bg-vista-light/10 hover:text-vista-light hover:border-vista-light/40 h-8 px-3 text-sm"
+                        onClick={() => { setDescModalText(activeTest.description || ''); setDescModalOpen(true); }}
+                      >
+                        {t('fitnessTest.page.test_description_btn')}
+                      </Button>
+                    </div>
+                    
+                    {/* Действия управления тестом */}
+                    <div className="flex gap-2 ml-auto">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="bg-transparent text-vista-light/60 border-vista-light/20 hover:bg-vista-light/10 hover:text-vista-light hover:border-vista-light/40 h-8 px-3 text-sm"
+                        onClick={() => { setSelectedTest(activeTest); setIsEditModalOpen(true); }}
+                      >
+                        {t('fitnessTest.page.edit_test_btn')}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="border-vista-error/50 text-vista-error hover:bg-vista-error/10 h-8 px-3 text-sm"
+                        onClick={() => { setSelectedTest(activeTest); setIsDeleteModalOpen(true); }}
+                      >
+                        {t('fitnessTest.page.delete_test_btn')}
+                      </Button>
+                    </div>
                   </div>
                   {/* Таблица результатов */}
                   {playersLoading || resultsLoading ? (

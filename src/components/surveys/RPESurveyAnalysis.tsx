@@ -1,22 +1,28 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TeamSelect } from '@/components/ui/team-select';
 
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { Calendar, Clock, Trophy, Dumbbell, Settings, Loader2 } from 'lucide-react';
+import { Calendar, Clock, Trophy, Dumbbell, Settings, Loader2, Users } from 'lucide-react';
 import { TrainingDurationModal } from './TrainingDurationModal';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 interface Team {
   id: string;
   name: string;
   clubId: string;
+  timezone?: string;
 }
 
 interface Training {
@@ -57,12 +63,19 @@ export function RPESurveyAnalysis() {
   const [selectedTraining, setSelectedTraining] = useState<string>('');
   const [players, setPlayers] = useState<Player[]>([]);
   const [responses, setResponses] = useState<RPEResponse[]>([]);
+  const [historyResponses, setHistoryResponses] = useState<RPEResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingTrainings, setLoadingTrainings] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const [resending, setResending] = useState<string | null>(null);
   const [showDurationModal, setShowDurationModal] = useState(false);
+
+  // Текущий TZ команды
+  const teamTimezone = useMemo(() => teams.find(t => t.id === selectedTeam)?.timezone || 'Europe/Moscow', [teams, selectedTeam]);
+  // Единая ширина колонок - используем inline стили для точного контроля
+  const colW = 'text-center whitespace-nowrap overflow-hidden';
+  const playerColW = 'text-left whitespace-nowrap overflow-hidden';
 
   // Загрузка команд
   useEffect(() => {
@@ -153,6 +166,7 @@ export function RPESurveyAnalysis() {
   useEffect(() => {
     if (!selectedTraining) {
       setResponses([]);
+      setHistoryResponses([]);
       return;
     }
     
@@ -166,12 +180,34 @@ export function RPESurveyAnalysis() {
         }
         return res.json();
       })
-      .then(data => {
+      .then(async data => {
         setResponses(data.responses || []);
+
+        // История 42 дня для расчётов rolling (D-41 .. D) в TZ команды
+        const training = trainings.find(t => t.id === selectedTraining);
+        if (training) {
+          const end = dayjs.tz(training.date, teamTimezone).endOf('day');
+          const start = end.subtract(41, 'day').startOf('day');
+          const url = `/api/surveys/rpe?teamId=${selectedTeam}&startDate=${start.toDate().toISOString()}&endDate=${end.toDate().toISOString()}`;
+          try {
+            const histRes = await fetch(url);
+            if (histRes.ok) {
+              const hist = await histRes.json();
+              setHistoryResponses(hist || []);
+            } else {
+              setHistoryResponses([]);
+            }
+          } catch {
+            setHistoryResponses([]);
+          }
+        } else {
+          setHistoryResponses([]);
+        }
       })
       .catch(e => {
         setError(e.message || 'Ошибка при загрузке ответов');
         setResponses([]);
+        setHistoryResponses([]);
       })
       .finally(() => setLoading(false));
   }, [selectedTraining]);
@@ -243,12 +279,59 @@ export function RPESurveyAnalysis() {
     return duration ? rpe * duration : null;
   };
 
-  const getWorkloadColor = (workload: number | null) => {
-    if (!workload) return 'bg-gradient-to-br from-gray-500 to-gray-600';
-    if (workload <= 200) return 'bg-gradient-to-br from-emerald-500 to-green-600';
-    if (workload <= 400) return 'bg-gradient-to-br from-amber-500 to-yellow-500';
-    if (workload <= 600) return 'bg-gradient-to-br from-orange-500 to-orange-600';
-    return 'bg-gradient-to-br from-red-500 to-red-600';
+  // Минималистичные "pill"-бейджи: спокойный фон + тонкая цветная обводка
+  const basePill = 'inline-flex items-center justify-center h-6 min-w-[44px] rounded-md px-2 text-xs font-medium border';
+  const pillColors: Record<string, string> = {
+    // Все значения без фона, только цветной текст
+    neutral: 'bg-transparent border-transparent text-vista-light/80',
+    good: 'bg-transparent border-transparent text-vista-light/80',
+    moderate: 'bg-transparent border-transparent text-amber-200',
+    high: 'bg-transparent border-transparent text-orange-200',
+    extreme: 'bg-transparent border-transparent text-red-200',
+    low: 'bg-transparent border-transparent text-sky-200',
+    blue: 'bg-transparent border-transparent text-blue-200',
+  };
+
+  const MetricPill = ({ value, variant = 'neutral', width = 'min-w-[44px]' }: { value: string | number; variant?: keyof typeof pillColors; width?: string; }) => (
+    <span className={`${basePill} ${pillColors[variant]} ${width}`}>{value}</span>
+  );
+
+  // Стили для разных метрик (пороговые значения можно скорректировать под клуб)
+  const variantDayLoad = (v: number): keyof typeof pillColors => {
+    if (v <= 200) return 'neutral';
+    if (v <= 400) return 'moderate';
+    if (v <= 600) return 'high';
+    return 'extreme';
+  };
+  const variantWeekly = (v: number): keyof typeof pillColors => {
+    if (v <= 600) return 'neutral';
+    if (v <= 1000) return 'moderate';
+    if (v <= 1500) return 'high';
+    return 'extreme';
+  };
+  const variantMonotony = (v: number): keyof typeof pillColors => {
+    if (v < 0.8) return 'low';
+    if (v <= 1.3) return 'neutral';
+    if (v <= 1.8) return 'moderate';
+    return 'extreme';
+  };
+  const variantStrain = (v: number): keyof typeof pillColors => {
+    if (v <= 800) return 'neutral';
+    if (v <= 1500) return 'moderate';
+    if (v <= 2200) return 'high';
+    return 'extreme';
+  };
+  const variantACWR = (v: number): keyof typeof pillColors => {
+    if (v < 0.8) return 'low';
+    if (v <= 1.3) return 'neutral';
+    if (v <= 1.5) return 'moderate';
+    return 'extreme';
+  };
+  const variantRPE = (v: number): keyof typeof pillColors => {
+    if (v <= 3) return 'neutral';
+    if (v <= 5) return 'moderate';
+    if (v <= 7) return 'high';
+    return 'extreme';
   };
 
   const formatDate = (dateStr: string) => {
@@ -283,6 +366,79 @@ export function RPESurveyAnalysis() {
 
   const selectedTrainingData = trainings.find(t => t.id === selectedTraining);
 
+  // === Расчёты метрик ===
+  const trainingDay = selectedTrainingData ? dayjs.tz(selectedTrainingData.date, teamTimezone).startOf('day') : null;
+
+  // Сессии -> sRPE и агрегации по дням для каждого игрока
+  type DailyMap = Record<string, number>; // key = YYYY-MM-DD (TZ команды), value = дневная нагрузка AU
+  const playerDailyLoadMap: Record<string, DailyMap> = useMemo(() => {
+    const map: Record<string, DailyMap> = {};
+    const list = Array.isArray(historyResponses) ? historyResponses : [];
+    for (const r of list) {
+      // Учитываем только ответы с длительностью
+      const duration = r.durationMinutes ?? null;
+      if (!duration || !r.rpeScore) continue;
+      const sRPE = r.rpeScore * duration;
+      // Приоритет: дата тренировки, если есть; иначе по времени ответа
+      const trainingDate = (r as any).trainingDate as string | undefined;
+      const baseDay = trainingDate
+        ? dayjs.tz(trainingDate, teamTimezone)
+        : dayjs(r.createdAt).tz(teamTimezone);
+      const dayKey = baseDay.format('YYYY-MM-DD');
+      if (!map[r.playerId]) map[r.playerId] = {};
+      map[r.playerId][dayKey] = (map[r.playerId][dayKey] || 0) + sRPE;
+    }
+    return map;
+  }, [historyResponses, teamTimezone]);
+
+  const getDayKey = (d: dayjs.Dayjs) => d.tz(teamTimezone).format('YYYY-MM-DD');
+
+  const range7d = (endDay: dayjs.Dayjs) => {
+    const arr: string[] = [];
+    for (let i = 6; i >= 0; i--) {
+      arr.push(getDayKey(endDay.subtract(i, 'day')));
+    }
+    return arr;
+  };
+
+  const weeklyLoad7d = (playerId: string, endDay: dayjs.Dayjs) => {
+    const days = range7d(endDay);
+    const daily = playerDailyLoadMap[playerId] || {};
+    return days.reduce((sum, key) => sum + (daily[key] || 0), 0);
+  };
+
+  const monotony7d = (playerId: string, endDay: dayjs.Dayjs) => {
+    const days = range7d(endDay);
+    const daily = playerDailyLoadMap[playerId] || {};
+    const values = days.map(k => daily[k] || 0);
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    const variance = values.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / values.length;
+    const sd = Math.sqrt(variance);
+    if (sd === 0) return null; // N/A
+    return mean / sd;
+  };
+
+  const strain7d = (playerId: string, endDay: dayjs.Dayjs) => {
+    const wl = weeklyLoad7d(playerId, endDay);
+    const mono = monotony7d(playerId, endDay);
+    if (mono === null) return null;
+    return wl * mono;
+  };
+
+  const acwr = (playerId: string, endDay: dayjs.Dayjs) => {
+    // Acute = Weekly 7д за D-6..D
+    const acute = weeklyLoad7d(playerId, endDay);
+    // Chronic = среднее Weekly окон, заканчивающихся на D-7, D-14, D-21, D-28
+    const ends = [7, 14, 21, 28].map(x => endDay.subtract(x, 'day'));
+    const weeklyValues = ends.map(e => weeklyLoad7d(playerId, e));
+    // Нужны минимум 3 недели истории
+    const valid = weeklyValues; // значения всегда числовые (с нулями)
+    const haveEnough = ends.every(e => true) && valid.length >= 3;
+    const chronic = valid.reduce((a, b) => a + b, 0) / valid.length;
+    if (!haveEnough || chronic === 0) return null;
+    return acute / chronic;
+  };
+
   return (
     <div className="space-y-6">
 
@@ -291,28 +447,36 @@ export function RPESurveyAnalysis() {
 
       {/* Таблица результатов */}
       <Card className="p-6 bg-vista-dark/50 border-vista-secondary/50">
-        <div className="flex flex-wrap gap-4 mb-4 items-end">
-          <div className="min-w-[220px]">
-            <TeamSelect teams={teams} value={selectedTeam} onChange={setSelectedTeam} />
+        <div className="flex flex-wrap gap-3 mb-4 items-center">
+          <div className="w-[220px]">
+            <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+              <SelectTrigger className="w-full bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal text-sm shadow-lg">
+                <SelectValue placeholder="Выберите команду" />
+              </SelectTrigger>
+              <SelectContent className="bg-vista-dark border border-vista-light/20 text-vista-light shadow-2xl rounded-lg max-h-72 overflow-y-auto custom-scrollbar">
+                {teams.map((team) => (
+                  <SelectItem key={team.id} value={team.id} className="text-vista-light hover:bg-vista-primary/20 hover:text-vista-primary data-[state=checked]:bg-vista-primary/30 data-[state=checked]:text-vista-primary data-[highlighted]:bg-vista-primary/20 data-[highlighted]:text-vista-primary">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-vista-primary" />
+                      <span>{team.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="min-w-[280px]">
+          <div className="w-[280px]">
             <Select value={selectedTraining} onValueChange={setSelectedTraining} disabled={loadingTrainings}>
-              <SelectTrigger className="px-3 py-2 bg-vista-dark/40 border border-vista-secondary/50 text-vista-light text-sm rounded-md">
+              <SelectTrigger className="w-full bg-vista-dark/30 backdrop-blur-sm border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 h-9 px-3 font-normal text-sm shadow-lg">
                 <SelectValue placeholder={loadingTrainings ? "Загрузка..." : "Выберите тренировку"} />
               </SelectTrigger>
-              <SelectContent className="bg-vista-dark border-vista-secondary">
+              <SelectContent className="bg-vista-dark border border-vista-light/20 text-vista-light shadow-2xl rounded-lg max-h-72 overflow-y-auto custom-scrollbar">
                 {trainings.map((training) => (
-                  <SelectItem key={training.id} value={training.id} className="text-vista-light hover:bg-vista-secondary">
+                  <SelectItem key={training.id} value={training.id} className="text-vista-light hover:bg-vista-primary/20 hover:text-vista-primary data-[state=checked]:bg-vista-primary/30 data-[state=checked]:text-vista-primary data-[highlighted]:bg-vista-primary/20 data-[highlighted]:text-vista-primary">
                     <div className="flex items-center gap-2">
                       {getTrainingTypeIcon(training.type)}
-                      <span>{getTrainingTypeText(training.type)}</span>
-                      <span className="text-vista-light/70">
-                        {formatDate(training.date)} в {formatTime(training.time)}
-                      </span>
-                      {training.title && (
-                        <span className="text-vista-light/50">- {training.title}</span>
-                      )}
+                      <span>{getTrainingTypeText(training.type)} {formatDate(training.date)} | {formatTime(training.time)}</span>
                     </div>
                   </SelectItem>
                 ))}
@@ -321,19 +485,20 @@ export function RPESurveyAnalysis() {
           </div>
           
           {/* Кнопка управления длительностью */}
-          <button
-            onClick={() => setShowDurationModal(true)}
-            disabled={!selectedTraining}
-            className={`px-3 py-2 rounded-md transition-colors flex items-center gap-2 h-10 ${
-              selectedTraining 
-                ? 'bg-vista-secondary text-vista-light hover:bg-vista-secondary/80 cursor-pointer' 
-                : 'bg-vista-secondary/10 text-vista-light/30 cursor-not-allowed'
-            }`}
-                          title={selectedTraining ? "Управление длительностью события" : "Сначала выберите тренировку"}
-          >
-            <Clock className="w-4 h-4" />
-            <span className="text-sm">Длительность</span>
-          </button>
+          <div className="w-[200px]">
+            <Button
+              variant="outline"
+              onClick={() => setShowDurationModal(true)}
+              disabled={!selectedTraining}
+              className={`w-full h-9 bg-transparent border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15 px-3 font-normal text-sm ${
+                !selectedTraining ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              title={selectedTraining ? "Управление длительностью события" : "Сначала выберите тренировку"}
+            >
+              <Clock className="mr-1.5 h-4 w-4" />
+              Длительность
+            </Button>
+          </div>
         </div>
           {loading ? (
             <div className="flex items-center justify-center py-8">
@@ -347,16 +512,19 @@ export function RPESurveyAnalysis() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm text-vista-light border border-vista-secondary/30 rounded-md">
+              <table className="w-full text-sm text-vista-light border border-vista-secondary/30 rounded-md table-fixed" style={{ tableLayout: 'fixed' }}>
                 <thead>
                   <tr className="bg-vista-dark/70 text-xs">
-                    <th className="px-3 py-2 border-b border-vista-secondary/30 text-left whitespace-nowrap text-xs font-normal tracking-tight">Игрок</th>
-                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">Оценка RPE</th>
-                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">Длительность (мин)</th>
-                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">Нагрузка (RPE×Время)</th>
-                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">Статус</th>
-                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">Время</th>
-                    <th className="px-2 py-2 border-b border-vista-secondary/30 text-center whitespace-nowrap text-xs font-normal tracking-tight">Действия</th>
+                    <th className={`px-2 py-2 border-b border-vista-secondary/30 border-r border-vista-secondary/30 text-xs font-normal tracking-tight ${playerColW}`} style={{ width: '140px' }}>Игрок</th>
+                    <th className={`px-2 py-2 border-b border-vista-secondary/30 border-r border-vista-secondary/30 text-xs font-normal tracking-tight ${colW}`} style={{ width: '90px' }}>RPE (сессия)</th>
+                    <th className={`px-2 py-2 border-b border-vista-secondary/30 border-r border-vista-secondary/30 text-xs font-normal tracking-tight ${colW}`} style={{ width: '90px' }}>Длительность (мин)</th>
+                    <th className={`px-2 py-2 border-b border-vista-secondary/30 border-r border-vista-secondary/30 text-xs font-normal tracking-tight ${colW}`} style={{ width: '90px' }}>sRPE (AU)</th>
+                    <th className={`px-2 py-2 border-b border-vista-secondary/30 border-r border-vista-secondary/30 text-xs font-normal tracking-tight ${colW}`} style={{ width: '90px' }}>Дневная нагрузка (AU)</th>
+                    <th className={`px-2 py-2 border-b border-vista-secondary/30 border-r border-vista-secondary/30 text-xs font-normal tracking-tight ${colW}`} style={{ width: '90px' }}>Weekly Load 7д (AU)</th>
+                    <th className={`px-2 py-2 border-b border-vista-secondary/30 border-r border-vista-secondary/30 text-xs font-normal tracking-tight ${colW}`} style={{ width: '90px' }}>Monotony 7д</th>
+                    <th className={`px-2 py-2 border-b border-vista-secondary/30 border-r border-vista-secondary/30 text-xs font-normal tracking-tight ${colW}`} style={{ width: '90px' }}>Strain 7д (AU)</th>
+                    <th className={`px-2 py-2 border-b border-vista-secondary/30 border-r border-vista-secondary/30 text-xs font-normal tracking-tight ${colW}`} style={{ width: '90px' }}>ACWR</th>
+                    <th className={`px-2 py-2 border-b border-vista-secondary/30 text-xs font-normal tracking-tight ${colW}`} style={{ width: '90px' }}>Действия</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -370,127 +538,104 @@ export function RPESurveyAnalysis() {
                     .map((player) => {
                     const response = responseByPlayerId[player.id];
                     const workload = response ? getWorkload(response.rpeScore, response.durationMinutes) : null;
+                    const dayKey = trainingDay ? getDayKey(trainingDay) : null;
+                    const daily = (dayKey && playerDailyLoadMap[player.id]) ? (playerDailyLoadMap[player.id][dayKey] || 0) : 0;
+                    const wl7 = trainingDay ? weeklyLoad7d(player.id, trainingDay) : 0;
+                    const mono7 = trainingDay ? monotony7d(player.id, trainingDay) : null;
+                    const strain = trainingDay ? strain7d(player.id, trainingDay) : null;
+                    const ratio = trainingDay ? acwr(player.id, trainingDay) : null;
                     
                     return (
                       <tr key={player.id} className="border-b border-vista-secondary/20 hover:bg-vista-secondary/10 min-h-[36px]">
-                        <td className="px-3 py-0.5 whitespace-nowrap text-xs text-vista-light min-h-[36px] flex items-center">
+                        <td className={`px-2 py-0.5 border-r border-vista-secondary/30 text-xs text-vista-light min-h-[36px] ${playerColW}`} style={{ width: '140px' }}>
                           {player.lastName} {player.firstName}
                         </td>
                         
-                        {/* RPE Оценка - большая цветная плитка */}
-                        <td className="px-2 py-0.5 text-center align-middle">
+                        {/* RPE */}
+                        <td className={`px-2 py-0.5 border-r border-vista-secondary/30 align-middle ${colW}`} style={{ width: '90px' }}>
                           {response?.completedAt ? (
-                            <span className={`rounded-lg border-0 text-sm font-bold w-14 h-6 flex items-center justify-center transition-all duration-200 ${getRPEBadgeColor(response.rpeScore)} text-white mx-auto`}>
-                              {response.rpeScore}
-                            </span>
+                            <MetricPill value={response.rpeScore} variant={variantRPE(response.rpeScore)} />
                           ) : (
                             <span className="text-vista-light/50 text-sm">-</span>
                           )}
                         </td>
                         
                         {/* Длительность */}
-                        <td className="px-2 py-0.5 text-center align-middle">
+                        <td className={`px-2 py-0.5 border-r border-vista-secondary/30 align-middle ${colW}`} style={{ width: '90px' }}>
                           {response?.durationMinutes ? (
-                            <span className="rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white text-sm font-bold w-14 h-6 flex items-center justify-center mx-auto">
-                              {response.durationMinutes}
-                            </span>
+                            <MetricPill value={response.durationMinutes} variant="neutral" />
                           ) : (
                             <span className="text-vista-light/50 text-sm">-</span>
                           )}
                         </td>
                         
-                        {/* Нагрузка */}
-                        <td className="px-2 py-0.5 text-center align-middle">
+                        {/* sRPE */}
+                        <td className={`px-2 py-0.5 border-r border-vista-secondary/30 align-middle ${colW}`} style={{ width: '90px' }}>
                           {workload ? (
-                            <span className={`rounded-lg border-0 text-sm font-bold w-14 h-6 flex items-center justify-center transition-all duration-200 ${getWorkloadColor(workload)} text-white mx-auto`}>
-                              {workload}
-                            </span>
+                            <MetricPill value={Math.round(workload)} variant={variantDayLoad(Math.round(workload))} />
                           ) : (
                             <span className="text-vista-light/50 text-sm">-</span>
                           )}
                         </td>
-                        
-                        {/* Статус рассылки */}
-                        <td className="px-2 py-0.5 text-center align-middle text-xs">
-                          {response?.completedAt ? (
-                            <div className="flex justify-center">
-                              <div className="w-5 h-5 rounded-full border border-emerald-400 flex items-center justify-center">
-                                <svg className="w-3 h-3 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                            </div>
+                        {/* Дневная нагрузка */}
+                        <td className={`px-2 py-0.5 border-r border-vista-secondary/30 align-middle ${colW}`} style={{ width: '90px' }}>
+                          {trainingDay ? (
+                            <MetricPill value={Math.round(daily)} variant={variantDayLoad(Math.round(daily))} width="min-w-[56px]" />
                           ) : (
-                            <div className="flex justify-center">
-                              <div className="w-5 h-5 rounded-full border border-red-400 flex items-center justify-center">
-                                <svg className="w-3 h-3 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                            </div>
+                            <span className="text-vista-light/50 text-sm">-</span>
                           )}
                         </td>
-                        
-                        {/* Время */}
-                        <td className="px-2 py-0.5 text-center align-middle text-xs text-vista-light/70">
-                          {response?.completedAt ? 
-                            format(new Date(response.completedAt), 'HH:mm', { locale: ru }) : 
+
+                        {/* Weekly 7d */}
+                        <td className={`px-2 py-0.5 border-r border-vista-secondary/30 align-middle ${colW}`} style={{ width: '90px' }}>
+                          {trainingDay ? (
+                            <MetricPill value={Math.round(wl7)} variant={variantWeekly(Math.round(wl7))} width="min-w-[64px]" />
+                          ) : (
                             <span className="text-vista-light/50 text-sm">-</span>
-                          }
+                          )}
                         </td>
-                        
-                        {/* Действия */}
-                        <td className="px-2 py-0.5 text-center align-middle">
+
+                        {/* Monotony 7d */}
+                        <td className={`px-2 py-0.5 border-r border-vista-secondary/30 align-middle ${colW}`} style={{ width: '90px' }}>
+                          {mono7 === null ? (
+                            <span className="text-vista-light/50 text-sm">N/A</span>
+                          ) : (
+                            <MetricPill value={mono7.toFixed(2)} variant={variantMonotony(mono7)} />
+                          )}
+                        </td>
+
+                        {/* Strain 7d */}
+                        <td className={`px-2 py-0.5 border-r border-vista-secondary/30 align-middle ${colW}`} style={{ width: '90px' }}>
+                          {strain === null ? (
+                            <span className="text-vista-light/50 text-sm">N/A</span>
+                          ) : (
+                            <MetricPill value={Math.round(strain)} variant={variantStrain(Math.round(strain))} width="min-w-[64px]" />
+                          )}
+                        </td>
+
+                        {/* ACWR */}
+                        <td className={`px-2 py-0.5 border-r border-vista-secondary/30 align-middle ${colW}`} style={{ width: '90px' }}>
+                          {ratio === null ? (
+                            <span className="text-vista-light/50 text-sm">N/A</span>
+                          ) : (
+                            <MetricPill value={ratio.toFixed(2)} variant={variantACWR(ratio)} />
+                          )}
+                        </td>
+
+                        {/* Actions: resend */}
+                        <td className="px-2 py-0.5 align-middle" style={{ width: '90px' }}>
                           <button
-                            className="px-3 py-0.5 rounded bg-vista-secondary/10 text-vista-light/40 hover:bg-vista-accent hover:text-white disabled:opacity-60 border border-vista-secondary/20 text-xs transition-colors opacity-70 hover:opacity-100"
-                            disabled={!player.telegramId || resending === player.id}
+                            className="px-3 py-1 rounded-md border border-vista-secondary/30 bg-vista-dark/30 text-vista-light/80 hover:text-white hover:bg-vista-primary/20 hover:border-vista-primary/40 transition-colors text-xs disabled:opacity-50"
+                            disabled={!player.telegramId || resending === player.id || !selectedTraining}
+                            title={!player.telegramId ? 'Нет Telegram ID' : 'Отправить повторно'}
                             onClick={() => handleResend(player.id)}
                           >
-                            {resending === player.id ? 'Отправка...' : 'Отправить повторно'}
+                            {resending === player.id ? 'Отправка…' : 'Отправить'}
                           </button>
                         </td>
                       </tr>
                     );
                   })}
-                  
-                  {/* Средние значения */}
-                  <tr className="bg-vista-dark/80 font-bold">
-                    <td className="px-3 py-2 text-center text-xs">Среднее</td>
-                    
-                    {/* Среднее RPE */}
-                    <td className="px-2 py-2 text-center align-middle text-xs">
-                      {(() => {
-                        const completedResponses = responses.filter(r => r.completedAt);
-                        if (completedResponses.length === 0) return '';
-                        const avgRPE = completedResponses.reduce((sum, r) => sum + r.rpeScore, 0) / completedResponses.length;
-                        return avgRPE.toFixed(2);
-                      })()}
-                    </td>
-                    
-                    {/* Средняя длительность */}
-                    <td className="px-2 py-0.5 text-center align-middle text-xs">
-                      {(() => {
-                        const responsesWithDuration = responses.filter(r => r.completedAt && r.durationMinutes);
-                        if (responsesWithDuration.length === 0) return '';
-                        const avgDuration = responsesWithDuration.reduce((sum, r) => sum + (r.durationMinutes || 0), 0) / responsesWithDuration.length;
-                        return avgDuration.toFixed(2);
-                      })()}
-                    </td>
-                    
-                    {/* Средняя нагрузка */}
-                    <td className="px-2 py-2 text-center align-middle text-xs">
-                      {(() => {
-                        const responsesWithWorkload = responses.filter(r => r.completedAt && r.durationMinutes);
-                        if (responsesWithWorkload.length === 0) return '';
-                        const avgWorkload = responsesWithWorkload.reduce((sum, r) => sum + (r.rpeScore * (r.durationMinutes || 0)), 0) / responsesWithWorkload.length;
-                        return avgWorkload.toFixed(2);
-                      })()}
-                    </td>
-                    
-                    <td className="px-2 py-2"></td>
-                    <td className="px-2 py-2"></td>
-                    <td className="px-2 py-2"></td>
-                  </tr>
                 </tbody>
               </table>
             </div>

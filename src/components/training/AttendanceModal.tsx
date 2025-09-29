@@ -5,9 +5,7 @@ import { XMarkIcon, CheckIcon, UserIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useTranslation } from 'react-i18next';
-
-// Типы статусов посещаемости
-type AttendanceStatus = 'TRAINED' | 'REHAB' | 'SICK' | 'EDUCATION' | 'OTHER' | 'NOT_SET';
+import { AttendanceStatus, ATTENDANCE_STATUS_CONFIG } from '@/lib/constants/statuses';
 
 interface AttendanceModalProps {
   trainingId: string;
@@ -27,22 +25,20 @@ export default function AttendanceModal({ trainingId, isOpen, onClose }: Attenda
   // Маппинг статусов на читаемые названия (мемоизированный, зависит от языка)
   const statusLabels = useMemo(() => ({
     TRAINED: t('attendanceModal.status_trained'),
-    REHAB: t('attendanceModal.status_rehab'),
+    REHABILITATION: t('attendanceModal.status_rehabilitation'),
     SICK: t('attendanceModal.status_sick'),
     EDUCATION: t('attendanceModal.status_education'),
+    INJURY: t('attendanceModal.status_injury'),
+    NATIONAL_TEAM: t('attendanceModal.status_national_team'),
+    OTHER_TEAM: t('attendanceModal.status_other_team'),
     OTHER: t('attendanceModal.status_other'),
     NOT_SET: 'Не указан'
   }), [t]);
 
   // Маппинг статусов на цвета
-  const statusColors: Record<AttendanceStatus, string> = {
-    TRAINED: 'bg-green-600 hover:bg-green-700',
-    REHAB: 'bg-yellow-600 hover:bg-yellow-700',
-    SICK: 'bg-red-600 hover:bg-red-700',
-    EDUCATION: 'bg-blue-600 hover:bg-blue-700',
-    OTHER: 'bg-gray-600 hover:bg-gray-700',
-    NOT_SET: 'bg-slate-500 hover:bg-slate-600'
-  };
+  const statusColors: Record<AttendanceStatus, string> = Object.fromEntries(
+    Object.entries(ATTENDANCE_STATUS_CONFIG).map(([key, config]) => [key, config.buttonColor])
+  ) as Record<AttendanceStatus, string>;
 
   // Интерфейс для данных игрока
   interface PlayerAttendance {

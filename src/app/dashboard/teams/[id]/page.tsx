@@ -43,7 +43,7 @@ interface Player {
   position?: string;
   imageUrl?: string;
   teamId: string;
-  status?: 'ready' | 'rehabilitation' | 'sick' | 'study' | 'other' | 'injury' | 'national_team' | 'other_team';
+  status?: 'ready' | 'rehabilitation' | 'sick' | 'education' | 'other' | 'injury' | 'national_team' | 'other_team';
 }
 
 interface Coach {
@@ -636,11 +636,11 @@ export default function TeamPage() {
                         
                         <div 
                           className="flex items-center rounded-md bg-purple-500/20 px-2 py-1 cursor-pointer hover:bg-purple-500/30"
-                          onClick={() => handleOpenStatusPlayersDialog('study', t('teamPage.study'))}
+                          onClick={() => handleOpenStatusPlayersDialog('education', t('teamPage.education'))}
                         >
                           <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
                           <span className="text-purple-300 text-xs whitespace-nowrap">
-                            {t('teamPage.study')}: {(players || []).filter(p => p && p.status === 'study').length}
+                            {t('teamPage.education')}: {(players || []).filter(p => p && p.status === 'education').length}
                           </span>
                         </div>
                         
@@ -742,7 +742,7 @@ export default function TeamPage() {
                                   className={`text-[10px] px-1.5 py-0.5 rounded-sm cursor-pointer truncate max-w-[55%] text-center ml-auto ${
                                     player.status === 'rehabilitation' ? 'bg-blue-500/20 text-blue-300' :
                                     player.status === 'sick' ? 'bg-yellow-500/20 text-yellow-300' :
-                                    player.status === 'study' ? 'bg-purple-500/20 text-purple-300' :
+                                    player.status === 'education' ? 'bg-purple-500/20 text-purple-300' :
                                     player.status === 'injury' ? 'bg-red-500/20 text-red-300' :
                                     player.status === 'national_team' ? 'bg-indigo-500/20 text-indigo-300' :
                                     player.status === 'other_team' ? 'bg-orange-500/20 text-orange-300' :
@@ -757,7 +757,7 @@ export default function TeamPage() {
                                 >
                                   {player.status === 'rehabilitation' ? t('teamPage.rehabilitation') :
                                     player.status === 'sick' ? t('teamPage.sick') :
-                                    player.status === 'study' ? t('teamPage.study') :
+                                    player.status === 'education' ? t('teamPage.education') :
                                     player.status === 'injury' ? t('teamPage.injury') :
                                     player.status === 'national_team' ? t('teamPage.national_team') :
                                     player.status === 'other_team' ? t('teamPage.other_team') :

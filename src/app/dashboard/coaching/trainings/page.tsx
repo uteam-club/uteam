@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -79,6 +79,10 @@ export default function TrainingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingTeams, setIsLoadingTeams] = useState(true);
   
+  // Refs для предотвращения дублирования запросов
+  const trainingsLoadingRef = useRef(false);
+  const teamsLoadingRef = useRef(false);
+  
   // Состояние для модального окна создания тренировки
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   
@@ -103,7 +107,10 @@ export default function TrainingsPage() {
   // Получение данных команд
   useEffect(() => {
     async function fetchTeams() {
+      if (teamsLoadingRef.current) return; // Предотвращаем дублирование запросов
+      
       try {
+        teamsLoadingRef.current = true;
         setIsLoadingTeams(true);
         const response = await fetch('/api/teams', {
           credentials: 'include',
@@ -126,6 +133,7 @@ export default function TrainingsPage() {
         console.error('Ошибка при загрузке команд:', error);
       } finally {
         setIsLoadingTeams(false);
+        teamsLoadingRef.current = false;
       }
     }
     
@@ -137,7 +145,10 @@ export default function TrainingsPage() {
   // Получение данных тренировок
   useEffect(() => {
     async function fetchTrainings() {
+      if (trainingsLoadingRef.current) return; // Предотвращаем дублирование запросов
+      
       try {
+        trainingsLoadingRef.current = true;
         setIsLoading(true);
         const response = await fetch('/api/trainings');
         if (!response.ok) throw new Error('Не удалось загрузить тренировки');
@@ -192,6 +203,7 @@ export default function TrainingsPage() {
         setTrainings([]);
       } finally {
         setIsLoading(false);
+        trainingsLoadingRef.current = false;
       }
     }
     
