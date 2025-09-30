@@ -655,6 +655,7 @@
     "player_documents": "Документы игроков",
     "total_players": "Всего: {{count}} игроков",
     "player": "Игрок",
+    "team": "Команда",
     "passport": "Паспорт",
     "birth_certificate": "Свидетельство о рождении",
     "medical_insurance": "Медицинская страховка",

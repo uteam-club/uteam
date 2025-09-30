@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GpsReportVisualization from './GpsReportVisualization';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
 import { gpsLogger } from '@/lib/logger';
 
 interface Team {
@@ -41,6 +43,7 @@ export function GpsAnalysisTab() {
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [profiles, setProfiles] = useState<GpsProfile[]>([]);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   // Загрузка данных
   useEffect(() => {
@@ -196,12 +199,53 @@ export function GpsAnalysisTab() {
 
       {/* Визуализация отчета */}
       {selectedTeam && selectedEvent && selectedProfile && (
-        <GpsReportVisualization
-          teamId={selectedTeam}
-          eventId={selectedEvent}
-          eventType={eventType as 'training' | 'match'}
-          profileId={selectedProfile}
-        />
+        <>
+          <div className="flex items-center justify-end">
+            <Button
+              variant="outline"
+              className="h-9 px-3 text-sm bg-transparent border-vista-primary/40 text-vista-primary hover:bg-vista-primary/15"
+              onClick={async () => {
+                try {
+                  // Получаем отчет по связке team+event
+                  const reportsRes = await fetch(`/api/gps/reports?teamId=${selectedTeam}&eventId=${selectedEvent}&eventType=${eventType}`);
+                  if (!reportsRes.ok) {
+                    toast({ title: 'Ошибка', description: 'Не удалось найти отчет для экспорта', variant: 'destructive' });
+                    return;
+                  }
+                  const reports = await reportsRes.json();
+                  const report = reports?.reports?.[0];
+                  if (!report?.id) {
+                    toast({ title: 'Нет данных', description: 'Для выбранного события нет отчета', variant: 'destructive' });
+                    return;
+                  }
+                  const res = await fetch(`/api/gps/reports/${report.id}/share`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ profileId: selectedProfile })
+                  });
+                  if (!res.ok) {
+                    toast({ title: 'Ошибка', description: 'Не удалось создать публичную ссылку', variant: 'destructive' });
+                    return;
+                  }
+                  const data = await res.json();
+                  const url = data?.url || `${window.location.origin}/gps/share/${data?.shareId}`;
+                  await navigator.clipboard.writeText(url);
+                  toast({ title: 'Ссылка скопирована', description: 'Публичная ссылка доступна 30 дней' });
+                } catch (e) {
+                  toast({ title: 'Ошибка', description: 'Что-то пошло не так', variant: 'destructive' });
+                }
+              }}
+            >
+              Экспортировать (публичная ссылка)
+            </Button>
+          </div>
+          <GpsReportVisualization
+            teamId={selectedTeam}
+            eventId={selectedEvent}
+            eventType={eventType as 'training' | 'match'}
+            profileId={selectedProfile}
+          />
+        </>
       )}
     </div>
   );

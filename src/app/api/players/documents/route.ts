@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
       passportData: player.passportData,
       insuranceNumber: player.insuranceNumber,
       visaExpiryDate: player.visaExpiryDate,
+      teamName: team.name,
     })
       .from(player)
       .leftJoin(team, eq(player.teamId, team.id))
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
         },
         team: {
           id: p.teamId,
-          name: '', // имя команды можно подтянуть отдельным запросом, если нужно
+          name: p.teamName || 'Не указана',
         },
       };
     });

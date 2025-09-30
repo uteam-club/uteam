@@ -652,6 +652,7 @@
     "player_documents": "Player documents",
     "total_players": "Total: {{count}} players",
     "player": "Player",
+    "team": "Team",
     "passport": "Passport",
     "birth_certificate": "Birth certificate",
     "medical_insurance": "Medical insurance",

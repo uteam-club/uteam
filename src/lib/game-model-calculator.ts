@@ -53,7 +53,7 @@ export async function calculatePlayerGameModel(
     
     console.log(`👤 Игрок найден: ${playerData.firstName} ${playerData.lastName}, команда: ${playerData.teamId}`);
 
-    // 2. Получаем GPS отчеты для матчей, где играл этот игрок
+    // 2. Получаем GPS отчеты для матчей клуба (фильтрация по игроку будет позже)
     const gpsReports = await db
       .select({
         id: gpsReport.id,
@@ -85,7 +85,7 @@ export async function calculatePlayerGameModel(
     }> = [];
 
     for (const report of gpsReports) {
-      // Получаем данные игрока за матч
+      // Получаем ВСЕ данные игрока за матч (не фильтруем по averageable, чтобы не потерять duration)
       const playerData = await db
         .select({
           canonicalMetric: gpsReportData.canonicalMetric,
@@ -95,8 +95,7 @@ export async function calculatePlayerGameModel(
         .from(gpsReportData)
         .where(and(
           eq(gpsReportData.gpsReportId, report.id),
-          eq(gpsReportData.playerId, playerId),
-          inArray(gpsReportData.canonicalMetric, averageableMetricCodes)
+          eq(gpsReportData.playerId, playerId)
         ));
 
       if (playerData.length === 0) continue;
@@ -119,6 +118,8 @@ export async function calculatePlayerGameModel(
       
       for (const data of playerData) {
         if (data.canonicalMetric === 'duration') continue;
+        // учитываем только усредняемые метрики
+        if (!averageableMetricCodes.includes(data.canonicalMetric)) continue;
         
         const value = parseFloat(data.value);
         if (isNaN(value) || value <= 0) continue;

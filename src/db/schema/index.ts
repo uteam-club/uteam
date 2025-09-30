@@ -37,5 +37,6 @@ export * from './gpsReport.ts';
 export * from './gpsReportData.ts';
 export * from './gpsColumnMapping.ts';
 export * from './gpsPermissions.ts';
+export * from './gpsReportShare.ts';
 // Player Game Model schemas
 export * from './playerGameModel.ts';

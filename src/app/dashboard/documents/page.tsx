@@ -391,6 +391,7 @@ export default function DocumentsPage() {
               <TableHeader>
                 <TableRow className="bg-vista-dark/70 hover:bg-vista-dark/70 border-b border-vista-secondary/50 shadow-md">
                   <TableHead className="text-vista-light/80 font-medium w-[250px] min-w-[250px] sticky left-0 bg-vista-dark/70 shadow-sm">{t('documentsPage.player')}</TableHead>
+                  <TableHead className="text-vista-light/80 font-medium w-[150px] min-w-[150px] text-center">{t('documentsPage.team')}</TableHead>
                   <TableHead className="text-vista-light/80 font-medium w-[180px] min-w-[180px] text-center">{t('documentsPage.passport')}</TableHead>
                   <TableHead className="text-vista-light/80 font-medium w-[180px] min-w-[180px] text-center">{t('documentsPage.birth_certificate')}</TableHead>
                   <TableHead className="text-vista-light/80 font-medium w-[180px] min-w-[180px] text-center">{t('documentsPage.medical_insurance')}</TableHead>
@@ -400,7 +401,7 @@ export default function DocumentsPage() {
               <TableBody>
                 {players.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4 text-vista-light/70">
+                    <TableCell colSpan={6} className="text-center py-4 text-vista-light/70">
                       {t('documentsPage.not_found')}
                     </TableCell>
                   </TableRow>
@@ -427,10 +428,12 @@ export default function DocumentsPage() {
                             <div className="text-vista-light font-normal text-sm">
                               {player.lastName} {player.firstName}{player.middleName ? ` ${player.middleName}` : ''}
                             </div>
-                            <div className="text-xs text-vista-light/50">
-                              {player.team.name}
-                            </div>
                           </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-vista-light/80 w-[150px] min-w-[150px] text-center">
+                        <div className="text-sm font-medium">
+                          {player.team.name}
                         </div>
                       </TableCell>
                       <TableCell className="text-vista-light/80 w-[180px] min-w-[180px] text-center">

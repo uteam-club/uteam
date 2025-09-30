@@ -39,27 +39,31 @@ interface Player {
 
 interface PlayerGameModelsProps {
   reportId: string;
-  profileId: string;
+  profileId?: string;
+  shareId?: string; // public mode
   isLoading?: boolean;
   timeUnit?: string; // Единица времени из профиля визуализации
 }
 
-export function PlayerGameModels({ reportId, profileId, isLoading = false, timeUnit = 'minutes' }: PlayerGameModelsProps) {
+export function PlayerGameModels({ reportId, profileId, shareId, isLoading = false, timeUnit = 'minutes' }: PlayerGameModelsProps) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(false);
 
 
 
   useEffect(() => {
-    if (reportId && profileId) {
-      loadPlayerModels();
-    }
-  }, [reportId, profileId]);
+    if (!reportId) return;
+    // в public режиме profileId обязателен, но тип разрешен как optional для совместимости типов
+    loadPlayerModels();
+  }, [reportId, profileId, shareId]);
 
   const loadPlayerModels = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/gps/reports/${reportId}/player-models?profileId=${profileId}`);
+      const currentProfileId = profileId as string;
+      const response = shareId
+        ? await fetch(`/api/gps/public/reports/${shareId}/player-models?profileId=${currentProfileId}`, { cache: 'no-store' })
+        : await fetch(`/api/gps/reports/${reportId}/player-models?profileId=${currentProfileId}`);
       if (response.ok) {
         const data = await response.json();
         console.log('🔍 === ДАННЫЕ ИГРОКОВ ===');
@@ -145,7 +149,7 @@ export function PlayerGameModels({ reportId, profileId, isLoading = false, timeU
         <Card key={player.id} className="bg-vista-dark/30 border-vista-secondary/30 hover:shadow-md">
           <CardHeader className="pb-4">
             <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-full overflow-hidden relative">
+              <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full overflow-hidden relative flex-shrink-0">
                 {player.imageUrl ? (
                   <img 
                     src={player.imageUrl}
@@ -172,7 +176,7 @@ export function PlayerGameModels({ reportId, profileId, isLoading = false, timeU
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-lg font-normal text-vista-light">
+                <CardTitle className="text-base sm:text-lg font-normal text-vista-light">
                   {player.firstName} {player.lastName}
                 </CardTitle>
                 <div className="flex items-center gap-3 mt-2">

@@ -51,7 +51,7 @@ export function GpsMetricSparkline({
 
   return (
     <div 
-      className="flex items-center justify-center rounded overflow-hidden"
+      className="flex items-center justify-center rounded overflow-hidden min-w-[56px] sm:min-w-[70px]"
       style={{ width, height }}
     >
       <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>

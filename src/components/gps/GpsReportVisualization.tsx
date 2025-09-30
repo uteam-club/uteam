@@ -55,13 +55,14 @@ interface GpsReportData {
 }
 
 interface GpsReportVisualizationProps {
-  teamId: string;
-  eventId: string;
-  eventType: 'training' | 'match';
-  profileId: string;
+  teamId?: string;
+  eventId?: string;
+  eventType?: 'training' | 'match';
+  profileId?: string;
+  shareId?: string; // public mode
 }
 
-export function GpsReportVisualization({ teamId, eventId, eventType, profileId }: GpsReportVisualizationProps) {
+export function GpsReportVisualization({ teamId, eventId, eventType, profileId, shareId }: GpsReportVisualizationProps) {
   // Состояние для гармошки блоков
   const [isTeamAveragesOpen, setIsTeamAveragesOpen] = useState(false);
   const [isPlayerModelsOpen, setIsPlayerModelsOpen] = useState(false);
@@ -96,10 +97,12 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
   const [teamAveragesLoading, setTeamAveragesLoading] = useState(false);
 
   useEffect(() => {
-    if (teamId && eventId) {
+    if (shareId) {
+      loadPublicData();
+    } else if (teamId && eventId && profileId && eventType) {
       loadReportData();
     }
-  }, [teamId, eventId, profileId]);
+  }, [teamId, eventId, profileId, eventType, shareId]);
 
   const loadReportData = async () => {
     try {
@@ -164,14 +167,41 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
     }
   };
 
+  const loadPublicData = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/gps/public/reports/${shareId}`, { cache: 'no-store' });
+      if (!res.ok) {
+        return;
+      }
+      const data = await res.json();
+      if (data?.profile) setProfile(data.profile);
+      if (data?.report) setReportInfo(data.report);
+      if (data?.event) setEventInfo(data.event);
+      if (Array.isArray(data?.data)) setReportData(data.data);
+      // historical and averages will be loaded by existing functions if needed using internal private endpoints; keep minimal for now
+      if (data?.data) {
+        await loadHistoricalData(data.data);
+        if (data?.report?.id && data?.profile?.id) {
+          await loadTeamAverages(data.report.id);
+        }
+      }
+    } catch (e) {
+      // noop: handled by caller page
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loadTeamAverages = async (reportId: string) => {
     try {
       setTeamAveragesLoading(true);
-      
-      const response = await fetch(`/api/gps/reports/${reportId}/team-averages?profileId=${profileId}`);
+      const response = shareId
+        ? await fetch(`/api/gps/public/reports/${shareId}`, { cache: 'no-store' })
+        : await fetch(`/api/gps/reports/${reportId}/team-averages?profileId=${profileId}`);
       if (response.ok) {
         const data = await response.json();
-        setTeamAverages(data);
+        setTeamAverages(shareId ? (data.teamAverages || null) : data);
       } else {
         gpsLogger.error('Component', 'Failed to load team averages:', response.status, response.statusText);
       }
@@ -186,6 +216,20 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
     if (!profile) return;
 
     const historicalDataMap: Record<string, Record<string, number[]>> = {};
+
+    // In public mode, use precomputed historicalData payload
+    if (shareId) {
+      try {
+        const res = await fetch(`/api/gps/public/reports/${shareId}`, { cache: 'no-store' });
+        if (res.ok) {
+          const payload = await res.json();
+          if (payload?.historicalData) {
+            setHistoricalData(payload.historicalData);
+            return;
+          }
+        }
+      } catch {}
+    }
 
     // Загружаем исторические данные для каждого игрока и каждой метрики
     for (const player of players) {
@@ -461,7 +505,7 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
       {/* Таблица с данными */}
       <Card className="bg-vista-dark/50 border-vista-secondary/30 shadow-none hover:shadow-none">
         <CardContent className="p-0">
-          <div className="w-full overflow-hidden">
+          <div className="w-full overflow-x-auto overflow-y-hidden">
             <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow className="border-b border-vista-secondary/20 hover:bg-transparent">
@@ -646,8 +690,9 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId }
               <PlayerGameModels
                 reportId={reportInfo.id}
                 profileId={profileId}
+                shareId={shareId}
                 isLoading={loading}
-                timeUnit="minutes" // Используем формат минут как в таблице
+                timeUnit="minutes"
               />
             </div>
           )}
