@@ -272,11 +272,11 @@ export function PlayerGameModels({ reportId, profileId, shareId, isLoading = fal
                         {/* Текущее и модельное значение */}
                         <div className="text-center mb-1">
                           <div className="flex items-center justify-center gap-2">
-                            <div className={`text-sm sm:text-base font-bold ${isPositive ? 'text-green-400' : isNegative ? 'text-red-400' : 'text-vista-light'}`}>
+                            <div className={`text-[13px] sm:text-sm font-bold ${isPositive ? 'text-green-400' : isNegative ? 'text-red-400' : 'text-vista-light'}`}>
                               {metric.currentValue.toFixed(1)}
                             </div>
                             <div className="w-px h-4 bg-vista-light/20"></div>
-                            <div className="text-sm sm:text-base font-bold text-vista-light/60">
+                            <div className="text-[13px] sm:text-sm font-bold text-vista-light/60">
                               {metric.modelValue.toFixed(1)}
                             </div>
                           </div>
