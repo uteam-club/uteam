@@ -522,7 +522,14 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId, 
       }
       <Card className="bg-vista-dark/50 border-vista-secondary/30 shadow-none hover:shadow-none">
         <CardContent className="p-0">
-          <div className="w-full overflow-x-auto overflow-y-hidden">
+          <div className="w-full overflow-x-auto overflow-y-hidden relative">
+            {/* Вертикальная полоска справа от колонки с именами на мобильных устройствах */}
+            {isNarrow && (
+              <div 
+                className="absolute top-0 bottom-0 w-px bg-vista-secondary/30 z-40 pointer-events-none"
+                style={{ left: `${getPlayerNameColumnWidth()}px` }}
+              />
+            )}
             <Table className="table-fixed" style={tableMinWidth ? { minWidth: tableMinWidth } : undefined}>
               <TableHeader>
                 <TableRow className="border-b border-vista-secondary/20 hover:bg-transparent">
@@ -531,7 +538,7 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId, 
                     return (
                         <TableHead 
                           key={column.id} 
-                          className={`text-center text-vista-light/70 font-normal text-xs py-2 sm:py-3 px-2 cursor-pointer transition-colors hover:!bg-transparent ${column.canonicalMetricCode === 'athlete_name' ? 'sticky left-0 md:static z-30 bg-vista-dark border-r border-vista-secondary/30' : ''}`}
+                          className={`text-center text-vista-light/70 font-normal text-xs py-2 sm:py-3 px-2 cursor-pointer transition-colors hover:!bg-transparent ${column.canonicalMetricCode === 'athlete_name' ? 'sticky left-0 md:static z-30 bg-vista-dark' : ''}`}
                           style={{
                             width: column.canonicalMetricCode === 'athlete_name' 
                               ? `${playerNameColumnWidth}px` 
@@ -581,7 +588,7 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId, 
                           <TableCell 
                             key={column.id} 
                             className={`py-2 sm:py-3 px-2 ${
-                              column.canonicalMetricCode === 'athlete_name' ? 'text-left sticky left-0 md:static z-20 bg-vista-dark border-r border-vista-secondary/30' : 'text-center'
+                              column.canonicalMetricCode === 'athlete_name' ? 'text-left sticky left-0 md:static z-20 bg-vista-dark' : 'text-center'
                             }`}
                             style={{
                               width: column.canonicalMetricCode === 'athlete_name' 
