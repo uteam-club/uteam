@@ -247,12 +247,14 @@ export function PlayerGameModels({ reportId, profileId, shareId, isLoading = fal
               </div>
             ) : (
               <div className="space-y-2">
-                {/* Показываем метрики для сравнения */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                  {player.comparisonMetrics.slice(0, 10).map((metric) => {
-                    const isPositive = metric.percentageDiff > 0.1;
-                    const isNegative = metric.percentageDiff < -0.1;
-                    const isNeutral = Math.abs(metric.percentageDiff) <= 0.1;
+            {/* Показываем метрики для сравнения */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+              {player.comparisonMetrics.slice(0, 10).map((metric) => {
+                // Нейтральный диапазон отклонений (в процентах). Всё, что в пределах ±5% — не окрашиваем
+                const neutralBandPercent = 5;
+                const isPositive = metric.percentageDiff > neutralBandPercent;
+                const isNegative = metric.percentageDiff < -neutralBandPercent;
+                const isNeutral = Math.abs(metric.percentageDiff) <= neutralBandPercent;
                     
                     return (
                       <div 
