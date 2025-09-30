@@ -138,6 +138,12 @@ export default function AttendanceAnalyticsPage() {
   // Загрузка списка тренировок при выборе команды и диапазона дат
   useEffect(() => {
     if (selectedTeamId && startDate && endDate) {
+      console.log('🔄 Загрузка тренировок для:', {
+        teamId: selectedTeamId,
+        startDate,
+        endDate,
+        quickFilter
+      });
       fetchTrainings();
     }
   }, [selectedTeamId, startDate, endDate]);
@@ -477,15 +483,30 @@ export default function AttendanceAnalyticsPage() {
                     variant="outline"
                     onClick={() => {
                       const now = new Date();
+                      // Получаем понедельник текущей недели
                       const startOfWeek = new Date(now);
-                      startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Понедельник
+                      const dayOfWeek = now.getDay();
+                      const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Если воскресенье, то -6 дней, иначе считаем до понедельника
+                      startOfWeek.setDate(now.getDate() + daysToMonday);
                       startOfWeek.setHours(0, 0, 0, 0);
+                      
+                      // Получаем воскресенье текущей недели
                       const endOfWeek = new Date(startOfWeek);
-                      endOfWeek.setDate(startOfWeek.getDate() + 6); // Воскресенье
+                      endOfWeek.setDate(startOfWeek.getDate() + 6);
                       endOfWeek.setHours(23, 59, 59, 999);
                       
-                      setStartDate(format(startOfWeek, 'yyyy-MM-dd'));
-                      setEndDate(format(endOfWeek, 'yyyy-MM-dd'));
+                      const startDateStr = format(startOfWeek, 'yyyy-MM-dd');
+                      const endDateStr = format(endOfWeek, 'yyyy-MM-dd');
+                      
+                      console.log('📅 Установка текущей недели:', {
+                        startOfWeek: startOfWeek.toISOString(),
+                        endOfWeek: endOfWeek.toISOString(),
+                        startDateStr,
+                        endDateStr
+                      });
+                      
+                      setStartDate(startDateStr);
+                      setEndDate(endDateStr);
                       setQuickFilter('week');
                     }}
                     className={`h-9 px-3 text-sm font-normal bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 ${
@@ -498,12 +519,26 @@ export default function AttendanceAnalyticsPage() {
                     variant="outline"
                     onClick={() => {
                       const now = new Date();
+                      // Первый день текущего месяца
                       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                      startOfMonth.setHours(0, 0, 0, 0);
+                      
+                      // Последний день текущего месяца
                       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
                       endOfMonth.setHours(23, 59, 59, 999);
                       
-                      setStartDate(format(startOfMonth, 'yyyy-MM-dd'));
-                      setEndDate(format(endOfMonth, 'yyyy-MM-dd'));
+                      const startDateStr = format(startOfMonth, 'yyyy-MM-dd');
+                      const endDateStr = format(endOfMonth, 'yyyy-MM-dd');
+                      
+                      console.log('📅 Установка текущего месяца:', {
+                        startOfMonth: startOfMonth.toISOString(),
+                        endOfMonth: endOfMonth.toISOString(),
+                        startDateStr,
+                        endDateStr
+                      });
+                      
+                      setStartDate(startDateStr);
+                      setEndDate(endDateStr);
                       setQuickFilter('month');
                     }}
                     className={`h-9 px-3 text-sm font-normal bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 ${

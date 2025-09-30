@@ -1,11 +1,11 @@
 import { db } from '@/lib/db';
 import { training } from '@/db/schema/training';
 import { trainingCategory } from '@/db/schema/trainingCategory';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, gte, lte } from 'drizzle-orm';
 import { Training } from '@/types/events';
 import { ensureTrainingOwned } from '@/services/guards/ownership';
 
-export async function getTrainingsByTeamId(teamId: string): Promise<Training[]> {
+export async function getTrainingsByTeamId(teamId: string, fromDate?: string | null, toDate?: string | null): Promise<Training[]> {
   try {
     const results = await db
       .select({
@@ -28,7 +28,13 @@ export async function getTrainingsByTeamId(teamId: string): Promise<Training[]> 
       })
       .from(training)
       .leftJoin(trainingCategory, eq(training.categoryId, trainingCategory.id))
-      .where(eq(training.teamId, teamId));
+      .where(
+        and(
+          eq(training.teamId, teamId),
+          fromDate ? gte(training.date, fromDate) : undefined,
+          toDate ? lte(training.date, toDate) : undefined
+        )
+      );
     
     return results.map(t => ({
       id: t.id,
@@ -55,7 +61,7 @@ export async function getTrainingsByTeamId(teamId: string): Promise<Training[]> 
   }
 }
 
-export async function getTrainingsByClubId(clubId: string): Promise<Training[]> {
+export async function getTrainingsByClubId(clubId: string, fromDate?: string | null, toDate?: string | null): Promise<Training[]> {
   try {
     const results = await db
       .select({
@@ -78,7 +84,13 @@ export async function getTrainingsByClubId(clubId: string): Promise<Training[]> 
       })
       .from(training)
       .leftJoin(trainingCategory, eq(training.categoryId, trainingCategory.id))
-      .where(eq(training.clubId, clubId));
+      .where(
+        and(
+          eq(training.clubId, clubId),
+          fromDate ? gte(training.date, fromDate) : undefined,
+          toDate ? lte(training.date, toDate) : undefined
+        )
+      );
     
     return results.map(t => ({
       id: t.id,

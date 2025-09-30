@@ -14,14 +14,18 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const teamId = searchParams.get('teamId');
+    const fromDate = searchParams.get('fromDate');
+    const toDate = searchParams.get('toDate');
+
+    console.log('🔍 API trainings запрос:', { teamId, fromDate, toDate });
 
     let trainings;
     if (teamId) {
       // Если указан teamId, возвращаем тренировки конкретной команды
-      trainings = await getTrainingsByTeamId(teamId);
+      trainings = await getTrainingsByTeamId(teamId, fromDate, toDate);
     } else {
       // Если teamId не указан, возвращаем все тренировки клуба
-      trainings = await getTrainingsByClubId(session.user.clubId);
+      trainings = await getTrainingsByClubId(session.user.clubId, fromDate, toDate);
     }
 
     return NextResponse.json(trainings);
