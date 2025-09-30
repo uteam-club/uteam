@@ -48,7 +48,7 @@ interface Training {
 
 interface AttendanceData {
   id?: string;
-  status: 'TRAINED' | 'REHAB' | 'SICK' | 'EDUCATION' | 'INJURY' | 'NATIONAL_TEAM' | 'OTHER_TEAM' | 'OTHER';
+  status: 'TRAINED' | 'REHABILITATION' | 'SICK' | 'EDUCATION' | 'INJURY' | 'NATIONAL_TEAM' | 'OTHER_TEAM' | 'OTHER';
   comment?: string;
 }
 
@@ -308,7 +308,7 @@ export default function AttendanceAnalyticsPage() {
               case 'TRAINED':
                 stats.trained++;
                 break;
-              case 'REHAB':
+              case 'REHABILITATION':
                 stats.rehab++;
                 break;
               case 'SICK':
@@ -755,7 +755,7 @@ export default function AttendanceAnalyticsPage() {
             <div className="mt-4 bg-vista-dark/30 p-3 rounded-md border border-vista-secondary/30 shadow-sm">
               <h4 className="text-vista-light/80 text-sm font-medium mb-2">{t('attendancePage.legend')}</h4>
               <div className="flex flex-wrap gap-3">
-                {(['TRAINED', 'REHAB', 'SICK', 'EDUCATION', 'INJURY', 'NATIONAL_TEAM', 'OTHER_TEAM', 'OTHER'] as (keyof typeof attendanceStatuses)[]).map((status) => (
+                {(['TRAINED', 'REHABILITATION', 'SICK', 'EDUCATION', 'INJURY', 'NATIONAL_TEAM', 'OTHER_TEAM', 'OTHER'] as (keyof typeof attendanceStatuses)[]).map((status) => (
                   <div key={status} className="flex items-center">
                     <div className={`w-4 h-4 rounded-full ${attendanceStatuses[status].color} mr-2`}></div>
                     <span className={`text-xs ${attendanceStatuses[status].textColor}`}>
