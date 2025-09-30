@@ -309,7 +309,7 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId, 
     const maxLength = Math.max(...reportData.map(player => player.playerName.length));
     
     // Вычисляем ширину на основе длины текста (примерно 8px на символ + отступы)
-    const calculatedWidth = Math.max(maxLength * 8 + 40, 150); // Минимум 150px, максимум 300px
+    const calculatedWidth = Math.max(maxLength * 8 + 40, 120); // Минимум 120px, максимум 300px
     return Math.min(calculatedWidth, 300);
   };
 
@@ -531,7 +531,7 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId, 
                     return (
                         <TableHead 
                           key={column.id} 
-                          className={`text-center text-vista-light/70 font-normal text-xs py-2 sm:py-3 px-2 cursor-pointer transition-colors hover:!bg-transparent ${column.canonicalMetricCode === 'athlete_name' ? 'sticky left-0 md:static z-30 bg-vista-dark/80 backdrop-blur-sm' : ''}`}
+                          className={`text-center text-vista-light/70 font-normal text-xs py-2 sm:py-3 px-2 cursor-pointer transition-colors hover:!bg-transparent ${column.canonicalMetricCode === 'athlete_name' ? 'sticky left-0 md:static z-30 bg-vista-dark border-r border-vista-secondary/30' : ''}`}
                           style={{
                             width: column.canonicalMetricCode === 'athlete_name' 
                               ? `${playerNameColumnWidth}px` 
@@ -581,7 +581,7 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId, 
                           <TableCell 
                             key={column.id} 
                             className={`py-2 sm:py-3 px-2 ${
-                              column.canonicalMetricCode === 'athlete_name' ? 'text-left sticky left-0 md:static z-20 bg-vista-dark/70 backdrop-blur-sm' : 'text-center'
+                              column.canonicalMetricCode === 'athlete_name' ? 'text-left sticky left-0 md:static z-20 bg-vista-dark border-r border-vista-secondary/30' : 'text-center'
                             }`}
                             style={{
                               width: column.canonicalMetricCode === 'athlete_name' 
