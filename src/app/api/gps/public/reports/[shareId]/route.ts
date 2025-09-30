@@ -5,6 +5,7 @@ import { training } from '@/db/schema/training';
 import { trainingCategory } from '@/db/schema/trainingCategory';
 import { match } from '@/db/schema/match';
 import { team } from '@/db/schema/team';
+import { player } from '@/db/schema/player';
 import { gpsVisualizationProfile, gpsProfileColumn } from '@/db/schema/gpsColumnMapping';
 import { eq, and, inArray, desc, gte, ne } from 'drizzle-orm';
 import { convertUnit } from '@/lib/unit-converter';
@@ -89,14 +90,27 @@ export async function GET(
       playerIds.add(item.playerId);
     }
 
-    // Player names are derived elsewhere; keep fallback name
+    // Подгружаем корректные имена игроков
+    let playerNameMap = new Map<string, string>();
+    if (playerIds.size > 0) {
+      const playerRows = await db
+        .select({ id: player.id, firstName: player.firstName, lastName: player.lastName })
+        .from(player)
+        .where(inArray(player.id, Array.from(playerIds)));
+      for (const p of playerRows) {
+        const fullName = [p.firstName, p.lastName].filter(Boolean).join(' ').trim();
+        playerNameMap.set(p.id, fullName || `Player ${p.id.slice(-4)}`);
+      }
+    }
+
+    // Player names fallback
     for (const item of rows) {
       const pid = item.playerId;
       if (!playersData.has(pid)) {
         playersData.set(pid, {
           id: `player-${pid}`,
           playerId: pid,
-          playerName: `Player ${pid.slice(-4)}`,
+          playerName: playerNameMap.get(pid) || `Player ${pid.slice(-4)}`,
           playerData: {},
           isEdited: false,
           lastEditedAt: null,

@@ -148,7 +148,7 @@ export function PlayerGameModels({ reportId, profileId, shareId, isLoading = fal
       {playersWithModels.map((player) => (
         <Card key={player.id} className="bg-vista-dark/30 border-vista-secondary/30 hover:shadow-md">
           <CardHeader className="pb-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
               <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full overflow-hidden relative flex-shrink-0">
                 {player.imageUrl ? (
                   <img 
@@ -176,33 +176,33 @@ export function PlayerGameModels({ reportId, profileId, shareId, isLoading = fal
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-base sm:text-lg font-normal text-vista-light">
+                <CardTitle className="text-base sm:text-lg font-normal text-vista-light leading-tight">
                   {player.firstName} {player.lastName}
                 </CardTitle>
                 <div className="flex items-center gap-3 mt-2">
-                  <Badge variant="outline" className="text-sm border-vista-secondary/50 text-vista-light/70 px-3 py-1">
+                  <Badge variant="outline" className="text-xs sm:text-sm border-vista-secondary/50 text-vista-light/70 px-2 sm:px-3 py-1">
                     {player.position}
                   </Badge>
                 </div>
               </div>
               
               {/* Информация о игровой модели */}
-              <div className="text-right">
+              <div className="w-full sm:w-auto text-left sm:text-right mt-1 sm:mt-0">
                 {player.gameModel && (
-                  <div className="text-sm text-vista-light/60">
-                    <div>Модель: {player.gameModel.matchesCount} матчей</div>
+                  <div className="text-[12px] sm:text-sm text-vista-light/60 leading-snug">
+                    <div className="whitespace-nowrap">Модель: {player.gameModel.matchesCount} матчей</div>
                     {player.matchData.duration && (
-                      <div className="text-xs text-vista-light/50">
+                      <div className="text-[11px] sm:text-xs text-vista-light/50 whitespace-nowrap">
                         В матче: {Math.round(player.matchData.duration.value / 60)}
                       </div>
                     )}
                     {player.comparisonMetrics.length === 0 && player.matchData.duration && (player.matchData.duration.value / 60) < 60 && (
-                      <div className="text-xs text-red-400 mt-1">
+                      <div className="text-[11px] sm:text-xs text-red-400 mt-1">
                         Играл менее 60 мин
                       </div>
                     )}
                     {player.comparisonMetrics.length === 0 && player.matchData.duration && (player.matchData.duration.value / 60) >= 60 && (
-                      <div className="text-xs text-yellow-400 mt-1">
+                      <div className="text-[11px] sm:text-xs text-yellow-400 mt-1">
                         Нет модели
                       </div>
                     )}
@@ -248,7 +248,7 @@ export function PlayerGameModels({ reportId, profileId, shareId, isLoading = fal
             ) : (
               <div className="space-y-2">
                 {/* Показываем метрики для сравнения */}
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                   {player.comparisonMetrics.slice(0, 10).map((metric) => {
                     const isPositive = metric.percentageDiff > 0.1;
                     const isNegative = metric.percentageDiff < -0.1;
@@ -265,18 +265,18 @@ export function PlayerGameModels({ reportId, profileId, shareId, isLoading = fal
                         `}
                       >
                         {/* Название метрики с единицами */}
-                        <div className="text-xs font-medium text-vista-light/80 truncate mb-1 text-center">
+                        <div className="text-[11px] sm:text-xs font-medium text-vista-light/80 truncate mb-1 text-center">
                           {metric.displayName} ({metric.displayUnit})
                         </div>
                         
                         {/* Текущее и модельное значение */}
                         <div className="text-center mb-1">
                           <div className="flex items-center justify-center gap-2">
-                            <div className={`text-sm font-bold ${isPositive ? 'text-green-400' : isNegative ? 'text-red-400' : 'text-vista-light'}`}>
+                            <div className={`text-sm sm:text-base font-bold ${isPositive ? 'text-green-400' : isNegative ? 'text-red-400' : 'text-vista-light'}`}>
                               {metric.currentValue.toFixed(1)}
                             </div>
                             <div className="w-px h-4 bg-vista-light/20"></div>
-                            <div className="text-sm font-bold text-vista-light/60">
+                            <div className="text-sm sm:text-base font-bold text-vista-light/60">
                               {metric.modelValue.toFixed(1)}
                             </div>
                           </div>

@@ -95,6 +95,7 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId, 
     hasHistoricalData?: boolean;
   } | null>(null);
   const [teamAveragesLoading, setTeamAveragesLoading] = useState(false);
+  const [isNarrow, setIsNarrow] = useState(false);
 
   useEffect(() => {
     if (shareId) {
@@ -103,6 +104,16 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId, 
       loadReportData();
     }
   }, [teamId, eventId, profileId, eventType, shareId]);
+
+  // Track viewport for mobile/tablet adaptations (no desktop changes)
+  useEffect(() => {
+    const update = () => setIsNarrow(typeof window !== 'undefined' && window.innerWidth < 768);
+    update();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', update);
+      return () => window.removeEventListener('resize', update);
+    }
+  }, []);
 
   const loadReportData = async () => {
     try {
@@ -409,6 +420,11 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId, 
   const hasPositionInProfile = visibleColumns.some(col => col.canonicalMetricCode === 'position');
   const hasDurationInProfile = visibleColumns.some(col => col.canonicalMetricCode === 'duration');
 
+  // Расчет минимальной ширины таблицы для узких экранов (горизонтальный скролл)
+  const metricColMinPx = 110; // минимальная ширина одной метрики на узких экранах
+  const nameColPx = getPlayerNameColumnWidth();
+  const tableMinWidth = isNarrow ? nameColPx + Math.max(visibleColumns.length - 1, 0) * metricColMinPx : undefined;
+
   return (
     <div className="space-y-6">
       {/* Информация о событии */}
@@ -502,11 +518,12 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId, 
         </div>
       )}
 
-      {/* Таблица с данными */}
+      {/* Таблица с данными */
+      }
       <Card className="bg-vista-dark/50 border-vista-secondary/30 shadow-none hover:shadow-none">
         <CardContent className="p-0">
           <div className="w-full overflow-x-auto overflow-y-hidden">
-            <Table className="w-full table-fixed">
+            <Table className="table-fixed" style={tableMinWidth ? { minWidth: tableMinWidth } : undefined}>
               <TableHeader>
                 <TableRow className="border-b border-vista-secondary/20 hover:bg-transparent">
                   {visibleColumns.map((column) => {
@@ -518,7 +535,7 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId, 
                           style={{
                             width: column.canonicalMetricCode === 'athlete_name' 
                               ? `${playerNameColumnWidth}px` 
-                              : `${100 / (visibleColumns.length - 1)}%`
+                              : (isNarrow ? `${metricColMinPx}px` : `${100 / (visibleColumns.length - 1)}%`)
                           }}
                           onClick={() => handleSort(column.canonicalMetricCode)}
                         >
@@ -569,10 +586,10 @@ export function GpsReportVisualization({ teamId, eventId, eventType, profileId, 
                             style={{
                               width: column.canonicalMetricCode === 'athlete_name' 
                                 ? `${playerNameColumnWidth}px` 
-                                : `${100 / (visibleColumns.length - 1)}%`,
+                                : (isNarrow ? `${metricColMinPx}px` : `${100 / (visibleColumns.length - 1)}%`),
                               maxWidth: column.canonicalMetricCode === 'athlete_name' 
                                 ? `${playerNameColumnWidth}px` 
-                                : `${100 / (visibleColumns.length - 1)}%`,
+                                : (isNarrow ? `${metricColMinPx}px` : `${100 / (visibleColumns.length - 1)}%`),
                               overflow: 'hidden'
                             }}
                           >
