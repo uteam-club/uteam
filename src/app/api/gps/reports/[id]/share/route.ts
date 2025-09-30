@@ -62,7 +62,14 @@ export async function POST(
       })
       .returning();
 
-    const shareUrl = `${new URL(request.url).origin}/gps/share/${share.id}`;
+    // Build absolute URL robustly (prefer forwarded headers, fallback to request URL, finally env)
+    const forwardedProto = request.headers.get('x-forwarded-proto') || request.headers.get('x-forwarded-protocol');
+    const forwardedHost = request.headers.get('x-forwarded-host') || request.headers.get('host');
+    const requestOrigin = new URL(request.url).origin;
+    const headerOrigin = forwardedProto && forwardedHost ? `${forwardedProto}://${forwardedHost}` : (forwardedHost ? `https://${forwardedHost}` : requestOrigin);
+    const envOrigin = process.env.NEXT_PUBLIC_APP_URL && /^https?:\/\//i.test(process.env.NEXT_PUBLIC_APP_URL) ? process.env.NEXT_PUBLIC_APP_URL : '';
+    const baseUrl = envOrigin || headerOrigin || requestOrigin;
+    const shareUrl = `${baseUrl.replace(/\/$/, '')}/gps/share/${share.id}`;
 
     return NextResponse.json({ success: true, shareId: share.id, url: shareUrl });
   } catch (error) {
