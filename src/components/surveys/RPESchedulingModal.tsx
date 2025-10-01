@@ -24,6 +24,7 @@ import {
   Save
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface Training {
   id: string;
@@ -69,6 +70,9 @@ export function RPESchedulingModal({
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [schedules, setSchedules] = useState<Record<string, RPESchedule>>({});
   const [tempTimes, setTempTimes] = useState<Record<string, string>>({});
+  // Матчи и их расписания
+  const [matches, setMatches] = useState<Array<{ id: string; date: string; time: string; opponentName: string; status: string }>>([]);
+  const [matchSchedules, setMatchSchedules] = useState<Record<string, { id?: string; matchId: string; scheduledTime: string; status: 'scheduled'|'sent'|'cancelled'; sentAt?: string }>>({});
   
   // Фильтры дат
   const [startDate, setStartDate] = useState(() => {
@@ -84,6 +88,7 @@ export function RPESchedulingModal({
   useEffect(() => {
     if (open && team) {
       loadTrainingsAndSchedules();
+      loadMatchesAndSchedules();
     }
   }, [open, team, startDate, endDate]);
 
@@ -135,11 +140,40 @@ export function RPESchedulingModal({
     }
   };
 
+  const loadMatchesAndSchedules = async () => {
+    if (!team) return;
+
+    try {
+      const [matchesRes, schedulesRes] = await Promise.all([
+        fetch(`/api/teams/${team.id}/matches?startDate=${startDate}&endDate=${endDate}`),
+        fetch(`/api/teams/${team.id}/rpe-schedules-matches?startDate=${startDate}&endDate=${endDate}`)
+      ]);
+      if (!matchesRes.ok || !schedulesRes.ok) throw new Error('Failed to load matches');
+      const matchesData = await matchesRes.json();
+      const schedulesData = await schedulesRes.json();
+      setMatches(matchesData);
+      const map: Record<string, any> = {};
+      const times: Record<string, string> = { ...tempTimes };
+      schedulesData.forEach((s: any) => {
+        map[s.matchId] = { id: s.id, matchId: s.matchId, scheduledTime: s.scheduledTime, status: s.status, sentAt: s.sentAt };
+        if (!times[s.matchId]) times[s.matchId] = s.scheduledTime;
+      });
+      setMatchSchedules(map);
+      setTempTimes(times);
+    } catch (e) {
+      console.error('Error loading matches:', e);
+    }
+  };
+
   const handleTimeChange = (trainingId: string, time: string) => {
     setTempTimes(prev => ({
       ...prev,
       [trainingId]: time
     }));
+  };
+
+  const handleMatchTimeChange = (matchId: string, time: string) => {
+    setTempTimes(prev => ({ ...prev, [matchId]: time }));
   };
 
   const handleSaveSchedule = async (trainingId: string) => {
@@ -179,6 +213,44 @@ export function RPESchedulingModal({
         description: 'Не удалось сохранить расписание',
         variant: 'destructive',
       });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveMatchSchedule = async (matchId: string) => {
+    const time = tempTimes[matchId];
+    if (!time || !team) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/rpe-schedules-matches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId, teamId: team.id, scheduledTime: time })
+      });
+      if (!res.ok) throw new Error('Failed to save match schedule');
+      toast({ title: 'Успешно!', description: 'Расписание для матча сохранено' });
+      await loadMatchesAndSchedules();
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Ошибка', description: 'Не удалось сохранить расписание', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemoveMatchSchedule = async (matchId: string) => {
+    const schedule = matchSchedules[matchId];
+    if (!schedule?.id) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/rpe-schedules-matches/${schedule.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to remove');
+      toast({ title: 'Успешно!', description: 'Расписание для матча удалено' });
+      await loadMatchesAndSchedules();
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Ошибка', description: 'Не удалось удалить расписание', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -292,6 +364,13 @@ export function RPESchedulingModal({
         </DialogHeader>
 
         <div className="flex flex-col min-h-0 flex-1 overflow-hidden p-1">
+          <Tabs defaultValue="trainings" className="w-full">
+            <TabsList className="bg-vista-dark/50 border border-vista-secondary/30 mb-4">
+              <TabsTrigger value="trainings" className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70">Тренировки</TabsTrigger>
+              <TabsTrigger value="matches" className="data-[state=active]:bg-vista-secondary/50 data-[state=active]:text-vista-light text-vista-light/70">Матчи</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="trainings">
           {/* Фильтр дат */}
           <div className="grid grid-cols-4 gap-4 items-center mb-4">
             {/* Кнопки быстрого выбора */}
@@ -456,17 +535,74 @@ export function RPESchedulingModal({
               )}
             </CardContent>
           </Card>
+            </TabsContent>
 
-          {/* Кнопка закрытия */}
-          <div className="flex justify-end pt-4 pb-2 border-t border-vista-secondary/20 flex-shrink-0">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20"
-            >
-              Закрыть
-            </Button>
-          </div>
+            <TabsContent value="matches">
+              {/* Фильтр дат (тот же) */}
+              <div className="grid grid-cols-4 gap-4 items-center mb-4">
+                <Input id="start-date-m" type="date" value={startDate} onChange={e => { setStartDate(e.target.value); loadMatchesAndSchedules(); }} className="h-9 px-3 text-sm font-normal bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" />
+                <Input id="end-date-m" type="date" value={endDate} onChange={e => { setEndDate(e.target.value); loadMatchesAndSchedules(); }} className="h-9 px-3 text-sm font-normal bg-vista-dark/30 border-vista-light/20 text-vista-light/60 hover:bg-vista-light/10 hover:border-vista-light/40 focus:border-vista-light/50 focus:ring-1 focus:ring-vista-light/30 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" />
+              </div>
+
+              <Card className="bg-vista-dark/30 border-vista-secondary/30 flex-1 min-h-0 flex flex-col">
+                <CardContent className="pt-4 flex flex-col min-h-0 flex-1 overflow-hidden">
+                  {loading ? (
+                    <div className="flex items-center justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-vista-light" /></div>
+                  ) : matches.length === 0 ? (
+                    <div className="text-center py-8"><div className="text-vista-light/60">Нет матчей в выбранном диапазоне</div></div>
+                  ) : (
+                    <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                      {matches.map((m) => {
+                        const schedule = matchSchedules[m.id];
+                        const tempTime = tempTimes[m.id] || '';
+                        return (
+                          <div key={m.id} className="flex items-center justify-between p-4 rounded-lg border border-vista-secondary/20 bg-vista-dark/50 min-h-[80px]">
+                            <div className="flex items-center gap-4 flex-1 min-w-0">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <h4 className="font-medium text-vista-light truncate">Матч vs {m.opponentName}</h4>
+                                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs flex-shrink-0">Матч</Badge>
+                                </div>
+                                <div className="flex items-center gap-4 text-sm text-vista-light/70 flex-wrap">
+                                  <div className="flex items-center gap-1"><Calendar className="h-3 w-3" /><span>{formatDate(m.date)}</span></div>
+                                  <div className="flex items-center gap-1"><Clock className="h-3 w-3" /><span>{m.time}</span></div>
+                                </div>
+                                <div className="text-xs text-vista-light/50 mt-1 truncate">
+                                  {schedule ? (schedule.status === 'sent' ? 'Отправлен' : `Запланирован на ${schedule.scheduledTime}`) : 'Не настроен'}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {schedule?.status === 'sent' ? (
+                                <Badge className="bg-green-500/20 text-green-400 whitespace-nowrap">Отправлен</Badge>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <Input type="time" value={tempTime} onChange={e => handleMatchTimeChange(m.id, e.target.value)} className="w-24 text-sm bg-vista-dark border-vista-secondary/50 text-vista-light flex-shrink-0" placeholder="--:--" />
+                                  <Button size="sm" onClick={() => handleSaveMatchSchedule(m.id)} disabled={!tempTime || saving} className="bg-vista-primary hover:bg-vista-primary/90 text-vista-dark flex-shrink-0">
+                                    {saving ? (<Loader2 className="h-3 w-3 animate-spin" />) : (<Save className="h-3 w-3" />)}
+                                  </Button>
+                                  {schedule && (
+                                    <Button size="sm" variant="outline" onClick={() => handleRemoveMatchSchedule(m.id)} disabled={saving} className="border-red-500/50 text-red-400 hover:bg-red-500/20 flex-shrink-0">
+                                      <XCircle className="h-3 w-3" />
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Кнопка закрытия */}
+            <div className="flex justify-end pt-4 pb-2 border-t border-vista-secondary/20 flex-shrink-0">
+              <Button variant="outline" onClick={() => onOpenChange(false)} className="border-vista-secondary/50 text-vista-light hover:bg-vista-secondary/20">Закрыть</Button>
+            </div>
+          </Tabs>
         </div>
       </DialogContent>
     </Dialog>

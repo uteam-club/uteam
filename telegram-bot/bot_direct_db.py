@@ -101,6 +101,24 @@ def get_survey_schedules():
             WHERE rs."status" = 'scheduled'
             """
             
+            # Получаем RPE расписания привязанные к матчам
+            query_rpe_matches = """
+            SELECT 
+                rsm."id",
+                rsm."teamId",
+                TO_CHAR(rsm."scheduledTime", 'HH24:MI') as "sendTime",
+                true as "enabled",
+                'rpe_match' as "surveyType",
+                t."timezone",
+                NULL as "trainingId",
+                m."date" as "matchDate",
+                rsm."recipientsConfig"
+            FROM "RPEScheduleMatch" rsm
+            LEFT JOIN "Team" t ON rsm."teamId" = t."id"
+            LEFT JOIN "Match" m ON rsm."matchId" = m."id"
+            WHERE rsm."status" = 'scheduled'
+            """
+            
             schedules = []
             
             # Выполняем оба запроса
@@ -111,6 +129,9 @@ def get_survey_schedules():
             cursor.execute(query_rpe)
             rpe_schedules = cursor.fetchall()
             schedules.extend([dict(schedule) for schedule in rpe_schedules])
+            cursor.execute(query_rpe_matches)
+            rpe_match_schedules = cursor.fetchall()
+            schedules.extend([dict(schedule) for schedule in rpe_match_schedules])
             
             return schedules
     except Exception as e:
@@ -426,7 +447,7 @@ async def send_survey_broadcast():
                 team_id = schedule.get('teamId')
                 survey_type = schedule.get('surveyType', 'morning')
                 
-                # Для RPE опросов проверяем, что дата тренировки = сегодня
+                # Для RPE тренировки проверяем, что дата тренировки = сегодня
                 if survey_type == 'rpe' and schedule.get('trainingDate'):
                     training_date = schedule.get('trainingDate')
                     if isinstance(training_date, str):
@@ -434,6 +455,13 @@ async def send_survey_broadcast():
                         today_date = now.strftime('%Y-%m-%d')
                         if training_date != today_date:
                             continue  # Пропускаем, если тренировка не сегодня
+                # Для RPE матчей проверяем, что дата матча = сегодня
+                if survey_type == 'rpe_match' and schedule.get('matchDate'):
+                    match_date = schedule.get('matchDate')
+                    if isinstance(match_date, str):
+                        today_date = now.strftime('%Y-%m-%d')
+                        if match_date != today_date:
+                            continue
                 # Получаем игроков с учетом настроек получателей
                 recipients_config = schedule.get('recipientsConfig')
                 selected_player_ids = None
@@ -466,6 +494,9 @@ async def send_survey_broadcast():
                     if survey_type == 'rpe':
                         training_id = schedule.get('trainingId')
                         link = f"https://api.uteam.club/survey?tenantId={club_id}&type={survey_type}&trainingId={training_id}"
+                    elif survey_type == 'rpe_match':
+                        # Для матчей отправляем тот же RPE по ссылке type=rpe (без trainingId)
+                        link = f"https://api.uteam.club/survey?tenantId={club_id}&type=rpe"
                     else:
                         link = f"https://api.uteam.club/survey?tenantId={club_id}&type={survey_type}"
                     # Текст и кнопка для разных типов опросов
@@ -482,7 +513,7 @@ async def send_survey_broadcast():
                                 f"Твой пинкод для входа:\n<code>{pin_code}</code>"
                             )
                             button_text = f"📝 Пройти опрос за {survey_date}"
-                    elif survey_type == 'rpe':
+                    elif survey_type in ('rpe', 'rpe_match'):
                         if lang == 'en':
                             text = (
                                 f"Please rate how hard your training was (RPE) for {survey_date}.\n\n"

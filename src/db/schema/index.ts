@@ -20,6 +20,7 @@ export * from './playerMatchStat.ts';
 export * from './morningSurveyResponse.ts';
 export * from './rpeSurveyResponse.ts';
 export * from './rpeSchedule.ts';
+export * from './rpeScheduleMatch.ts';
 export * from './painArea.ts';
 export * from './muscleArea.ts';
 export * from './survey.ts';
