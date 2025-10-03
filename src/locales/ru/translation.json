@@ -143,6 +143,9 @@
       "deg": "°",
       "deg_desc": "градусы"
     },
+    "direction_label": "Направление результата",
+    "direction_higher": "Больше = лучше",
+    "direction_lower": "Меньше = лучше",
     "page": {
       "title": "Фитнес тесты",
       "select_team_placeholder": "Выберите команду",
@@ -157,11 +160,22 @@
       "loading_results": "Загрузка результатов...",
       "no_players": "В команде нет игроков.",
       "table_name_col": "Фамилия Имя",
+      "table_date_col": "Дата",
       "table_result_col": "Результат",
+      "table_prev_col": "Предыдущий",
+      "table_change_col": "Изменение",
+      "table_best_col": "Лучший",
+      "table_percentile_col": "Перцентиль",
+      "table_category_col": "Категория",
       "table_dynamic_col": "Динамика",
       "table_history_col": "История",
       "history_btn": "История",
-      "history_modal_title": "История результатов: {{player}}"
+      "history_modal_title": "История результатов: {{player}}",
+      "category_below": "Ниже среднего",
+      "category_avg": "Средний",
+      "category_above": "Выше среднего",
+      "category_elite": "Элит",
+      "elite_badge": "Элит"
     },
     "test_description_modal_title": "Описание теста",
     "no_description": "Нет описания",

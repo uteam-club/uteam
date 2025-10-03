@@ -16,6 +16,7 @@ const createTestSchema = z.object({
   type: z.string().min(2).max(64),
   unit: z.string().min(1).max(32),
   description: z.string().max(512).optional(),
+  higherIsBetter: z.boolean(),
 });
 
 // Добавляю тип Token
@@ -67,12 +68,13 @@ export async function POST(request: NextRequest) {
   if (!parse.success) {
     return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
   }
-  const { name, type, unit, description } = parse.data;
+  const { name, type, unit, description, higherIsBetter } = parse.data;
   const [test] = await db.insert(fitnessTest).values({
     name,
     type,
     unit,
     description,
+    higherIsBetter,
     clubId: token.clubId,
     createdBy: token.id,
   }).returning();

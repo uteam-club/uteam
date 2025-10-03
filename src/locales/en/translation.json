@@ -143,6 +143,9 @@
       "deg": "°",
       "deg_desc": "degrees"
     },
+    "direction_label": "Result direction",
+    "direction_higher": "Higher = better",
+    "direction_lower": "Lower = better",
     "page": {
       "title": "Fitness tests",
       "select_team_placeholder": "Select team",
@@ -157,11 +160,22 @@
       "loading_results": "Loading results...",
       "no_players": "There are no players in the team.",
       "table_name_col": "Last name First name",
+      "table_date_col": "Date",
       "table_result_col": "Result",
+      "table_prev_col": "Previous",
+      "table_change_col": "Change",
+      "table_best_col": "Best",
+      "table_percentile_col": "Percentile",
+      "table_category_col": "Category",
       "table_dynamic_col": "Progress",
       "table_history_col": "History",
       "history_btn": "History",
-      "history_modal_title": "Results history: {{player}}"
+      "history_modal_title": "Results history: {{player}}",
+      "category_below": "Below average",
+      "category_avg": "Average",
+      "category_above": "Above average",
+      "category_elite": "Elite",
+      "elite_badge": "Elite"
     },
     "test_description_modal_title": "Test description",
     "no_description": "No description",

@@ -23,6 +23,8 @@ interface CreateFitnessTestModalProps {
   setNewTestType: (v: string) => void;
   newTestUnit: string;
   setNewTestUnit: (v: string) => void;
+  newTestHigherIsBetter: boolean;
+  setNewTestHigherIsBetter: (v: boolean) => void;
   error: string | null;
   loading: boolean;
   onSave: () => void;
@@ -54,6 +56,8 @@ const CreateFitnessTestModal: React.FC<CreateFitnessTestModalProps> = ({
   handleUnitScroll,
   newTestDescription,
   setNewTestDescription,
+  newTestHigherIsBetter,
+  setNewTestHigherIsBetter,
 }) => {
   const { t } = useTranslation();
   return (
@@ -96,6 +100,28 @@ const CreateFitnessTestModal: React.FC<CreateFitnessTestModalProps> = ({
               ))}
             </SelectContent>
           </Select>
+          {/* Direction selector: higher is better or lower is better */}
+          <div className="flex flex-col gap-2">
+            <span className="text-sm text-vista-light/80">{t('fitnessTest.direction_label')}</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => setNewTestHigherIsBetter(true)}
+                className={`flex-1 h-9 px-3 rounded-md border text-sm ${newTestHigherIsBetter ? 'border-vista-primary text-vista-primary bg-vista-primary/15' : 'border-vista-secondary/30 text-vista-light/70 hover:bg-vista-secondary/20'}`}
+              >
+                {t('fitnessTest.direction_higher')}
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => setNewTestHigherIsBetter(false)}
+                className={`flex-1 h-9 px-3 rounded-md border text-sm ${!newTestHigherIsBetter ? 'border-vista-primary text-vista-primary bg-vista-primary/15' : 'border-vista-secondary/30 text-vista-light/70 hover:bg-vista-secondary/20'}`}
+              >
+                {t('fitnessTest.direction_lower')}
+              </button>
+            </div>
+          </div>
           <Select
             value={newTestUnit}
             onValueChange={setNewTestUnit}
