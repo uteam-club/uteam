@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
@@ -42,8 +42,6 @@ import ImageUpload from '@/components/ui/image-upload';
 import DocumentUpload from '@/components/ui/document-upload';
 import FootballField, { formationPositions } from '@/components/matches/FootballField';
 import EditPlayerModal from '@/components/admin/EditUserModal';
-import { PlayerGameModelModal } from '@/components/players/PlayerGameModelModal';
-import { PlayerGameModelSettingsModal } from '@/components/players/PlayerGameModelSettingsModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +54,7 @@ import { countries as countriesList, countryCodeToEmoji } from '@/lib/countries'
 import { formatDate } from '@/lib/date-utils';
 import { useTranslation } from 'react-i18next';
 import type { SupportedLang } from '@/types/i18n';
+import { convertUnit, getPrecision, formatValueOnly } from '@/lib/unit-converter';
 
 interface Country {
   code: string;
@@ -92,6 +91,30 @@ interface Team {
   id: string;
   name: string;
   teamType: 'academy' | 'contract';
+}
+
+// Типы для GPS профилей визуализации
+interface GpsProfileColumn {
+  id: string;
+  canonicalMetricId: string;
+  canonicalMetricCode: string;
+  canonicalMetricName: string;
+  canonicalUnit: string;
+  displayName: string;
+  displayUnit: string;
+  displayOrder: number;
+  isVisible: boolean;
+}
+
+interface GpsProfile {
+  id: string;
+  name: string;
+}
+
+interface PlayerGameModelData {
+  matchesCount: number;
+  totalMinutes: number;
+  metrics: Record<string, number>; // per minute
 }
 
 // Константы форматов и схем (как на странице матча)
@@ -229,8 +252,15 @@ export default function PlayerProfilePage() {
   const [fitnessTests, setFitnessTests] = useState<any[]>([]);
   const [isLoadingTests, setIsLoadingTests] = useState(false);
   const [fitnessTestResults, setFitnessTestResults] = useState<Record<string, any>>({});
-  const [showGameModelModal, setShowGameModelModal] = useState(false);
-  const [showGameModelSettingsModal, setShowGameModelSettingsModal] = useState(false);
+  
+
+  // Состояние для блока «Игровая модель»
+  const [gpsProfiles, setGpsProfiles] = useState<GpsProfile[]>([]);
+  const [selectedGpsProfileId, setSelectedGpsProfileId] = useState<string>('');
+  const [profileColumns, setProfileColumns] = useState<GpsProfileColumn[]>([]);
+  const [gameModelData, setGameModelData] = useState<PlayerGameModelData | null>(null);
+  const [isLoadingGameModel, setIsLoadingGameModel] = useState<boolean>(false);
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState<boolean>(false);
 
   const competitionTypeLabels: Record<string, string> = {
     FRIENDLY: 'товарищеский',
@@ -252,7 +282,7 @@ export default function PlayerProfilePage() {
   };
 
   // Загрузка данных игрока
-  const fetchPlayerData = async () => {
+  const fetchPlayerData = useCallback(async () => {
     if (!session?.user) return;
     try {
       setIsLoading(true);
@@ -297,10 +327,10 @@ export default function PlayerProfilePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [session?.user, teamId, playerId, t]);
 
   // Загрузка документов игрока
-  const fetchPlayerDocuments = async () => {
+  const fetchPlayerDocuments = useCallback(async () => {
     try {
       setIsLoadingDocuments(true);
       const response = await fetch(`/api/teams/${teamId}/players/${playerId}/documents`);
@@ -317,7 +347,7 @@ export default function PlayerProfilePage() {
     } finally {
       setIsLoadingDocuments(false);
     }
-  };
+  }, [teamId, playerId]);
 
   // Обработчик загрузки документа
   const handleDocumentUpload = async (file: File, type: string) => {
@@ -573,7 +603,7 @@ export default function PlayerProfilePage() {
     if (player && typeof player.positionIndex1 === 'number') {
       setSelectedPosition(player.positionIndex1);
     }
-  }, [player?.positionIndex1]);
+  }, [player]);
 
   // Клик по кружку на втором поле
   const handlePositionClick2 = (index: number) => {
@@ -642,16 +672,15 @@ export default function PlayerProfilePage() {
     if (player && typeof player.positionIndex2 === 'number') {
       setSelectedPosition2(player.positionIndex2);
     }
-  }, [player?.positionIndex2]);
+  }, [player]);
   useEffect(() => {
     if (!player) return;
     setSelectedFormat2((player.format2 as FormatKey) || '11×11');
     setSelectedFormation2(player.formation2 || formatFormations[(player.format2 as FormatKey) || '11×11'][0]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player?.format2, player?.formation2]);
+  }, [player]);
 
   // Загрузка команд
-  const fetchTeams = async () => {
+  const fetchTeams = useCallback(async () => {
     try {
       const response = await fetch('/api/teams');
       if (response.ok) {
@@ -661,7 +690,7 @@ export default function PlayerProfilePage() {
     } catch (e) {
       setTeams([]);
     }
-  };
+  }, []);
 
   // Получение последних 5 матчей игрока
   useEffect(() => {
@@ -686,6 +715,10 @@ export default function PlayerProfilePage() {
               ...match,
               minutesPlayed: stat.minutesPlayed,
               isStarter: stat.isStarter,
+              goals: typeof stat.goals === 'number' ? stat.goals : 0,
+              assists: typeof stat.assists === 'number' ? stat.assists : 0,
+              yellowCards: typeof stat.yellowCards === 'number' ? stat.yellowCards : 0,
+              redCards: typeof stat.redCards === 'number' ? stat.redCards : 0,
             });
           }
         }
@@ -702,7 +735,7 @@ export default function PlayerProfilePage() {
   useEffect(() => {
     fetchPlayerData();
     fetchTeams();
-  }, [session, teamId, playerId]);
+  }, [fetchPlayerData, fetchTeams]);
 
   // Добавляю функцию для цвета счёта:
   const getMatchResultClass = (match: any) => {
@@ -717,6 +750,9 @@ export default function PlayerProfilePage() {
       return 'bg-amber-500/30'; // Ничья
     }
   };
+
+  // Стиль значения: если 0 — делаем тусклым
+  const getDimTextClass = (value: number) => (value === 0 ? 'text-vista-light/25' : 'text-vista-light/90');
 
   useEffect(() => {
     const fetchTests = async () => {
@@ -737,6 +773,82 @@ export default function PlayerProfilePage() {
     };
     fetchTests();
   }, []);
+
+  // Загрузка профилей визуализации для пикера
+  useEffect(() => {
+    const loadProfiles = async () => {
+      setIsLoadingProfiles(true);
+      try {
+        const res = await fetch('/api/gps/profiles');
+        if (res.ok) {
+          const data = await res.json();
+          const profiles = (data.profiles || []).map((p: any) => ({ id: p.id, name: p.name })) as GpsProfile[];
+          setGpsProfiles(profiles);
+          if (profiles.length > 0 && !selectedGpsProfileId) {
+            setSelectedGpsProfileId(profiles[0].id);
+          }
+        } else {
+          setGpsProfiles([]);
+        }
+      } catch {
+        setGpsProfiles([]);
+      } finally {
+        setIsLoadingProfiles(false);
+      }
+    };
+    loadProfiles();
+  }, []);
+
+  // Загрузка колонок выбранного профиля
+  useEffect(() => {
+    const loadProfileColumns = async () => {
+      if (!selectedGpsProfileId) return;
+      try {
+        const res = await fetch(`/api/gps/profiles/${selectedGpsProfileId}`);
+        if (res.ok) {
+          const data = await res.json();
+          const cols = (data.profile?.columns || []) as GpsProfileColumn[];
+          setProfileColumns(cols.filter(c => c.isVisible));
+        } else {
+          setProfileColumns([]);
+        }
+      } catch {
+        setProfileColumns([]);
+      }
+    };
+    loadProfileColumns();
+  }, [selectedGpsProfileId]);
+
+  // Загрузка игровой модели игрока (значения за минуту)
+  useEffect(() => {
+    const loadGameModel = async () => {
+      if (!player) return;
+      setIsLoadingGameModel(true);
+      try {
+        const res = await fetch(`/api/players/${player.id}/game-model`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.gameModel) {
+            const gm = data.gameModel;
+            setGameModelData({
+              matchesCount: gm.matchesCount,
+              totalMinutes: gm.totalMinutes,
+              metrics: gm.metrics || {}
+            });
+          } else {
+            setGameModelData(null);
+          }
+        } else {
+          setGameModelData(null);
+        }
+      } catch {
+        setGameModelData(null);
+      } finally {
+        setIsLoadingGameModel(false);
+      }
+    };
+    loadGameModel();
+  }, [player]);
 
   useEffect(() => {
     if (!fitnessTests.length || !playerId || !teamId) return;
@@ -1062,8 +1174,8 @@ export default function PlayerProfilePage() {
       </div>
 
       {/* Новые три одинаковых блока */}
-      <div className="flex flex-row gap-7 w-full mt-8 mb-32">
-        <div className="w-[420px] h-[480px] bg-vista-dark/40 rounded-md shadow-md flex flex-col p-6 relative">
+      <div className="flex flex-col gap-7 w-full mt-8 mb-32">
+        <div className="w-full h-[480px] bg-vista-dark/40 rounded-md shadow-md flex flex-col p-6 relative">
           <div className="flex flex-row justify-between items-start mb-4">
             <span className="text-xl font-semibold text-vista-light tracking-tight">{t('playerProfile.match_stats')}</span>
             <button className="bg-vista-primary text-vista-dark rounded-md px-4 py-1.5 text-sm font-medium shadow hover:bg-vista-primary/90 transition">{t('playerProfile.all_matches')}</button>
@@ -1080,9 +1192,11 @@ export default function PlayerProfilePage() {
           ) : (
             <div className="flex flex-col gap-2 mt-1">
               {recentMatches.slice(0, 6).map((match: any, idx: number) => (
-                <div key={match.id} className="flex flex-row items-stretch justify-between bg-cyan-100/[0.025] rounded-md px-2 py-2 shadow-sm hover:bg-cyan-100/5 transition h-[56px]">
-                  {/* Левая часть: тип соревнования */}
-                  <div className="flex flex-col items-start justify-start min-w-[60px] pt-0.5">
+                <div key={match.id} className="flex flex-row items-stretch gap-2">
+                  {/* Основная плитка матча (сделаем чуть уже, оставив место справа) */}
+                  <div className="flex flex-row items-stretch justify-between bg-cyan-100/[0.025] rounded-md px-2 py-2 shadow-sm hover:bg-cyan-100/5 transition h-[56px] flex-1">
+                    {/* Левая часть: тип соревнования */}
+                    <div className="flex flex-col items-start justify-start min-w-[60px] pt-0.5">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -1098,46 +1212,63 @@ export default function PlayerProfilePage() {
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                  {/* Центральная часть: дата, счет, команды */}
-                  <div className="flex flex-col flex-1 items-center justify-center">
-                    <span className="text-xs text-vista-light/70 mb-2">{format(new Date(match.date), 'dd.MM.yyyy', { locale: ru })}</span>
-                    <div className="flex flex-row items-center w-full justify-center">
-                      <span className="text-vista-light font-semibold text-xs text-right max-w-[90px] truncate pr-2" style={{flex: 1}}>
-                        {match.isHome ? match.teamName : match.opponentName}
+                    {/* Центральная часть: дата, счет, команды */}
+                    <div className="flex flex-col flex-1 items-center justify-center">
+                      <span className="text-xs text-vista-light/70 mb-2">{format(new Date(match.date), 'dd.MM.yyyy', { locale: ru })}</span>
+                      <div className="flex flex-row items-center w-full justify-center">
+                        <span className="text-vista-light font-semibold text-xs text-right pr-2" style={{flex: 1}}>
+                          {match.isHome ? (match.team?.name || 'Наша команда') : match.opponentName}
+                        </span>
+                        <span className={`flex justify-center items-center text-vista-light/90 font-bold text-xs px-2 py-0.5 ${getMatchResultClass(match)} rounded mx-1`} style={{minWidth: 38, textAlign: 'center'}}>
+                          {typeof match.teamGoals === 'number' && typeof match.opponentGoals === 'number'
+                            ? (match.isHome
+                                ? `${match.teamGoals} : ${match.opponentGoals}`
+                                : `${match.opponentGoals} : ${match.teamGoals}`)
+                            : '-'}
+                        </span>
+                        <span className="text-vista-light font-semibold text-xs text-left pl-2" style={{flex: 1}}>
+                          {match.isHome ? match.opponentName : (match.team?.name || 'Наша команда')}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Правая часть: минуты и статус */}
+                    <div className="flex flex-col items-end justify-between min-w-[70px]">
+                      <span className="flex items-center gap-1 text-cyan-400 text-xs">
+                        <ClockIcon className="w-3 h-3" />
+                        {match.minutesPlayed} {t('playerProfile.minutes')}
                       </span>
-                      <span className={`flex justify-center items-center text-vista-light/90 font-bold text-xs px-2 py-0.5 ${getMatchResultClass(match)} rounded mx-1`} style={{minWidth: 38, textAlign: 'center'}}>
-                        {typeof match.teamGoals === 'number' && typeof match.opponentGoals === 'number'
-                          ? (match.isHome
-                              ? `${match.teamGoals} : ${match.opponentGoals}`
-                              : `${match.opponentGoals} : ${match.teamGoals}`)
-                          : '-'}
-                      </span>
-                      <span className="text-vista-light font-semibold text-xs text-left max-w-[90px] truncate pl-2" style={{flex: 1}}>
-                        {match.isHome ? match.opponentName : match.teamName}
-                      </span>
+                      <Badge className={`mt-1 px-1.5 py-0.5 rounded text-[10px] font-normal min-w-[60px] text-center justify-center ${match.isStarter ? 'bg-green-600/10 text-white/70' : 'bg-yellow-500/10 text-white/70'}`}
+                      >
+                        {match.isStarter ? (
+                          <span>{t('playerProfile.starter')}</span>
+                        ) : (
+                          <span>{t('playerProfile.substitute')}</span>
+                        )}
+                      </Badge>
                     </div>
                   </div>
-                  {/* Правая часть: минуты и статус */}
-                  <div className="flex flex-col items-end justify-between min-w-[70px]">
-                    <span className="flex items-center gap-1 text-cyan-400 text-xs">
-                      <ClockIcon className="w-3 h-3" />
-                      {match.minutesPlayed} {t('playerProfile.minutes')}
-                    </span>
-                    <Badge className={`mt-1 px-1.5 py-0.5 rounded text-[10px] font-normal min-w-[60px] text-center justify-center ${match.isStarter ? 'bg-green-600/10 text-white/70' : 'bg-yellow-500/10 text-white/70'}`}
-                    >
-                      {match.isStarter ? (
-                        <span>{t('playerProfile.starter')}</span>
-                      ) : (
-                        <span>{t('playerProfile.substitute')}</span>
-                      )}
-                    </Badge>
+                  {/* Доп. плитка с голами справа */}
+                  <div className="w-[110px] h-[56px] bg-cyan-100/[0.025] rounded-md px-2 py-2 shadow-sm flex flex-col items-stretch justify-center">
+                    <div className="grid grid-cols-4 gap-1 w-full justify-items-center">
+                      <span role="img" aria-label="goal" className="text-[14px] leading-none select-none">⚽</span>
+                      <span role="img" aria-label="assist" className="text-[14px] leading-none select-none">👟</span>
+                      {/* Желтая/красная карточки — прямоугольные как настоящие */}
+                      <span aria-label="yellow-card" className="inline-block w-3 h-4 rounded-[1px] bg-yellow-400 border border-yellow-300 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.12)]"></span>
+                      <span aria-label="red-card" className="inline-block w-3 h-4 rounded-[1px] bg-red-500 border border-red-400 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.12)]"></span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-1 w-full justify-items-center mt-1">
+                      <span className={`text-[11px] font-semibold ${getDimTextClass(Math.max(0, Number(match.goals) || 0))}`}>{Math.max(0, Number(match.goals) || 0)}</span>
+                      <span className={`text-[11px] font-semibold ${getDimTextClass(Math.max(0, Number(match.assists) || 0))}`}>{Math.max(0, Number(match.assists) || 0)}</span>
+                      <span className={`text-[11px] font-semibold ${getDimTextClass(Math.max(0, Number(match.yellowCards) || 0))}`}>{Math.max(0, Number(match.yellowCards) || 0)}</span>
+                      <span className={`text-[11px] font-semibold ${getDimTextClass(Math.max(0, Number(match.redCards) || 0))}`}>{Math.max(0, Number(match.redCards) || 0)}</span>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
-        <div className="w-[420px] h-[480px] bg-vista-dark/40 rounded-md shadow-md flex flex-col p-6 relative">
+        <div className="w-full h-[480px] bg-vista-dark/40 rounded-md shadow-md flex flex-col p-6 relative">
           <div className="flex flex-row justify-between items-start mb-4">
             <span className="text-xl font-semibold text-vista-light tracking-tight">{t('playerProfile.test_results')}</span>
             <button className="bg-vista-primary text-vista-dark rounded-md px-4 py-1.5 text-sm font-medium shadow hover:bg-vista-primary/90 transition">{t('playerProfile.all_tests')}</button>
@@ -1182,23 +1313,61 @@ export default function PlayerProfilePage() {
             })}
           </div>
         </div>
-        <div className="w-[420px] h-[480px] bg-vista-dark/40 rounded-md shadow-md flex flex-col p-6 relative">
-          <div className="flex flex-row justify-between items-start mb-4">
+        <div className="w-full h-[480px] bg-vista-dark/40 rounded-md shadow-md flex flex-col p-6 relative">
+          <div className="flex flex-row justify-between items-center mb-4 gap-3">
             <span className="text-xl font-semibold text-vista-light tracking-tight">Игровая модель</span>
+            <div className="ml-auto min-w-[200px]">
+              <Select value={selectedGpsProfileId} onValueChange={setSelectedGpsProfileId}>
+                <SelectTrigger className="w-full bg-vista-dark-lighter border-vista-secondary/30 text-vista-light h-8 text-sm">
+                  <SelectValue placeholder={isLoadingProfiles ? 'Загрузка…' : 'Профиль визуализации'} />
+                </SelectTrigger>
+                <SelectContent className="bg-vista-dark border-vista-secondary/30 text-vista-light max-h-64 overflow-auto">
+                  {gpsProfiles.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="flex flex-col items-center justify-center flex-1 text-center">
-            <BarChart3 className="w-16 h-16 text-vista-light/30 mb-4" />
-            <p className="text-vista-light/50 text-sm mb-2">Анализ игровой модели</p>
-            <p className="text-vista-light/40 text-xs mb-4">
-              Анализ игровой модели игрока
-            </p>
-            <Button
-              onClick={() => setShowGameModelModal(true)}
-              className="bg-vista-primary hover:bg-vista-primary/80 text-white px-6 py-2"
-            >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Открыть модель
-            </Button>
+
+          {/* Содержимое блока игровой модели */}
+          <div className="flex-1 overflow-y-auto">
+            {isLoadingGameModel ? (
+              <div className="space-y-3 mt-2">
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full rounded bg-vista-secondary/10" />
+                ))}
+              </div>
+            ) : !gameModelData ? (
+              <div className="h-full flex flex-col items-center justify-center text-center">
+                <BarChart3 className="w-16 h-16 text-vista-light/30 mb-4" />
+                <p className="text-vista-light/50 text-sm">Нет рассчитанной игровой модели</p>
+              </div>
+            ) : !selectedGpsProfileId || profileColumns.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center">
+                <p className="text-vista-light/50 text-sm">Выберите профиль визуализации</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {profileColumns.map((col) => {
+                  if (!col.isVisible || !col.canonicalMetricCode) return null;
+                  const perMinute = gameModelData.metrics?.[col.canonicalMetricCode];
+                  if (typeof perMinute !== 'number') return null; // не выводим неусредняемые метрики
+                  const value90InCanonical = perMinute * 90;
+                  const converted = convertUnit(value90InCanonical, col.canonicalUnit, col.displayUnit);
+                  const precision = getPrecision(col.displayUnit);
+                  const formatted = typeof converted === 'number' ? formatValueOnly(converted, precision) : String(converted);
+                  return (
+                    <div key={col.id} className="bg-cyan-100/5 rounded-md px-3 py-2 flex flex-col">
+                      <span className="text-[11px] text-vista-light/70 truncate" title={col.displayName}>{col.displayName}</span>
+                      <span className="text-vista-primary text-lg font-semibold mt-1">
+                        {formatted} <span className="text-xs text-vista-light/70 font-normal">{col.displayUnit}</span>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1213,32 +1382,7 @@ export default function PlayerProfilePage() {
         onDocumentUpload={handleDocumentUpload as (file: File, type: string) => Promise<{ imageUrl?: string }>}
         onDocumentDelete={handleDocumentDelete}
       />
-
-      {/* Игровая модель */}
-      {player && (
-        <PlayerGameModelModal
-          isOpen={showGameModelModal}
-          onClose={() => setShowGameModelModal(false)}
-          playerId={player.id}
-          playerName={`${player.firstName} ${player.lastName}`}
-          onOpenSettings={() => setShowGameModelSettingsModal(true)}
-        />
-      )}
-
-      {/* Настройки игровой модели */}
-      {player && (
-        <PlayerGameModelSettingsModal
-          isOpen={showGameModelSettingsModal}
-          onClose={() => setShowGameModelSettingsModal(false)}
-          playerId={player.id}
-          onSave={(settings) => {
-            console.log('Settings saved, closing modal:', settings);
-            setShowGameModelSettingsModal(false);
-            // Настройки будут автоматически загружены при следующем открытии игровой модели
-          }}
-        />
-      )}
-
+      
     </div>
   );
 } 

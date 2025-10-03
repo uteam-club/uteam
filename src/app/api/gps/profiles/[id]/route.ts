@@ -59,6 +59,7 @@ export async function GET(
         canonicalMetricId: col.canonicalMetricId,
         canonicalMetricCode: col.canonicalMetricCode,
         canonicalMetricName: col.canonicalMetricName,
+        canonicalUnit: col.canonicalUnit,
         displayName: col.displayName,
         displayUnit: col.displayUnit,
         displayOrder: col.displayOrder,
